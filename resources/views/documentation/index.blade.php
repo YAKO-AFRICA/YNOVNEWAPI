@@ -717,9 +717,9 @@ console.warn = function() {
 const API_DATA = {
     environments: {
         local: { url: 'http://localhost:8000/api/v1', label: 'Local' },
-        dev: { url: 'https://dev-api.ynov.ci/api/v1', label: 'Development' },
-        test: { url: 'https://test-api.ynov.ci/api/v1', label: 'Test' },
-        staging: { url: 'https://staging-api.ynov.ci/api/v1', label: 'Staging' },
+        dev: { url: 'https://apidev.yakoafricassur.com/api/v1', label: 'Development' },
+        test: { url: 'https://apidev.yakoafricassur.com/api/v1', label: 'Test' },
+        staging: { url: 'https://apidev.yakoafricassur.com/api/v1', label: 'Staging' },
         production: { url: 'https://api.ynov.ci/api/v1', label: 'Production', protected: true }
     },
 
