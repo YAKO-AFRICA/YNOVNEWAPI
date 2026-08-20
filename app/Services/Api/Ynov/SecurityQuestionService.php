@@ -460,58 +460,6 @@ class SecurityQuestionService
     /**
      * Vérifier une réponse de sécurité
      */
-    // public function verifyAnswer(User $user, string $questionUuid, string $answer): bool
-    // {
-    //     // Récupérer la réponse de l'utilisateur
-    //     $userAnswer = UserSecurityAnswer::where('user_uuid', $user->uuid_user)
-    //         ->where('security_question_uuid', $questionUuid)
-    //         ->first();
-
-    //     if (!$userAnswer) {
-    //         $this->logFailedAttempt($user, $questionUuid, 'question_not_found');
-    //         return false;
-    //     }
-
-    //     // Vérifier si l'utilisateur a dépassé le nombre maximum de tentatives
-    //     if ($userAnswer->hasExceededMaxAttempts(self::MAX_ATTEMPTS)) {
-    //         $this->logFailedAttempt($user, $questionUuid, 'max_attempts_exceeded');
-    //         throw new \RuntimeException(
-    //             "Trop de tentatives de vérification. Veuillez contacter l'administrateur.",
-    //             429
-    //         );
-    //     }
-
-    //     // Normaliser et vérifier la réponse
-    //     $normalizedAnswer = $this->normalizeAnswer($answer);
-    //     $isValid = Hash::check($normalizedAnswer, $userAnswer->answer_hash);
-
-    //     // Mettre à jour les statistiques
-    //     $userAnswer->increment('verification_attempts');
-    //     $userAnswer->update(['last_attempt_at' => now()]);
-
-    //     if ($isValid) {
-    //         $userAnswer->update(['verified_at' => now()]);
-    //     }
-
-    //     // Journaliser le résultat
-    //     if ($isValid) {
-    //         ActivityLog::log([
-    //             'user_uuid' => $user->uuid_user,
-    //             'action' => 'security_question_verified',
-    //             'action_type' => 'security',
-    //             'module' => 'security',
-    //             'description' => "Vérification réussie d'une question de sécurité.",
-    //             'level' => 'info',
-    //             'metadata' => [
-    //                 'question_uuid' => $questionUuid,
-    //             ],
-    //         ]);
-    //     } else {
-    //         $this->logFailedAttempt($user, $questionUuid, 'invalid_answer');
-    //     }
-
-    //     return $isValid;
-    // }
 
     public function verifyAnswers(User $user, array $questions): array
     {

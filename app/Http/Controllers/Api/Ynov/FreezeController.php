@@ -123,6 +123,7 @@ class FreezeController extends Controller
                 'user' => [
                     'uuid_user' => $user->uuid_user,
                     'email' => $user->email,
+                    'login' => $user->login,
                     'status' => $user->status,
                 ],
                 'freeze' => $freeze,

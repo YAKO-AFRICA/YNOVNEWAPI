@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
+use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FreezeController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
@@ -221,6 +222,13 @@ Route::prefix('v1')->middleware([
             Route::get('freeze-logs', [AuditLogController::class, 'getFreezeLogs']);
             Route::get('stats', [AuditLogController::class, 'getActivityStats']);
         });
+    });
+
+
+    // Route protégée espaces client
+    Route::prefix('espaces-client')->group(function () {
+        Route::get('dashboard',[CustomerController::class, 'index']);
+        
     });
 });
 

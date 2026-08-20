@@ -212,7 +212,7 @@ class PasswordController extends Controller
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
         // $user = User::where('email', $request->email)->first();
-        $user = User::where('email', $request->login)->orwhere('login', $request->login)->first();
+        $user = User::where('login', $request->login)->first();
 
         
         // Générer un token même si l'utilisateur n'existe pas
@@ -220,10 +220,9 @@ class PasswordController extends Controller
         $token = Str::random(64);
         
         if ($user) {
-            Log::info('forgotddddd', [$user]);
             // L'utilisateur existe : on stocke le token
             DB::table('password_reset_tokens')->updateOrInsert(
-                ['login' => $user->email ?? $user->login],
+                ['login' => $user->login],
                 [
                     'token' => Hash::make($token),
                     'created_at' => now(),
@@ -249,11 +248,14 @@ class PasswordController extends Controller
                 ]);
             }
 
-            Mail::to($user->email)->queue(new PasswordResetMail(
-                $user->fresh('details'),
-                $token,
-                60
-            ));
+            if ($user->email) {
+                
+                Mail::to($user->email)->queue(new PasswordResetMail(
+                    $user->fresh('details'),
+                    $token,
+                    60
+                ));
+            }
         } else {
             // ================================================================
             // CORRECTION #2 : Opération coûteuse factice pour uniformiser le temps
@@ -286,7 +288,7 @@ class PasswordController extends Controller
         // CORRECTION #3 : Utilisation de expires_at
         // ================================================================
         $record = DB::table('password_reset_tokens')
-            ->where('login', $request->email ?? $request->login)
+            ->where('login', $request->login)
             ->first();
 
         // Vérification du token avec Hash::check ET vérification de l'expiration
@@ -297,7 +299,7 @@ class PasswordController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->orWhere('login', $request->login)->firstOrFail();
+        $user = User::where('login', $request->login)->firstOrFail();
 
         // Vérification de l'historique des mots de passe
         if (!$this->passwordService->validateHistory($user, $request->password)) {
@@ -327,7 +329,7 @@ class PasswordController extends Controller
         }
 
         // Suppression du token utilisé
-        DB::table('password_reset_tokens')->where('login', $request->email ?? $request->login)->delete();
+        DB::table('password_reset_tokens')->where('login', $request->login)->delete();
 
         return response()->json([
             'success' => true,

@@ -641,51 +641,7 @@ class SecurityQuestionController extends Controller
     }
 
 
-    /**
-     * @OA\Post(
-     *     path="/security/verify-email",
-     *     operationId="securityVerifyEmail",
-     *     tags={"Security Questions"},
-     *     summary="Vérifier un email et récupérer les questions de sécurité associées (récupération de compte)",
-     *     description="Endpoint **public**, première étape du parcours de récupération de compte par questions de sécurité (alternative à /auth/forgot-password). **Point de vigilance sécurité important** : contrairement à `/auth/forgot-password` qui retourne toujours le même message générique (`Si cet email existe, un lien a été envoyé.`) pour éviter l'énumération de comptes, cet endpoint retourne une **erreur 404 explicite** si l'email n'existe pas (`'Email non trouvé.'`), et révèle `has_questions` (booléen) ainsi que la liste des questions configurées si l'email existe. **Ceci constitue une fuite d'information exploitable pour énumérer les comptes existants et connaître leur niveau de configuration sécurité** — à signaler comme incohérence de sécurité par rapport au reste de l'API, qui applique systématiquement le principe anti-énumération ailleurs (login, forgot-password). Rate-limité à 5 requêtes / 5 minutes par IP (`ThrottleService`, appliqué **après** la recherche utilisateur, donc n'empêche pas un premier essai de révéler l'information avant que la limite ne s'active) — de plus, le rate limit du contrôleur (`ThrottleService`, clé par IP) s'ajoute au `throttle:5,15` déjà posé sur la route, ce qui applique deux limites différentes en parallèle.",
-     *     security={},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"email"},
-     *             @OA\Property(property="email", type="string", format="email", example="jean.dupont@yako-africa.ci", description="Doit exister dans la table users (règle 'exists:users,email' — voir remarque de sécurité dans la description de l'endpoint).")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Email trouvé — informations de configuration des questions de sécurité révélées.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="user_uuid", type="string", format="uuid"),
-     *                 @OA\Property(property="has_questions", type="boolean"),
-     *                 @OA\Property(property="questions", type="array", @OA\Items(type="object"), description="Liste vide si has_questions=false, sinon structure identique à GET /security/user-questions.")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Email non trouvé dans le système — révèle explicitement l'absence du compte (voir avertissement de sécurité dans la description).",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=false), @OA\Property(property="message", type="string", example="Email non trouvé."))
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Format d'email invalide (le message '404 Email non trouvé' du contrôleur est en réalité retourné aussi pour un échec de la règle 'exists', voir description).",
-     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
-     *     ),
-     *     @OA\Response(
-     *         response=429,
-     *         description="Rate limit dépassé (5 tentatives / 5 minutes par IP, ThrottleService + throttle:5,15 de la route).",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=false), @OA\Property(property="message", type="string", example="Trop de tentatives. Veuillez patienter."), @OA\Property(property="code", type="string", example="TOO_MANY_ATTEMPTS"))
-     *     )
-     * )
-     */
-    /**
+    /* 
      * Vérifier si un utilisateur a des questions de sécurité configurées
      */
     public function verifyEmail(Request $request): JsonResponse
@@ -701,7 +657,7 @@ class SecurityQuestionController extends Controller
             ], 404);
         }
 
-        $user = User::where('email', $request->email)->orWhere('login', $request->login)->first();
+        $user = User::where('login', $request->login)->first();
         $questions = $this->securityQuestionService->getQuestionsForUser($user);
         $hasQuestions = count($questions) > 0;
 
@@ -758,9 +714,8 @@ class SecurityQuestionController extends Controller
             ], 422);
         }
 
-        // Recherche par email OU login
-        $user = User::where('email', $request->login)
-            ->orWhere('login', $request->login)
+        // Recherche par login
+        $user = User::where('login', $request->login)
             ->first();
 
         if (!$user) {
@@ -827,7 +782,7 @@ class SecurityQuestionController extends Controller
 
             DB::table('password_reset_tokens')->updateOrInsert(
                 [
-                    'login' => $user->email ?? $user->login,
+                    'login' => $user->login,
                 ],
                 [
                     'token' => $hashedToken,
