@@ -10,6 +10,7 @@ class UserDetailResource extends JsonResource
     {
         return [
             'uuid_user_details' => $this->uuid_user_details,
+            'uuid_user' => $this->uuid_user,
             'code_agent' => $this->code_agent,
             'matricule' => $this->matricule,
             'nom' => $this->nom,

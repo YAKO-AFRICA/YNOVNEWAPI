@@ -5,6 +5,7 @@ use App\Mail\Api\Ynov\NewDeviceMail;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDevice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -58,14 +59,9 @@ class DeviceService
 
     public function revoke(User $user, string $uuidDevice): bool
     {
-        $device = UserDevice::where('user_uuid', $user->uuid_user)
+        return UserDevice::query()
+            ->where('user_uuid', $user->uuid_user)
             ->where('uuid_device', $uuidDevice)
-            ->first();
-
-        if ($device) {
-            $device->delete();
-            return true;
-        }
-        return false;
+            ->delete() > 0;
     }
 }

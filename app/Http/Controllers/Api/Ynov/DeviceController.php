@@ -7,6 +7,7 @@ use App\Mail\Api\Ynov\DeviceRevokedMail;
 use App\Services\Api\Ynov\Auth\DeviceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class DeviceController extends Controller
@@ -22,6 +23,7 @@ class DeviceController extends Controller
         ]);
     }
 
+    // 
     public function trust(Request $request, string $uuidDevice): JsonResponse
     {
         $device = $request->user()->devices()->where('uuid_device', $uuidDevice)->firstOrFail();
@@ -29,27 +31,56 @@ class DeviceController extends Controller
         $device->update(['is_trusted' => true, 'trusted_at' => now()]);
         return response()->json(['success' => true, 'message' => 'Appareil approuvé.']);
     }
+
     public function revoke(Request $request, string $uuidDevice): JsonResponse
     {
         $user = $request->user();
-        $device = $user->devices()->where('uuid_device', $uuidDevice)->first();
+
+        $device = $user->devices()
+            ->where('uuid_device', $uuidDevice)
+            ->first();
 
         if (!$device) {
-            return response()->json(['success' => false, 'message' => 'Appareil non trouvé.'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Appareil non trouvé.',
+            ], 404);
         }
 
-        // Copie avant suppression pour le mail (le modèle sera supprimé après)
-        $deviceSnapshot = $device->replicate();
+        /**
+         * IMPORTANT :
+         * On récupère les données avant suppression.
+         * On ne passe PAS un modèle Eloquent au Mailable.
+         */
+        $deviceData = [
+            'uuid_device' => $device->uuid_device,
+            'device_name' => $device->device_name,
+            'device_type' => $device->device_type,
+            'os' => $device->os,
+            'browser' => $device->browser,
+        ];
 
         $success = $this->deviceService->revoke($user, $uuidDevice);
 
-        if ($success && $user->email) {
-            Mail::to($user->email)->queue(new DeviceRevokedMail($user->fresh('details'), $deviceSnapshot));
+        if (!$success) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de révoquer l’appareil.',
+            ], 500);
+        }
+
+        if ($user->email) {
+            Mail::to($user->email)->queue(
+                new DeviceRevokedMail(
+                    $user->fresh('details'),
+                    $deviceData
+                )
+            );
         }
 
         return response()->json([
-            'success' => $success,
-            'message' => $success ? 'Appareil révoqué.' : 'Appareil non trouvé.',
-        ], $success ? 200 : 404);
+            'success' => true,
+            'message' => 'Appareil révoqué avec succès.',
+        ]);
     }
 }
