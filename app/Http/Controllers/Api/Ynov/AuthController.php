@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Ynov;
 use App\Exceptions\Api\Ynov\AccountFrozenException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\LoginRequest;
-use App\Http\Requests\Api\Ynov\RegisterRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
 use App\Mail\Api\Ynov\SessionRevokedMail;
 use App\Models\Api\Ynov\parameter\ActivityLog;
@@ -12,6 +11,7 @@ use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\AuthService;
 use App\Services\Api\Ynov\Auth\DeviceService;
 use App\Services\Api\Ynov\UserService;
+use App\Services\EncaissementBisService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +23,7 @@ class AuthController extends Controller
         private AuthService $authService,
         private DeviceService $deviceService,
         private UserService $userService,
+        private EncaissementBisService $encaissementBisService
     ) {}
 
     
@@ -125,23 +126,104 @@ class AuthController extends Controller
         ]);
     }
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function getRegisterData(Request $request): JsonResponse
     {
         try {
-            $user = $this->userService->createClient($request->validated());
+            $result = $this->encaissementBisService->getContrat($request->idcontrat);
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 422);
+            }
+
+            $data = $result['data'];
+            $dataRequired = [
+                'details' => $data['details'][0],
+                'autreContrat' => $data['autreContrat'],
+                'contactsPersonne' => $data['contactsPersonne'],
+                'InfoPiecePersonson' => $data['InfoPiecePersonson'],
+            ];
+
+            if ($data['details'][0]['DateNaissance'] != $request->datenaissance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.',
+                ], 422);
+            }
+
+            if ($data['details'][0]['OnStdbyOff'] == "3") {
+                return response()->json([
+                    'type' => 'error',
+                    'urlback' => '',
+                    'message' => 'Ce contrat est arreté.',
+                ], 422);
+            }
             
             return response()->json([
                 'success' => true,
-                'message' => 'Inscription réussie. Veuillez vérifier votre email.',
-                'data' => new UserResource($user->load('details')),
-            ], 201);
-        } catch (\Exception $e) {
+                'message' => 'Contrat trouvé.',
+                'data' => $dataRequired
+
+            ]);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         }
     }
+
+    public function register(Request $request): JsonResponse
+    {
+        try {
+
+            $user = $this->userService->createClient(
+                $request->all()
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inscription réussie. '
+                    . 'Vos paramètres de connexion ont été envoyés.',
+                'data' => new UserResource(
+                    $user->load('details')
+                ),
+            ], 201);
+
+        } catch (\Throwable $e) {
+
+            logger()->error(
+                'Erreur création client',
+                [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+    // public function register(RegisterRequest $request): JsonResponse
+    // {
+    //     try {
+    //         $user = $this->userService->createClient($request->validated());
+            
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Inscription réussie. Veuillez vérifier votre email.',
+    //             'data' => new UserResource($user->load('details')),
+    //         ], 201);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => $e->getMessage(),
+    //         ], 422);
+    //     }
+    // }
 
 
     public function me(Request $request): JsonResponse
@@ -155,6 +237,20 @@ class AuthController extends Controller
             'groupNotifs',
             'userContrats'
         ]);
+        // Log::info($user);
+
+        // $result = $this->encaissementBisService->getContrat($request->idcontrat);
+        //     // if (!$result['success']) {
+        //     //     return response()->json([
+        //     //         'success' => false,
+        //     //         'message' => $result['message'],
+        //     //     ], 422);
+        //     // }
+
+        //     $data = $result['data'];
+        //     $dataRequired = [
+        //         'anciennete' => $data['anciennete'],
+        //     ];
 
         $user->setAttribute('permissions_grouped', $user->getGroupedPermissions());
 

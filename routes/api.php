@@ -39,6 +39,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
 
     Route::post('auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:login');

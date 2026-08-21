@@ -63,6 +63,7 @@ class User extends Authenticatable
         'blocked_at',
         'two_factor_secret',
         'two_factor_enabled',
+        'two_factor_method',
         'two_factor_recovery_codes',
         'preferences',
         'metadata',

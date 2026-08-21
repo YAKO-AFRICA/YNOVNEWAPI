@@ -19,6 +19,7 @@ class UserDetails extends Model
         'uuid_user_details',
         'code_agent',
         'matricule',
+        'numero_client',
         'user_uuid',
         'nom',
         'prenoms',

@@ -197,53 +197,11 @@ use Illuminate\Http\Request;
 class UserController extends Controller
 {
     public function __construct(
-        private UserService $userService,
+        private readonly UserService $userService
     ) {}
 
 
-    /**
-     * @OA\Get(
-     *     path="/users",
-     *     operationId="usersIndex",
-     *     tags={"Users"},
-     *     summary="Lister les utilisateurs (portée selon le contexte de l'appelant)",
-     *     description="Protégé par la permission `users.afficher`. La visibilité des résultats dépend du profil de l'appelant :
-        - Super Admin : voit tous les utilisateurs sans restriction.
-        - Utilisateur rattaché à un partenaire (`partner_uuid`) : voit uniquement les utilisateurs du même partenaire.
-        - Utilisateur rattaché à un réseau (`reseau_uuid`) : voit uniquement les utilisateurs du même réseau.
-        - Utilisateur sans portée partenaire ni réseau mais rattaché à une ou plusieurs agences : voit uniquement les utilisateurs partageant au moins une de ses agences.
-        - Utilisateur sans aucune portée (ni partenaire, ni réseau, ni agence) : ne voit que lui-même.
-
-        Chargé avec les relations role, details, partner, reseau, agences. Trié par date de création décroissante, paginé.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="per_page",
-     *         in="query",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=20, minimum=1),
-     *         example=20
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Liste paginée des utilisateurs visibles par l'appelant.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="object",
-     *                 description="Pagination Laravel standard enveloppant UserResource::collection().",
-     *                 @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/User")),
-     *                 @OA\Property(property="current_page", type="integer"),
-     *                 @OA\Property(property="last_page", type="integer"),
-     *                 @OA\Property(property="per_page", type="integer"),
-     *                 @OA\Property(property="total", type="integer")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.afficher' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse"))
-     * )
-     */
+    
     /**
      * ================================================================
      * CORRECTION #18 : Ajout d'une Policy pour centraliser les contrôles d'accès
@@ -285,52 +243,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/users",
-     *     operationId="usersStore",
-     *     tags={"Users"},
-     *     summary="Créer un utilisateur (interne, partenaire ou admin)",
-     *     description="Protégé par la permission `users.creer`. Contrairement à /auth/register (client public), cet endpoint permet de créer tout type d'utilisateur avec assignation explicite du rôle. Crée en transaction l'utilisateur ET son UserDetails associé. Attache optionnellement une agence principale (is_primary=true). Envoie WelcomeMail. Le mot de passe expire après 90 jours et is_first_login=true (déclenchera le flux de changement de mot de passe obligatoire à la première connexion).",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"email","password","role_uuid","user_type","nom","prenoms"},
-     *             @OA\Property(property="email", type="string", format="email", example="agent.commercial@yako-africa.ci", description="Doit être unique."),
-     *             @OA\Property(property="login", type="string", maxLength=100, nullable=true, description="Doit être unique si fourni."),
-     *             @OA\Property(property="password", type="string", format="password", minLength=12, example="Passw0rd#Init!", description="Complexité renforcée (Password::min(12)->mixedCase()->numbers()->symbols())."),
-     *             @OA\Property(property="role_uuid", type="string", format="uuid", description="Doit correspondre à un rôle existant."),
-     *             @OA\Property(property="user_type", type="string", enum={"client","user_interne","user_partner","admin"}),
-     *             @OA\Property(property="partner_uuid", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="reseau_uuid", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="agence_uuid", type="string", format="uuid", nullable=true, description="Si fourni, l'utilisateur est attaché à cette agence en tant qu'agence principale (is_primary=true)."),
-     *             @OA\Property(property="nom", type="string", maxLength=55, example="Kouassi"),
-     *             @OA\Property(property="prenoms", type="string", maxLength=255, example="Awa"),
-     *             @OA\Property(property="fonction", type="string", maxLength=55, nullable=true),
-     *             @OA\Property(property="mobile_1", type="string", maxLength=25, nullable=true),
-     *             @OA\Property(property="genre", type="string", enum={"M","F"}, nullable=true),
-     *             @OA\Property(property="civilite", type="string", maxLength=20, nullable=true),
-     *             @OA\Property(property="date_naissance", type="string", format="date", nullable=true),
-     *             @OA\Property(property="lieu_naissance", type="string", maxLength=55, nullable=true),
-     *             @OA\Property(property="lieu_residence", type="string", maxLength=255, nullable=true),
-     *             @OA\Property(property="photo", type="string", format="binary", nullable=true, description="Upload d'image (max 2Mo) — contrairement à PUT /profile qui attend une string.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Utilisateur créé.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Utilisateur créé."),
-     *             @OA\Property(property="data", ref="#/components/schemas/User")
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.creer' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=422, description="Email/login déjà utilisé, rôle inexistant, ou échec de validation.", @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse"))
-     * )
-     */
     public function store(StoreUserRequest $request): JsonResponse
     {
         $user = $this->userService->create(
@@ -357,26 +269,6 @@ class UserController extends Controller
         ], 201);
     }
 
-
-    /**
-     * @OA\Get(
-     *     path="/users/{uuid_user}",
-     *     operationId="usersShow",
-     *     tags={"Users"},
-     *     summary="Afficher le détail d'un utilisateur",
-     *     description="Protégé par la permission `users.afficher`. **Aucune vérification de portée** (contrairement à /users index) — n'importe quel utilisateur disposant de la permission peut consulter le détail de n'importe quel autre utilisateur par UUID, même en dehors de son partenaire/réseau/agence. À signaler comme incohérence potentielle avec la logique de scoping appliquée sur l'index.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(name="uuid_user", in="path", required=true, @OA\Schema(type="string", format="uuid")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Détail complet de l'utilisateur.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="data", ref="#/components/schemas/User"))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.afficher' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé (firstOrFail).", @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found")))
-     * )
-     */
     /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur show
@@ -410,43 +302,6 @@ class UserController extends Controller
         ]);
     }
 
-
-    /**
-     * @OA\Put(
-     *     path="/users/{uuid_user}",
-     *     operationId="usersUpdate",
-     *     tags={"Users"},
-     *     summary="Mettre à jour un utilisateur (administration)",
-     *     description="Protégé par la permission `users.modifier`. Tous les champs sont 'sometimes'. Permet de modifier le rôle, le type, le statut et le rattachement organisationnel — contrairement à PUT /profile réservé à l'auto-modification limitée.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(name="uuid_user", in="path", required=true, @OA\Schema(type="string", format="uuid")),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             @OA\Property(property="email", type="string", format="email"),
-     *             @OA\Property(property="login", type="string", maxLength=100, nullable=true),
-     *             @OA\Property(property="role_uuid", type="string", format="uuid"),
-     *             @OA\Property(property="user_type", type="string", enum={"client","user_interne","user_partner","admin"}),
-     *             @OA\Property(property="partner_uuid", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="reseau_uuid", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="status", type="string", enum={"actif","inactif","gele","bloque"}, description="Ne permet PAS de fixer 'suspendu' via cet endpoint, bien que cette valeur existe dans l'enum de la table users."),
-     *             @OA\Property(property="nom", type="string", maxLength=55),
-     *             @OA\Property(property="prenoms", type="string", maxLength=255),
-     *             @OA\Property(property="fonction", type="string", maxLength=55, nullable=true),
-     *             @OA\Property(property="mobile_1", type="string", maxLength=25, nullable=true)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Utilisateur mis à jour.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Utilisateur mis à jour."), @OA\Property(property="data", ref="#/components/schemas/User"))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.modifier' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé.", @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found"))),
-     *     @OA\Response(response=422, description="Email/login déjà utilisé par un autre compte, ou échec de validation.", @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse"))
-     * )
-     */
     /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur update
@@ -493,26 +348,6 @@ class UserController extends Controller
         ]);
     }
 
-
-    /**
-     * @OA\Delete(
-     *     path="/users/{uuid_user}",
-     *     operationId="usersDestroy",
-     *     tags={"Users"},
-     *     summary="Supprimer (désactiver) un utilisateur",
-     *     description="Protégé par la permission `users.supprimer`. **Ne s'agit pas d'une suppression physique** : passe le statut à 'inactif', enregistre deleted_by, applique le soft delete (deleted_at), et révoque tous les tokens Sanctum actifs de l'utilisateur.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(name="uuid_user", in="path", required=true, @OA\Schema(type="string", format="uuid")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Utilisateur désactivé/supprimé logiquement.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Utilisateur supprimé."))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.supprimer' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé.", @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found")))
-     * )
-     */
     /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur destroy
@@ -549,31 +384,6 @@ class UserController extends Controller
         return response()->json(['success' => true, 'message' => 'Utilisateur supprimé.']);
     }
 
-
-    /**
-     * @OA\Post(
-     *     path="/users/{uuid_user}/block",
-     *     operationId="usersBlock",
-     *     tags={"Users"},
-     *     summary="Bloquer un utilisateur",
-     *     description="Protégé par la permission `users.bloquer`. Passe le statut à 'bloque', enregistre le motif et l'auteur, révoque tous les tokens actifs, envoie AccountBlockedMail. Différent du gel (freeze) : le blocage est permanent jusqu'à déblocage manuel explicite, sans expiration automatique.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(name="uuid_user", in="path", required=true, @OA\Schema(type="string", format="uuid")),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(required={"reason"}, @OA\Property(property="reason", type="string", maxLength=500, example="Comportement suspect détecté par l'équipe sécurité."))
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Utilisateur bloqué.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Utilisateur bloqué."))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.bloquer' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé.", @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found"))),
-     *     @OA\Response(response=422, description="Motif manquant ou trop long.", @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse"))
-     * )
-     */
     /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur block
@@ -611,25 +421,6 @@ class UserController extends Controller
     }
 
 
-    /**
-     * @OA\Post(
-     *     path="/users/{uuid_user}/unblock",
-     *     operationId="usersUnblock",
-     *     tags={"Users"},
-     *     summary="Débloquer un utilisateur",
-     *     description="Protégé par la permission `users.bloquer` (même permission que le blocage — pas de permission distincte 'users.debloquer'). Réinitialise le statut à 'actif', efface les informations de blocage et de gel, réinitialise le compteur d'échecs, envoie AccountUnblockedMail.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(name="uuid_user", in="path", required=true, @OA\Schema(type="string", format="uuid")),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Utilisateur débloqué.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Utilisateur débloqué."))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'users.bloquer' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé.", @OA\JsonContent(@OA\Property(property="message", type="string", example="Not Found")))
-     * )
-     */
     /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur unblock

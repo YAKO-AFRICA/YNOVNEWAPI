@@ -728,6 +728,7 @@ const API_DATA = {
         auth: { label: 'Authentification', icon: 'fa-right-to-bracket' },
         password: { label: 'Mots de Passe', icon: 'fa-key' },
         '2fa': { label: 'Double Authentification', icon: 'fa-shield-halved' },
+        contrats: { label: 'Contrats', icon: 'fa-file-contract' },
         profile: { label: 'Profil & Sessions', icon: 'fa-user' },
         security: { label: 'Questions de Sécurité', icon: 'fa-question-circle' },
         users: { label: 'Gestion des Utilisateurs', icon: 'fa-users' },
@@ -752,14 +753,105 @@ const API_DATA = {
             isHome: true
         },
 
+
         // ============================================================
-        // AUTHENTIFICATION — PUBLIQUES
+        // AUTHENTIFICATION — INSCRIPTION CLIENT AVEC CONTRAT
         // ============================================================
         {
-            id: 'auth-register',
+            id: 'auth-get-register-data',
             module: 'auth',
-            name: 'Inscription',
-            description: 'Permet à un nouvel utilisateur de créer un compte client. Le rôle par défaut (is_default = true) doit exister dans la base.',
+            name: 'Vérifier un contrat avant inscription',
+            description: 'Permet de vérifier les informations d\'un contrat avant l\'inscription d\'un client. Vérifie que le contrat existe, que la date de naissance correspond, et que le contrat n\'est pas arrêté (OnStdbyOff != "3"). Retourne les informations complètes du contrat (détails, encaissements, ancienneté client).',
+            method: 'POST',
+            path: '/auth/get-register-data',
+            isProtected: false,
+            rateLimit: 'throttle:6,1 (6 tentatives / minute)',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            requestParams: {
+                body: {
+                    idcontrat: { type: 'string', required: true, description: 'Identifiant du contrat (IdProposition)' },
+                    datenaissance: { type: 'date', required: true, format: 'Y-m-d', description: 'Date de naissance du titulaire (doit correspondre à celle du contrat)' }
+                }
+            },
+            exampleRequest: {
+                idcontrat: 'PROP2024001',
+                datenaissance: '1990-05-15'
+            },
+            invalidExample: {
+                idcontrat: 'PROP2024001',
+                datenaissance: '1991-05-15'
+            },
+            invalidReason: 'La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.',
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'Contrat trouvé et valide', 
+                    example: {
+                        success: true,
+                        message: 'Contrat trouvé.',
+                        data: {
+                            details: [{
+                                IdProposition: 'PROP2024001',
+                                DateNaissance: '1990-05-15',
+                                OnStdbyOff: '0',
+                                TotalPrime: 150000.00,
+                                CapitalSouscrit: 5000000.00,
+                                NbreEncaissment: 12,
+                                TotalEncaissement: 1800000.00,
+                                NbreImpayes: 0,
+                                TotalImpayes: 0
+                            }],
+                            autreContrat: [
+                                {
+                                    IdProposition: 'PROP2024002',
+                                    DateNaissance: '1990-05-15',
+                                    OnStdbyOff: '0',
+                                    TotalPrime: 150000.00,
+                                    CapitalSouscrit: 5000000.00,
+                                    NbreEncaissment: 12,
+                                    TotalEncaissement: 1800000.00,
+                                    NbreImpayes: 0,
+                                    TotalImpayes: 0
+                                }
+                            ],
+                            contactsPersonne: [],
+                            InfoPiecePersonson: []
+                        }
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Contrat arrêté (OnStdbyOff = "3")', 
+                    example: {
+                        type: 'error',
+                        urlback: '',
+                        message: 'Ce contrat est arreté.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Date de naissance incorrecte', 
+                    example: {
+                        success: false,
+                        message: 'La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Contrat non trouvé ou service indisponible', 
+                    example: {
+                        success: false,
+                        message: 'Service de recuperation des informations du contrat indisponible.'
+                    }
+                }
+            ]
+        },
+
+        {
+            id: 'auth-register-client',
+            module: 'auth',
+            name: 'Inscription client avec contrat',
+            description: 'Permet à un client de s\'inscrire après avoir vérifié son contrat. Le mot de passe est généré automatiquement (12 caractères aléatoires) et envoyé par email ou SMS selon les informations disponibles. Crée l\'utilisateur (rôle "client"), ses détails et associe les contrats.',
             method: 'POST',
             path: '/auth/register',
             isProtected: false,
@@ -767,25 +859,148 @@ const API_DATA = {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
-                    prenoms: { type: 'string', required: true, max: 255, description: 'Prénoms' },
-                    nom: { type: 'string', required: true, max: 55, description: 'Nom' },
-                    email: { type: 'email', required: true, max: 100, description: 'Email (unique:users,email)' },
-                    login: { type: 'string', required: false, max: 100, description: 'Identifiant (unique:users,login)' },
-                    mobile_1: { type: 'string', required: false, max: 25, description: 'Téléphone' },
-                    password: { type: 'string', required: true, min: 8, description: 'Mot de passe (confirmed)' },
-                    password_confirmation: { type: 'string', required: true, description: 'Confirmation' }
+                    // Identité
+                    prenoms: { type: 'string', required: true, max: 255, description: 'Prénoms du client' },
+                    nom: { type: 'string', required: true, max: 55, description: 'Nom du client' },
+                    date_naissance: { type: 'date', required: false, format: 'Y-m-d', description: 'Date de naissance' },
+                    lieu_naissance: { type: 'string', required: false, max: 55, description: 'Lieu de naissance' },
+                    genre: { type: 'string', required: false, enum: ['M', 'F'], description: 'Genre' },
+                    civilite: { type: 'string', required: false, max: 20, description: 'Civilité (M., Mme, Mlle, Dr, Pr)' },
+                    nationalite: { type: 'string', required: false, max: 55, description: 'Nationalité' },
+                    
+                    // Coordonnées
+                    email: { type: 'email', required: true, max: 100, description: 'Email (utilisé pour l\'envoi des identifiants si présent)' },
+                    login: { type: 'string', required: true, max: 100, description: 'Identifiant de connexion (unique:users,login)' },
+                    mobile_1: { type: 'string', required: true, max: 25, description: 'Téléphone principal (utilisé pour l\'envoi des identifiants si email absent)' },
+                    
+                    // Adresse
+                    ville: { type: 'string', required: false, max: 55, description: 'Ville' },
+                    code_postal: { type: 'string', required: false, max: 20, description: 'Code postal' },
+                    lieu_residence: { type: 'string', required: false, max: 55, description: 'Lieu de résidence' },
+                    pays: { type: 'string', required: false, max: 55, description: 'Pays' },
+                    
+                    // Profession
+                    fonction: { type: 'string', required: false, max: 55, description: 'Fonction professionnelle' },
+                    
+                    // Contrats (obtenus de get-register-data)
+                    contrats: { type: 'array', required: true, description: 'Liste des contrats à associer au client' },
+                    'contrats.*.IdProposition': { type: 'string', description: 'Identifiant du contrat' },
+                    'contrats.*.produit': { type: 'string', description: 'Libellé du produit' },
+                    'contrats.*.codeProduit': { type: 'string', description: 'Code du produit' },
+                    'contrats.*.CodeProduitFormule': { type: 'string', description: 'Code de la formule' },
+                    'contrats.*.ProduitFormule': { type: 'string', description: 'Libellé de la formule' },
+                    
+                    // Informations client
+                    numero_client: { type: 'string', required: false, description: 'Numéro client existant' },
+                    client_number: { type: 'string', required: false, description: 'Numéro client pour les contrats' }
                 }
             },
             exampleRequest: {
-                prenoms: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com',
-                login: 'jdupont', mobile_1: '+2250708091011',
-                password: 'MonPassword123!', password_confirmation: 'MonPassword123!'
+                prenoms: 'Jean',
+                nom: 'Dupont',
+                date_naissance: '1990-05-15',
+                lieu_naissance: 'Abidjan',
+                genre: 'M',
+                civilite: 'M.',
+                nationalite: 'Ivoirienne',
+                email: 'jean.dupont@example.com',
+                login: 'jdupont',
+                mobile_1: '+2250708091011',
+                ville: 'Abidjan',
+                code_postal: '01 BP 1234',
+                lieu_residence: 'Cocody',
+                pays: 'Côte d\'Ivoire',
+                fonction: 'Ingénieur',
+                numero_client: 'CLT2024001',
+                client_number: 'CLT2024001',
+                contrats: [
+                    {
+                        IdProposition: 'PROP2024001',
+                        produit: 'Assurance Vie Premium',
+                        codeProduit: 'AVP001',
+                        CodeProduitFormule: 'AVPF001',
+                        ProduitFormule: 'Formule Excellence'
+                    }
+                ]
             },
+            invalidExample: {
+                prenoms: 'Jean',
+                nom: 'Dupont',
+                email: 'jean.dupont@example.com',
+                login: 'jdupont',
+                contrats: []
+            },
+            invalidReason: 'Le tableau "contrats" doit contenir au moins un contrat, et les champs email/login/mobile sont obligatoires.',
             responses: [
-                { status: 201, description: 'Inscription réussie', example: { success: true, message: 'Inscription réussie. Veuillez vérifier votre email.', data: { uuid_user: '...' } } },
-                { status: 422, description: 'Erreur de validation (email/login déjà utilisé, mot de passe trop court...)', example: { success: false, message: 'Aucun rôle par défaut configuré.' } }
+                { 
+                    status: 201, 
+                    description: 'Inscription réussie — identifiants envoyés', 
+                    example: {
+                        success: true,
+                        message: 'Inscription réussie. Vos paramètres de connexion ont été envoyés.',
+                        data: {
+                            uuid_user: '...',
+                            email: 'jean.dupont@example.com',
+                            login: 'jdupont',
+                            user_type: 'client',
+                            status: 'actif'
+                        }
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Aucun rôle client configuré', 
+                    example: {
+                        success: false,
+                        message: 'Aucun rôle client configuré.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Erreur de validation', 
+                    example: {
+                        success: false,
+                        message: 'Données invalides.',
+                        errors: {
+                            email: ['Cet email est déjà utilisé.'],
+                            login: ['Cet identifiant est déjà utilisé.']
+                        }
+                    }
+                }
             ]
         },
+        
+        // {
+        //     id: 'auth-register',
+        //     module: 'auth',
+        //     name: 'Inscription',
+        //     description: 'Permet à un nouvel utilisateur de créer un compte client. Le rôle par défaut (is_default = true) doit exister dans la base.',
+        //     method: 'POST',
+        //     path: '/auth/register',
+        //     isProtected: false,
+        //     rateLimit: 'throttle:6,1 (6 tentatives / minute)',
+        //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             prenoms: { type: 'string', required: true, max: 255, description: 'Prénoms' },
+        //             nom: { type: 'string', required: true, max: 55, description: 'Nom' },
+        //             email: { type: 'email', required: true, max: 100, description: 'Email (unique:users,email)' },
+        //             login: { type: 'string', required: false, max: 100, description: 'Identifiant (unique:users,login)' },
+        //             mobile_1: { type: 'string', required: false, max: 25, description: 'Téléphone' },
+        //             password: { type: 'string', required: true, min: 8, description: 'Mot de passe (confirmed)' },
+        //             password_confirmation: { type: 'string', required: true, description: 'Confirmation' }
+        //         }
+        //     },
+        //     exampleRequest: {
+        //         prenoms: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com',
+        //         login: 'jdupont', mobile_1: '+2250708091011',
+        //         password: 'MonPassword123!', password_confirmation: 'MonPassword123!'
+        //     },
+        //     responses: [
+        //         { status: 201, description: 'Inscription réussie', example: { success: true, message: 'Inscription réussie. Veuillez vérifier votre email.', data: { uuid_user: '...' } } },
+        //         { status: 422, description: 'Erreur de validation (email/login déjà utilisé, mot de passe trop court...)', example: { success: false, message: 'Aucun rôle par défaut configuré.' } }
+        //     ]
+        // },
 
         {
             id: 'auth-login',

@@ -15,6 +15,11 @@ class UserContrat extends Model
         'uuid_user_contrat',
         'user_uuid',
         'contrat_id',
+        'client_number',
+        'code_produit',
+        'libelle_produit',
+        'code_produit_formule',
+        'libelle_produit_formule',
      ];
 
      public function user()

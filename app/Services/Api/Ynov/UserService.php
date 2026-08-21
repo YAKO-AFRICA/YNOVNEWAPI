@@ -7,6 +7,9 @@ use App\Mail\Api\Ynov\WelcomeMail;
 use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
+use App\Models\Api\Ynov\UserContrat;
+use App\Services\EncaissementBisService;
+use App\Services\SMSService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -14,6 +17,10 @@ use Illuminate\Support\Str;
 
 class UserService
 {
+    public function __construct(
+        // private OtpService $otpService,
+        private readonly SMSService $SMSService,
+    ) {}
     public function create(array $data, string $creatorUuid): User
     {
         return DB::transaction(function () use ($data, $creatorUuid) {
@@ -68,47 +75,233 @@ class UserService
         });
     }
 
-
     public function createClient(array $data): User
     {
-        return DB::transaction(function () use ($data) {
-            // Récupérer le rôle client par défaut
-            $defaultRole = Role::where('is_default', true)->first();
-            if (!$defaultRole) {
-                throw new \RuntimeException('Aucun rôle par défaut configuré.');
+        // Générer le mot de passe temporaire avant la transaction
+        $password = Str::random(12);
+        // $password = $data['password'];
+
+        $user = DB::transaction(function () use ($data, $password) {
+
+            // Récupérer le rôle client
+            $roleClient = Role::where('code', 'client')->first();
+
+            if (!$roleClient) {
+                throw new \RuntimeException(
+                    'Aucun rôle client configuré.'
+                );
             }
 
-            // Générer un login unique
-            $login = $data['login'] ?? $data['email'];
+            // Générer UUID
+            $uuidUser = (string) Str::uuid();
 
+            // Login
+            $login = $data['login'];
+
+            // Construire l'adresse complète
+            $adresseComplete = implode(', ', array_filter([
+                $data['ville'] ?? null,
+                $data['code_postal'] ?? null,
+                $data['lieu_residence'] ?? null,
+                $data['pays'] ?? null,
+            ]));
+
+            /*
+             * Création de l'utilisateur
+             */
             $user = User::create([
-                'uuid_user' => (string) Str::uuid(),
-                'email' => $data['email'],
+                'uuid_user' => $uuidUser,
+                'email' => $data['email'] ?? null,
                 'login' => $login,
-                'password' => Hash::make($data['password']),
-                'role_uuid' => $defaultRole->uuid_role,
+                'password' => Hash::make($password),
+
+                'role_uuid' => $roleClient->uuid_role,
                 'user_type' => 'client',
                 'status' => 'actif',
+
                 'is_first_login' => true,
+
                 'password_expires_at' => now()->addDays(90),
+
+                'created_by' => $uuidUser,
             ]);
 
+            /*
+             * Création des détails utilisateur
+             */
             UserDetails::create([
                 'uuid_user_details' => (string) Str::uuid(),
+
                 'user_uuid' => $user->uuid_user,
+
+                'numero_client' => $data['numero_client'] ?? null,
+
                 'nom' => $data['nom'],
                 'prenoms' => $data['prenoms'],
+
                 'mobile_1' => $data['mobile_1'] ?? null,
-                'email_pro' => $data['email'],
+
+                'email_pro' => $data['email'] ?? null,
+
+                'fonction' => $data['fonction'] ?? null,
+
+                'adresse_complete' => $adresseComplete,
+
+                'code_postal' => $data['code_postal'] ?? null,
+
+                'lieu_residence' => $data['lieu_residence'] ?? null,
+
+                'date_naissance' => $data['date_naissance'] ?? null,
+
+                'lieu_naissance' => $data['lieu_naissance'] ?? null,
+
+                'genre' => $data['genre'] ?? null,
+
+                'civilite' => $data['civilite'] ?? null,
+
+                'ville' => $data['ville'] ?? null,
+
+                'pays' => $data['pays'] ?? null,
+
+                'nationalite' => $data['nationalite'] ?? null,
+
                 'created_by' => $user->uuid_user,
             ]);
 
-            // Envoyer l'email de vérification
-            // Mail::to($user->email)->queue(new WelcomeMail($user));
+
+            foreach ($data['contrats'] as $contrat) {
+               /*
+                * Création du contrat
+                */
+                UserContrat::create([
+                    'uuid_user_contrat' => (string) Str::uuid(),
+                    'user_uuid' => $user->uuid_user,
+                    'contrat_id' => $contrat->IdProposition ?? null,
+                    'client_number' => $data['client_number'] ?? null,
+                    'code_produit' => $contrat->codeProduit ?? null,
+                    'libelle_produit' => $contrat->produit ?? null,
+                    'code_produit_formule' => $contrat->CodeProduitFormule ?? null,
+                    'libelle_produit_formule' => $contrat->ProduitFormule ?? null,
+                ]);
+            }
 
             return $user;
         });
+
+        /*
+         * Les notifications sont exécutées uniquement
+         * après validation de la transaction.
+         */
+        DB::afterCommit(function () use ($user, $password) {
+            $this->sendWelcomeCredentials($user, $password);
+        });
+
+        return $user;
     }
+
+    /**
+     * Envoyer les informations de connexion.
+     */
+    private function sendWelcomeCredentials(
+        User $user,
+        string $password
+    ): void {
+        // Charger les détails
+        $userDetails = $user->details;
+
+        if (!$userDetails) {
+            return;
+        }
+
+        /*
+         * EMAIL
+         */
+        if (!empty($user->email)) {
+
+            Mail::to($user->email)
+                ->queue(
+                    new WelcomeMail(
+                        $user,
+                        $password
+                    )
+                );
+        } else {
+            
+            /*
+             * SMS
+             */
+            if (!empty($userDetails->mobile_1)) {
+    
+                $message = "Cher {$userDetails->nom},\n\n"
+                    . "Merci de recevoir les paramètres de connexion "
+                    . "à votre espace client.\n\n"
+                    . "Login : {$user->login}\n"
+                    . "Mot de passe : {$password}\n"
+                    . "Lien de connexion : "
+                    . config('app.frontend_url');
+    
+                $response = $this->SMSService->sendSms(
+                    $userDetails->mobile_1,
+                    $message
+                );
+    
+                /*
+                 * Log en cas d'échec SMS
+                 */
+                if (!$response['success']) {
+                    logger()->error(
+                        'Échec envoi SMS de bienvenue',
+                        [
+                            'user_uuid' => $user->uuid_user,
+                            'phone' => $userDetails->mobile_1,
+                            'message' => $response['message'],
+                        ]
+                    );
+                }
+            }
+        }
+
+    }
+    // public function createClient(array $data): User
+    // {
+    //     return DB::transaction(function () use ($data) {
+    //         // Récupérer le rôle client par défaut
+    //         $defaultRole = Role::where('is_default', true)->first();
+    //         if (!$defaultRole) {
+    //             throw new \RuntimeException('Aucun rôle par défaut configuré.');
+    //         }
+
+    //         // Générer un login unique
+    //         $login = $data['login'] ?? $data['email'];
+
+    //         $user = User::create([
+    //             'uuid_user' => (string) Str::uuid(),
+    //             'email' => $data['email'],
+    //             'login' => $login,
+    //             'password' => Hash::make($data['password']),
+    //             'role_uuid' => $defaultRole->uuid_role,
+    //             'user_type' => 'client',
+    //             'status' => 'actif',
+    //             'is_first_login' => true,
+    //             'password_expires_at' => now()->addDays(90),
+    //         ]);
+
+    //         UserDetails::create([
+    //             'uuid_user_details' => (string) Str::uuid(),
+    //             'user_uuid' => $user->uuid_user,
+    //             'nom' => $data['nom'],
+    //             'prenoms' => $data['prenoms'],
+    //             'mobile_1' => $data['mobile_1'] ?? null,
+    //             'email_pro' => $data['email'],
+    //             'created_by' => $user->uuid_user,
+    //         ]);
+
+    //         // Envoyer l'email de vérification
+    //         // Mail::to($user->email)->queue(new WelcomeMail($user));
+
+    //         return $user;
+    //     });
+    // }
 
     public function update(User $user, array $data, string $updaterUuid): User
     {
