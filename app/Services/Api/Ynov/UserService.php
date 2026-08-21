@@ -132,7 +132,7 @@ class UserService
             UserDetails::create([
                 'uuid_user_details' => (string) Str::uuid(),
 
-                'user_uuid' => $user->uuid_user,
+                'user_uuid' => $uuidUser,
 
                 'numero_client' => $data['numero_client'] ?? null,
 
@@ -165,23 +165,27 @@ class UserService
 
                 'nationalite' => $data['nationalite'] ?? null,
 
-                'created_by' => $user->uuid_user,
+                'created_by' => $uuidUser,
             ]);
 
 
             foreach ($data['contrats'] as $contrat) {
-               /*
-                * Création du contrat
-                */
                 UserContrat::create([
                     'uuid_user_contrat' => (string) Str::uuid(),
+
                     'user_uuid' => $user->uuid_user,
-                    'contrat_id' => $contrat->IdProposition ?? null,
+
+                    'contrat_id' => $contrat['IdProposition'] ?? null,
+
                     'client_number' => $data['client_number'] ?? null,
-                    'code_produit' => $contrat->codeProduit ?? null,
-                    'libelle_produit' => $contrat->produit ?? null,
-                    'code_produit_formule' => $contrat->CodeProduitFormule ?? null,
-                    'libelle_produit_formule' => $contrat->ProduitFormule ?? null,
+
+                    'code_produit' => $contrat['codeProduit'] ?? null,
+
+                    'libelle_produit' => $contrat['produit'] ?? null,
+
+                    'code_produit_formule' => $contrat['CodeProduitFormule'] ?? null,
+
+                    'libelle_produit_formule' => $contrat['ProduitFormule'] ?? null,
                 ]);
             }
 

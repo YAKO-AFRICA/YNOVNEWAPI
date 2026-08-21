@@ -239,7 +239,7 @@ class AuthController extends Controller
         ]);
 
         $userContrat = $user->userContrats()->first();
-        Log::info($userContrat);
+        // Log::info($userContrat);
 
         if ($userContrat) {
             
@@ -255,7 +255,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'anciennete' => $anciennete,
+            'anciennete' => $anciennete ?? [],
             'data' => new UserResource($user),
         ]);
     }
