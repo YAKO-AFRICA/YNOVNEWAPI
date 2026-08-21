@@ -237,33 +237,27 @@ class AuthController extends Controller
             'groupNotifs',
             'userContrats'
         ]);
-        // Log::info($user);
 
-        // $result = $this->encaissementBisService->getContrat($request->idcontrat);
-        //     // if (!$result['success']) {
-        //     //     return response()->json([
-        //     //         'success' => false,
-        //     //         'message' => $result['message'],
-        //     //     ], 422);
-        //     // }
+        $userContrat = $user->userContrats()->first();
+        Log::info($userContrat);
 
-        //     $data = $result['data'];
-        //     $dataRequired = [
-        //         'anciennete' => $data['anciennete'],
-        //     ];
+        if ($userContrat) {
+            
+            $result = $this->encaissementBisService->getContrat($userContrat->contrat_id);
+    
+            if ($result['success']) {
+                $data = $result['data'];
+            }
+            $anciennete = $data['anciennete'] ?? [];
+        }
 
         $user->setAttribute('permissions_grouped', $user->getGroupedPermissions());
 
         return response()->json([
             'success' => true,
+            'anciennete' => $anciennete,
             'data' => new UserResource($user),
         ]);
-        // return response()->json([
-        //     'success' => true,
-        //     'data' => new UserResource($request->user()->load([
-        //         'role.permissions.group', 'details', 'partner', 'reseau', 'agences', 'groupNotifs', 'permissions.group'
-        //     ])),
-        // ]);
     }
 
     public function logout(Request $request): JsonResponse
