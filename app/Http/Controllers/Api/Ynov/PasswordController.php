@@ -183,6 +183,7 @@ use App\Mail\Api\Ynov\PasswordChangedMail;
 use App\Mail\Api\Ynov\PasswordResetMail;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
+use App\Services\Api\Ynov\Auth\OtpService;
 use App\Services\Api\Ynov\Auth\PasswordService;
 use App\Services\Api\Ynov\Auth\ThrottleService;
 use App\Services\Api\Ynov\SecurityQuestionService;
@@ -200,6 +201,7 @@ class PasswordController extends Controller
         private PasswordService $passwordService,
         private SecurityQuestionService $securityQuestionService,
         private ThrottleService $throttleService,
+        private OtpService $otpService
     ) {}
 
     /**
@@ -209,73 +211,223 @@ class PasswordController extends Controller
      * - On exécute toujours une opération coûteuse même si l'utilisateur n'existe pas
      * - Le message de retour est toujours le même
      */
+    // public function forgot(ForgotPasswordRequest $request): JsonResponse
+    // {
+    //     $user = User::where('login', $request->login)->first();
+        
+    //     // Générer un token même si l'utilisateur n'existe pas
+    //     // pour uniformiser le temps de réponse
+    //     $token = Str::random(64);
+        
+    //     if ($user) {
+    //         // L'utilisateur existe : on stocke le token
+    //         DB::table('password_reset_tokens')->updateOrInsert(
+    //             ['login' => $user->login],
+    //             [
+    //                 'token' => Hash::make($token),
+    //                 'created_at' => now(),
+    //                 'expires_at' => now()->addMinutes(60),
+    //                 'ip_address' => $request->ip(),
+    //                 'user_agent' => $request->userAgent(),
+    //             ]
+    //         );
+
+    //         if ($user->user_type == 'client' && $request->option == 'question_secrete') {
+    //             $questions = $this->securityQuestionService->getQuestionsForUser($user);
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'data' => [
+    //                     'token' => $token,
+    //                     'user_uuid' => $user->uuid_user,
+    //                     'has_configured' => $this->securityQuestionService->hasConfiguredQuestions($user),
+    //                     'questions' => $questions,
+    //                 ],
+    //             ]);
+    //         } else {
+    //             $result = $this->otpService->sendOtp(
+    //                 $user,
+    //                 $request->option,
+    //                 'reset',
+    //                 $request->ip(),
+    //                 $request->userAgent(),
+    //                 5,
+    //                 $request->all()
+    //             );
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'data' => [
+    //                     'token' => $token,
+    //                     'user_uuid' => $user->uuid_user,
+    //                 ],
+    //             ]);
+    //         }
+
+            
+    //     } else {
+    //         // On simule un hash pour que le temps de réponse soit identique
+    //         // à celui du cas où l'utilisateur existe
+    //         Hash::make($token . Str::random(64));
+            
+    //         // On ne stocke rien en base, on n'envoie pas d'email
+    //     }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Un lien a été envoyé vers votre adresse email pour réinitialiser votre mot de passe.'
+    //     ]);
+    // }
+
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        // $user = User::where('email', $request->email)->first();
-        $user = User::where('login', $request->login)->first();
+        $login = $request->input('login');
+        $option = $request->input('option');
 
-        
-        // Générer un token même si l'utilisateur n'existe pas
-        // pour uniformiser le temps de réponse
-        $token = Str::random(64);
-        
-        if ($user) {
-            // L'utilisateur existe : on stocke le token
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['login' => $user->login],
+        /*
+        * Recherche de l'utilisateur.
+        */
+        $user = User::where('login', $login)->first();
+
+        /*
+        * Si l'utilisateur n'existe pas :
+        * on retourne exactement la même réponse.
+        */
+        if (!$user) {
+
+            // Petit travail cryptographique pour limiter
+            // la différence de temps de réponse.
+            Hash::make(
+                Str::random(64) . Str::random(32)
+            );
+
+            return response()->json(
                 [
-                    'token' => Hash::make($token),
-                    'created_at' => now(),
-                    'expires_at' => now()->addMinutes(60),
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
+                    'success' => false,
+                    'message' => 'Utilisateur introuvable.',
+                ]);
+        }
+
+        /*
+        * Génération du token de réinitialisation.
+        */
+        $token = Str::random(64);
+
+        /*
+        * Stockage du token dans password_reset_tokens.
+        *
+        * Le token est hashé en base.
+        */
+        DB::table('password_reset_tokens')->updateOrInsert(
+            [
+                'login' => $user->login,
+            ],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+                'expires_at' => now()->addMinutes(60),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        );
+
+        /*
+        * CAS 1 : QUESTIONS SECRÈTES
+        */
+        if (
+            $user->user_type === 'client'
+            && $option === 'question_secrete'
+        ) {
+
+            $hasConfiguredQuestions =
+                $this->securityQuestionService
+                    ->hasConfiguredQuestions($user);
+
+            $questions =
+                $this->securityQuestionService
+                    ->getQuestionsForUser($user);
+
+            return response()->json([
+                'success' => true,
+
+                'message' =>
+                    'Veuillez répondre aux questions de sécurité.',
+
+                'data' => [
+                    'token' => $token,
+                    'user_uuid' => $user->uuid_user,
+
+                    'method' => 'question_secrete',
+
+                    'has_configured' => $hasConfiguredQuestions,
+
+                    'questions' => $questions,
+                ],
+            ]);
+        }
+
+        /*
+        * CAS 2 : OTP
+        */
+        $result = $this->otpService->sendOtp(
+            user: $user,
+            channel: $option,
+            purpose: 'reset',
+            ip: $request->ip(),
+            ua: $request->userAgent(),
+            expiryMinutes: 5,
+            data: $request->all()
+        );
+
+        /*
+        * Échec de l'envoi.
+        */
+        if (!$result['success']) {
+
+            Log::warning(
+                'Échec envoi OTP réinitialisation',
+                [
+                    'user_uuid' => $user->uuid_user,
+                    'channel' => $option,
+                    'code' => $result['code'],
                 ]
             );
 
-
-
-            if ($user->user_type == 'client') {
-                $questions = $this->securityQuestionService->getQuestionsForUser($user);
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'token' => $token,
-                        'user_uuid' => $user->uuid_user,
-                        'has_configured' => $this->securityQuestionService->hasConfiguredQuestions($user),
-                        'questions' => $questions,
-                    ],
-                ]);
-            }
-
-            if ($user->email) {
-                
-                Mail::to($user->email)->queue(new PasswordResetMail(
-                    $user->fresh('details'),
-                    $token,
-                    60
-                ));
-            }
-        } else {
-            // ================================================================
-            // CORRECTION #2 : Opération coûteuse factice pour uniformiser le temps
-            // ================================================================
-            // On simule un hash pour que le temps de réponse soit identique
-            // à celui du cas où l'utilisateur existe
-            Hash::make($token . Str::random(64));
-            
-            // On ne stocke rien en base, on n'envoie pas d'email
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'code' => $result['code'],
+            ], 422);
         }
 
-        // ================================================================
-        // MESSAGE UNIQUE : toujours le même, que l'utilisateur existe ou non
-        // ================================================================
+        /*
+        * Succès.
+        */
         return response()->json([
             'success' => true,
-            'message' => 'Un lien a été envoyé vers votre adresse email pour réinitialiser votre mot de passe.'
+
+            'message' =>
+                'Un code de vérification a été envoyé '
+                . 'via le canal sélectionné.',
+
+            'data' => [
+                'token' => $token,
+                'user_uuid' => $user->uuid_user,
+
+                'method' => $option,
+
+                'expires_in' => 5,
+            ],
         ]);
     }
 
+    // if ($user->email) {
+                
+            //     Mail::to($user->email)->queue(new PasswordResetMail(
+            //         $user->fresh('details'),
+            //         $token,
+            //         60
+            //     ));
+            // }
 
     /**
      * Réinitialisation du mot de passe avec le token

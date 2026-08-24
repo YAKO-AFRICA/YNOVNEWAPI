@@ -31,36 +31,6 @@ class TwoFactorController extends Controller
         private SMSService $SMSService
     ) {}
 
-    /**
-     * @OA\Get(
-     *     path="/auth/2fa/qrcode",
-     *     operationId="twoFactorEnable",
-     *     tags={"Two-Factor Authentication"},
-     *     summary="Générer le secret et le QR code pour activer la 2FA",
-     *     description="Protégé par la permission `auth.2fa`. Génère un secret TOTP (Google2FA), le stocke en clair sur l'utilisateur (two_factor_secret) SANS encore activer la 2FA (two_factor_enabled reste false tant que /auth/2fa/confirm n'a pas validé un code). Retourne le secret et un QR code au format SVG à scanner dans une app d'authentification (Google Authenticator, Authy, etc.).
-
-     **Point de sécurité à signaler** : le secret est stocké en clair dans la colonne `two_factor_secret` (pas de chiffrement visible dans le code), contrairement aux `two_factor_recovery_codes` qui sont chiffrés via `encrypt()`.",
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Secret et QR code générés.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="secret", type="string", example="JBSWY3DPEHPK3PXP", description="Secret TOTP en clair, à afficher en solution de repli si le QR code ne peut être scanné."),
-     *                 @OA\Property(property="qr_code_svg", type="string", description="Code SVG brut du QR code, à injecter directement dans le DOM ou convertir en image côté frontend.")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'auth.2fa' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(
-     *         response=422,
-     *         description="La 2FA est déjà activée pour ce compte.",
-     *         @OA\JsonContent(ref="#/components/schemas/ApiErrorResponse")
-     *     )
-     * )
-     */
     public function enable(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -82,46 +52,6 @@ class TwoFactorController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/2fa/confirm",
-     *     operationId="twoFactorConfirm",
-     *     tags={"Two-Factor Authentication"},
-     *     summary="Confirmer l'activation de la 2FA avec un premier code TOTP",
-     *     description="Protégé par la permission `auth.2fa`. Valide que l'utilisateur a bien scanné le QR code et configuré son application d'authentification en vérifiant un code TOTP valide. Si correct : active définitivement la 2FA (two_factor_enabled=true), génère 8 codes de récupération à usage unique (stockés hashés + une copie chiffrée concaténée dans two_factor_recovery_codes), et envoie ces codes par email (à conserver précieusement, non récupérables ensuite en clair).",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"code"},
-     *             @OA\Property(property="code", type="string", minLength=6, maxLength=6, example="482913", description="Code TOTP à 6 chiffres généré par l'application d'authentification.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="2FA activée. Les codes de récupération ne sont retournés qu'à cet instant — le frontend doit inviter l'utilisateur à les sauvegarder immédiatement.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="2FA activé avec succès."),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="recovery_codes", type="array", @OA\Items(type="string"), example={"aB3dE9fG2h","kL7mN4pQ8r"}, description="8 codes en clair, générés une seule fois. Non récupérables après cette réponse.")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'auth.2fa' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Code TOTP invalide ou échec de validation (code absent ou différent de 6 caractères).",
-     *         @OA\JsonContent(
-     *             oneOf={
-     *                 @OA\Schema(ref="#/components/schemas/ApiErrorResponse"),
-     *                 @OA\Schema(ref="#/components/schemas/ValidationErrorResponse")
-     *             }
-     *         )
-     *     )
-     * )
-     */
     public function confirm(TwoFactorEnableRequest $request): JsonResponse
     {
         $user = $request->user();
@@ -265,39 +195,6 @@ class TwoFactorController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/otp/verify",
-     *     operationId="twoFactorVerifyOtp",
-     *     tags={"Two-Factor Authentication"},
-     *     summary="Vérifier un code OTP",
-     *     description="Protégé par `throttle:5,10` ET la permission `auth.2fa`. Recherche le dernier OTP valide (non expiré, non utilisé) pour le couple utilisateur+purpose et compare le hash. En cas d'échec, incrémente le compteur de tentatives de l'OTP (invalidation automatique après 3 tentatives échouées via OtpCode::incrementAttempts).
-
-     **Note** : il existe une route quasi-identique `/auth/otp/verify-login` dans le groupe public, utilisée spécifiquement dans le flux de connexion 2FA avec un token temporaire — à ne pas confondre avec celle-ci qui nécessite un compte pleinement authentifié.",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"code","purpose"},
-     *             @OA\Property(property="code", type="string", minLength=6, maxLength=6, example="482913"),
-     *             @OA\Property(property="purpose", type="string", example="2fa")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Code OTP valide.",
-     *         @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Code OTP vérifié."))
-     *     ),
-     *     @OA\Response(response=401, description="Non authentifié.", @OA\JsonContent(ref="#/components/schemas/UnauthorizedErrorResponse")),
-     *     @OA\Response(response=403, description="Permission 'auth.2fa' manquante.", @OA\JsonContent(ref="#/components/schemas/PermissionDeniedResponse")),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Code OTP invalide ou expiré.",
-     *         @OA\JsonContent(ref="#/components/schemas/ApiErrorResponse")
-     *     ),
-     *     @OA\Response(response=429, description="Rate limit dépassé (5 tentatives/10 min).", @OA\JsonContent(@OA\Property(property="message", type="string")))
-     * )
-     */
     public function verifyOtp(Request $request): JsonResponse
     {
         $request->validate(['code' => 'required|string|size:6', 'purpose' => 'required|string']);

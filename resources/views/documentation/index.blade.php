@@ -1071,11 +1071,33 @@ const API_DATA = {
         // ============================================================
         // MOTS DE PASSE — PUBLIQUES
         // ============================================================
+        // {
+        //     id: 'password-forgot',
+        //     module: 'password',
+        //     name: 'Mot de passe oublié',
+        //     description: 'Demande de réinitialisation de mot de passe. **IMPORTANT :** utilise désormais `login` (email OU login) au lieu de `email`. Pour les utilisateurs de type `client` sans email, retourne directement les questions de sécurité. Protection anti-timing attack : opération factice même si l\'utilisateur n\'existe pas.',
+        //     method: 'POST',
+        //     path: '/auth/forgot-password',
+        //     isProtected: false,
+        //     rateLimit: 'throttle:login',
+        //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             login: { type: 'string', required: true, max: 100, description: 'Email OU login de l\'utilisateur (exists:users,login)' }
+        //         }
+        //     },
+        //     exampleRequest: { login: 'admin@ynov.ci' },
+        //     responses: [
+        //         { status: 200, description: 'Requête traitée (utilisateur client sans email → questions de sécurité retournées)', example: { success: true, data: { token: '...', user_uuid: '...', has_configured: true, questions: [] } } },
+        //         { status: 200, description: 'Requête traitée (email envoyé ou utilisateur inexistant — même message)', example: { success: true, message: 'Un lien a été envoyé vers votre adresse email pour réinitialiser votre mot de passe.' } }
+        //     ]
+        // },
+
         {
             id: 'password-forgot',
             module: 'password',
             name: 'Mot de passe oublié',
-            description: 'Demande de réinitialisation de mot de passe. **IMPORTANT :** utilise désormais `login` (email OU login) au lieu de `email`. Pour les utilisateurs de type `client` sans email, retourne directement les questions de sécurité. Protection anti-timing attack : opération factice même si l\'utilisateur n\'existe pas.',
+            description: 'Demande de réinitialisation de mot de passe. **NOUVEAU :** permet de choisir le canal de récupération via le paramètre `option` : sms, email, whatsapp, ou question_secrete. Pour les clients, la méthode `question_secrete` retourne les questions de sécurité configurées.',
             method: 'POST',
             path: '/auth/forgot-password',
             isProtected: false,
@@ -1083,13 +1105,90 @@ const API_DATA = {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
-                    login: { type: 'string', required: true, max: 100, description: 'Email OU login de l\'utilisateur (exists:users,login)' }
+                    login: { 
+                        type: 'string', 
+                        required: true, 
+                        max: 100, 
+                        description: 'Login de l\'utilisateur (exists:users,login)' 
+                    },
+                    option: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['sms', 'email', 'whatsapp', 'question_secrete'],
+                        description: 'Canal de récupération. Pour les clients, "question_secrete" retourne les questions de sécurité. Note : WhatsApp est disponible dans l\'API mais nécessite une configuration supplémentaire côté serveur.'
+                    }
                 }
             },
-            exampleRequest: { login: 'admin@ynov.ci' },
+            exampleRequest: { 
+                login: 'jdupont', 
+                option: 'email' 
+            },
+            invalidExample: {
+                login: 'jdupont',
+                option: 'unknown'
+            },
+            invalidReason: 'Option non supportée. Utilisez sms, email, whatsapp ou question_secrete.',
             responses: [
-                { status: 200, description: 'Requête traitée (utilisateur client sans email → questions de sécurité retournées)', example: { success: true, data: { token: '...', user_uuid: '...', has_configured: true, questions: [] } } },
-                { status: 200, description: 'Requête traitée (email envoyé ou utilisateur inexistant — même message)', example: { success: true, message: 'Un lien a été envoyé vers votre adresse email pour réinitialiser votre mot de passe.' } }
+                { 
+                    status: 200, 
+                    description: 'Utilisateur client avec option "question_secrete" — questions retournées', 
+                    example: {
+                        success: true,
+                        message: 'Veuillez répondre aux questions de sécurité.',
+                        data: {
+                            token: '...',
+                            user_uuid: '...',
+                            method: 'question_secrete',
+                            has_configured: true,
+                            questions: [
+                                {
+                                    question_uuid: '...',
+                                    question_text: 'Quel est le nom de votre premier animal de compagnie ?',
+                                    category: 'Personnelle'
+                                }
+                            ]
+                        }
+                    }
+                },
+                { 
+                    status: 200, 
+                    description: 'OTP envoyé par email/SMS/WhatsApp', 
+                    example: {
+                        success: true,
+                        message: 'Un code de vérification a été envoyé via le canal sélectionné.',
+                        data: {
+                            token: '...',
+                            user_uuid: '...',
+                            method: 'email',
+                            expires_in: 5
+                        }
+                    }
+                },
+                { 
+                    status: 200, 
+                    description: 'Utilisateur introuvable (message générique anti-énumération)', 
+                    example: {
+                        success: false,
+                        message: 'Utilisateur introuvable.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Échec envoi OTP (email manquant, téléphone invalide, WhatsApp non configuré)', 
+                    example: {
+                        success: false,
+                        message: 'Aucune adresse email disponible pour l\'envoi de l\'OTP.',
+                        code: 'EMAIL_INVALID'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Option non supportée', 
+                    example: {
+                        success: false,
+                        message: 'Option non supportée. Utilisez sms, email, whatsapp ou question_secrete.'
+                    }
+                }
             ]
         },
 
@@ -1229,11 +1328,12 @@ const API_DATA = {
             headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
+                    login: { type: 'string', required: true, description: 'Login de l\'utilisateur' },
                     code: { type: 'string', required: true, size: 6, description: 'Code OTP' },
                     purpose: { type: 'string', required: true, description: 'Usage du code (login, 2fa, reset)' }
                 }
             },
-            exampleRequest: { code: '654321', purpose: 'login' },
+            exampleRequest: { login: 'jdupont', code: '654321', purpose: 'login' },
             responses: [
                 { status: 200, description: 'OTP vérifié', example: { success: true, message: 'Code OTP vérifié.' } },
                 { status: 422, description: 'OTP invalide ou expiré', example: { success: false, message: 'Code OTP invalide ou expiré.' } }
@@ -1454,6 +1554,85 @@ const API_DATA = {
             responses: [
                 { status: 200, description: 'OTP vérifié', example: { success: true, message: 'Code OTP vérifié.' } },
                 { status: 422, description: 'OTP invalide ou expiré', example: { success: false, message: 'Code OTP invalide ou expiré.' } }
+            ]
+        },
+
+        {
+            id: 'otp-verify-code',
+            module: '2fa',
+            name: 'Vérifier un OTP pour une operation (reset password, etc...)',
+            description: 'Vérifie un code OTP précédemment envoyé. **NOUVEAU :** Si le `purpose` est "reset", génère automatiquement un token de réinitialisation de mot de passe (`password_reset_tokens`) pour permettre la réinitialisation via `/auth/reset-password`.',
+            method: 'POST',
+            path: '/auth/otp/verify-code',
+            isProtected: true,
+            rateLimit: 'throttle:5,10 (5 tentatives / 10 min)',
+            headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            requestParams: {
+                body: {
+                    login: { 
+                        type: 'string', 
+                        required: true, 
+                        description: 'Login de l\'utilisateur' 
+                    },
+                    code: { 
+                        type: 'string', 
+                        required: true, 
+                        size: 6, 
+                        description: 'Code OTP à 6 chiffres reçu par email ou SMS' 
+                    },
+                    purpose: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['login', '2fa', 'reset', '...'],
+                        description: 'Usage du code. Si "reset", génère un token de réinitialisation de mot de passe.'
+                    }
+                }
+            },
+            exampleRequest: { 
+                login: 'jean.dupont@example.com',
+                code: '123456', 
+                purpose: 'reset' 
+            },
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'OTP vérifié avec token de réinitialisation (purpose = reset)', 
+                    example: {
+                        success: true,
+                        code: 'OTP_VERIFIED',
+                        message: 'Code OTP vérifié.',
+                        data: {
+                            user_uuid: '...',
+                            reset_token: '...' // Token à utiliser pour /auth/reset-password
+                        }
+                    }
+                },
+                { 
+                    status: 200, 
+                    description: 'OTP vérifié (purpose ≠ reset)', 
+                    example: {
+                        success: true,
+                        code: 'OTP_VERIFIED',
+                        message: 'Code OTP vérifié.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Code OTP invalide ou expiré', 
+                    example: {
+                        success: false,
+                        code: 'OTP_INVALID',
+                        message: 'Code OTP invalide ou expiré.'
+                    }
+                },
+                { 
+                    status: 429, 
+                    description: 'Trop de tentatives', 
+                    example: {
+                        success: false,
+                        message: 'Trop de tentatives. Veuillez patienter.'
+                    }
+                }
             ]
         },
 
@@ -2588,7 +2767,12 @@ const API_DATA = {
         { code: 'PERMISSION_IN_USE', message: 'Permission attribuée à un rôle.', cause: 'Permission encore liée à un rôle.', endpoint: 'DELETE /permissions', action: 'Retirer la permission de tous les rôles.' },
         { code: 'PERMISSION_GROUP_NOT_EMPTY', message: 'Le groupe contient des permissions.', cause: 'Groupe non vide.', endpoint: 'DELETE /permission-groups', action: 'Supprimer ou déplacer les permissions.' },
         { code: 'INVALID_PASSWORD', message: 'Mot de passe incorrect.', cause: 'Vérification échouée.', endpoint: 'POST /security/user-questions', action: 'Ressaisir le mot de passe.' },
-        { code: 'TOO_MANY_ATTEMPTS', message: 'Trop de tentatives.', cause: 'Rate limiting dépassé.', endpoint: 'Security endpoints', action: 'Attendre le délai indiqué.' }
+        { code: 'TOO_MANY_ATTEMPTS', message: 'Trop de tentatives.', cause: 'Rate limiting dépassé.', endpoint: 'Security endpoints', action: 'Attendre le délai indiqué.' },
+        { code: 'OTP_INVALID', message: 'Code OTP invalide ou expiré.', cause: 'Le code OTP fourni est incorrect, a déjà été utilisé ou a expiré.', endpoint: 'POST /auth/otp/verify-code', action: 'Demander un nouveau code OTP via /auth/forgot-password ou /auth/otp/send.'},
+        { code: 'EMAIL_INVALID', message: 'Aucune adresse email disponible pour l\'envoi de l\'OTP.', cause: 'L\'utilisateur n\'a pas d\'email associé à son compte.', endpoint: 'POST /auth/forgot-password (option=email)', action: 'Utiliser un autre canal (sms, question_secrete) ou ajouter un email au compte.' },
+        { code: 'TELEPHONE_INVALID', message: 'Numéro de téléphone invalide pour l\'envoi SMS.', cause: 'Le numéro de téléphone est manquant ou ne comporte pas 10 chiffres.', endpoint: 'POST /auth/forgot-password (option=sms)', action: 'Utiliser un autre canal ou mettre à jour le numéro de téléphone.' },
+        { code: 'WHATSAPP_NOT_CONFIGURED', message: 'Le canal WhatsApp n\'est pas encore configuré.', cause: 'Le service WhatsApp n\'est pas encore implémenté côté serveur.', endpoint: 'POST /auth/forgot-password (option=whatsapp)', action: 'Utiliser un autre canal (sms, email, question_secrete).' },
+        { code: 'CHANNEL_INVALID', message: 'Canal d\'envoi OTP invalide.', cause: 'Le canal demandé n\'est pas supporté.', endpoint: 'POST /auth/otp/send ou /auth/forgot-password', action: 'Utiliser un canal valide : sms, email, whatsapp, question_secrete.' },
     ]
 };
 

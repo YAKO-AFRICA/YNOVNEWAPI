@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FreezeController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
+use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
@@ -47,11 +48,16 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify-email', [EmailVerificationController::class, 'verify']);
     Route::post('auth/resend-verification', [EmailVerificationController::class, 'send']);
 
+    Route::post('auth/otp/verify-code', [OtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10');
+
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
     Route::post('auth/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])
     ->middleware(['auth:sanctum', 'throttle:5,10']);  // 5 tentatives en 10 minutes
     Route::post('auth/otp/verify-login', [TwoFactorController::class, 'verifyOtp'])
         ->middleware('auth:sanctum', 'throttle:5,10');
+
+    
 
     Route::get('security/questions/suggested', [SecurityQuestionController::class, 'suggestedQuestions']);
     Route::post('security/verify-answer', [SecurityQuestionController::class, 'verifyAnswer'])
