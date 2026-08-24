@@ -297,7 +297,11 @@ class AuthService
         // 1. Vérification IP
         if (!$this->ipService->isAllowed($deviceInfo['ip'])) {
             $this->logAttempt(null, $credentials['login'], $deviceInfo, false, 'IP_BLOCKED');
-            return ['success' => false, 'code' => 'IP_BLOCKED', 'message' => 'Accès refusé depuis cette adresse IP.'];
+            return [
+            'success' => false,
+            'code' => 'IP_BLOCKED', 
+            'message' => 'Accès refusé depuis cette adresse IP.'
+            ];
             // throw new \RuntimeException('Accès refusé depuis cette adresse IP.', 403);
         }
 

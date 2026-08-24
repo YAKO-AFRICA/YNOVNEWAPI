@@ -44,8 +44,8 @@ class AuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => $result['message'],
-                    'status' => $result['code'],
-                ]);
+                    'code' => $result['code'],
+                ], 422);
             }
 
             // Si 2FA requis
@@ -59,7 +59,7 @@ class AuthController extends Controller
                         'two_factor_token' => $result['two_factor_token'],
                         'user' => new UserResource($result['user']),
                     ],
-                ]);
+                ], 200);
             }
 
             // Si changement de mot de passe requis
@@ -72,7 +72,7 @@ class AuthController extends Controller
                         'change_password_token' => $result['change_password_token'],
                         'user' => new UserResource($result['user']),
                     ],
-                ]);
+                ], 201);
             }
 
             // Token dans le header Authorization
@@ -88,7 +88,7 @@ class AuthController extends Controller
                     'trusted_device' => $result['trusted_device'],
                     'access_token' => $result['token']
                 ]
-            ])->header('Authorization', 'Bearer ' . $result['token']);
+            ], 201)->header('Authorization', 'Bearer ' . $result['token']);
 
         } catch (AccountFrozenException $e) {
             return response()->json($e->toArray(), 423);
@@ -121,7 +121,7 @@ class AuthController extends Controller
         $user = User::where('login', $login)->first();
 
         if (!$user || !$this->authService->isCurrentlyFrozen($user)) {
-            return response()->json(['success' => true, 'data' => ['is_frozen' => false]]);
+            return response()->json(['success' => true, 'data' => ['is_frozen' => false]], 200);
         }
 
         $remaining = max(0, (int) now()->diffInSeconds($user->frozen_until, false));
@@ -133,7 +133,7 @@ class AuthController extends Controller
                 'remaining_seconds' => $remaining,
                 'freeze_level' => $user->freeze_level,
             ],
-        ]);
+        ], 200);
     }
 
     public function getRegisterData(Request $request): JsonResponse
@@ -176,7 +176,7 @@ class AuthController extends Controller
                 'message' => 'Contrat trouvé.',
                 'data' => $dataRequired
 
-            ]);
+            ], 200);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -269,7 +269,7 @@ class AuthController extends Controller
     {
         $tokenId = $request->user()->currentAccessToken()->id;
         $this->authService->logout($request->user(), $tokenId);
-        return response()->json(['success' => true, 'message' => 'Déconnexion réussie.']);
+        return response()->json(['success' => true, 'message' => 'Déconnexion réussie.'], 200);
     }
 
     // Logout all devices
@@ -290,7 +290,7 @@ class AuthController extends Controller
             'resource_id' => $user->uuid_user,
             'level' => 'info',
         ]);
-        return response()->json(['success' => true, 'message' => 'Déconnexion de tous les appareils.']);
+        return response()->json(['success' => true, 'message' => 'Déconnexion de tous les appareils.'], 200);
     }
 
     public function refresh(Request $request): JsonResponse
@@ -313,6 +313,6 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => ['access_token' => $token, 'token_type' => 'Bearer', 'expires_at' => now()->addHours(24)],
-        ]);
+        ], 200);
     }
 }
