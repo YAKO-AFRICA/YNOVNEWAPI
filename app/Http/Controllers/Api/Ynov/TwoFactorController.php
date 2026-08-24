@@ -172,8 +172,12 @@ class TwoFactorController extends Controller
             if (strlen($phone) === 10) {
                 $phoneNumber = '+225' . $phone;
                 $dataMessage = 'Votre code OTP YNOV est : ' . $code . ' (valable 2 min)';
-                $this->SMSService->sendSmsByInfobipAPI($phoneNumber, $dataMessage);
-
+                // $this->SMSService->sendSmsByInfobipAPI($phoneNumber, $dataMessage);
+                if (str_starts_with($phone, '05')) {
+                    $this->SMSService->sendSmsBySayeliAPI($phoneNumber, $dataMessage);
+                } else {
+                    $this->SMSService->sendSmsByInfobipAPI($phoneNumber, $dataMessage);
+                }
                 Log::info("OTP envoyé par SMS à: {$phoneNumber} pour: {$request->purpose}");
             } else {
                 Log::warning("Numéro de téléphone invalide pour OTP SMS: {$user->details->mobile_1}");

@@ -46,6 +46,47 @@ class SMSService
        
     }
 
+    public function sendSmsBySayeliAPI($phoneNumber, $dataMessage)
+    {
+        $from = "YAKO";
+        $url = "https://api.sayelesend.com/api/v1/sms/send";
+        $apiKey = env('SAYELESEND_API_KEY');
+    
+        // Nettoyage du numéro
+        $phoneNumber = preg_replace('/\D/', '', $phoneNumber);
+    
+        // Si le numéro commence par 225, on retire l'indicatif
+        if (str_starts_with($phoneNumber, '225')) {
+            $phoneNumber = substr($phoneNumber, 3);
+        }
+    
+        // Format international attendu par Sayeli
+        $phoneNumber = "+225" . $phoneNumber;
+    
+        $body = [
+            "to"      => $phoneNumber,
+            "message" => $dataMessage,
+            "from"    => $from
+        ];
+    
+        try {
+    
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer $apiKey",
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ])->post($url, $body);
+    
+            return $response->json();
+    
+        } catch (\Exception $e) {
+    
+            return [
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
 
     /**
      * Envoyer un SMS.
