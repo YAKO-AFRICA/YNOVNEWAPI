@@ -823,8 +823,8 @@ const API_DATA = {
                     status: 422, 
                     description: 'Contrat arrêté (OnStdbyOff = "3")', 
                     example: {
-                        type: 'error',
-                        urlback: '',
+                        success : false,
+                        code: 'CONTRACT_FROZEN',
                         message: 'Ce contrat est arreté.'
                     }
                 },
@@ -833,6 +833,7 @@ const API_DATA = {
                     description: 'Date de naissance incorrecte', 
                     example: {
                         success: false,
+                        code: 'DATE_OF_BIRTH_MISMATCH',
                         message: 'La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.'
                     }
                 },
@@ -937,6 +938,7 @@ const API_DATA = {
                     description: 'Inscription réussie — identifiants envoyés', 
                     example: {
                         success: true,
+                        code: 'USER_CREATED',
                         message: 'Inscription réussie. Vos paramètres de connexion ont été envoyés.',
                         data: {
                             uuid_user: '...',
@@ -952,7 +954,26 @@ const API_DATA = {
                     description: 'Aucun rôle client configuré', 
                     example: {
                         success: false,
+                        code: 'NO_DEFAULT_ROLE',
                         message: 'Aucun rôle client configuré.'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Utilisateur existe', 
+                    example: {
+                        success: false,
+                        code: 'LOGIN_ALREADY_EXISTS',
+                        message: 'Cet utilisateur avec ce login'
+                    }
+                },
+                { 
+                    status: 422, 
+                    description: 'Contrat déja associé à un compte', 
+                    example: {
+                        success: false,
+                        code: 'CONTRAT_ALREADY_EXISTS',
+                        message: 'Contrat déja associé à un compte'
                     }
                 },
                 { 
@@ -961,10 +982,7 @@ const API_DATA = {
                     example: {
                         success: false,
                         message: 'Données invalides.',
-                        errors: {
-                            email: ['Cet email est déjà utilisé.'],
-                            login: ['Cet identifiant est déjà utilisé.']
-                        }
+                        errors: {}
                     }
                 }
             ]

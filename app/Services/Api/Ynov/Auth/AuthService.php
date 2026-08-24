@@ -297,7 +297,8 @@ class AuthService
         // 1. Vérification IP
         if (!$this->ipService->isAllowed($deviceInfo['ip'])) {
             $this->logAttempt(null, $credentials['login'], $deviceInfo, false, 'IP_BLOCKED');
-            throw new \RuntimeException('Accès refusé depuis cette adresse IP.', 403);
+            return ['success' => false, 'code' => 'IP_BLOCKED', 'message' => 'Accès refusé depuis cette adresse IP.'];
+            // throw new \RuntimeException('Accès refusé depuis cette adresse IP.', 403);
         }
 
         // 2. Recherche de l'utilisateur
@@ -305,23 +306,27 @@ class AuthService
             ->orWhere('login', $credentials['login'])
             ->with('details', 'role', 'agences', 'reseau', 'partner', 'groupNotifs')
             ->first();
+
+        if (!$user) {
+            $this->logAttempt(null, $credentials['login'], $deviceInfo, false, 'USER_NOT_FOUND');
             
-        // ================================================================
-        // CORRECTION #1 : Message unique pour éviter l'énumération
-        // ================================================================
+            return ['success' => false, 'code' => 'USER_NOT_FOUND', 'message' => 'Utilisateur introuvable avec ce Login.'];
+            // throw new \RuntimeException('Utilisateur introuvable avec ces identifiants.', 401);
+        }
+            
         // On vérifie d'abord si l'utilisateur existe ET si le mot de passe est valide
         // Cela permet d'avoir un message unique quel que soit le cas
         $passwordValid = $user && Hash::check($credentials['password'], $user->password);
 
         // Si l'utilisateur n'existe pas OU le mot de passe est invalide
-        if (!$user || !$passwordValid) {
+        if (!$passwordValid) {
             // Journaliser la tentative (avec user_uuid si l'utilisateur existe)
             $this->logAttempt(
                 $user,
                 $credentials['login'],
                 $deviceInfo,
                 false,
-                $user ? 'INVALID_PASSWORD' : 'USER_NOT_FOUND'
+                'INVALID_PASSWORD'
             );
 
             // Si l'utilisateur existe mais mot de passe incorrect, on gère le freeze
@@ -344,16 +349,10 @@ class AuthService
                     );
                 }
             }
-
-            // ================================================================
-            // MESSAGE UNIQUE : Les deux cas renvoient exactement la même erreur
-            // ================================================================
-            throw new \RuntimeException('Identifiants incorrects.', 401);
+            return ['success' => false, 'code' => 'INVALID_PASSWORD', 'message' => 'Mot de passe incorrect.'];
+            // throw new \RuntimeException('Mot de passe incorrect.', 401);
         }
 
-        // ================================================================
-        // FIN CORRECTION #1
-        // ================================================================
 
         // 3. Vérification du gel (après avoir confirmé que l'utilisateur existe)
         if ($this->freezeService->isFrozen($user)) {
@@ -399,7 +398,8 @@ class AuthService
                 'description' => "Tentative de connexion sur un compte desactivé.",
                 'level' => 'warning',
             ]);
-            throw new \RuntimeException('Compte desactivé. Contactez votre administrateur.', 403);
+            return ['success' => false, 'code' => 'ACCOUNT_DESACTIVATED', 'message' => 'Compte desactivé. Contactez votre administrateur.'];
+            // throw new \RuntimeException('Compte desactivé. Contactez votre administrateur.', 403);
         }
 
         if ($user->status === 'bloque' || $user->is_locked) {
@@ -439,6 +439,9 @@ class AuthService
         if ($requires2fa && !$trusted) {
             $tempToken = $user->createToken('2fa-auth', ['2fa-verify'], now()->addMinutes(5));
             return [
+                'success' => true,
+                'code' => '2FA_REQUIRED',
+                'message' => 'Vérification 2FA requise.',
                 'user' => $user,
                 'requires_2fa' => true,
                 'must_change_password' => false,
@@ -450,6 +453,9 @@ class AuthService
         if ($mustChange) {
             $tempToken = $user->createToken('password-change', ['password-change'], now()->addHours(1));
             return [
+                'success' => true,
+                'code' => 'PASSWORD_CHANGE_REQUIRED',
+                'message' => 'Changer le mot de passe',
                 'user' => $user,
                 'requires_2fa' => false,
                 'must_change_password' => true,
@@ -462,6 +468,9 @@ class AuthService
         $token = $user->createToken($deviceInfo['device_name'] ?? 'API Token', ['*'], now()->addHours(24));
 
         return [
+            'success' => true,
+            'code' => 'AUTH_SUCCESS',
+            'message' => 'Connexion reussie',
             'user' => $user,
             'token' => $token->plainTextToken,
             'requires_2fa' => false,

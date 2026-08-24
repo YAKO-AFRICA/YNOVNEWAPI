@@ -40,6 +40,14 @@ class AuthController extends Controller
 
             $result = $this->authService->login($request->only(['login', 'password']), $deviceInfo);
 
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'status' => $result['code'],
+                ]);
+            }
+
             // Si 2FA requis
             if ($result['requires_2fa'] ?? false) {
                 return response()->json([
@@ -70,6 +78,8 @@ class AuthController extends Controller
             // Token dans le header Authorization
             return response()->json([
                 'success' => true,
+                'code' => 'AUTH_SUCCESS',
+                'message' => 'Connexion réussie.',
                 'data' => [
                     'user' => new UserResource($result['user']),
                     'expires_at' => now()->addHours(24), // Duree de durée du token
@@ -108,7 +118,7 @@ class AuthController extends Controller
 
     public function freezeCheck(string $login): JsonResponse
     {
-        $user = User::where('email', $login)->orWhere('login', $login)->first();
+        $user = User::where('login', $login)->first();
 
         if (!$user || !$this->authService->isCurrentlyFrozen($user)) {
             return response()->json(['success' => true, 'data' => ['is_frozen' => false]]);
@@ -148,14 +158,15 @@ class AuthController extends Controller
             if ($data['details'][0]['DateNaissance'] != $request->datenaissance) {
                 return response()->json([
                     'success' => false,
+                    'code' => 'DATE_OF_BIRTH_MISMATCH',
                     'message' => 'La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.',
                 ], 422);
             }
 
             if ($data['details'][0]['OnStdbyOff'] == "3") {
                 return response()->json([
-                    'type' => 'error',
-                    'urlback' => '',
+                    'success' => false,
+                    'code' => 'CONTRACT_FROZEN',
                     'message' => 'Ce contrat est arreté.',
                 ], 422);
             }
@@ -178,12 +189,23 @@ class AuthController extends Controller
     {
         try {
 
-            $user = $this->userService->createClient(
+            $result = $this->userService->createClient(
                 $request->all()
             );
 
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'code' => $result['code'],
+                    'message' => $result['message'],
+                ], 422);
+            }
+
+            $user = $result['data'];
+
             return response()->json([
                 'success' => true,
+                'code' => $result['code'],
                 'message' => 'Inscription réussie. '
                     . 'Vos paramètres de connexion ont été envoyés.',
                 'data' => new UserResource(
@@ -207,23 +229,6 @@ class AuthController extends Controller
             ], 422);
         }
     }
-    // public function register(RegisterRequest $request): JsonResponse
-    // {
-    //     try {
-    //         $user = $this->userService->createClient($request->validated());
-            
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Inscription réussie. Veuillez vérifier votre email.',
-    //             'data' => new UserResource($user->load('details')),
-    //         ], 201);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage(),
-    //         ], 422);
-    //     }
-    // }
 
 
     public function me(Request $request): JsonResponse

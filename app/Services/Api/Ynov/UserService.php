@@ -87,9 +87,14 @@ class UserService
             $roleClient = Role::where('code', 'client')->first();
 
             if (!$roleClient) {
-                throw new \RuntimeException(
-                    'Aucun rôle client configuré.'
-                );
+                // throw new \RuntimeException(
+                //     'Aucun rôle client configuré.'
+                // );
+                return [
+                    'success' => false,
+                    'code' => 'NO_DEFAULT_ROLE',
+                    'message' => 'Aucun rôle client configuré.',
+                ];
             }
 
             // Générer UUID
@@ -97,6 +102,36 @@ class UserService
 
             // Login
             $login = $data['login'];
+
+            $userExists = User::where('login', $data['login'])->first();
+
+            $contratExists = [];
+
+            if ($userExists) {
+                return [
+                    'success' => false,
+                    'code' => 'LOGIN_ALREADY_EXISTS',
+                    'message' => 'Cet utilisateur avec ce login (' . $data['login'] . ').',
+                ];
+            }
+
+            
+            foreach ($data['contrats'] as $contrat) {
+                $contrat = UserContrat::where('contrat_id', $contrat['IdProposition'])->first();
+                // ajouter les contrats existants dans la variable $contratExists
+                if ($contrat) {
+                    $contratExists[] = $contrat;
+                }
+                   
+            }
+
+            if (!empty($contratExists)) {
+                return [
+                    'success' => false,
+                    'code' => 'CONTRAT_ALREADY_EXISTS',
+                    'message' => count($contratExists) > 1 ? "Ces contrats (" . implode(', ', $contratExists) . ")  sont déjà associés à un compte." : "Ce contrat (" . implode(', ', $contratExists) . ")  est déjà associé à un compte.",
+                ];
+            }
 
             // Construire l'adresse complète
             $adresseComplete = implode(', ', array_filter([
@@ -126,70 +161,78 @@ class UserService
                 'created_by' => $uuidUser,
             ]);
 
-            /*
-             * Création des détails utilisateur
-             */
-            UserDetails::create([
-                'uuid_user_details' => (string) Str::uuid(),
-
-                'user_uuid' => $uuidUser,
-
-                'numero_client' => $data['numero_client'] ?? null,
-
-                'nom' => $data['nom'],
-                'prenoms' => $data['prenoms'],
-
-                'mobile_1' => $data['mobile_1'] ?? null,
-
-                'email_pro' => $data['email'] ?? null,
-
-                'fonction' => $data['fonction'] ?? null,
-
-                'adresse_complete' => $adresseComplete,
-
-                'code_postal' => $data['code_postal'] ?? null,
-
-                'lieu_residence' => $data['lieu_residence'] ?? null,
-
-                'date_naissance' => $data['date_naissance'] ?? null,
-
-                'lieu_naissance' => $data['lieu_naissance'] ?? null,
-
-                'genre' => $data['genre'] ?? null,
-
-                'civilite' => $data['civilite'] ?? null,
-
-                'ville' => $data['ville'] ?? null,
-
-                'pays' => $data['pays'] ?? null,
-
-                'nationalite' => $data['nationalite'] ?? null,
-
-                'created_by' => $uuidUser,
-            ]);
-
-
-            foreach ($data['contrats'] as $contrat) {
-                UserContrat::create([
-                    'uuid_user_contrat' => (string) Str::uuid(),
-
-                    'user_uuid' => $user->uuid_user,
-
-                    'contrat_id' => $contrat['IdProposition'] ?? null,
-
-                    'client_number' => $data['client_number'] ?? null,
-
-                    'code_produit' => $contrat['codeProduit'] ?? null,
-
-                    'libelle_produit' => $contrat['produit'] ?? null,
-
-                    'code_produit_formule' => $contrat['CodeProduitFormule'] ?? null,
-
-                    'libelle_produit_formule' => $contrat['ProduitFormule'] ?? null,
+            if ($user) {
+                /*
+                 * Création des détails utilisateur
+                 */
+                UserDetails::create([
+                    'uuid_user_details' => (string) Str::uuid(),
+    
+                    'user_uuid' => $uuidUser,
+    
+                    'numero_client' => $data['numero_client'] ?? null,
+    
+                    'nom' => $data['nom'],
+                    'prenoms' => $data['prenoms'],
+    
+                    'mobile_1' => $data['mobile_1'] ?? null,
+    
+                    'email_pro' => $data['email'] ?? null,
+    
+                    'fonction' => $data['fonction'] ?? null,
+    
+                    'adresse_complete' => $adresseComplete,
+    
+                    'code_postal' => $data['code_postal'] ?? null,
+    
+                    'lieu_residence' => $data['lieu_residence'] ?? null,
+    
+                    'date_naissance' => $data['date_naissance'] ?? null,
+    
+                    'lieu_naissance' => $data['lieu_naissance'] ?? null,
+    
+                    'genre' => $data['genre'] ?? null,
+    
+                    'civilite' => $data['civilite'] ?? null,
+    
+                    'ville' => $data['ville'] ?? null,
+    
+                    'pays' => $data['pays'] ?? null,
+    
+                    'nationalite' => $data['nationalite'] ?? null,
+    
+                    'created_by' => $uuidUser,
                 ]);
+
+                foreach ($data['contrats'] as $contrat) {
+                    UserContrat::create([
+                        'uuid_user_contrat' => (string) Str::uuid(),
+
+                        'user_uuid' => $user->uuid_user,
+
+                        'contrat_id' => $contrat['IdProposition'] ?? null,
+
+                        'client_number' => $data['client_number'] ?? null,
+
+                        'code_produit' => $contrat['codeProduit'] ?? null,
+
+                        'libelle_produit' => $contrat['produit'] ?? null,
+
+                        'code_produit_formule' => $contrat['CodeProduitFormule'] ?? null,
+
+                        'libelle_produit_formule' => $contrat['ProduitFormule'] ?? null,
+                    ]);
+    
+                }
             }
 
-            return $user;
+            // return $user;
+            return [
+                'success' => true,
+                'code' => 'USER_CREATED',
+                'message' => 'Utilisateur créé avec succès.',
+                'data' => $user,
+            ];
         });
 
         /*
@@ -266,46 +309,6 @@ class UserService
         }
 
     }
-    // public function createClient(array $data): User
-    // {
-    //     return DB::transaction(function () use ($data) {
-    //         // Récupérer le rôle client par défaut
-    //         $defaultRole = Role::where('is_default', true)->first();
-    //         if (!$defaultRole) {
-    //             throw new \RuntimeException('Aucun rôle par défaut configuré.');
-    //         }
-
-    //         // Générer un login unique
-    //         $login = $data['login'] ?? $data['email'];
-
-    //         $user = User::create([
-    //             'uuid_user' => (string) Str::uuid(),
-    //             'email' => $data['email'],
-    //             'login' => $login,
-    //             'password' => Hash::make($data['password']),
-    //             'role_uuid' => $defaultRole->uuid_role,
-    //             'user_type' => 'client',
-    //             'status' => 'actif',
-    //             'is_first_login' => true,
-    //             'password_expires_at' => now()->addDays(90),
-    //         ]);
-
-    //         UserDetails::create([
-    //             'uuid_user_details' => (string) Str::uuid(),
-    //             'user_uuid' => $user->uuid_user,
-    //             'nom' => $data['nom'],
-    //             'prenoms' => $data['prenoms'],
-    //             'mobile_1' => $data['mobile_1'] ?? null,
-    //             'email_pro' => $data['email'],
-    //             'created_by' => $user->uuid_user,
-    //         ]);
-
-    //         // Envoyer l'email de vérification
-    //         // Mail::to($user->email)->queue(new WelcomeMail($user));
-
-    //         return $user;
-    //     });
-    // }
 
     public function update(User $user, array $data, string $updaterUuid): User
     {
