@@ -11,26 +11,26 @@
     <tr>
         <td align="center">
             <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-                {{-- En-tête --}}
+                {{-- En-tête YNOV --}}
                 <tr>
-                    <td style="background-color:#0f172a; padding:24px 32px;">
+                    <td style="background-color:#096835; padding:24px 32px; border-bottom:4px solid #F7A400;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td style="text-align:left;">
-                                    <span style="font-size:20px; font-weight:700; color:#ffffff; letter-spacing:0.5px;">YNOV</span>
-                                    <span style="font-size:12px; color:#94a3b8; margin-left:8px;">YAKO AFRICA Assurances Vie</span>
+                                    <span style="font-size:22px; font-weight:700; color:#ffffff; letter-spacing:0.5px;">YNOV</span>
+                                    <span style="font-size:12px; color:#9ad6b5; margin-left:8px;">YAKO AFRICA Assurances Vie</span>
                                 </td>
                             </tr>
                             <tr>
                                 <td style="padding-top:4px;">
-                                    <span style="font-size:11px; color:#64748b;">Plateforme de gestion des assurances</span>
+                                    <span style="font-size:11px; color:#cdead9;">Plateforme de gestion des assurances</span>
                                 </td>
                             </tr>
                         </table>
                     </td>
                 </tr>
 
-                {{-- Bandeau statut --}}
+                {{-- Bandeau statut (optionnel) --}}
                 @isset($bannerColor)
                 <tr>
                     <td style="background-color:{{ $bannerColor }}; padding:10px 32px;">
@@ -53,7 +53,7 @@
                             <tr>
                                 <td style="text-align:left;">
                                     <p style="margin:0 0 8px 0; font-size:12px; color:#64748b; line-height:1.6;">
-                                        <strong>YNOV — YAKO AFRICA Assurances Vie</strong>
+                                        <strong style="color:#096835;">YNOV — YAKO AFRICA Assurances Vie</strong>
                                     </p>
                                     <p style="margin:0 0 8px 0; font-size:12px; color:#64748b; line-height:1.6;">
                                         Cet email a été envoyé automatiquement par la plateforme YNOV.
@@ -70,19 +70,19 @@
                                         <tr>
                                             <td style="padding-right:16px;">
                                                 <a href="{{ config('app.frontend_url') ?? '#' }}" 
-                                                   style="font-size:11px; color:#64748b; text-decoration:none;">
+                                                   style="font-size:11px; color:#096835; text-decoration:none;">
                                                     Plateforme
                                                 </a>
                                             </td>
                                             <td style="padding-right:16px;">
                                                 <a href="#" 
-                                                   style="font-size:11px; color:#64748b; text-decoration:none;">
+                                                   style="font-size:11px; color:#096835; text-decoration:none;">
                                                     Confidentialité
                                                 </a>
                                             </td>
                                             <td>
                                                 <a href="#" 
-                                                   style="font-size:11px; color:#64748b; text-decoration:none;">
+                                                   style="font-size:11px; color:#096835; text-decoration:none;">
                                                     Contact
                                                 </a>
                                             </td>
@@ -100,7 +100,7 @@
                 <tr>
                     <td style="padding:16px 32px; text-align:center;">
                         <p style="margin:0; font-size:11px; color:#94a3b8; line-height:1.5;">
-                            <i class="bi bi-shield-check" style="margin-right:4px;"></i>
+                            <span style="color:#F7A400;">🔒</span>
                             Si vous n'êtes pas à l'origine de cette action, 
                             contactez immédiatement votre administrateur.
                         </p>

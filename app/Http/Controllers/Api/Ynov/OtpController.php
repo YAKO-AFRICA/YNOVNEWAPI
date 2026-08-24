@@ -16,73 +16,11 @@ class OtpController extends Controller
 {
     public function __construct(
         private OtpService $otpService,
-        private SMSService $SMSService
     ) {}
     
-    // public function sendOtp(Request $request): JsonResponse
-    // {
-    //     $request->validate([
-    //         'channel' => 'required|in:sms,email,whatsapp',
-    //         'purpose' => 'required'
-
-    //     ]);
-
-    //     $user = $request->user();
-
-    //     $result = $this->otpService->sendOtp(
-    //         user: $user,
-    //         channel: $request->channel,
-    //         purpose: $request->purpose,
-    //         ip: $request->ip(),
-    //         ua: $request->userAgent(),
-    //         expiryMinutes: 5,
-    //         data: $request->all()
-    //     );
-
-    //     if ($request->channel === 'email') {
-    //         // ✅ Envoi par Email
-    //         Mail::to($user->email)->queue(new OtpMail(
-    //             $user->details,
-    //             $request->purpose,
-    //             $code,
-    //             2 // Expiration en minutes
-    //         ));
-
-    //         // Log::info("OTP envoyé par email à: {$user->email} pour: {$request->purpose}");
-    //     } elseif ($request->channel === 'sms') {
-    //         // Envoi par SMS
-    //         $phone = preg_replace('/\D/', '', $user->details->mobile_1 ?? '');
-    //         $phone = substr($phone, -10);
-
-    //         if (strlen($phone) === 10) {
-    //             $phoneNumber = '+225' . $phone;
-    //             $dataMessage = 'Votre code OTP YNOV est : ' . $code . ' (valable  min)';
-    //             $this->SMSService->sendSmsByInfobipAPI($phoneNumber, $dataMessage);
-
-    //             Log::info("OTP envoyé par SMS à: {$phoneNumber} pour: {$request->purpose}");
-    //         } else {
-    //             Log::warning("Numéro de téléphone invalide pour OTP SMS: {$user->details->mobile_1}");
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Numéro de téléphone invalide pour l\'envoi SMS.'
-    //             ], 422);
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Code OTP envoyé avec succès.',
-    //         'data' => [
-    //             'channel' => $request->channel,
-    //             'purpose' => $request->purpose,
-    //             'expires_in' => 2, // minutes
-    //         ]
-    //     ]);
-    // }
 
     public function verifyOtp(Request $request): JsonResponse
     {
-        // $request->validate(['code' => 'required|string|size:6', 'purpose' => 'required|string']);
         $request->validate([
             'login' => [
                 'required',

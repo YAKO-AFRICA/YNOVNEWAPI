@@ -54,8 +54,11 @@ Route::prefix('v1')->group(function () {
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
     Route::post('auth/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])
     ->middleware(['auth:sanctum', 'throttle:5,10']);  // 5 tentatives en 10 minutes
-    Route::post('auth/otp/verify-login', [TwoFactorController::class, 'verifyOtp'])
-        ->middleware('auth:sanctum', 'throttle:5,10');
+    Route::post('auth/2fa/verify-recovery', [TwoFactorController::class, 'verifyRecovery'])
+    ->middleware('throttle:5,30');
+
+    // Route::post('auth/otp/verify-login', [TwoFactorController::class, 'verifyOtp'])
+    //     ->middleware('auth:sanctum', 'throttle:5,10');
 
     
 
@@ -95,13 +98,17 @@ Route::prefix('v1')->middleware([
         ->middleware('ability:password-change');
 
     Route::group(['middleware' => 'permission:auth.2fa'], function () {
+        // Activation 2FA
         Route::get('auth/2fa/qrcode', [TwoFactorController::class, 'enable']);
         Route::post('auth/2fa/confirm', [TwoFactorController::class, 'confirm']);
         Route::post('auth/2fa/disable', [TwoFactorController::class, 'disable']);
-        Route::post('auth/2fa/verify', [TwoFactorController::class, 'verifyLogin']);
-        Route::post('auth/otp/send', [TwoFactorController::class, 'sendOtp']);
-        // Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp']);
+        
+        // Gestion 2FA
+        Route::get('auth/2fa/status', [TwoFactorController::class, 'status']);
+        Route::get('auth/2fa/methods', [TwoFactorController::class, 'methods']);
+        Route::post('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
     });
+
     Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp'])
         ->middleware(['throttle:5,10', 'permission:auth.2fa']);
 

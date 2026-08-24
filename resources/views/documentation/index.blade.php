@@ -988,37 +988,6 @@ const API_DATA = {
             ]
         },
         
-        // {
-        //     id: 'auth-register',
-        //     module: 'auth',
-        //     name: 'Inscription',
-        //     description: 'Permet à un nouvel utilisateur de créer un compte client. Le rôle par défaut (is_default = true) doit exister dans la base.',
-        //     method: 'POST',
-        //     path: '/auth/register',
-        //     isProtected: false,
-        //     rateLimit: 'throttle:6,1 (6 tentatives / minute)',
-        //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        //     requestParams: {
-        //         body: {
-        //             prenoms: { type: 'string', required: true, max: 255, description: 'Prénoms' },
-        //             nom: { type: 'string', required: true, max: 55, description: 'Nom' },
-        //             email: { type: 'email', required: true, max: 100, description: 'Email (unique:users,email)' },
-        //             login: { type: 'string', required: false, max: 100, description: 'Identifiant (unique:users,login)' },
-        //             mobile_1: { type: 'string', required: false, max: 25, description: 'Téléphone' },
-        //             password: { type: 'string', required: true, min: 8, description: 'Mot de passe (confirmed)' },
-        //             password_confirmation: { type: 'string', required: true, description: 'Confirmation' }
-        //         }
-        //     },
-        //     exampleRequest: {
-        //         prenoms: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com',
-        //         login: 'jdupont', mobile_1: '+2250708091011',
-        //         password: 'MonPassword123!', password_confirmation: 'MonPassword123!'
-        //     },
-        //     responses: [
-        //         { status: 201, description: 'Inscription réussie', example: { success: true, message: 'Inscription réussie. Veuillez vérifier votre email.', data: { uuid_user: '...' } } },
-        //         { status: 422, description: 'Erreur de validation (email/login déjà utilisé, mot de passe trop court...)', example: { success: false, message: 'Aucun rôle par défaut configuré.' } }
-        //     ]
-        // },
 
         {
             id: 'auth-login',
@@ -1068,30 +1037,6 @@ const API_DATA = {
             ]
         },
 
-        // ============================================================
-        // MOTS DE PASSE — PUBLIQUES
-        // ============================================================
-        // {
-        //     id: 'password-forgot',
-        //     module: 'password',
-        //     name: 'Mot de passe oublié',
-        //     description: 'Demande de réinitialisation de mot de passe. **IMPORTANT :** utilise désormais `login` (email OU login) au lieu de `email`. Pour les utilisateurs de type `client` sans email, retourne directement les questions de sécurité. Protection anti-timing attack : opération factice même si l\'utilisateur n\'existe pas.',
-        //     method: 'POST',
-        //     path: '/auth/forgot-password',
-        //     isProtected: false,
-        //     rateLimit: 'throttle:login',
-        //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        //     requestParams: {
-        //         body: {
-        //             login: { type: 'string', required: true, max: 100, description: 'Email OU login de l\'utilisateur (exists:users,login)' }
-        //         }
-        //     },
-        //     exampleRequest: { login: 'admin@ynov.ci' },
-        //     responses: [
-        //         { status: 200, description: 'Requête traitée (utilisateur client sans email → questions de sécurité retournées)', example: { success: true, data: { token: '...', user_uuid: '...', has_configured: true, questions: [] } } },
-        //         { status: 200, description: 'Requête traitée (email envoyé ou utilisateur inexistant — même message)', example: { success: true, message: 'Un lien a été envoyé vers votre adresse email pour réinitialiser votre mot de passe.' } }
-        //     ]
-        // },
 
         {
             id: 'password-forgot',
@@ -1295,7 +1240,7 @@ const API_DATA = {
             id: '2fa-verify-login-public',
             module: '2fa',
             name: 'Vérifier 2FA (post-login)',
-            description: 'Vérifie le code TOTP à 6 chiffres après une connexion nécessitant la 2FA. Utilise le token temporaire (ability 2fa-verify) reçu au login. Permet de marquer l\'appareil comme "de confiance".',
+            description: 'Vérifie le code de double authentification après une connexion nécessitant la 2FA. **NOUVEAU :** Supporte les deux méthodes : authenticator (TOTP) et OTP (email/SMS). **Gestion des tentatives :** après 5 échecs, le compte est verrouillé pendant 30 minutes. Utilise le token temporaire (ability 2fa-verify) reçu au login. Permet de marquer l\'appareil comme "de confiance".',
             method: 'POST',
             path: '/auth/2fa/verify-login',
             isProtected: true,
@@ -1304,39 +1249,119 @@ const API_DATA = {
             headers: { 'Authorization': 'Bearer {two_factor_token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
-                    code: { type: 'string', required: true, size: 6, description: 'Code TOTP à 6 chiffres' },
-                    trust_device: { type: 'boolean', required: false, default: false, description: 'Marquer cet appareil comme de confiance' }
+                    method: { 
+                        type: 'string', 
+                        required: false, 
+                        enum: ['authenticator', 'otp'],
+                        default: 'authenticator',
+                        description: 'Méthode de vérification : "authenticator" pour TOTP (Google Authenticator) ou "otp" pour code par email/SMS' 
+                    },
+                    code: { 
+                        type: 'string', 
+                        required: true, 
+                        size: 6, 
+                        description: 'Code de vérification à 6 chiffres (TOTP ou OTP selon la méthode)' 
+                    },
+                    trust_device: { 
+                        type: 'boolean', 
+                        required: false, 
+                        default: false, 
+                        description: 'Marquer cet appareil comme de confiance pour éviter la 2FA lors des prochaines connexions' 
+                    }
                 }
             },
-            exampleRequest: { code: '123456', trust_device: true },
-            responses: [
-                { status: 200, description: '2FA vérifiée, nouveau token complet', example: { success: true, data: { user: {}, access_token: '...', expires_at: '...', trusted_device: true } } },
-                { status: 401, description: 'Token invalide', example: { success: false, message: 'Token invalide.' } },
-                { status: 422, description: 'Code 2FA invalide', example: { success: false, message: 'Code 2FA invalide.' } }
-            ]
-        },
-
-        {
-            id: 'otp-verify-login-public',
-            module: '2fa',
-            name: 'Vérifier un OTP (post-login)',
-            description: 'Vérifie un code OTP (email/SMS) après une connexion, avec un token temporaire.',
-            method: 'POST',
-            path: '/auth/otp/verify-login',
-            isProtected: true,
-            rateLimit: 'throttle:5,10',
-            headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            requestParams: {
-                body: {
-                    login: { type: 'string', required: true, description: 'Login de l\'utilisateur' },
-                    code: { type: 'string', required: true, size: 6, description: 'Code OTP' },
-                    purpose: { type: 'string', required: true, description: 'Usage du code (login, 2fa, reset)' }
-                }
+            exampleRequest: { 
+                method: 'authenticator',
+                code: '123456', 
+                trust_device: true 
             },
-            exampleRequest: { login: 'jdupont', code: '654321', purpose: 'login' },
+            invalidExample: {
+                method: 'otp',
+                code: '12345',
+                trust_device: false
+            },
+            invalidReason: 'Le code doit contenir exactement 6 chiffres.',
             responses: [
-                { status: 200, description: 'OTP vérifié', example: { success: true, message: 'Code OTP vérifié.' } },
-                { status: 422, description: 'OTP invalide ou expiré', example: { success: false, message: 'Code OTP invalide ou expiré.' } }
+                { 
+                    status: 200, 
+                    description: '2FA vérifiée avec succès — nouveau token complet retourné', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            user: { 
+                                uuid_user: '...',
+                                email: 'user@ynov.ci',
+                                two_factor_enabled: true,
+                                two_factor_method: 'authenticator'
+                            }, 
+                            access_token: '...', 
+                            expires_at: '2025-01-01T00:00:00.000000Z',
+                            trusted_device: true,
+                            requires_2fa: false,
+                            must_change_password: false
+                        } 
+                    } 
+                },
+                { 
+                    status: 200, 
+                    description: '2FA vérifiée (méthode OTP) avec nouveau token complet', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            user: { 
+                                uuid_user: '...',
+                                email: 'user@ynov.ci',
+                                two_factor_enabled: true,
+                                two_factor_method: 'otp'
+                            }, 
+                            access_token: '...', 
+                            expires_at: '2025-01-01T00:00:00.000000Z',
+                            trusted_device: false,
+                            requires_2fa: false,
+                            must_change_password: false
+                        } 
+                    } 
+                },
+                { 
+                    status: 401, 
+                    description: 'Token invalide ou expiré', 
+                    example: { 
+                        success: false, 
+                        message: 'Token invalide.' 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Code 2FA invalide (méthode authenticator)', 
+                    example: { 
+                        success: false, 
+                        message: 'Code 2FA invalide.',
+                        attempts: 2,
+                        is_locked: false
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Code OTP invalide ou expiré (méthode otp)', 
+                    example: { 
+                        success: false, 
+                        code: 'OTP_INVALID',
+                        message: 'Code OTP invalide ou expiré.',
+                        attempts: 3,
+                        is_locked: false
+                    } 
+                },
+                { 
+                    status: 423, 
+                    description: 'Compte verrouillé pour 2FA (trop de tentatives échouées)', 
+                    example: { 
+                        success: false, 
+                        message: 'Trop de tentatives. Réessayez dans 1800 secondes.',
+                        is_locked: true,
+                        remaining_seconds: 1800,
+                        attempts: 5
+                    } 
+                }
             ]
         },
 
@@ -1453,40 +1478,177 @@ const API_DATA = {
         // ============================================================
         // 2FA — PROTÉGÉES
         // ============================================================
+        // {
+        //     id: '2fa-enable',
+        //     module: '2fa',
+        //     name: 'Activer 2FA — QR Code',
+        //     description: 'Génère un secret TOTP et retourne l\'URL du QR Code au format SVG.',
+        //     method: 'GET',
+        //     path: '/auth/2fa/qrcode',
+        //     isProtected: true,
+        //     permissionsRequired: ['auth.2fa'],
+        //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+        //     requestParams: { body: {} },
+        //     responses: [
+        //         { status: 200, description: 'QR Code généré', example: { success: true, data: { secret: '...', qr_code_svg: '<svg>...</svg>' } } },
+        //         { status: 422, description: '2FA déjà activé', example: { success: false, message: '2FA déjà activé.' } }
+        //     ]
+        // },
+
         {
             id: '2fa-enable',
             module: '2fa',
-            name: 'Activer 2FA — QR Code',
-            description: 'Génère un secret TOTP et retourne l\'URL du QR Code au format SVG.',
+            name: 'Activer 2FA - QR Code',
+            description: 'Génère un secret TOTP pour l\'authenticator (Google Authenticator, etc.) et retourne un QR code SVG à scanner. **NOUVEAU :** Support de plusieurs méthodes de 2FA : authenticator (TOTP), OTP (email/SMS), recovery_codes.',
             method: 'GET',
             path: '/auth/2fa/qrcode',
             isProtected: true,
             permissionsRequired: ['auth.2fa'],
             headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-            requestParams: { body: {} },
+            requestParams: {
+                query: {
+                    method: { 
+                        type: 'string', 
+                        required: false, 
+                        enum: ['authenticator', 'otp'],
+                        default: 'authenticator',
+                        description: 'Méthode de 2FA : "authenticator" (Google Authenticator) ou "otp" (email/SMS)'
+                    }
+                }
+            },
             responses: [
-                { status: 200, description: 'QR Code généré', example: { success: true, data: { secret: '...', qr_code_svg: '<svg>...</svg>' } } },
-                { status: 422, description: '2FA déjà activé', example: { success: false, message: '2FA déjà activé.' } }
+                { 
+                    status: 200, 
+                    description: 'QR Code généré (méthode authenticator)', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            secret: 'JBSWY3DPEHPK3PXP', 
+                            qr_code_svg: '<svg>...</svg>',
+                            method: 'authenticator'
+                        } 
+                    } 
+                },
+                { 
+                    status: 200, 
+                    description: 'OTP prêt (méthode otp)', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            method: 'otp',
+                            message: 'Un code OTP de vérification a été envoyé par email.',
+                            expires_in: 5
+                        } 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: '2FA déjà activé', 
+                    example: { success: false, message: '2FA déjà activé.' } 
+                }
             ]
         },
 
+        // {
+        //     id: '2fa-confirm',
+        //     module: '2fa',
+        //     name: 'Confirmer l\'activation 2FA',
+        //     description: 'Confirme l\'activation de la 2FA en vérifiant le premier code TOTP. Génère 8 codes de récupération à usage unique.',
+        //     method: 'POST',
+        //     path: '/auth/2fa/confirm',
+        //     isProtected: true,
+        //     permissionsRequired: ['auth.2fa'],
+        //     headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: { code: { type: 'string', required: true, size: 6, description: 'Code TOTP' } }
+        //     },
+        //     exampleRequest: { code: '123456' },
+        //     responses: [
+        //         { status: 200, description: '2FA activé', example: { success: true, message: '2FA activé avec succès.', data: { recovery_codes: ['abc123', '...'] } } },
+        //         { status: 422, description: 'Code invalide', example: { success: false, message: 'Code invalide.' } }
+        //     ]
+        // },
         {
             id: '2fa-confirm',
             module: '2fa',
             name: 'Confirmer l\'activation 2FA',
-            description: 'Confirme l\'activation de la 2FA en vérifiant le premier code TOTP. Génère 8 codes de récupération à usage unique.',
+            description: 'Confirme l\'activation de la 2FA. **NOUVEAU :** Supporte plusieurs méthodes de confirmation : code TOTP (authenticator) ou code OTP (email/SMS). Génère 8 codes de récupération en cas de succès.',
             method: 'POST',
             path: '/auth/2fa/confirm',
             isProtected: true,
             permissionsRequired: ['auth.2fa'],
             headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
-                body: { code: { type: 'string', required: true, size: 6, description: 'Code TOTP' } }
+                body: {
+                    method: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['authenticator', 'otp'],
+                        description: 'Méthode de confirmation : "authenticator" pour TOTP ou "otp" pour code par email/SMS'
+                    },
+                    code: { 
+                        type: 'string', 
+                        required: true, 
+                        size: 6, 
+                        description: 'Code de confirmation (TOTP à 6 chiffres pour authenticator, ou OTP pour la méthode otp)' 
+                    }
+                }
             },
-            exampleRequest: { code: '123456' },
+            exampleRequest: { 
+                method: 'authenticator', 
+                code: '123456' 
+            },
+            invalidExample: {
+                method: 'authenticator',
+                code: '12345'
+            },
+            invalidReason: 'Le code doit comporter exactement 6 chiffres.',
             responses: [
-                { status: 200, description: '2FA activé', example: { success: true, message: '2FA activé avec succès.', data: { recovery_codes: ['abc123', '...'] } } },
-                { status: 422, description: 'Code invalide', example: { success: false, message: 'Code invalide.' } }
+                { 
+                    status: 200, 
+                    description: '2FA activé avec succès', 
+                    example: { 
+                        success: true, 
+                        message: '2FA activé avec succès.', 
+                        data: { 
+                            recovery_codes: ['abc123', 'def456', 'ghi789', '...'],
+                            method: 'authenticator'
+                        } 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Code invalide', 
+                    example: { success: false, message: 'Code invalide.' } 
+                }
+            ]
+        },
+
+        {
+            id: '2fa-methods',
+            module: '2fa',
+            name: 'Méthodes 2FA disponibles',
+            description: 'Récupère la liste des méthodes de double authentification disponibles et configurées pour l\'utilisateur.',
+            method: 'GET',
+            path: '/auth/2fa/methods',
+            isProtected: true,
+            permissionsRequired: ['auth.2fa'],
+            headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+            requestParams: { body: {} },
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'Méthodes disponibles', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            available_methods: ['authenticator', 'otp'],
+                            configured_methods: ['authenticator'],
+                            default_method: 'authenticator',
+                            is_enabled: true
+                        } 
+                    } 
+                }
             ]
         },
 
@@ -1510,11 +1672,34 @@ const API_DATA = {
             ]
         },
 
+        // {
+        //     id: 'otp-send',
+        //     module: '2fa',
+        //     name: 'Envoyer un code OTP',
+        //     description: 'Génère et envoie un code OTP à 6 chiffres par email ou SMS (via Infobip ou Sayle), valable min 2 minutes.',
+        //     method: 'POST',
+        //     path: '/auth/otp/send',
+        //     isProtected: true,
+        //     permissionsRequired: ['auth.2fa'],
+        //     headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             channel: { type: 'string', required: true, enum: ['email', 'sms'], description: 'Canal d\'envoi' },
+        //             purpose: { type: 'string', required: true, enum: ['login', '2fa', 'reset'], description: 'Usage du code' }
+        //         }
+        //     },
+        //     exampleRequest: { channel: 'email', purpose: '2fa' },
+        //     responses: [
+        //         { status: 200, description: 'OTP envoyé', example: { success: true, message: 'Code OTP envoyé avec succès.', data: { channel: 'email', purpose: '2fa', expires_in: 2 } } },
+        //         { status: 422, description: 'Numéro invalide (SMS)', example: { success: false, message: 'Numéro de téléphone invalide pour l\'envoi SMS.' } }
+        //     ]
+        // },
+
         {
             id: 'otp-send',
             module: '2fa',
             name: 'Envoyer un code OTP',
-            description: 'Génère et envoie un code OTP à 6 chiffres par email ou SMS (via Infobip), valable 2 minutes.',
+            description: 'Génère et envoie un code OTP à 6 chiffres par email, SMS ou WhatsApp (si configuré). **NOUVEAU :** Support complet de WhatsApp et meilleure gestion des canaux.',
             method: 'POST',
             path: '/auth/otp/send',
             isProtected: true,
@@ -1522,51 +1707,187 @@ const API_DATA = {
             headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
-                    channel: { type: 'string', required: true, enum: ['email', 'sms'], description: 'Canal d\'envoi' },
-                    purpose: { type: 'string', required: true, enum: ['login', '2fa', 'reset'], description: 'Usage du code' }
+                    channel: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['email', 'sms', 'whatsapp'],
+                        description: 'Canal d\'envoi (email, sms, whatsapp)' 
+                    },
+                    purpose: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['login', '2fa', 'reset'],
+                        description: 'Usage du code OTP' 
+                    },
+                    login: {
+                        type: 'string',
+                        required: false,
+                        description: 'Login de l\'utilisateur (optionnel, utilisé pour l\'envoi si l\'utilisateur n\'est pas authentifié)'
+                    }
                 }
             },
-            exampleRequest: { channel: 'email', purpose: '2fa' },
+            exampleRequest: { 
+                channel: 'email', 
+                purpose: '2fa' 
+            },
             responses: [
-                { status: 200, description: 'OTP envoyé', example: { success: true, message: 'Code OTP envoyé avec succès.', data: { channel: 'email', purpose: '2fa', expires_in: 2 } } },
-                { status: 422, description: 'Numéro invalide (SMS)', example: { success: false, message: 'Numéro de téléphone invalide pour l\'envoi SMS.' } }
+                { 
+                    status: 200, 
+                    description: 'OTP envoyé avec succès', 
+                    example: { 
+                        success: true, 
+                        code: 'OTP_SENT',
+                        message: 'Code OTP envoyé par email.', 
+                        data: { 
+                            channel: 'email', 
+                            purpose: '2fa', 
+                            expires_in: 5 
+                        } 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Canal invalide ou non configuré', 
+                    example: { 
+                        success: false, 
+                        code: 'CHANNEL_INVALID',
+                        message: 'Le canal WhatsApp n\'est pas encore configuré.' 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Numéro de téléphone invalide (SMS/WhatsApp)', 
+                    example: { 
+                        success: false, 
+                        code: 'TELEPHONE_INVALID',
+                        message: 'Numéro de téléphone invalide pour l\'envoi SMS.' 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Email manquant', 
+                    example: { 
+                        success: false, 
+                        code: 'EMAIL_INVALID',
+                        message: 'Aucune adresse email disponible pour l\'envoi de l\'OTP.' 
+                    } 
+                }
             ]
         },
 
-        {
-            id: 'otp-verify',
-            module: '2fa',
-            name: 'Vérifier un OTP (authentifié)',
-            description: 'Vérifie un code OTP précédemment envoyé, pour un utilisateur déjà authentifié.',
-            method: 'POST',
-            path: '/auth/otp/verify',
-            isProtected: true,
-            permissionsRequired: ['auth.2fa'],
-            rateLimit: 'throttle:5,10',
-            headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            requestParams: {
-                body: {
-                    code: { type: 'string', required: true, size: 6, description: 'Code OTP' },
-                    purpose: { type: 'string', required: true, description: 'Usage du code' }
-                }
-            },
-            exampleRequest: { code: '123456', purpose: '2fa' },
-            responses: [
-                { status: 200, description: 'OTP vérifié', example: { success: true, message: 'Code OTP vérifié.' } },
-                { status: 422, description: 'OTP invalide ou expiré', example: { success: false, message: 'Code OTP invalide ou expiré.' } }
-            ]
-        },
+        // {
+        //     id: 'otp-verify',
+        //     module: '2fa',
+        //     name: 'Vérifier un OTP (authentifié)',
+        //     description: 'Vérifie un code OTP précédemment envoyé, pour un utilisateur déjà authentifié.',
+        //     method: 'POST',
+        //     path: '/auth/otp/verify',
+        //     isProtected: true,
+        //     permissionsRequired: ['auth.2fa'],
+        //     rateLimit: 'throttle:5,10',
+        //     headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             code: { type: 'string', required: true, size: 6, description: 'Code OTP' },
+        //             purpose: { type: 'string', required: true, description: 'Usage du code' }
+        //         }
+        //     },
+        //     exampleRequest: { code: '123456', purpose: '2fa' },
+        //     responses: [
+        //         { status: 200, description: 'OTP vérifié', example: { success: true, message: 'Code OTP vérifié.' } },
+        //         { status: 422, description: 'OTP invalide ou expiré', example: { success: false, message: 'Code OTP invalide ou expiré.' } }
+        //     ]
+        // },
+
+        // {
+        //     id: 'otp-verify-code',
+        //     module: '2fa',
+        //     name: 'Vérifier un OTP pour une operation (reset password, etc...)',
+        //     description: 'Vérifie un code OTP précédemment envoyé. **NOUVEAU :** Si le `purpose` est "reset", génère automatiquement un token de réinitialisation de mot de passe (`password_reset_tokens`) pour permettre la réinitialisation via `/auth/reset-password`.',
+        //     method: 'POST',
+        //     path: '/auth/otp/verify-code',
+        //     isProtected: true,
+        //     rateLimit: 'throttle:5,10 (5 tentatives / 10 min)',
+        //     headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             login: { 
+        //                 type: 'string', 
+        //                 required: true, 
+        //                 description: 'Login de l\'utilisateur' 
+        //             },
+        //             code: { 
+        //                 type: 'string', 
+        //                 required: true, 
+        //                 size: 6, 
+        //                 description: 'Code OTP à 6 chiffres reçu par email ou SMS' 
+        //             },
+        //             purpose: { 
+        //                 type: 'string', 
+        //                 required: true, 
+        //                 enum: ['login', '2fa', 'reset', '...'],
+        //                 description: 'Usage du code. Si "reset", génère un token de réinitialisation de mot de passe.'
+        //             }
+        //         }
+        //     },
+        //     exampleRequest: { 
+        //         login: 'jean.dupont@example.com',
+        //         code: '123456', 
+        //         purpose: 'reset' 
+        //     },
+        //     responses: [
+        //         { 
+        //             status: 200, 
+        //             description: 'OTP vérifié avec token de réinitialisation (purpose = reset)', 
+        //             example: {
+        //                 success: true,
+        //                 code: 'OTP_VERIFIED',
+        //                 message: 'Code OTP vérifié.',
+        //                 data: {
+        //                     user_uuid: '...',
+        //                     reset_token: '...' // Token à utiliser pour /auth/reset-password
+        //                 }
+        //             }
+        //         },
+        //         { 
+        //             status: 200, 
+        //             description: 'OTP vérifié (purpose ≠ reset)', 
+        //             example: {
+        //                 success: true,
+        //                 code: 'OTP_VERIFIED',
+        //                 message: 'Code OTP vérifié.'
+        //             }
+        //         },
+        //         { 
+        //             status: 422, 
+        //             description: 'Code OTP invalide ou expiré', 
+        //             example: {
+        //                 success: false,
+        //                 code: 'OTP_INVALID',
+        //                 message: 'Code OTP invalide ou expiré.'
+        //             }
+        //         },
+        //         { 
+        //             status: 429, 
+        //             description: 'Trop de tentatives', 
+        //             example: {
+        //                 success: false,
+        //                 message: 'Trop de tentatives. Veuillez patienter.'
+        //             }
+        //         }
+        //     ]
+        // },
 
         {
             id: 'otp-verify-code',
             module: '2fa',
-            name: 'Vérifier un OTP pour une operation (reset password, etc...)',
-            description: 'Vérifie un code OTP précédemment envoyé. **NOUVEAU :** Si le `purpose` est "reset", génère automatiquement un token de réinitialisation de mot de passe (`password_reset_tokens`) pour permettre la réinitialisation via `/auth/reset-password`.',
+            name: 'Vérifier un OTP pour une opération',
+            description: 'Vérifie un code OTP précédemment envoyé. **NOUVEAU :** Support du login pour les utilisateurs non authentifiés. Si le `purpose` est "reset", génère automatiquement un token de réinitialisation de mot de passe.',
             method: 'POST',
             path: '/auth/otp/verify-code',
-            isProtected: true,
+            isProtected: false,
             rateLimit: 'throttle:5,10 (5 tentatives / 10 min)',
-            headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             requestParams: {
                 body: {
                     login: { 
@@ -1578,7 +1899,8 @@ const API_DATA = {
                         type: 'string', 
                         required: true, 
                         size: 6, 
-                        description: 'Code OTP à 6 chiffres reçu par email ou SMS' 
+                        pattern: '^[0-9]{6}$',
+                        description: 'Code OTP à 6 chiffres reçu par email, SMS ou WhatsApp' 
                     },
                     purpose: { 
                         type: 'string', 
@@ -1589,7 +1911,7 @@ const API_DATA = {
                 }
             },
             exampleRequest: { 
-                login: 'jean.dupont@example.com',
+                login: 'jdupont',
                 code: '123456', 
                 purpose: 'reset' 
             },
@@ -1603,7 +1925,7 @@ const API_DATA = {
                         message: 'Code OTP vérifié.',
                         data: {
                             user_uuid: '...',
-                            reset_token: '...' // Token à utiliser pour /auth/reset-password
+                            reset_token: '...'
                         }
                     }
                 },
@@ -1626,12 +1948,153 @@ const API_DATA = {
                     }
                 },
                 { 
+                    status: 404, 
+                    description: 'Utilisateur non trouvé', 
+                    example: {
+                        success: false,
+                        code: 'OTP_INVALID',
+                        message: 'Code OTP invalide ou expiré.'
+                    }
+                },
+                { 
                     status: 429, 
                     description: 'Trop de tentatives', 
                     example: {
                         success: false,
                         message: 'Trop de tentatives. Veuillez patienter.'
                     }
+                }
+            ]
+        },
+
+        {
+            id: '2fa-recovery-codes',
+            module: '2fa',
+            name: 'Gérer les codes de récupération 2FA',
+            description: 'Permet de régénérer ou de consulter les codes de récupération de la 2FA. **NOUVEAU :** Envoi des codes par email sécurisé.',
+            method: 'POST',
+            path: '/auth/2fa/recovery-codes',
+            isProtected: true,
+            permissionsRequired: ['auth.2fa'],
+            headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            requestParams: {
+                body: {
+                    action: { 
+                        type: 'string', 
+                        required: true, 
+                        enum: ['regenerate', 'send'],
+                        description: 'Action : "regenerate" pour générer de nouveaux codes, "send" pour renvoyer les codes existants par email'
+                    }
+                }
+            },
+            exampleRequest: { action: 'regenerate' },
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'Codes régénérés', 
+                    example: { 
+                        success: true, 
+                        message: 'Nouveaux codes de récupération générés.', 
+                        data: { 
+                            recovery_codes: ['abc123', 'def456', '...'],
+                            count: 8
+                        } 
+                    } 
+                },
+                { 
+                    status: 200, 
+                    description: 'Codes envoyés par email', 
+                    example: { 
+                        success: true, 
+                        message: 'Codes de récupération envoyés par email.' 
+                    } 
+                }
+            ]
+        },
+
+        {
+            id: '2fa-verify-recovery',
+            module: '2fa',
+            name: 'Vérifier un code de récupération 2FA',
+            description: 'Permet de vérifier un code de récupération de la 2FA lors de la perte d\'accès à l\'authenticator. Le code est marqué comme utilisé et ne peut plus être réutilisé.',
+            method: 'POST',
+            path: '/auth/2fa/verify-recovery',
+            isProtected: false,
+            rateLimit: 'throttle:5,30 (5 tentatives / 30 min)',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            requestParams: {
+                body: {
+                    login: { 
+                        type: 'string', 
+                        required: true, 
+                        description: 'Login de l\'utilisateur' 
+                    },
+                    code: { 
+                        type: 'string', 
+                        required: true, 
+                        description: 'Code de récupération à 10 caractères' 
+                    }
+                }
+            },
+            exampleRequest: { 
+                login: 'jdupont',
+                code: 'abc123def4' 
+            },
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'Code de récupération valide', 
+                    example: { 
+                        success: true, 
+                        message: 'Code de récupération valide.', 
+                        data: { 
+                            user_uuid: '...',
+                            reset_token: '...' // Token pour réinitialiser la 2FA
+                        } 
+                    } 
+                },
+                { 
+                    status: 422, 
+                    description: 'Code invalide ou utilisé', 
+                    example: { 
+                        success: false, 
+                        message: 'Code de récupération invalide ou déjà utilisé.' 
+                    } 
+                },
+                { 
+                    status: 429, 
+                    description: 'Trop de tentatives', 
+                    example: { 
+                        success: false, 
+                        message: 'Trop de tentatives. Veuillez patienter.' 
+                    } 
+                }
+            ]
+        },
+
+        {
+            id: '2fa-status',
+            module: '2fa',
+            name: 'Statut de la 2FA',
+            description: 'Récupère le statut complet de la double authentification pour l\'utilisateur : activée ou non, méthode utilisée, nombre de codes de récupération restants.',
+            method: 'GET',
+            path: '/auth/2fa/status',
+            isProtected: true,
+            headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+            requestParams: { body: {} },
+            responses: [
+                { 
+                    status: 200, 
+                    description: 'Statut 2FA', 
+                    example: { 
+                        success: true, 
+                        data: { 
+                            enabled: true,
+                            method: 'authenticator',
+                            recovery_codes_count: 6,
+                            two_factor_method: 'authenticator'
+                        } 
+                    } 
                 }
             ]
         },
@@ -2773,6 +3236,41 @@ const API_DATA = {
         { code: 'TELEPHONE_INVALID', message: 'Numéro de téléphone invalide pour l\'envoi SMS.', cause: 'Le numéro de téléphone est manquant ou ne comporte pas 10 chiffres.', endpoint: 'POST /auth/forgot-password (option=sms)', action: 'Utiliser un autre canal ou mettre à jour le numéro de téléphone.' },
         { code: 'WHATSAPP_NOT_CONFIGURED', message: 'Le canal WhatsApp n\'est pas encore configuré.', cause: 'Le service WhatsApp n\'est pas encore implémenté côté serveur.', endpoint: 'POST /auth/forgot-password (option=whatsapp)', action: 'Utiliser un autre canal (sms, email, question_secrete).' },
         { code: 'CHANNEL_INVALID', message: 'Canal d\'envoi OTP invalide.', cause: 'Le canal demandé n\'est pas supporté.', endpoint: 'POST /auth/otp/send ou /auth/forgot-password', action: 'Utiliser un canal valide : sms, email, whatsapp, question_secrete.' },
+        {
+            code: 'RECOVERY_CODE_INVALID',
+            message: 'Code de récupération invalide ou déjà utilisé.',
+            cause: 'Le code de récupération fourni est incorrect ou a déjà été utilisé.',
+            endpoint: 'POST /auth/2fa/verify-recovery',
+            action: 'Utiliser un autre code de récupération ou contacter le support.'
+        },
+        {
+            code: 'RECOVERY_CODES_EXHAUSTED',
+            message: 'Plus de codes de récupération disponibles.',
+            cause: 'Tous les codes de récupération ont été utilisés.',
+            endpoint: 'POST /auth/2fa/recovery-codes',
+            action: 'Régénérer de nouveaux codes de récupération.'
+        },
+        {
+            code: '2FA_ALREADY_ENABLED',
+            message: 'La 2FA est déjà activée pour ce compte.',
+            cause: 'Tentative d\'activation de la 2FA alors qu\'elle est déjà active.',
+            endpoint: 'GET /auth/2fa/qrcode',
+            action: 'Désactiver la 2FA avant de la réactiver.'
+        },
+        {
+            code: '2FA_NOT_ENABLED',
+            message: 'La 2FA n\'est pas activée pour ce compte.',
+            cause: 'Tentative d\'utilisation de la 2FA alors qu\'elle n\'est pas activée.',
+            endpoint: 'POST /auth/2fa/verify',
+            action: 'Activer la 2FA via /auth/2fa/qrcode et /auth/2fa/confirm.'
+        },
+        {
+            code: 'OTP_SEND_FAILED',
+            message: 'Impossible d\'envoyer le code OTP.',
+            cause: 'Erreur lors de l\'envoi du code OTP (service indisponible).',
+            endpoint: 'POST /auth/otp/send',
+            action: 'Réessayer plus tard ou contacter le support.'
+        },
     ]
 };
 

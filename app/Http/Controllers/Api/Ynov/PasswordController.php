@@ -273,7 +273,6 @@ class PasswordController extends Controller
         if ($user->email) {
             Mail::to($user->email)->queue(new PasswordChangedMail($user->fresh('details'), request()->ip()));
         }
-        // Mail::to($user->email)->queue(new PasswordChangedMail($user->fresh('details'), request()->ip()));
 
         ActivityLog::log([
             'user_uuid' => $user->uuid_user,
