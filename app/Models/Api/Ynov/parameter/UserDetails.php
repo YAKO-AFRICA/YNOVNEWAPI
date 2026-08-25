@@ -77,14 +77,24 @@ class UserDetails extends Model
             return $this->photo;
         }
         
-        // Si photo est un chemin stocké localement
+        // Si photo_path est défini
         if ($this->photo_path) {
-            return route('storage.documents', ['file' => $this->photo_path]);
+            // Essayer d'utiliser la route nommée
+            try {
+                return route('storage.documents', ['file' => $this->photo_path]);
+            } catch (\Exception $e) {
+                // Fallback: URL directe
+                return url('/storage/documents/' . $this->photo_path);
+            }
         }
         
-        // Si photo est un chemin relatif (ancien format)
+        // Si photo est un chemin (legacy)
         if ($this->photo && !filter_var($this->photo, FILTER_VALIDATE_URL)) {
-            return route('storage.documents', ['file' => $this->photo]);
+            try {
+                return route('storage.documents', ['file' => $this->photo]);
+            } catch (\Exception $e) {
+                return url('/storage/documents/' . $this->photo);
+            }
         }
         
         return null;

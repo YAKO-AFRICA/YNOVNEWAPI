@@ -9,12 +9,61 @@ use Illuminate\Support\Facades\DB;
 
 class FaqService
 {
+
+    /**
+ * Nettoyer les émojis d'une chaîne
+ */
+private function removeEmojis(string $text): string
+{
+    // Supprime les émojis et caractères spéciaux 4 bytes
+    return preg_replace('/[\x{1F600}-\x{1F64F}]/u', '', $text);
+}
+
+/**
+ * Nettoyer la réponse avant insertion
+ */
+private function sanitizeAnswer(string $answer): string
+{
+    // Supprimer les émojis
+    $answer = $this->removeEmojis($answer);
+    
+    // Remplacer les émojis par des alternatives textuelles
+    $replacements = [
+        '📧' => '[Email]',
+        '📱' => '[SMS]',
+        '🔐' => '[Securite]',
+        '💡' => '[Conseil]',
+        '📌' => '[Note]',
+        '⚠️' => '[Important]',
+        '✅' => '[Valide]',
+        '❌' => '[Invalide]',
+        '🔒' => '[Verrouille]',
+        '🔑' => '[Clef]',
+        '📋' => '[Liste]',
+        '📅' => '[Date]',
+        '📍' => '[Lieu]',
+        '📝' => '[Note]',
+        '📎' => '[Piece]',
+        '🛡️' => '[Assurance]',
+        '🏥' => '[Sante]',
+        '🚗' => '[Auto]',
+        '🏠' => '[Habitation]',
+        '🏢' => '[Agence]',
+        '💰' => '[Paiement]',
+        '📞' => '[Telephone]',
+    ];
+    
+    return str_replace(array_keys($replacements), array_values($replacements), $answer);
+}
     /**
      * Créer une FAQ
      */
     public function create(array $data, string $creatorUuid): Faq
     {
         return DB::transaction(function () use ($data, $creatorUuid) {
+            if (isset($data['answer'])) {
+                $data['answer'] = $this->sanitizeAnswer($data['answer']);
+            }
             $faq = Faq::create([
                 'uuid_faq' => (string) Str::uuid(),
                 'faq_category_uuid' => $data['faq_category_uuid'] ?? null,

@@ -21,6 +21,7 @@ class PermissionController extends Controller
      * Suggérer des actions pour les permissions (structuré par catégorie)
      * ================================================================
      */
+
     // public function suggestedActions(): JsonResponse
     // {
     //     return response()->json([
@@ -388,6 +389,78 @@ class PermissionController extends Controller
     //                     'Analyser les logs',
     //                     'Auditer',
     //                     'Voir les tentatives de connexion',
+    //                 ]
+    //             ],
+    //             // ============================================
+    //             // ACTIONS DE GESTION DES PARTENAIRES
+    //             // ============================================
+    //             [
+    //                 'category' => 'Gestion des partenaires',
+    //                 'icon' => 'bi-handshake',
+    //                 'color' => '#2c3e50',
+    //                 'actions' => [
+    //                     'Afficher les partenaires',
+    //                     'Créer un partenaire',
+    //                     'Modifier un partenaire',
+    //                     'Supprimer un partenaire',
+    //                     'Activer un partenaire',
+    //                     'Désactiver un partenaire',
+    //                     'Voir les réseaux d\'un partenaire',
+    //                 ]
+    //             ],
+    //             // ============================================
+    //             // ACTIONS DE GESTION DES RÉSEAUX
+    //             // ============================================
+    //             [
+    //                 'category' => 'Gestion des réseaux',
+    //                 'icon' => 'bi-diagram-3',
+    //                 'color' => '#2980b9',
+    //                 'actions' => [
+    //                     'Afficher les réseaux',
+    //                     'Créer un réseau',
+    //                     'Modifier un réseau',
+    //                     'Supprimer un réseau',
+    //                     'Activer un réseau',
+    //                     'Désactiver un réseau',
+    //                     'Voir les agences d\'un réseau',
+    //                 ]
+    //             ],
+    //             // ============================================
+    //             // ACTIONS DE GESTION DES AGENCES
+    //             // ============================================
+    //             [
+    //                 'category' => 'Gestion des agences',
+    //                 'icon' => 'bi-building',
+    //                 'color' => '#27ae60',
+    //                 'actions' => [
+    //                     'Afficher les agences',
+    //                     'Créer une agence',
+    //                     'Modifier une agence',
+    //                     'Supprimer une agence',
+    //                     'Activer une agence',
+    //                     'Désactiver une agence',
+    //                     'Assigner des utilisateurs',
+    //                     'Retirer des utilisateurs',
+    //                     'Voir les horaires d\'une agence',
+    //                     'Modifier les horaires d\'une agence',
+    //                     'Voir les agences à proximité',
+    //                 ]
+    //             ],
+    //             // ============================================
+    //             // ACTIONS DE GESTION DES QUESTIONS DE SÉCURITÉ
+    //             // ============================================
+    //             [
+    //                 'category' => 'Questions de sécurité',
+    //                 'icon' => 'bi-question-circle',
+    //                 'color' => '#8e44ad',
+    //                 'actions' => [
+    //                     'Afficher les questions',
+    //                     'Créer une question',
+    //                     'Modifier une question',
+    //                     'Supprimer une question',
+    //                     'Activer une question',
+    //                     'Désactiver une question',
+    //                     'Voir les réponses des utilisateurs',
     //                 ]
     //             ],
     //         ],
@@ -833,6 +906,150 @@ class PermissionController extends Controller
                         'Activer une question',
                         'Désactiver une question',
                         'Voir les réponses des utilisateurs',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES FAQ
+                // ============================================
+                [
+                    'category' => 'FAQ',
+                    'icon' => 'bi-question-square',
+                    'color' => '#0d6efd',
+                    'actions' => [
+                        'Afficher les FAQs',
+                        'Créer une FAQ',
+                        'Modifier une FAQ',
+                        'Supprimer une FAQ',
+                        'Activer une FAQ',
+                        'Désactiver une FAQ',
+                        'Mettre en avant une FAQ',
+                        'Afficher les catégories de FAQ',
+                        'Créer une catégorie de FAQ',
+                        'Modifier une catégorie de FAQ',
+                        'Supprimer une catégorie de FAQ',
+                        'Activer une catégorie de FAQ',
+                        'Désactiver une catégorie de FAQ',
+                        'Réordonner les catégories de FAQ',
+                        'Dupliquer une catégorie de FAQ',
+                        'Rechercher dans les FAQs',
+                        'Voir les statistiques des FAQs',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DU PROFIL
+                // ============================================
+                [
+                    'category' => 'Profil',
+                    'icon' => 'bi-person',
+                    'color' => '#0d6efd',
+                    'actions' => [
+                        'Afficher le profil',
+                        'Modifier le profil',
+                        'Changer la photo de profil',
+                        'Supprimer la photo de profil',
+                        'Changer le mot de passe',
+                        'Voir les sessions',
+                        'Révoquer une session',
+                        'Révoquer toutes les sessions',
+                        'Voir les appareils',
+                        'Approuver un appareil',
+                        'Révoquer un appareil',
+                        'Voir les tentatives de connexion',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES CONTRATS
+                // ============================================
+                [
+                    'category' => 'Contrats',
+                    'icon' => 'bi-file-earmark-text',
+                    'color' => '#e67e22',
+                    'actions' => [
+                        'Afficher les contrats',
+                        'Créer un contrat',
+                        'Modifier un contrat',
+                        'Supprimer un contrat',
+                        'Valider un contrat',
+                        'Rejeter un contrat',
+                        'Exporter un contrat',
+                        'Imprimer un contrat',
+                        'Voir les contrats d\'un client',
+                        'Voir les échéances des contrats',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES PAIEMENTS
+                // ============================================
+                [
+                    'category' => 'Paiements',
+                    'icon' => 'bi-credit-card',
+                    'color' => '#2ecc71',
+                    'actions' => [
+                        'Afficher les paiements',
+                        'Créer un paiement',
+                        'Modifier un paiement',
+                        'Supprimer un paiement',
+                        'Valider un paiement',
+                        'Rejeter un paiement',
+                        'Exporter les paiements',
+                        'Voir l\'historique des paiements',
+                        'Voir les paiements d\'un contrat',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES RENDEZ-VOUS
+                // ============================================
+                [
+                    'category' => 'Rendez-vous',
+                    'icon' => 'bi-calendar-event',
+                    'color' => '#9b59b6',
+                    'actions' => [
+                        'Afficher les rendez-vous',
+                        'Créer un rendez-vous',
+                        'Modifier un rendez-vous',
+                        'Supprimer un rendez-vous',
+                        'Annuler un rendez-vous',
+                        'Confirmer un rendez-vous',
+                        'Voir les rendez-vous d\'une agence',
+                        'Voir les rendez-vous d\'un client',
+                        'Exporter les rendez-vous',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES SINISTRES
+                // ============================================
+                [
+                    'category' => 'Sinistres',
+                    'icon' => 'bi-exclamation-triangle',
+                    'color' => '#e74c3c',
+                    'actions' => [
+                        'Afficher les sinistres',
+                        'Créer un sinistre',
+                        'Modifier un sinistre',
+                        'Supprimer un sinistre',
+                        'Valider un sinistre',
+                        'Rejeter un sinistre',
+                        'Traiter un sinistre',
+                        'Clôturer un sinistre',
+                        'Voir les sinistres d\'un contrat',
+                        'Exporter les sinistres',
+                    ]
+                ],
+                // ============================================
+                // NOUVEAU : ACTIONS DE GESTION DES NOTIFICATIONS
+                // ============================================
+                [
+                    'category' => 'Notifications',
+                    'icon' => 'bi-bell',
+                    'color' => '#fd7e14',
+                    'actions' => [
+                        'Afficher les notifications',
+                        'Marquer comme lue',
+                        'Marquer toutes comme lues',
+                        'Supprimer une notification',
+                        'Supprimer toutes les notifications',
+                        'Configurer les notifications',
+                        'Envoyer une notification',
                     ]
                 ],
             ],

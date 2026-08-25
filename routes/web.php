@@ -29,7 +29,7 @@ Route::get('storage/documents/{file}', function ($file) {
 
     return Response::make($fileContents, 200, ['Content-Type' => $mimeType]);
 
-})->where('file', '.*');
+})->where('file', '.*')->name('storage.documents');  // ← AJOUTER ICI
 
 Route::get('/api/documentation', function () {
     return view('documentation.index',);
