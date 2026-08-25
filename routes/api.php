@@ -62,11 +62,13 @@ Route::prefix('v1')->group(function () {
 
     
 
-    Route::get('security/questions/suggested', [SecurityQuestionController::class, 'suggestedQuestions']);
-    Route::post('security/verify-answer', [SecurityQuestionController::class, 'verifyAnswer'])
-        ->middleware('throttle:5,15');
+    Route::prefix('security')->group(function () {
+        Route::get('questions/suggested', [SecurityQuestionController::class, 'suggestedQuestions']);
+        Route::post('verify-answer', [SecurityQuestionController::class, 'verifyAnswer'])->middleware('throttle:5,15');
+        Route::get('questions', [SecurityQuestionController::class, 'getAvailableQuestions']);
+        Route::post('verify-email', [SecurityQuestionController::class, 'verifyEmail'])->middleware('throttle:5,15');
+    });
 
-    Route::post('security/verify-email', [SecurityQuestionController::class, 'verifyEmail'])->middleware('throttle:5,15');
 
     Route::get('auth/freeze-check/{login}', [AuthController::class, 'freezeCheck'])
     ->middleware('throttle:30,1');
@@ -209,7 +211,7 @@ Route::prefix('v1')->middleware([
     // NOUVEAU : Routes de questions de sécurité (authentifiées)
     // ================================================================
     Route::prefix('security')->group(function () {
-        Route::get('questions', [SecurityQuestionController::class, 'getAvailableQuestions']);
+        // Route::get('questions', [SecurityQuestionController::class, 'getAvailableQuestions']);
         Route::get('user-questions', [SecurityQuestionController::class, 'getUserQuestions']);
         Route::post('user-questions', [SecurityQuestionController::class, 'setUserQuestions']);
     });

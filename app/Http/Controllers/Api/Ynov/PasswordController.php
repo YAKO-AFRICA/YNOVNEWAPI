@@ -43,6 +43,38 @@ class PasswordController extends Controller
         */
         $user = User::where('login', $login)->first();
 
+        // rechercher si l'utilisateur a un OTP reset par sms dans les dernières 24 heures
+        $otp = $this->otpService->getOtpByUser(
+            $user,
+            'reset',
+            'sms',
+            24
+        );
+
+        if ($otp) {
+            return response()->json([
+                'success' => false,
+                'code' => 'OTP_SMS_ALREADY_SENT',
+                'message' => 'Vous avez déjà utilisé la vérification par SMS au cours des dernières 24 heures. Veuillez sélectionner une autre méthode de vérification.',
+                'data' => [
+                    'available_options' => [
+                        [
+                            'code' => 'email',
+                            'label' => 'Recevoir un code par email',
+                        ],
+                        // [
+                        //     'code' => 'whatsapp',
+                        //     'label' => 'Recevoir un code par WhatsApp',
+                        // ],
+                        [
+                            'code' => 'question_secrete',
+                            'label' => 'Répondre aux questions de sécurité',
+                        ],
+                    ],
+                ],
+            ], 429);
+        }
+
         /*
         * Si l'utilisateur n'existe pas :
         * on retourne exactement la même réponse.
@@ -59,7 +91,7 @@ class PasswordController extends Controller
                 [
                     'success' => false,
                     'message' => 'Utilisateur introuvable.',
-                ]);
+                ], 404);
         }
 
         /*
@@ -137,15 +169,6 @@ class PasswordController extends Controller
         * Échec de l'envoi.
         */
         if (!$result['success']) {
-
-            // Log::warning(
-            //     'Échec envoi OTP réinitialisation',
-            //     [
-            //         'user_uuid' => $user->uuid_user,
-            //         'channel' => $option,
-            //         'code' => $result['code'],
-            //     ]
-            // );
 
             return response()->json([
                 'success' => false,

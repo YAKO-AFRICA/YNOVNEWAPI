@@ -125,10 +125,9 @@ class OtpService
          */
         if ($channel === 'email') {
 
-            $email = $data['login'] 
-                ?? $user->email
+            $email = $user->email
                 ?? $user->details?->email_pro
-                ?? $data['email']
+                ?? $data['email'] 
                 ?? null;
 
             if (empty($email)) {
@@ -167,10 +166,9 @@ class OtpService
 
             $phone = preg_replace(
                 '/\D/',
-                '',
-                $data['tel']
+                '', $user->details?->mobile_1
+                    ?? $data['tel']
                     ?? $data['login']
-                    ?? $user->details?->mobile_1
                     ?? ''
             );
 
@@ -224,9 +222,9 @@ class OtpService
             $phone = preg_replace(
                 '/\D/',
                 '',
-                $data['tel']
-                    ?? $data['login']
-                    ?? $user->details?->mobile_1
+                $user->details?->mobile_1
+                ?? $data['tel']
+                ?? $data['login']
                     ?? ''
             );
 
@@ -263,5 +261,20 @@ class OtpService
             'code' => 'OTP_SEND_FAILED',
             'message' => 'Impossible d\'envoyer le code OTP.',
         ];
+    }
+
+    public function getOtpByUser(
+        User $user,
+        string $purpose,
+        string $channel,
+        int $dateInHours = 24
+    ): ?OtpCode {
+        return OtpCode::query()
+            ->where('user_uuid', $user->uuid_user)
+            ->where('purpose', $purpose)
+            ->where('channel', $channel)
+            ->where('created_at', '>=', now()->subHours($dateInHours))
+            ->latest('created_at')
+            ->first();
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OtpController extends Controller
@@ -65,6 +66,7 @@ class OtpController extends Controller
         if ($request->purpose === 'reset') {
             // Génération du token
             $resetToken = Str::random(64);
+            // Log::info($resetToken);
 
             // Hash du token avant stockage
             $hashedToken = Hash::make($resetToken);

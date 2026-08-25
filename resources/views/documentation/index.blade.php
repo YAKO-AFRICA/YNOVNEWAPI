@@ -1038,11 +1038,110 @@ const API_DATA = {
         },
 
 
+        // {
+        //     id: 'password-forgot',
+        //     module: 'password',
+        //     name: 'Mot de passe oublié',
+        //     description: 'Demande de réinitialisation de mot de passe. **NOUVEAU :** permet de choisir le canal de récupération via le paramètre `option` : sms, email, whatsapp, ou question_secrete. Pour les clients, la méthode `question_secrete` retourne les questions de sécurité configurées.',
+        //     method: 'POST',
+        //     path: '/auth/forgot-password',
+        //     isProtected: false,
+        //     rateLimit: 'throttle:login',
+        //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        //     requestParams: {
+        //         body: {
+        //             login: { 
+        //                 type: 'string', 
+        //                 required: true, 
+        //                 max: 100, 
+        //                 description: 'Login de l\'utilisateur (exists:users,login)' 
+        //             },
+        //             option: { 
+        //                 type: 'string', 
+        //                 required: true, 
+        //                 enum: ['sms', 'email', 'whatsapp', 'question_secrete'],
+        //                 description: 'Canal de récupération. Pour les clients, "question_secrete" retourne les questions de sécurité. Note : WhatsApp est disponible dans l\'API mais nécessite une configuration supplémentaire côté serveur.'
+        //             }
+        //         }
+        //     },
+        //     exampleRequest: { 
+        //         login: 'jdupont', 
+        //         option: 'email' 
+        //     },
+        //     invalidExample: {
+        //         login: 'jdupont',
+        //         option: 'unknown'
+        //     },
+        //     invalidReason: 'Option non supportée. Utilisez sms, email, whatsapp ou question_secrete.',
+        //     responses: [
+        //         { 
+        //             status: 200, 
+        //             description: 'Utilisateur client avec option "question_secrete" — questions retournées', 
+        //             example: {
+        //                 success: true,
+        //                 message: 'Veuillez répondre aux questions de sécurité.',
+        //                 data: {
+        //                     token: '...',
+        //                     user_uuid: '...',
+        //                     method: 'question_secrete',
+        //                     has_configured: true,
+        //                     questions: [
+        //                         {
+        //                             question_uuid: '...',
+        //                             question_text: 'Quel est le nom de votre premier animal de compagnie ?',
+        //                             category: 'Personnelle'
+        //                         }
+        //                     ]
+        //                 }
+        //             }
+        //         },
+        //         { 
+        //             status: 200, 
+        //             description: 'OTP envoyé par email/SMS/WhatsApp', 
+        //             example: {
+        //                 success: true,
+        //                 message: 'Un code de vérification a été envoyé via le canal sélectionné.',
+        //                 data: {
+        //                     token: '...',
+        //                     user_uuid: '...',
+        //                     method: 'email',
+        //                     expires_in: 5
+        //                 }
+        //             }
+        //         },
+        //         { 
+        //             status: 200, 
+        //             description: 'Utilisateur introuvable (message générique anti-énumération)', 
+        //             example: {
+        //                 success: false,
+        //                 message: 'Utilisateur introuvable.'
+        //             }
+        //         },
+        //         { 
+        //             status: 422, 
+        //             description: 'Échec envoi OTP (email manquant, téléphone invalide, WhatsApp non configuré)', 
+        //             example: {
+        //                 success: false,
+        //                 message: 'Aucune adresse email disponible pour l\'envoi de l\'OTP.',
+        //                 code: 'EMAIL_INVALID'
+        //             }
+        //         },
+        //         { 
+        //             status: 422, 
+        //             description: 'Option non supportée', 
+        //             example: {
+        //                 success: false,
+        //                 message: 'Option non supportée. Utilisez sms, email, whatsapp ou question_secrete.'
+        //             }
+        //         }
+        //     ]
+        // },
+
         {
             id: 'password-forgot',
             module: 'password',
             name: 'Mot de passe oublié',
-            description: 'Demande de réinitialisation de mot de passe. **NOUVEAU :** permet de choisir le canal de récupération via le paramètre `option` : sms, email, whatsapp, ou question_secrete. Pour les clients, la méthode `question_secrete` retourne les questions de sécurité configurées.',
+            description: 'Demande de réinitialisation de mot de passe. **NOUVEAU :** Limitation de l\'envoi OTP par SMS à une fois toutes les 24 heures. Si l\'utilisateur a déjà utilisé la vérification par SMS dans les dernières 24h, des méthodes alternatives lui sont proposées (email, questions de sécurité). Support de multiples canaux : sms, email, whatsapp, question_secrete.',
             method: 'POST',
             path: '/auth/forgot-password',
             isProtected: false,
@@ -1097,7 +1196,7 @@ const API_DATA = {
                 },
                 { 
                     status: 200, 
-                    description: 'OTP envoyé par email/SMS/WhatsApp', 
+                    description: 'OTP envoyé par email/SMS/WhatsApp avec succès', 
                     example: {
                         success: true,
                         message: 'Un code de vérification a été envoyé via le canal sélectionné.',
@@ -1110,8 +1209,8 @@ const API_DATA = {
                     }
                 },
                 { 
-                    status: 200, 
-                    description: 'Utilisateur introuvable (message générique anti-énumération)', 
+                    status: 404, 
+                    description: 'Utilisateur introuvable (message générique anti-énumération avec temps de réponse uniformisé)', 
                     example: {
                         success: false,
                         message: 'Utilisateur introuvable.'
@@ -1132,6 +1231,27 @@ const API_DATA = {
                     example: {
                         success: false,
                         message: 'Option non supportée. Utilisez sms, email, whatsapp ou question_secrete.'
+                    }
+                },
+                { 
+                    status: 429, 
+                    description: '**NOUVEAU** Limite OTP SMS atteinte (24h)', 
+                    example: {
+                        success: false,
+                        code: 'OTP_SMS_ALREADY_SENT',
+                        message: 'Vous avez déjà utilisé la vérification par SMS au cours des dernières 24 heures. Veuillez sélectionner une autre méthode de vérification.',
+                        data: {
+                            available_options: [
+                                {
+                                    code: 'email',
+                                    label: 'Recevoir un code par email'
+                                },
+                                {
+                                    code: 'question_secrete',
+                                    label: 'Répondre aux questions de sécurité'
+                                }
+                            ]
+                        }
                     }
                 }
             ]
@@ -3271,6 +3391,22 @@ const API_DATA = {
             endpoint: 'POST /auth/otp/send',
             action: 'Réessayer plus tard ou contacter le support.'
         },
+
+        // Dans businessErrors
+        {
+            code: 'OTP_SMS_ALREADY_SENT',
+            message: 'Vous avez déjà utilisé la vérification par SMS au cours des dernières 24 heures.',
+            cause: 'L\'utilisateur a déjà reçu un OTP SMS pour une réinitialisation dans les dernières 24 heures.',
+            endpoint: 'POST /auth/forgot-password (option=sms)',
+            action: 'Utiliser un autre canal de récupération (email ou questions de sécurité).'
+        },
+        {
+            code: 'USER_NOT_FOUND',
+            message: 'Utilisateur introuvable.',
+            cause: 'Le login fourni n\'existe pas dans la base de données.',
+            endpoint: 'POST /auth/forgot-password',
+            action: 'Vérifier le login ou contacter le support.'
+        }
     ]
 };
 
