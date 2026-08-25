@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Api\Ynov;
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\OtpService;
-use App\Services\SMSService;
+// use App\Services\SMSService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
+// use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class OtpController extends Controller

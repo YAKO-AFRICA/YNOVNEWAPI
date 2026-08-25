@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Ynov\AgenceController;
 use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
@@ -9,10 +10,12 @@ use App\Http\Controllers\Api\Ynov\FreezeController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
 use App\Http\Controllers\Api\Ynov\OtpController;
+use App\Http\Controllers\Api\Ynov\PartnerController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
+use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
 use App\Http\Controllers\Api\Ynov\SessionController;
@@ -53,14 +56,14 @@ Route::prefix('v1')->group(function () {
 
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
     Route::post('auth/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])
-    ->middleware(['auth:sanctum', 'throttle:5,10']);  // 5 tentatives en 10 minutes
+        ->middleware(['auth:sanctum', 'throttle:5,10']);  // 5 tentatives en 10 minutes
     Route::post('auth/2fa/verify-recovery', [TwoFactorController::class, 'verifyRecovery'])
-    ->middleware('throttle:5,30');
+        ->middleware('throttle:5,30');
 
     // Route::post('auth/otp/verify-login', [TwoFactorController::class, 'verifyOtp'])
     //     ->middleware('auth:sanctum', 'throttle:5,10');
 
-    
+
 
     Route::prefix('security')->group(function () {
         Route::get('questions/suggested', [SecurityQuestionController::class, 'suggestedQuestions']);
@@ -71,7 +74,7 @@ Route::prefix('v1')->group(function () {
 
 
     Route::get('auth/freeze-check/{login}', [AuthController::class, 'freezeCheck'])
-    ->middleware('throttle:30,1');
+        ->middleware('throttle:30,1');
 });
 
 /*
@@ -104,7 +107,7 @@ Route::prefix('v1')->middleware([
         Route::get('auth/2fa/qrcode', [TwoFactorController::class, 'enable']);
         Route::post('auth/2fa/confirm', [TwoFactorController::class, 'confirm']);
         Route::post('auth/2fa/disable', [TwoFactorController::class, 'disable']);
-        
+
         // Gestion 2FA
         Route::get('auth/2fa/status', [TwoFactorController::class, 'status']);
         Route::get('auth/2fa/methods', [TwoFactorController::class, 'methods']);
@@ -145,7 +148,7 @@ Route::prefix('v1')->middleware([
         });
     });
 
-    
+
 
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
@@ -167,14 +170,12 @@ Route::prefix('v1')->middleware([
     Route::delete('roles/{uuid_role}', [RoleController::class, 'destroy'])->middleware('permission:roles.supprimer');
     Route::post('roles/{uuid_role}/permissions', [RoleController::class, 'assignPermissions'])->middleware('permission:roles.gerer_permissions');
 
-     Route::get('permissions/suggested-actions', [PermissionController::class, 'suggestedActions'])->middleware('permission:permissions.afficher');
-     
+    Route::get('permissions/suggested-actions', [PermissionController::class, 'suggestedActions'])->middleware('permission:permissions.afficher');
+
     Route::group(['middleware' => 'permission:permission_groups.afficher'], function () {
         Route::get('permission-groups', [PermissionGroupController::class, 'index']);
         Route::get('permission-groups/{uuid_permissionGroup}', [PermissionGroupController::class, 'show']);
     });
-
-
 
     Route::post('permission-groups', [PermissionGroupController::class, 'store'])->middleware('permission:permission_groups.creer');
     Route::put('permission-groups/{uuid_permissionGroup}', [PermissionGroupController::class, 'update'])->middleware('permission:permission_groups.modifier');
@@ -185,7 +186,6 @@ Route::prefix('v1')->middleware([
         Route::get('permissions/{uuid_permission}', [PermissionController::class, 'show']);
     });
 
-   
     Route::post('permissions', [PermissionController::class, 'store'])->middleware('permission:permissions.creer');
     Route::put('permissions/{uuid_permission}', [PermissionController::class, 'update'])->middleware('permission:permissions.modifier');
     Route::delete('permissions/{uuid_permission}', [PermissionController::class, 'destroy'])->middleware('permission:permissions.supprimer');
@@ -224,13 +224,13 @@ Route::prefix('v1')->middleware([
         Route::put('questions/{uuid}', [SecurityQuestionController::class, 'updateQuestion']);
         Route::delete('questions/{uuid}', [SecurityQuestionController::class, 'deleteQuestion']);
     });
-    
+
 
     Route::prefix('audit')->group(function () {
         // Mes logs personnels
         Route::get('my-activity', [AuditLogController::class, 'getMyActivityLogs']);
         Route::get('my-activity/stats', [AuditLogController::class, 'getActivityStats']);
-        
+
         // Admin : logs des utilisateurs
         Route::middleware('permission:audit.consulter_les_logs')->group(function () {
             Route::get('activity', [AuditLogController::class, 'getAllActivityLogs']);
@@ -240,11 +240,55 @@ Route::prefix('v1')->middleware([
         });
     });
 
+    // ============================================================
+    // PARTENAIRES
+    // ============================================================
+    Route::group(['middleware' => 'permission:partners.afficher'], function () {
+        Route::get('partners', [PartnerController::class, 'index']);
+        Route::get('partners/{uuid_partner}', [PartnerController::class, 'show']);
+        Route::get('partners/{uuid_partner}/reseaux', [PartnerController::class, 'reseaux']);
+    });
+
+    Route::post('partners', [PartnerController::class, 'store'])->middleware('permission:partners.creer');
+    Route::put('partners/{uuid_partner}', [PartnerController::class, 'update'])->middleware('permission:partners.modifier');
+    Route::delete('partners/{uuid_partner}', [PartnerController::class, 'destroy'])->middleware('permission:partners.supprimer');
+
+    // ============================================================
+    // RESEAUX
+    // ============================================================
+    Route::group(['middleware' => 'permission:reseaux.afficher'], function () {
+        Route::get('reseaux', [ReseauController::class, 'index']);
+        Route::get('reseaux/{uuid_reseau}', [ReseauController::class, 'show']);
+        Route::get('reseaux/{uuid_reseau}/agences', [ReseauController::class, 'agences']);
+    });
+
+    Route::post('reseaux', [ReseauController::class, 'store'])->middleware('permission:reseaux.creer');
+    Route::put('reseaux/{uuid_reseau}', [ReseauController::class, 'update'])->middleware('permission:reseaux.modifier');
+    Route::delete('reseaux/{uuid_reseau}', [ReseauController::class, 'destroy'])->middleware('permission:reseaux.supprimer');
+
+    // ============================================================
+    // AGENCES
+    // ============================================================
+    Route::group(['middleware' => 'permission:agences.afficher'], function () {
+        Route::get('agences', [AgenceController::class, 'index']);
+        Route::get('agences/{uuid_agence}', [AgenceController::class, 'show']);
+        // nearby : Récupérer les agences proches (géolocalisation)
+        Route::get('agences/nearby', [AgenceController::class, 'nearby']);
+        Route::get('agences/{uuid_agence}/horaires', [AgenceController::class, 'horaires']);
+    });
+
+    Route::post('agences', [AgenceController::class, 'store'])->middleware('permission:agences.creer');
+    Route::put('agences/{uuid_agence}', [AgenceController::class, 'update'])->middleware('permission:agences.modifier');
+    Route::delete('agences/{uuid_agence}', [AgenceController::class, 'destroy'])->middleware('permission:agences.supprimer');
+
+    Route::group(['middleware' => 'permission:agences.assigner_utilisateurs'], function () {
+        Route::post('agences/{uuid_agence}/users', [AgenceController::class, 'assignUsers']);
+        Route::delete('agences/{uuid_agence}/users/{uuid_user}', [AgenceController::class, 'removeUser']);
+    });
 
     // Route protégée espaces client
     Route::prefix('espaces-client')->group(function () {
-        Route::get('dashboard',[CustomerController::class, 'index']);
-        
+        Route::get('dashboard', [CustomerController::class, 'index']);
     });
 });
 

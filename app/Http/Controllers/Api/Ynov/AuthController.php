@@ -185,6 +185,51 @@ class AuthController extends Controller
         }
     }
 
+    // public function register(Request $request): JsonResponse
+    // {
+    //     try {
+
+    //         $result = $this->userService->createClient(
+    //             $request->all()
+    //         );
+
+    //         if (!$result['success']) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'code' => $result['code'],
+    //                 'message' => $result['message'],
+    //             ], 422);
+    //         }
+
+    //         $user = $result['data'];
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'code' => $result['code'],
+    //             'message' => 'Inscription réussie. '
+    //                 . 'Vos paramètres de connexion ont été envoyés.',
+    //             'data' => new UserResource(
+    //                 $user->load('details')
+    //             ),
+    //         ], 201);
+
+    //     } catch (\Throwable $e) {
+
+    //         logger()->error(
+    //             'Erreur création client',
+    //             [
+    //                 'error' => $e->getMessage(),
+    //                 'trace' => $e->getTraceAsString(),
+    //             ]
+    //         );
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => $e->getMessage(),
+    //         ], 422);
+    //     }
+    // }
+
     public function register(Request $request): JsonResponse
     {
         try {
@@ -193,6 +238,9 @@ class AuthController extends Controller
                 $request->all()
             );
 
+            /*
+            * Échec métier
+            */
             if (!$result['success']) {
                 return response()->json([
                     'success' => false,
@@ -201,8 +249,14 @@ class AuthController extends Controller
                 ], 422);
             }
 
+            /*
+            * Utilisateur créé
+            */
             $user = $result['data'];
 
+            /*
+            * Réponse API
+            */
             return response()->json([
                 'success' => true,
                 'code' => $result['code'],
@@ -220,13 +274,15 @@ class AuthController extends Controller
                 [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
+                    'login' => $request->input('login'),
                 ]
             );
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+                'code' => 'USER_CREATION_ERROR',
+                'message' => 'Une erreur est survenue lors de la création du compte.',
+            ], 500);
         }
     }
 
