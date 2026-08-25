@@ -17,12 +17,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-<?php
-// routes/web.php
-
-use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Route;
-
 Route::get('storage/documents/{file}', function ($file) {
     // Nettoyer le nom du fichier
     $file = ltrim($file, '/');
