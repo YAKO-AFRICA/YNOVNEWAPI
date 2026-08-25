@@ -51,7 +51,7 @@ class PasswordController extends Controller
             24
         );
 
-        if ($otp) {
+        if ($otp && $option == 'sms') {
             return response()->json([
                 'success' => false,
                 'code' => 'OTP_SMS_ALREADY_SENT',
