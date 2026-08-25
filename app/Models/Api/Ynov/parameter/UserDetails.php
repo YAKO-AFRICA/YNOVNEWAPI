@@ -68,6 +68,17 @@ class UserDetails extends Model
     }
 
     /**
+     * Obtenir le photo_path nettoyé
+     */
+    public function getCleanPhotoPathAttribute(): ?string
+    {
+        if (!$this->photo_path) {
+            return null;
+        }
+        return str_replace('\\', '/', $this->photo_path);
+    }
+
+    /**
      * Obtenir l'URL complète de la photo
      */
     public function getPhotoUrlAttribute(): ?string
@@ -77,27 +88,36 @@ class UserDetails extends Model
             return $this->photo;
         }
         
-        // Si photo_path est défini
-        if ($this->photo_path) {
-            // Essayer d'utiliser la route nommée
-            try {
-                return route('storage.documents', ['file' => $this->photo_path]);
-            } catch (\Exception $e) {
-                // Fallback: URL directe
-                return url('/storage/documents/' . $this->photo_path);
-            }
-        }
+        $path = $this->clean_photo_path ?? $this->photo;
         
-        // Si photo est un chemin (legacy)
-        if ($this->photo && !filter_var($this->photo, FILTER_VALIDATE_URL)) {
+        if ($path && !filter_var($path, FILTER_VALIDATE_URL)) {
+            // Nettoyer le chemin
+            $cleanPath = str_replace('\\', '/', $path);
+            $cleanPath = ltrim($cleanPath, '/');
+            
             try {
-                return route('storage.documents', ['file' => $this->photo]);
+                return route('storage.documents', ['file' => $cleanPath]);
             } catch (\Exception $e) {
-                return url('/storage/documents/' . $this->photo);
+                return url('/storage/documents/' . $cleanPath);
             }
         }
         
         return null;
+    }
+
+    /**
+     * Setter pour photo_path
+     */
+    public function setPhotoPathAttribute($value): void
+    {
+        if ($value) {
+            // Nettoyer le chemin
+            $cleanPath = str_replace('\\', '/', $value);
+            $cleanPath = ltrim($cleanPath, '/');
+            $this->attributes['photo_path'] = $cleanPath;
+        } else {
+            $this->attributes['photo_path'] = null;
+        }
     }
     
     /**
