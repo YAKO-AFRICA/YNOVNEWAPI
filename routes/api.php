@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
+use App\Http\Controllers\Api\Ynov\FaqCategoryController;
+use App\Http\Controllers\Api\Ynov\FaqController;
 use App\Http\Controllers\Api\Ynov\FreezeController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
@@ -75,6 +77,24 @@ Route::prefix('v1')->group(function () {
 
     Route::get('auth/freeze-check/{login}', [AuthController::class, 'freezeCheck'])
         ->middleware('throttle:30,1');
+
+
+    // ============================================================
+    // FAQ - Publiques
+    // ============================================================
+    Route::prefix('faq')->group(function () {
+        // Liste des FAQs avec filtres
+        Route::get('/', [FaqController::class, 'index']);
+        
+        // Rechercher dans les FAQs
+        Route::get('search', [FaqController::class, 'search']);
+        
+        // Catégories de FAQs
+        Route::get('categories', [FaqCategoryController::class, 'index']);
+        
+        // Détails d'une FAQ (incrémente les vues)
+        Route::get('{uuid_faq}', [FaqController::class, 'show']);
+    });
 });
 
 /*
@@ -134,6 +154,7 @@ Route::prefix('v1')->middleware([
 
     Route::get('profile', [ProfileController::class, 'show']);
     Route::put('profile', [ProfileController::class, 'update']);
+    Route::delete('profile/photo', [ProfileController::class, 'deletePhoto']);
 
     Route::group(['middleware' => 'permission:users.afficher'], function () {
         Route::get('users', [UserController::class, 'index']);
@@ -285,6 +306,72 @@ Route::prefix('v1')->middleware([
         Route::post('agences/{uuid_agence}/users', [AgenceController::class, 'assignUsers']);
         Route::delete('agences/{uuid_agence}/users/{uuid_user}', [AgenceController::class, 'removeUser']);
     });
+
+
+    // ============================================================
+    // FAQ - Admin
+    // ============================================================
+    Route::prefix('admin/faq')->group(function () {
+        
+        // ============================================================
+        // Gestion des FAQs
+        // ============================================================
+        Route::post('/', [FaqController::class, 'store'])
+            ->middleware('permission:faqs.creer');
+        
+        Route::put('{uuid_faq}', [FaqController::class, 'update'])
+            ->middleware('permission:faqs.modifier');
+        
+        Route::delete('{uuid_faq}', [FaqController::class, 'destroy'])
+            ->middleware('permission:faqs.supprimer');
+        
+        Route::post('{uuid_faq}/toggle', [FaqController::class, 'toggle'])
+            ->middleware('permission:faqs.modifier');
+        
+        // ============================================================
+        // Gestion des Catégories
+        // ============================================================
+        // Liste complète des catégories (admin)
+        Route::get('categories', [FaqCategoryController::class, 'index'])
+            ->middleware('permission:faq_categories.afficher');
+        
+        // Catégories pour select (dropdown)
+        Route::get('categories/select', [FaqCategoryController::class, 'forSelect'])
+            ->middleware('permission:faq_categories.afficher');
+        
+        // Statistiques des catégories
+        Route::get('categories/stats', [FaqCategoryController::class, 'stats'])
+            ->middleware('permission:faq_categories.afficher');
+        
+        // Détails d'une catégorie
+        Route::get('categories/{uuid_faq_category}', [FaqCategoryController::class, 'show'])
+            ->middleware('permission:faq_categories.afficher');
+        
+        // Créer une catégorie
+        Route::post('categories', [FaqCategoryController::class, 'store'])
+            ->middleware('permission:faq_categories.creer');
+        
+        // Mettre à jour une catégorie
+        Route::put('categories/{uuid_faq_category}', [FaqCategoryController::class, 'update'])
+            ->middleware('permission:faq_categories.modifier');
+        
+        // Supprimer une catégorie
+        Route::delete('categories/{uuid_faq_category}', [FaqCategoryController::class, 'destroy'])
+            ->middleware('permission:faq_categories.supprimer');
+        
+        // Activer/Désactiver une catégorie
+        Route::post('categories/{uuid_faq_category}/toggle', [FaqCategoryController::class, 'toggle'])
+            ->middleware('permission:faq_categories.modifier');
+        
+        // Réordonner les catégories
+        Route::post('categories/reorder', [FaqCategoryController::class, 'reorder'])
+            ->middleware('permission:faq_categories.modifier');
+        
+        // Dupliquer une catégorie
+        Route::post('categories/{uuid_faq_category}/duplicate', [FaqCategoryController::class, 'duplicate'])
+            ->middleware('permission:faq_categories.creer');
+    });
+
 
     // Route protégée espaces client
     Route::prefix('espaces-client')->group(function () {

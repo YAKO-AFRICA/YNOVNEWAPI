@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SuperAdminRoleSeeder::class,
             SuperAdminUserSeeder::class,
+            FaqCategorySeeder::class,
         ]);
     }
 }

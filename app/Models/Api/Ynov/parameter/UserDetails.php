@@ -31,6 +31,7 @@ class UserDetails extends Model
         'telephone_fixe',
         'email_pro',
         'photo',
+        'photo_path',
         'date_naissance',
         'lieu_naissance',
         'lieu_residence',
@@ -64,6 +65,29 @@ class UserDetails extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_uuid', 'uuid_user');
+    }
+
+    /**
+     * Obtenir l'URL complète de la photo
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        // Si photo est une URL externe
+        if ($this->photo && filter_var($this->photo, FILTER_VALIDATE_URL)) {
+            return $this->photo;
+        }
+        
+        // Si photo est un chemin stocké localement
+        if ($this->photo_path) {
+            return route('storage.documents', ['file' => $this->photo_path]);
+        }
+        
+        // Si photo est un chemin relatif (ancien format)
+        if ($this->photo && !filter_var($this->photo, FILTER_VALIDATE_URL)) {
+            return route('storage.documents', ['file' => $this->photo]);
+        }
+        
+        return null;
     }
     
     /**

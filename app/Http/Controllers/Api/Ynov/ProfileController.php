@@ -2,13 +2,109 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\UpdateProfileRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
+use App\Services\Api\Ynov\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+// use Illuminate\Support\Facades\Log;
+
+// class ProfileController extends Controller
+// {
+//     public function __construct(
+//         private ProfileService $profileService
+//     ) {}
+//     public function show(Request $request): JsonResponse
+//     {
+//         $user = $request->user()->load([
+//             'role.permissions.group',
+//             'details',
+//             'partner',
+//             'reseau',
+//             'agences',
+//             'groupNotifs',
+//             'userContrats'
+//         ]);
+
+//         $user->setAttribute('permissions_grouped', $user->getGroupedPermissions());
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Profil récupéré avec succès.',
+//             'code' => 'PROFILE_FOUND',
+//             'data' => new UserResource($user),
+//         ]);
+//     }
+
+//     /**
+//      * Mettre à jour le profil de l'utilisateur connecté
+//      */
+//     public function update(UpdateProfileRequest $request): JsonResponse
+//     {
+//         $user = $request->user();
+        
+//         $updatedUser = $this->profileService->updateProfile(
+//             $user,
+//             $request->validated()
+//         );
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Profil mis à jour avec succès.',
+//             'code' => 'PROFILE_UPDATED',
+//             'data' => new UserResource($updatedUser->load([
+//                 'role.permissions.group',
+//                 'details',
+//                 'partner',
+//                 'reseau',
+//                 'agences',
+//                 'groupNotifs',
+//                 'userContrats'
+//             ])),
+//         ]);
+//     }
+
+
+//     /**
+//      * Supprimer la photo de profil
+//      */
+//     public function deletePhoto(Request $request): JsonResponse
+//     {
+//         $user = $request->user();
+        
+//         if ($user->details && $user->details->photo_path) {
+//             $this->profileService->deletePhoto($user->details->photo_path);
+            
+//             $user->details->update([
+//                 'photo_path' => null,
+//                 'photo' => null,
+//                 'updated_by' => $user->uuid_user,
+//             ]);
+            
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Photo de profil supprimée avec succès.',
+//                 'code' => 'PHOTO_DELETED',
+//             ]);
+//         }
+        
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Aucune photo de profil à supprimer.',
+//             'code' => 'NO_PHOTO_FOUND',
+//         ], 404);
+//     }
+// }
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private ProfileService $profileService
+    ) {}
+
+    /**
+     * Afficher le profil de l'utilisateur connecté
+     */
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()->load([
@@ -25,52 +121,67 @@ class ProfileController extends Controller
 
         return response()->json([
             'success' => true,
+            'message' => 'Profil récupéré avec succès.',
+            'code' => 'PROFILE_FOUND',
             'data' => new UserResource($user),
         ]);
-        // return response()->json([
-        //     'success' => true,
-        //     'data' => new UserResource($request->user()->load([
-        //         'role.permissions.group', 'details', 'partner', 'reseau', 'agences', 'groupNotifs'
-        //     ])),
-        // ]);
     }
 
-    public function update(Request $request): JsonResponse
+    /**
+     * Mettre à jour le profil de l'utilisateur connecté
+     */
+    public function update(UpdateProfileRequest $request): JsonResponse
     {
-        // Log::info('update profile request ', $request->all());
         $user = $request->user();
-        $validated = $request->validate([
-            'login' => ['sometimes', 'nullable', 'string', 'max:100', "unique:users,login,{$user->uuid_user},uuid_user"],
-            'nom' => ['sometimes', 'string', 'max:55'],
-            'prenoms' => ['sometimes', 'string', 'max:255'],
-            'fonction' => ['nullable', 'string', 'max:55'],
-            'mobile_1' => ['nullable', 'string', 'max:25'],
-            'mobile_2' => ['nullable', 'string', 'max:25'],
-            'photo' => ['nullable', 'string', 'max:255'],
-            'ville' => ['nullable', 'string', 'max:100'],
-            'pays' => ['nullable', 'string', 'max:100'],
-        ]);
-
-        $user->update(['login' => $validated['login'] ?? $user->login]);
-
-        if ($user->details) {
-            $user->details->update([
-                'nom' => $validated['nom'] ?? $user->details->nom,
-                'prenoms' => $validated['prenoms'] ?? $user->details->prenoms,
-                'fonction' => $validated['fonction'] ?? $user->details->fonction,
-                'mobile_1' => $validated['mobile_1'] ?? $user->details->mobile_1,
-                'mobile_2' => $validated['mobile_2'] ?? $user->details->mobile_2,
-                'photo' => $validated['photo'] ?? $user->details->photo,
-                'ville' => $validated['ville'] ?? $user->details->ville,
-                'pays' => $validated['pays'] ?? $user->details->pays,
-                'updated_by' => $user->details?->uuid_user_details,
-            ]);
-        }
+        
+        $updatedUser = $this->profileService->updateProfile(
+            $user,
+            $request->validated()
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil mis à jour.',
-            'data' => new UserResource($user->fresh()->load('details')),
+            'message' => 'Profil mis à jour avec succès.',
+            'code' => 'PROFILE_UPDATED',
+            'data' => new UserResource($updatedUser->load([
+                'role.permissions.group',
+                'details',
+                'partner',
+                'reseau',
+                'agences',
+                'groupNotifs',
+                'userContrats'
+            ])),
         ]);
+    }
+
+    /**
+     * Supprimer la photo de profil
+     */
+    public function deletePhoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if ($user->details && $user->details->photo_path) {
+            $this->profileService->deletePhoto($user->details->photo_path);
+            
+            $user->details->update([
+                'photo_path' => null,
+                'photo' => null,
+                'updated_by' => $user->uuid_user,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo de profil supprimée avec succès.',
+                'code' => 'PHOTO_DELETED',
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Aucune photo de profil à supprimer.',
+            'code' => 'NO_PHOTO_FOUND',
+        ], 404);
     }
 }

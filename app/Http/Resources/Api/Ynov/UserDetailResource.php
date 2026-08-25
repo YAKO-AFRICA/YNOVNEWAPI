@@ -23,12 +23,14 @@ class UserDetailResource extends JsonResource
             'mobile_2' => $this->mobile_2,
             'email_pro' => $this->email_pro,
             'photo' => $this->photo,
+            'photo_path' => $this->photo_path,
+            'photo_url' => $this->photo_url,
             'date_naissance' => $this->date_naissance,
             'lieu_naissance' => $this->lieu_naissance,
             'ville' => $this->ville,
             'pays' => $this->pays,
             'genre' => $this->genre,
-            'civilite' => $this->civilite,
+            'civilite' => $this->civilite,        
         ];
     }
 }

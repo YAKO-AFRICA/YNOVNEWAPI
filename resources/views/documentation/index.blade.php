@@ -745,6 +745,7 @@ console.warn = function() {
             reseaux: { label: 'Réseaux', icon: 'fa-network-wired' },
             agences: { label: 'Agences', icon: 'fa-building' },
             contrats: { label: 'Contrats', icon: 'fa-file-contract' },
+            faq: { label: 'FAQ', icon: 'fa-circle-question' },
             errors: { label: 'Codes HTTP & Erreurs', icon: 'fa-bug' }
         },
 
@@ -1463,14 +1464,98 @@ console.warn = function() {
                 id: 'profile-show',
                 module: 'profile',
                 name: 'Mon profil',
-                description: 'Récupère les informations complètes du profil de l\'utilisateur connecté.',
+                description: 'Récupère les informations complètes du profil de l\'utilisateur connecté. Retourne les données utilisateur, ses détails (nom, prénoms, contact, photo, etc.), son rôle, ses permissions, ses partenaires, réseaux, agences et contrats.',
                 method: 'GET',
                 path: '/profile',
                 isProtected: true,
                 headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
                 requestParams: { body: {} },
                 responses: [
-                    { status: 200, description: 'Profil utilisateur', example: { success: true, data: { uuid_user: '...', details: {} } } }
+                    {
+                        status: 200,
+                        description: 'Profil utilisateur récupéré avec succès',
+                        example: {
+                            success: true,
+                            message: 'Profil récupéré avec succès.',
+                            code: 'PROFILE_FOUND',
+                            data: {
+                                uuid_user: '550e8400-e29b-41d4-a716-446655440000',
+                                login: 'jean.dupont',
+                                email: 'jean.dupont@ynov.ci',
+                                user_type: 'user_interne',
+                                status: 'actif',
+                                is_first_login: false,
+                                is_online: true,
+                                is_locked: false,
+                                last_login_at: '2025-01-15T10:30:00.000000Z',
+                                email_verified_at: '2025-01-15T10:00:00.000000Z',
+                                two_factor_enabled: true,
+                                role: {
+                                    uuid_role: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'Administrateur',
+                                    is_super_admin: false
+                                },
+                                details: {
+                                    uuid_user_details: '550e8400-e29b-41d4-a716-446655440002',
+                                    code_agent: 'AG2025001',
+                                    matricule: 'MAT2025001',
+                                    numero_client: 'CLT2025001',
+                                    nom: 'Dupont',
+                                    prenoms: 'Jean-Marc',
+                                    full_name: 'Jean-Marc Dupont',
+                                    fonction: 'Directeur Commercial',
+                                    service: 'Commercial',
+                                    departement: 'Ventes',
+                                    mobile_1: '+2250708091011',
+                                    mobile_2: '+2250708091012',
+                                    telephone_fixe: '+2252720304050',
+                                    email_pro: 'jean.dupont@yako.ci',
+                                    photo: null,
+                                    photo_path: 'profiles/550e8400-e29b-41d4-a716-446655440000/profile_550e8400-e29b-41d4-a716-446655440000_1698765432.jpg',
+                                    photo_url: 'https://api.ynov.ci/storage/documents/profiles/550e8400-e29b-41d4-a716-446655440000/profile_550e8400-e29b-41d4-a716-446655440000_1698765432.jpg',
+                                    date_naissance: '1985-06-15',
+                                    lieu_naissance: 'Abidjan',
+                                    lieu_residence: 'Cocody',
+                                    nationalite: 'Ivoirienne',
+                                    genre: 'M',
+                                    civilite: 'M.',
+                                    adresse_complete: 'Cocody, Abidjan',
+                                    ville: 'Abidjan',
+                                    code_postal: '01 BP 1234',
+                                    pays: 'Côte d\'Ivoire',
+                                    date_embauche: '2020-01-15',
+                                    statut_employe: 'CDI',
+                                    type_contrat: 'Permanent',
+                                    created_at: '2025-01-15T10:00:00.000000Z',
+                                    updated_at: '2025-01-15T14:30:00.000000Z'
+                                },
+                                partner: {
+                                    uuid_partner: '...',
+                                    designation: 'YAKO AFRICA'
+                                },
+                                reseau: {
+                                    uuid_reseau: '...',
+                                    libelle: 'Réseau Abidjan'
+                                },
+                                agences: [
+                                    {
+                                        uuid_agence: '...',
+                                        libelle: 'YAKO Plateau',
+                                        is_primary: true
+                                    }
+                                ],
+                                permissions_grouped: {
+                                    'Utilisateurs': ['users.afficher', 'users.creer', 'users.modifier'],
+                                    'Rôles': ['roles.afficher', 'roles.creer']
+                                }
+                            }
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    }
                 ]
             },
 
@@ -1478,27 +1563,133 @@ console.warn = function() {
                 id: 'profile-update',
                 module: 'profile',
                 name: 'Mettre à jour mon profil',
-                description: 'Modifie les informations personnelles (login, nom, prénoms, fonction, mobiles, photo, ville, pays).',
+                description: 'Modifie les informations personnelles de l\'utilisateur connecté. **NOUVEAU :** Support de l\'upload de photo de profil (image) et des URLs externes. Permet de mettre à jour le login, l\'email, les coordonnées, la photo, et les informations professionnelles.',
                 method: 'PUT',
                 path: '/profile',
                 isProtected: true,
-                headers: { 'Authorization': 'Bearer {token}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: {
+                    'Authorization': 'Bearer {token}',
+                    'Content-Type': 'multipart/form-data (pour upload photo) ou application/json',
+                    'Accept': 'application/json'
+                },
                 requestParams: {
                     body: {
-                        login: { type: 'string', required: false, max: 100, description: 'Identifiant (unique)' },
-                        nom: { type: 'string', required: false, max: 55, description: 'Nom' },
+                        login: { type: 'string', required: false, max: 100, description: 'Identifiant de connexion (unique)' },
+                        email: { type: 'email', required: false, max: 100, description: 'Email principal (unique)' },
+                        nom: { type: 'string', required: false, max: 55, description: 'Nom de famille' },
                         prenoms: { type: 'string', required: false, max: 255, description: 'Prénoms' },
-                        fonction: { type: 'string', required: false, max: 55, description: 'Fonction' },
+                        civilite: { type: 'string', required: false, enum: ['M.', 'Mme', 'Mlle', 'Dr', 'Pr'], description: 'Civilité' },
+                        genre: { type: 'string', required: false, enum: ['M', 'F'], description: 'Genre' },
+                        date_naissance: { type: 'date', required: false, description: 'Date de naissance (avant aujourd\'hui)' },
+                        lieu_naissance: { type: 'string', required: false, max: 55, description: 'Lieu de naissance' },
+                        nationalite: { type: 'string', required: false, max: 55, description: 'Nationalité' },
                         mobile_1: { type: 'string', required: false, max: 25, description: 'Téléphone principal' },
                         mobile_2: { type: 'string', required: false, max: 25, description: 'Téléphone secondaire' },
-                        photo: { type: 'string', required: false, max: 255, description: 'Chemin de la photo' },
+                        telephone_fixe: { type: 'string', required: false, max: 25, description: 'Téléphone fixe' },
+                        email_pro: { type: 'email', required: false, max: 100, description: 'Email professionnel (unique)' },
+                        adresse_complete: { type: 'string', required: false, max: 255, description: 'Adresse complète' },
                         ville: { type: 'string', required: false, max: 100, description: 'Ville' },
-                        pays: { type: 'string', required: false, max: 100, description: 'Pays' }
+                        pays: { type: 'string', required: false, max: 100, description: 'Pays' },
+                        code_postal: { type: 'string', required: false, max: 20, description: 'Code postal' },
+                        lieu_residence: { type: 'string', required: false, max: 55, description: 'Lieu de résidence' },
+                        fonction: { type: 'string', required: false, max: 55, description: 'Fonction' },
+                        service: { type: 'string', required: false, max: 55, description: 'Service' },
+                        departement: { type: 'string', required: false, max: 55, description: 'Département' },
+                        date_embauche: { type: 'date', required: false, description: 'Date d\'embauche' },
+                        statut_employe: { type: 'string', required: false, max: 50, description: 'Statut employé' },
+                        type_contrat: { type: 'string', required: false, max: 50, description: 'Type de contrat' },
+                        code_agent: { type: 'string', required: false, max: 35, description: 'Code agent' },
+                        matricule: { type: 'string', required: false, max: 35, description: 'Matricule' },
+                        numero_client: { type: 'string', required: false, max: 35, description: 'Numéro client' },
+                        photo: { type: 'file (image)', required: false, mimes: 'jpeg,png,jpg,gif,webp', max: '2048 Ko', description: 'Photo de profil (upload)' },
+                        photo_url: { type: 'string (url)', required: false, max: 255, description: 'URL externe de la photo' },
+                        remove_photo: { type: 'boolean', required: false, description: 'Supprimer la photo actuelle' },
+                        preferences: { type: 'object', required: false, description: 'Préférences utilisateur (JSON)' }
                     }
                 },
-                exampleRequest: { nom: 'Dupont', prenoms: 'Jean', mobile_1: '+2250708091011' },
+                exampleRequest: {
+                    nom: 'Dupont',
+                    prenoms: 'Jean-Marc',
+                    fonction: 'Directeur Commercial',
+                    mobile_1: '+2250708091011',
+                    ville: 'Abidjan',
+                    pays: 'Côte d\'Ivoire',
+                    photo: '[Fichier image]'
+                },
+                exampleRequestJson: {
+                    nom: 'Dupont',
+                    prenoms: 'Jean-Marc',
+                    fonction: 'Directeur Commercial',
+                    mobile_1: '+2250708091011',
+                    ville: 'Abidjan',
+                    photo_url: 'https://example.com/photos/jean.jpg'
+                },
                 responses: [
-                    { status: 200, description: 'Profil mis à jour', example: { success: true, message: 'Profil mis à jour.', data: {} } }
+                    {
+                        status: 200,
+                        description: 'Profil mis à jour avec succès',
+                        example: {
+                            success: true,
+                            message: 'Profil mis à jour avec succès.',
+                            code: 'PROFILE_UPDATED',
+                            data: {}
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Données invalides.',
+                            errors: {
+                                email: ['Cet email est déjà utilisé.'],
+                                photo: ['La photo ne doit pas dépasser 2 Mo.']
+                            }
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    }
+                ]
+            },
+
+            {
+                id: 'profile-delete-photo',
+                module: 'profile',
+                name: 'Supprimer la photo de profil',
+                description: 'Supprime la photo de profil de l\'utilisateur connecté. La photo est supprimée du serveur et les champs `photo` et `photo_path` sont vidés.',
+                method: 'DELETE',
+                path: '/profile/photo',
+                isProtected: true,
+                isDestructive: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: { body: {} },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Photo supprimée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Photo de profil supprimée avec succès.',
+                            code: 'PHOTO_DELETED'
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'Aucune photo à supprimer',
+                        example: {
+                            success: false,
+                            message: 'Aucune photo de profil à supprimer.',
+                            code: 'NO_PHOTO_FOUND'
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    }
                 ]
             },
 
@@ -2927,6 +3118,1153 @@ console.warn = function() {
                 },
                 responses: [
                     { status: 200, description: 'Utilisateur retiré', example: { success: true, message: 'Utilisateur retiré de l\'agence avec succès.', code: 'USER_REMOVED' } }
+                ]
+            },
+
+            // ============================================================
+            // FAQ - Public
+            // ============================================================
+
+            {
+                id: 'faq-list',
+                module: 'faq',
+                name: 'Liste des FAQs',
+                description: 'Récupère la liste des FAQs actives avec possibilité de filtrage par catégorie, recherche textuelle, et tri. Accessible publiquement sans authentification.',
+                method: 'GET',
+                path: '/faq',
+                isProtected: false,
+                headers: { 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        faq_category_uuid: { 
+                            type: 'uuid', 
+                            required: false, 
+                            description: 'Filtrer par catégorie (UUID de la catégorie)' 
+                        },
+                        category: { 
+                            type: 'string', 
+                            required: false, 
+                            enum: ['compte', 'souscription', 'paiement', 'sinistre', 'securite', 'assistance', 'rendez-vous'], 
+                            description: 'Filtrer par catégorie (legacy)' 
+                        },
+                        search: { 
+                            type: 'string', 
+                            required: false, 
+                            description: 'Recherche textuelle dans les questions, réponses et tags' 
+                        },
+                        is_featured: { 
+                            type: 'boolean', 
+                            required: false, 
+                            description: 'Filtrer les FAQs en vedette' 
+                        },
+                        per_page: { 
+                            type: 'integer', 
+                            required: false, 
+                            default: 20, 
+                            description: 'Nombre d\'éléments par page' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    category: 'compte',
+                    per_page: 10
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Liste des FAQs récupérée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Liste des FAQs récupérée.',
+                            code: 'FAQS_LISTED',
+                            data: [
+                                {
+                                    uuid_faq: '550e8400-e29b-41d4-a716-446655440000',
+                                    faq_category: {
+                                        uuid: '550e8400-e29b-41d4-a716-446655440001',
+                                        code: 'compte',
+                                        label: 'Compte & connexion',
+                                        icon: 'bi-person-circle',
+                                        color: '#3490dc'
+                                    },
+                                    category: 'compte',
+                                    category_label: 'Compte & connexion',
+                                    question: 'Comment créer un compte sur YNOV ?',
+                                    answer: '<p>Pour créer votre compte YNOV, suivez ces étapes...</p>',
+                                    order: 1,
+                                    is_active: true,
+                                    is_featured: true,
+                                    tags: ['inscription', 'compte', 'création'],
+                                    views: 150,
+                                    created_at: '2025-01-15T10:00:00.000000Z',
+                                    updated_at: '2025-01-15T14:30:00.000000Z'
+                                }
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 5,
+                                last_page: 1
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-search',
+                module: 'faq',
+                name: 'Rechercher dans les FAQs',
+                description: 'Effectue une recherche textuelle dans les questions, réponses et tags des FAQs actives. Accessible publiquement.',
+                method: 'GET',
+                path: '/faq/search',
+                isProtected: false,
+                headers: { 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        q: { 
+                            type: 'string', 
+                            required: true, 
+                            min: 2, 
+                            description: 'Terme de recherche (minimum 2 caractères)' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    q: 'mot de passe oublié'
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Résultats de recherche',
+                        example: {
+                            success: true,
+                            message: 'Résultats de recherche.',
+                            code: 'FAQ_SEARCH_RESULTS',
+                            data: [
+                                {
+                                    uuid_faq: '...',
+                                    question: 'J\'ai oublié mon mot de passe. Que faire ?',
+                                    answer: '<p>Si vous avez oublié votre mot de passe...</p>',
+                                    views: 89
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Terme de recherche trop court',
+                        example: {
+                            success: false,
+                            message: 'Le terme de recherche doit contenir au moins 2 caractères.',
+                            errors: {
+                                q: ['Le champ q doit contenir au moins 2 caractères.']
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-categories-list',
+                module: 'faq',
+                name: 'Liste des catégories de FAQ',
+                description: 'Récupère toutes les catégories de FAQ avec leurs compteurs de questions. Accessible publiquement.',
+                method: 'GET',
+                path: '/faq/categories',
+                isProtected: false,
+                headers: { 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        only_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            default: true, 
+                            description: 'Récupérer uniquement les catégories actives' 
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégories récupérées avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégories de FAQs récupérées.',
+                            code: 'FAQ_CATEGORIES_LISTED',
+                            data: [
+                                {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'compte',
+                                    label: 'Compte & connexion',
+                                    icon: 'bi-person-circle',
+                                    color: '#3490dc',
+                                    description: 'Questions relatives à la création de compte, connexion, gestion du profil.',
+                                    count: 5,
+                                    is_default: true,
+                                    is_active: true
+                                },
+                                {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440002',
+                                    code: 'souscription',
+                                    label: 'Souscription & contrats',
+                                    icon: 'bi-file-earmark-text',
+                                    color: '#2ecc71',
+                                    description: 'Questions sur les souscriptions, les contrats et les garanties.',
+                                    count: 8,
+                                    is_default: true,
+                                    is_active: true
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-show',
+                module: 'faq',
+                name: 'Détails d\'une FAQ',
+                description: 'Récupère les détails d\'une FAQ spécifique. Incrémente automatiquement le compteur de vues à chaque consultation.',
+                method: 'GET',
+                path: '/faq/{uuid_faq}',
+                isProtected: false,
+                headers: { 'Accept': 'application/json' },
+                requestParams: {
+                    path: { 
+                        uuid_faq: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la FAQ à consulter' 
+                        } 
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Détails de la FAQ récupérés avec succès',
+                        example: {
+                            success: true,
+                            message: 'Détails de la FAQ.',
+                            code: 'FAQ_FOUND',
+                            data: {
+                                uuid_faq: '550e8400-e29b-41d4-a716-446655440000',
+                                faq_category: {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'compte',
+                                    label: 'Compte & connexion',
+                                    icon: 'bi-person-circle',
+                                    color: '#3490dc'
+                                },
+                                category: 'compte',
+                                category_label: 'Compte & connexion',
+                                question: 'Comment créer un compte sur YNOV ?',
+                                answer: '<p>Pour créer votre compte YNOV, suivez ces étapes :</p><ol><li>Rendez-vous sur la page d\'inscription</li><li>Remplissez le formulaire...</li></ol>',
+                                order: 1,
+                                is_active: true,
+                                is_featured: true,
+                                tags: ['inscription', 'compte', 'création'],
+                                views: 151,
+                                created_at: '2025-01-15T10:00:00.000000Z',
+                                updated_at: '2025-01-15T14:30:00.000000Z'
+                            }
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'FAQ non trouvée',
+                        example: {
+                            success: false,
+                            message: 'FAQ non trouvée.'
+                        }
+                    }
+                ]
+            },
+
+            // ============================================================
+            // 2. FAQ ADMIN - GESTION DES FAQs
+            // ============================================================
+
+            {
+                id: 'faq-create-admin',
+                module: 'faq',
+                name: '[Admin] Créer une FAQ',
+                description: 'Crée une nouvelle question/réponse pour la FAQ. Nécessite la permission `faqs.creer`.',
+                method: 'POST',
+                path: '/admin/faq',
+                isProtected: true,
+                permissionsRequired: ['faqs.creer'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    body: {
+                        faq_category_uuid: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie (exists:faq_categories,uuid_faq_category)' 
+                        },
+                        category: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 50, 
+                            description: 'Catégorie (legacy - optionnel)' 
+                        },
+                        category_label: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 100, 
+                            description: 'Libellé personnalisé de la catégorie' 
+                        },
+                        question: { 
+                            type: 'string', 
+                            required: true, 
+                            max: 255, 
+                            description: 'Question (titre de la FAQ)' 
+                        },
+                        answer: { 
+                            type: 'string', 
+                            required: true, 
+                            description: 'Réponse (support HTML)' 
+                        },
+                        order: { 
+                            type: 'integer', 
+                            required: false, 
+                            min: 0, 
+                            default: 0, 
+                            description: 'Ordre d\'affichage' 
+                        },
+                        is_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            default: true, 
+                            description: 'FAQ active (visible publiquement)' 
+                        },
+                        is_featured: { 
+                            type: 'boolean', 
+                            required: false, 
+                            default: false, 
+                            description: 'Mettre en avant dans la section "Questions fréquentes"' 
+                        },
+                        tags: { 
+                            type: 'array', 
+                            required: false, 
+                            description: 'Tags pour la recherche' 
+                        },
+                        'tags.*': { 
+                            type: 'string', 
+                            max: 50, 
+                            description: 'Tag individuel' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    faq_category_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                    question: 'Comment créer un compte sur YNOV ?',
+                    answer: '<p>Pour créer votre compte YNOV, suivez ces étapes :</p><ol><li>Rendez-vous sur la page d\'inscription</li><li>Remplissez le formulaire...</li></ol>',
+                    order: 1,
+                    is_active: true,
+                    is_featured: true,
+                    tags: ['inscription', 'compte', 'création']
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: 'FAQ créée avec succès',
+                        example: {
+                            success: true,
+                            message: 'FAQ créée avec succès.',
+                            code: 'FAQ_CREATED',
+                            data: {
+                                uuid_faq: '550e8400-e29b-41d4-a716-446655440000',
+                                faq_category: {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'compte',
+                                    label: 'Compte & connexion'
+                                },
+                                question: 'Comment créer un compte sur YNOV ?',
+                                is_active: true,
+                                is_featured: true
+                            }
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Données invalides.',
+                            errors: {
+                                faq_category_uuid: ['La catégorie est obligatoire.'],
+                                question: ['La question est obligatoire.'],
+                                answer: ['La réponse est obligatoire.']
+                            }
+                        }
+                    },
+                    {
+                        status: 403,
+                        description: 'Permission manquante',
+                        example: {
+                            success: false,
+                            message: 'Vous n\'avez pas la permission nécessaire pour effectuer cette action.',
+                            code: 'PERMISSION_DENIED'
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-update-admin',
+                module: 'faq',
+                name: '[Admin] Mettre à jour une FAQ',
+                description: 'Modifie une FAQ existante. Nécessite la permission `faqs.modifier`.',
+                method: 'PUT',
+                path: '/admin/faq/{uuid_faq}',
+                isProtected: true,
+                permissionsRequired: ['faqs.modifier'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la FAQ à modifier' 
+                        } 
+                    },
+                    body: {
+                        faq_category_uuid: { 
+                            type: 'uuid', 
+                            required: false, 
+                            description: 'UUID de la catégorie' 
+                        },
+                        category: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 50, 
+                            description: 'Catégorie (legacy)' 
+                        },
+                        category_label: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 100, 
+                            description: 'Libellé personnalisé' 
+                        },
+                        question: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 255, 
+                            description: 'Question' 
+                        },
+                        answer: { 
+                            type: 'string', 
+                            required: false, 
+                            description: 'Réponse' 
+                        },
+                        order: { 
+                            type: 'integer', 
+                            required: false, 
+                            min: 0, 
+                            description: 'Ordre d\'affichage' 
+                        },
+                        is_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            description: 'FAQ active' 
+                        },
+                        is_featured: { 
+                            type: 'boolean', 
+                            required: false, 
+                            description: 'Mettre en avant' 
+                        },
+                        tags: { 
+                            type: 'array', 
+                            required: false, 
+                            description: 'Tags pour la recherche' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    question: 'Comment créer un compte sur YNOV ? (mis à jour)',
+                    answer: '<p>Pour créer votre compte YNOV, suivez ces étapes mises à jour...</p>',
+                    is_featured: true
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'FAQ mise à jour avec succès',
+                        example: {
+                            success: true,
+                            message: 'FAQ mise à jour avec succès.',
+                            code: 'FAQ_UPDATED',
+                            data: {}
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'FAQ non trouvée',
+                        example: {
+                            success: false,
+                            message: 'FAQ non trouvée.'
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-delete-admin',
+                module: 'faq',
+                name: '[Admin] Supprimer une FAQ',
+                description: 'Supprime une FAQ (soft delete). Nécessite la permission `faqs.supprimer`.',
+                method: 'DELETE',
+                path: '/admin/faq/{uuid_faq}',
+                isProtected: true,
+                isDestructive: true,
+                permissionsRequired: ['faqs.supprimer'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la FAQ à supprimer' 
+                        } 
+                    },
+                    body: {}
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'FAQ supprimée avec succès',
+                        example: {
+                            success: true,
+                            message: 'FAQ supprimée avec succès.',
+                            code: 'FAQ_DELETED'
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'FAQ non trouvée',
+                        example: {
+                            success: false,
+                            message: 'FAQ non trouvée.'
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-toggle-admin',
+                module: 'faq',
+                name: '[Admin] Activer/Désactiver une FAQ',
+                description: 'Active ou désactive une FAQ. Les FAQs désactivées ne sont pas visibles publiquement. Nécessite la permission `faqs.modifier`.',
+                method: 'POST',
+                path: '/admin/faq/{uuid_faq}/toggle',
+                isProtected: true,
+                permissionsRequired: ['faqs.modifier'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la FAQ' 
+                        } 
+                    },
+                    body: {}
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'FAQ activée',
+                        example: {
+                            success: true,
+                            message: 'FAQ activée.',
+                            code: 'FAQ_TOGGLED',
+                            data: {
+                                uuid_faq: '...',
+                                is_active: true
+                            }
+                        }
+                    },
+                    {
+                        status: 200,
+                        description: 'FAQ désactivée',
+                        example: {
+                            success: true,
+                            message: 'FAQ désactivée.',
+                            code: 'FAQ_TOGGLED',
+                            data: {
+                                uuid_faq: '...',
+                                is_active: false
+                            }
+                        }
+                    }
+                ]
+            },
+
+            // ============================================================
+            // 3. FAQ ADMIN - GESTION DES CATÉGORIES
+            // ============================================================
+
+            {
+                id: 'faq-category-create-admin',
+                module: 'faq',
+                name: '[Admin] Créer une catégorie de FAQ',
+                description: 'Crée une nouvelle catégorie de FAQ personnalisée. Nécessite la permission `faq_categories.creer`. Les catégories par défaut sont protégées.',
+                method: 'POST',
+                path: '/admin/faq/categories',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.creer'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    body: {
+                        label: { 
+                            type: 'string', 
+                            required: true, 
+                            max: 100, 
+                            description: 'Libellé de la catégorie' 
+                        },
+                        code: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 50, 
+                            description: 'Code unique (généré automatiquement si non fourni)' 
+                        },
+                        icon: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 50, 
+                            description: 'Icône (Bootstrap Icons, FontAwesome)' 
+                        },
+                        color: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 20, 
+                            description: 'Couleur (hexadécimal ou nom CSS)' 
+                        },
+                        description: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 500, 
+                            description: 'Description de la catégorie' 
+                        },
+                        order: { 
+                            type: 'integer', 
+                            required: false, 
+                            min: 0, 
+                            description: 'Ordre d\'affichage (auto si non fourni)' 
+                        },
+                        is_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            default: true, 
+                            description: 'Catégorie active' 
+                        },
+                        metadata: { 
+                            type: 'object', 
+                            required: false, 
+                            description: 'Métadonnées supplémentaires' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    label: 'Questions générales',
+                    icon: 'bi-question-circle',
+                    color: '#6c757d',
+                    description: 'Questions générales sur la plateforme',
+                    order: 8,
+                    is_active: true
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: 'Catégorie créée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégorie créée avec succès.',
+                            code: 'FAQ_CATEGORY_CREATED',
+                            data: {
+                                uuid_faq_category: '...',
+                                code: 'questions_generales',
+                                label: 'Questions générales',
+                                icon: 'bi-question-circle',
+                                color: '#6c757d',
+                                is_active: true,
+                                is_default: false
+                            }
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            errors: {
+                                label: ['Le libellé est obligatoire.'],
+                                code: ['Ce code est déjà utilisé.']
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-update-admin',
+                module: 'faq',
+                name: '[Admin] Mettre à jour une catégorie de FAQ',
+                description: 'Modifie une catégorie de FAQ existante. Les catégories par défaut ne peuvent pas être modifiées. Nécessite la permission `faq_categories.modifier`.',
+                method: 'PUT',
+                path: '/admin/faq/categories/{uuid_faq_category}',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.modifier'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq_category: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie à modifier' 
+                        } 
+                    },
+                    body: {
+                        label: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 100, 
+                            description: 'Libellé' 
+                        },
+                        icon: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 50, 
+                            description: 'Icône' 
+                        },
+                        color: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 20, 
+                            description: 'Couleur' 
+                        },
+                        description: { 
+                            type: 'string', 
+                            required: false, 
+                            max: 500, 
+                            description: 'Description' 
+                        },
+                        order: { 
+                            type: 'integer', 
+                            required: false, 
+                            min: 0, 
+                            description: 'Ordre d\'affichage' 
+                        },
+                        is_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            description: 'Catégorie active' 
+                        },
+                        metadata: { 
+                            type: 'object', 
+                            required: false, 
+                            description: 'Métadonnées' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    label: 'Questions générales (mise à jour)',
+                    icon: 'bi-question-circle-fill',
+                    color: '#6c757d',
+                    description: 'Questions générales mises à jour',
+                    is_active: true
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégorie mise à jour avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégorie mise à jour avec succès.',
+                            code: 'FAQ_CATEGORY_UPDATED',
+                            data: {}
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            errors: {
+                                category: ['Les catégories par défaut ne peuvent pas être modifiées.']
+                            }
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'Catégorie non trouvée',
+                        example: {
+                            success: false,
+                            message: 'Catégorie non trouvée.',
+                            code: 'FAQ_CATEGORY_NOT_FOUND'
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-delete-admin',
+                module: 'faq',
+                name: '[Admin] Supprimer une catégorie de FAQ',
+                description: 'Supprime une catégorie de FAQ. Les catégories par défaut ne peuvent pas être supprimées. Une catégorie contenant des FAQs ne peut pas être supprimée. Nécessite la permission `faq_categories.supprimer`.',
+                method: 'DELETE',
+                path: '/admin/faq/categories/{uuid_faq_category}',
+                isProtected: true,
+                isDestructive: true,
+                permissionsRequired: ['faq_categories.supprimer'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq_category: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie à supprimer' 
+                        } 
+                    },
+                    body: {}
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégorie supprimée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégorie supprimée avec succès.',
+                            code: 'FAQ_CATEGORY_DELETED'
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            errors: {
+                                category: ['Les catégories par défaut ne peuvent pas être supprimées.']
+                            }
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Catégorie contient des FAQs',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            errors: {
+                                category: ['Cette catégorie contient des FAQs et ne peut pas être supprimée.']
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-toggle-admin',
+                module: 'faq',
+                name: '[Admin] Activer/Désactiver une catégorie de FAQ',
+                description: 'Active ou désactive une catégorie de FAQ. Les catégories désactivées ne sont pas affichées publiquement. Nécessite la permission `faq_categories.modifier`.',
+                method: 'POST',
+                path: '/admin/faq/categories/{uuid_faq_category}/toggle',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.modifier'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq_category: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie' 
+                        } 
+                    },
+                    body: {}
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégorie activée/désactivée',
+                        example: {
+                            success: true,
+                            message: 'Catégorie activée avec succès.',
+                            code: 'FAQ_CATEGORY_TOGGLED',
+                            data: {
+                                uuid_faq_category: '...',
+                                is_active: true
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-reorder-admin',
+                module: 'faq',
+                name: '[Admin] Réordonner les catégories',
+                description: 'Réordonne les catégories de FAQ selon l\'ordre souhaité. Nécessite la permission `faq_categories.modifier`.',
+                method: 'POST',
+                path: '/admin/faq/categories/reorder',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.modifier'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    body: {
+                        uuids: { 
+                            type: 'array', 
+                            required: true, 
+                            description: 'Liste des UUIDs dans l\'ordre souhaité' 
+                        },
+                        'uuids.*': { 
+                            type: 'uuid', 
+                            description: 'UUID d\'une catégorie (exists:faq_categories,uuid_faq_category)' 
+                        }
+                    }
+                },
+                exampleRequest: {
+                    uuids: [
+                        'uuid_categorie_1',
+                        'uuid_categorie_2',
+                        'uuid_categorie_3'
+                    ]
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégories réordonnées avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégories réordonnées avec succès.',
+                            code: 'FAQ_CATEGORIES_REORDERED'
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Données invalides.',
+                            errors: {
+                                uuids: ['Le champ uuids est obligatoire.']
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-duplicate-admin',
+                module: 'faq',
+                name: '[Admin] Dupliquer une catégorie de FAQ',
+                description: 'Crée une copie d\'une catégorie existante. La nouvelle catégorie est créée en mode inactif. Nécessite la permission `faq_categories.creer`.',
+                method: 'POST',
+                path: '/admin/faq/categories/{uuid_faq_category}/duplicate',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.creer'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq_category: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie à dupliquer' 
+                        } 
+                    },
+                    body: {}
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: 'Catégorie dupliquée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Catégorie dupliquée avec succès.',
+                            code: 'FAQ_CATEGORY_DUPLICATED',
+                            data: {
+                                uuid_faq_category: '...',
+                                label: 'Questions générales (copie)',
+                                is_active: false
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-stats-admin',
+                module: 'faq',
+                name: '[Admin] Statistiques des catégories',
+                description: 'Récupère les statistiques des catégories de FAQ (total, actives, inactives, par défaut, personnalisées). Nécessite la permission `faq_categories.afficher`.',
+                method: 'GET',
+                path: '/admin/faq/categories/stats',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.afficher'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: { body: {} },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Statistiques récupérées avec succès',
+                        example: {
+                            success: true,
+                            message: 'Statistiques des catégories récupérées.',
+                            code: 'FAQ_CATEGORY_STATS',
+                            data: {
+                                total: 10,
+                                active: 8,
+                                inactive: 2,
+                                default: 7,
+                                custom: 3
+                            }
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-show-admin',
+                module: 'faq',
+                name: '[Admin] Détails d\'une catégorie de FAQ',
+                description: 'Récupère les détails d\'une catégorie avec ses FAQs associées. Nécessite la permission `faq_categories.afficher`.',
+                method: 'GET',
+                path: '/admin/faq/categories/{uuid_faq_category}',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.afficher'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    path: { 
+                        uuid_faq_category: { 
+                            type: 'uuid', 
+                            required: true, 
+                            description: 'UUID de la catégorie' 
+                        } 
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Détails de la catégorie',
+                        example: {
+                            success: true,
+                            message: 'Catégorie récupérée avec succès.',
+                            code: 'FAQ_CATEGORY_FOUND',
+                            data: {
+                                uuid_faq_category: '...',
+                                code: 'compte',
+                                label: 'Compte & connexion',
+                                icon: 'bi-person-circle',
+                                color: '#3490dc',
+                                description: 'Questions relatives à la création de compte',
+                                is_active: true,
+                                is_default: true,
+                                faqs_count: 5,
+                                active_faqs_count: 5,
+                                faqs: [
+                                    {
+                                        uuid_faq: '...',
+                                        question: 'Comment créer un compte ?',
+                                        answer: '...',
+                                        is_active: true,
+                                        views: 150
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'Catégorie non trouvée',
+                        example: {
+                            success: false,
+                            message: 'Catégorie non trouvée.',
+                            code: 'FAQ_CATEGORY_NOT_FOUND'
+                        }
+                    }
+                ]
+            },
+
+            {
+                id: 'faq-category-select-admin',
+                module: 'faq',
+                name: '[Admin] Catégories pour sélection',
+                description: 'Récupère les catégories formatées pour un dropdown/select. Nécessite la permission `faq_categories.afficher`.',
+                method: 'GET',
+                path: '/admin/faq/categories/select',
+                isProtected: true,
+                permissionsRequired: ['faq_categories.afficher'],
+                headers: { 
+                    'Authorization': 'Bearer {token}', 
+                    'Accept': 'application/json' 
+                },
+                requestParams: {
+                    query: {
+                        only_active: { 
+                            type: 'boolean', 
+                            required: false, 
+                            default: true, 
+                            description: 'Récupérer uniquement les catégories actives' 
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Catégories pour sélection',
+                        example: {
+                            success: true,
+                            message: 'Catégories pour sélection récupérées.',
+                            code: 'FAQ_CATEGORIES_SELECT',
+                            data: [
+                                { value: 'uuid_categorie_1', label: 'Compte & connexion', code: 'compte' },
+                                { value: 'uuid_categorie_2', label: 'Souscription & contrats', code: 'souscription' }
+                            ]
+                        }
+                    }
                 ]
             }
         ],
