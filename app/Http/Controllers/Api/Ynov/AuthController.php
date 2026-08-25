@@ -300,7 +300,6 @@ class AuthController extends Controller
         ]);
 
         $userContrat = $user->userContrats()->first();
-        // Log::info($userContrat);
 
         if ($userContrat) {
             

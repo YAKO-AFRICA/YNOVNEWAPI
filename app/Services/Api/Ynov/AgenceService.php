@@ -362,7 +362,7 @@ class AgenceService
                 'heure_fermeture_midi' => $horaire['heure_fermeture_midi'] ?? null,
                 'ferme' => $horaire['ferme'] ?? false,
                 'commentaire' => $horaire['commentaire'] ?? null,
-                'created_by' => $creatorUuid,
+                // 'created_by' => $creatorUuid,
             ]);
         }
     }
