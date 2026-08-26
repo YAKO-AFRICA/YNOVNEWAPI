@@ -231,7 +231,7 @@ class CustomerController extends Controller
                     'Beneficiaires' => $beneficiaires,
                     'Garanties' => $data['garanties'] ,
                     'Documents' => $data['documents'],
-                    'anciennete' => $detail['anciennete']
+                    'anciennete' => $data['anciennete']
                 ];
 
                     
