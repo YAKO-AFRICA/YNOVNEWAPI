@@ -4537,173 +4537,353 @@ console.warn = function() {
                 ]
             },
 
+            // ============================================================
+            // ESPACE CLIENT - ÉTAT DE COTISATION D'UN CONTRAT
+            // ============================================================
+            {
+                id: 'customer-contrat-etat-cotisation',
+                module: 'espaces_client',
+                name: 'État de cotisation d\'un contrat',
+                description: 'Récupère l\'état détaillé des cotisations d\'un contrat spécifique. Retourne les informations financières complètes : primes payées, impayées, encaissements, et le détail des paiements. Inclut également les informations des assurés, bénéficiaires, payeurs et garanties.',
+                method: 'GET',
+                path: '/espaces-client/contrat-etat-cotisation/{contrat_id}',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: {
+                    path: {
+                        contrat_id: {
+                            type: 'integer',
+                            required: true,
+                            description: 'ID du contrat (identifiant numérique)'
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'État de cotisation récupéré avec succès',
+                        example: {
+                            success: true,
+                            code: 'GET_ALL_CONTRAT_SUCCESS',
+                            message: 'Etats de cotisation du contrat récupérés avec succès.',
+                            data: {
+                                details: {
+                                    IdProposition: 'PROP2024001',
+                                    NumBulletin: 'BUL-2024-001',
+                                    NumPolice: 'POL-2024-001',
+                                    CodeProposition: 'PROP-2024-001',
+                                    CapitalSouscrit: 15000000,
+                                    TotalPrime: 5400000,
+                                    NbreImpayes: 0,
+                                    NbreEmission: 12,
+                                    NbreEncaissment: 10,
+                                    NbrencPartielle: 0,
+                                    TotalEncaissement: 4200000,
+                                    TotalEncaissementPartielle: 0,
+                                    TotalImpayes: 1200000,
+                                    produit: 'PERFORMA Individuel',
+                                    EtatAvancementCotisation: 78.5,
+                                    DureeCotisationAns: 20,
+                                    Periodicite: 'Mensuel',
+                                    ModePaiement: 'Prélèvement automatique',
+                                    DateFinAdhesion: '31/12/2040',
+                                    DateEffetAdhesion: '15/01/2021',
+                                    Conseiller: 'C12345 - KOFFI Serge',
+                                    Adherent: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                    Status: 'En cours'
+                                },
+                                Assures: [
+                                    {
+                                        CodePersonne: 'P001',
+                                        Nom: 'YAPO',
+                                        Prenoms: 'BRUCE BERNADIN EVRARD JUNIOR',
+                                        NomComplet: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                        DateNaissance: '2000-11-20',
+                                        LieuNaissance: 'Grand-Lahou',
+                                        Profession: 'Informaticien',
+                                        CodeFiliation: 'FIL001',
+                                        Filiation: 'Fils'
+                                    }
+                                ],
+                                AssuresGaranties: [
+                                    {
+                                        NomPrenom: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                        CodeGarantie: 'G001',
+                                        Libelle: 'Décès',
+                                        Capital: 15000000,
+                                        Prime: 450000,
+                                        PrimePrincipale: 450000,
+                                        FraisAccessoires: 0,
+                                        DateEffet: '2021-01-15',
+                                        DateEcheance: '2040-12-31',
+                                        DureeCouvAns: 20,
+                                        DureePrimeAns: 20,
+                                        Periodicite: 'M'
+                                    },
+                                    {
+                                        NomPrenom: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                        CodeGarantie: 'G002',
+                                        Libelle: 'Invalidité',
+                                        Capital: 5000000,
+                                        Prime: 150000,
+                                        PrimePrincipale: 150000,
+                                        FraisAccessoires: 0,
+                                        DateEffet: '2021-01-15',
+                                        DateEcheance: '2040-12-31',
+                                        DureeCouvAns: 20,
+                                        DureePrimeAns: 20,
+                                        Periodicite: 'M'
+                                    }
+                                ],
+                                Beneficiaires: [
+                                    {
+                                        CodePersonne: 'P002',
+                                        Nom: 'YAPO',
+                                        Prenoms: 'MARIE CLAIRE',
+                                        NomComplet: 'YAPO MARIE CLAIRE',
+                                        DateNaissance: '1975-03-15',
+                                        LieuNaissance: 'Abidjan',
+                                        Profession: 'Enseignante',
+                                        CodeFiliation: 'FIL002',
+                                        Filiation: 'Conjoint'
+                                    }
+                                ],
+                                PayeurPrime: [
+                                    {
+                                        CodePersonne: 'P001',
+                                        NomPrenom: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                        ModePaiement: 'PRE',
+                                        Organisme: 'BICICI',
+                                        NumCompte: '12345678901'
+                                    }
+                                ],
+                                PrimeNonRegles: [
+                                    {
+                                        DateEcheance: '2024-12-15',
+                                        MontantNet: 450000,
+                                        NumEcheance: 'ECH-2024-12',
+                                        Statut: 'En attente'
+                                    },
+                                    {
+                                        DateEcheance: '2024-11-15',
+                                        MontantNet: 450000,
+                                        NumEcheance: 'ECH-2024-11',
+                                        Statut: 'En attente'
+                                    }
+                                ],
+                                PrimeRegles: [
+                                    {
+                                        DateReglement: '2024-10-20',
+                                        Montant: 450000,
+                                        NumEcheance: 'ECH-2024-10',
+                                        ModePaiement: 'PRE',
+                                        Reference: 'PAY-2024-10-001'
+                                    },
+                                    {
+                                        DateReglement: '2024-09-18',
+                                        Montant: 450000,
+                                        NumEcheance: 'ECH-2024-09',
+                                        ModePaiement: 'PRE',
+                                        Reference: 'PAY-2024-09-001'
+                                    }
+                                ],
+                                PrimeReglesPartielle: []
+                            }
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'Contrat non trouvé',
+                        example: {
+                            success: false,
+                            code: 'CONTRAT_NOT_FOUND',
+                            message: 'Contrat non trouvé ou non associé à cet utilisateur.'
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de récupération',
+                        example: {
+                            success: false,
+                            code: 'CONTRACT_DETAILS_ERROR',
+                            message: 'Une erreur est survenue lors de la récupération des détails du contrat.'
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    }
+                ]
+            }
+
 
             // ============================================================
             // ESPACE CLIENT - HISTORIQUE DES PAIEMENTS
             // ============================================================
-            {
-                id: 'customer-paiements',
-                module: 'espaces_client',
-                name: 'Historique des paiements',
-                description: 'Récupère l\'historique complet des paiements effectués par le client pour tous ses contrats.',
-                method: 'GET',
-                path: '/espaces-client/paiements',
-                isProtected: true,
-                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                requestParams: {
-                    query: {
-                        contrat_id: {
-                            type: 'integer',
-                            required: false,
-                            description: 'Filtrer par ID de contrat'
-                        },
-                        per_page: {
-                            type: 'integer',
-                            required: false,
-                            default: 20,
-                            min: 1,
-                            max: 100,
-                            description: 'Nombre d\'éléments par page'
-                        },
-                        page: {
-                            type: 'integer',
-                            required: false,
-                            default: 1,
-                            min: 1,
-                            description: 'Numéro de la page'
-                        }
-                    }
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: 'Historique des paiements',
-                        example: {
-                            success: true,
-                            code: 'PAIEMENTS_LISTED',
-                            message: 'Historique des paiements récupéré.',
-                            data: [
-                                {
-                                    contrat_id: 3593104,
-                                    produit: 'PERFORMA Individuel',
-                                    date: '2023-12-15',
-                                    montant: 350000,
-                                    mode: 'Carte bancaire',
-                                    statut: 'payé',
-                                    reference: 'PAY-2023-12-15-001'
-                                }
-                            ],
-                            meta: {
-                                total: 24,
-                                per_page: 20,
-                                current_page: 1,
-                                last_page: 2
-                            }
-                        }
-                    }
-                ]
-            },
+            // {
+            //     id: 'customer-paiements',
+            //     module: 'espaces_client',
+            //     name: 'Historique des paiements',
+            //     description: 'Récupère l\'historique complet des paiements effectués par le client pour tous ses contrats.',
+            //     method: 'GET',
+            //     path: '/espaces-client/paiements',
+            //     isProtected: true,
+            //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+            //     requestParams: {
+            //         query: {
+            //             contrat_id: {
+            //                 type: 'integer',
+            //                 required: false,
+            //                 description: 'Filtrer par ID de contrat'
+            //             },
+            //             per_page: {
+            //                 type: 'integer',
+            //                 required: false,
+            //                 default: 20,
+            //                 min: 1,
+            //                 max: 100,
+            //                 description: 'Nombre d\'éléments par page'
+            //             },
+            //             page: {
+            //                 type: 'integer',
+            //                 required: false,
+            //                 default: 1,
+            //                 min: 1,
+            //                 description: 'Numéro de la page'
+            //             }
+            //         }
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: 'Historique des paiements',
+            //             example: {
+            //                 success: true,
+            //                 code: 'PAIEMENTS_LISTED',
+            //                 message: 'Historique des paiements récupéré.',
+            //                 data: [
+            //                     {
+            //                         contrat_id: 3593104,
+            //                         produit: 'PERFORMA Individuel',
+            //                         date: '2023-12-15',
+            //                         montant: 350000,
+            //                         mode: 'Carte bancaire',
+            //                         statut: 'payé',
+            //                         reference: 'PAY-2023-12-15-001'
+            //                     }
+            //                 ],
+            //                 meta: {
+            //                     total: 24,
+            //                     per_page: 20,
+            //                     current_page: 1,
+            //                     last_page: 2
+            //                 }
+            //             }
+            //         }
+            //     ]
+            // },
 
-            // ============================================================
-            // ESPACE CLIENT - PROCHAINES ÉCHÉANCES
-            // ============================================================
-            {
-                id: 'customer-echeances',
-                module: 'espaces_client',
-                name: 'Prochaines échéances',
-                description: 'Récupère les prochaines échéances de paiement pour les contrats du client.',
-                method: 'GET',
-                path: '/espaces-client/echeances',
-                isProtected: true,
-                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                requestParams: {
-                    query: {
-                        limite: {
-                            type: 'integer',
-                            required: false,
-                            default: 5,
-                            min: 1,
-                            max: 20,
-                            description: 'Nombre d\'échéances à afficher'
-                        }
-                    }
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: 'Prochaines échéances',
-                        example: {
-                            success: true,
-                            code: 'ECHEANCES_LISTED',
-                            message: 'Prochaines échéances récupérées.',
-                            data: [
-                                {
-                                    contrat_id: 3588730,
-                                    produit: 'YAKO Éternité 2018',
-                                    date_echeance: '2024-01-15',
-                                    montant: 400000,
-                                    statut: 'à venir'
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
+            // // ============================================================
+            // // ESPACE CLIENT - PROCHAINES ÉCHÉANCES
+            // // ============================================================
+            // {
+            //     id: 'customer-echeances',
+            //     module: 'espaces_client',
+            //     name: 'Prochaines échéances',
+            //     description: 'Récupère les prochaines échéances de paiement pour les contrats du client.',
+            //     method: 'GET',
+            //     path: '/espaces-client/echeances',
+            //     isProtected: true,
+            //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+            //     requestParams: {
+            //         query: {
+            //             limite: {
+            //                 type: 'integer',
+            //                 required: false,
+            //                 default: 5,
+            //                 min: 1,
+            //                 max: 20,
+            //                 description: 'Nombre d\'échéances à afficher'
+            //             }
+            //         }
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: 'Prochaines échéances',
+            //             example: {
+            //                 success: true,
+            //                 code: 'ECHEANCES_LISTED',
+            //                 message: 'Prochaines échéances récupérées.',
+            //                 data: [
+            //                     {
+            //                         contrat_id: 3588730,
+            //                         produit: 'YAKO Éternité 2018',
+            //                         date_echeance: '2024-01-15',
+            //                         montant: 400000,
+            //                         statut: 'à venir'
+            //                     }
+            //                 ]
+            //             }
+            //         }
+            //     ]
+            // },
 
-            // ============================================================
-            // ESPACE CLIENT - STATISTIQUES CLIENT
-            // ============================================================
-            {
-                id: 'customer-statistiques',
-                module: 'espaces_client',
-                name: 'Statistiques client',
-                description: 'Récupère les statistiques détaillées du client : ancienneté, taux de paiement, répartition des contrats, etc.',
-                method: 'GET',
-                path: '/espaces-client/statistiques',
-                isProtected: true,
-                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                requestParams: { body: {} },
-                responses: [
-                    {
-                        status: 200,
-                        description: 'Statistiques client',
-                        example: {
-                            success: true,
-                            code: 'STATISTIQUES_FOUND',
-                            message: 'Statistiques récupérées avec succès.',
-                            data: {
-                                anciennete: {
-                                    date_premier_contrat: '2021-01-15',
-                                    annees: '3 ans',
-                                    mois: '6 mois',
-                                    jours: '12 jours',
-                                    total_mois: 42,
-                                    total_jours: 1278
-                                },
-                                taux_paiement: {
-                                    global: 78.9,
-                                    par_contrat: {
-                                        'PERFORMA Individuel': 85.2,
-                                        'YAKO Éternité 2018': 45.0,
-                                        'CADENCE Éducation Plus': 62.5
-                                    }
-                                },
-                                repartition: {
-                                    type: {
-                                        'Vie': 4,
-                                        'Santé': 1,
-                                        'Éducation': 1
-                                    },
-                                    statut: {
-                                        'actif': 4,
-                                        'en_retard': 2
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ]
-            },
+            // // ============================================================
+            // // ESPACE CLIENT - STATISTIQUES CLIENT
+            // // ============================================================
+            // {
+            //     id: 'customer-statistiques',
+            //     module: 'espaces_client',
+            //     name: 'Statistiques client',
+            //     description: 'Récupère les statistiques détaillées du client : ancienneté, taux de paiement, répartition des contrats, etc.',
+            //     method: 'GET',
+            //     path: '/espaces-client/statistiques',
+            //     isProtected: true,
+            //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+            //     requestParams: { body: {} },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: 'Statistiques client',
+            //             example: {
+            //                 success: true,
+            //                 code: 'STATISTIQUES_FOUND',
+            //                 message: 'Statistiques récupérées avec succès.',
+            //                 data: {
+            //                     anciennete: {
+            //                         date_premier_contrat: '2021-01-15',
+            //                         annees: '3 ans',
+            //                         mois: '6 mois',
+            //                         jours: '12 jours',
+            //                         total_mois: 42,
+            //                         total_jours: 1278
+            //                     },
+            //                     taux_paiement: {
+            //                         global: 78.9,
+            //                         par_contrat: {
+            //                             'PERFORMA Individuel': 85.2,
+            //                             'YAKO Éternité 2018': 45.0,
+            //                             'CADENCE Éducation Plus': 62.5
+            //                         }
+            //                     },
+            //                     repartition: {
+            //                         type: {
+            //                             'Vie': 4,
+            //                             'Santé': 1,
+            //                             'Éducation': 1
+            //                         },
+            //                         statut: {
+            //                             'actif': 4,
+            //                             'en_retard': 2
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     ]
+            // },
    
         ],
 

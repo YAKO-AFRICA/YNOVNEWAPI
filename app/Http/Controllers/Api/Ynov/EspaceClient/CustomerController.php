@@ -258,6 +258,155 @@ class CustomerController extends Controller
         }
     }
 
+    public function getContratEtatCotisation($contrat_id)
+    {
+        try {
+                $result = $this->encaissementBisService->getContrat($contrat_id);
+                // filtrer uniquement les contrats actifs ou suspendus (OnStdbyOff != 3)
+                $data = $result['data'];
+                $detail = $data['details'][0];
+                $assures = collect($data['allActeur'] ?? [])
+                ->where('CodeRole', 'ASS')
+                ->values()
+                ->map(function ($assure) {
+                    return [
+                        'CodePersonne' => $assure['CodePersonne'] ?? null,
+                        'Nom' => $assure['nomAssu'] ?? null,
+                        'Prenoms' => $assure['PrenomAssu'] ?? null,
+                        'NomComplet' => trim(
+                            ($assure['nomAssu'] ?? '') . ' ' .
+                            ($assure['PrenomAssu'] ?? '')
+                        ),
+                        'DateNaissance' => !empty($assure['DateNaissanceAssu'])
+                            ? $assure['DateNaissanceAssu']
+                            : null,
+                        'LieuNaissance' => $assure['LieuNaissanceAssu'] ?? null,
+                        'Profession' => $assure['ProfessionAssu'] ?? null,
+                        'CodeFiliation' => $assure['CodeFiliation'] ?? null,
+                        'Filiation' => $assure['MonLibelle'] ?? null,
+                    ];
+                })
+                ->toArray();
+
+                $beneficiaires = collect($data['allActeur'] ?? [])
+                ->where('CodeRole', 'BEN')
+                ->values()
+                ->map(function ($beneficiaire) {
+                    return [
+                        'CodePersonne' => $beneficiaire['CodePersonne'] ?? null,
+                        'Nom' => $beneficiaire['nomAssu'] ?? null,
+                        'Prenoms' => $beneficiaire['PrenomAssu'] ?? null,
+                        'NomComplet' => trim(
+                            ($beneficiaire['nomAssu'] ?? '') . ' ' .
+                            ($beneficiaire['PrenomAssu'] ?? '')
+                        ),
+                        'DateNaissance' => !empty($beneficiaire['DateNaissanceAssu'])
+                            ? $beneficiaire['DateNaissanceAssu']
+                            : null,
+                        'LieuNaissance' => $beneficiaire['LieuNaissanceAssu'] ?? null,
+                        'Profession' => $beneficiaire['ProfessionAssu'] ?? null,
+                        'CodeFiliation' => $beneficiaire['CodeFiliation'] ?? null,
+                        'Filiation' => $beneficiaire['MonLibelle'] ?? null,
+                    ];
+                })->toArray();
+
+                $payeur = collect($data['payeur'] ?? [])
+                ->where('CodeRole', 'PAY')
+                ->values()
+                ->map(function ($payeur) {
+                    return [
+                        'CodePersonne' => $payeur['CodePersonne'] ?? null,
+                        'NomPrenom' => trim($payeur['NomPrenom'] ?? ''),
+                        'ModePaiement' =>  $payeur['CodeModePaiement'] ?? null,
+                        'Organisme' => $payeur['Societe'] ?? null,
+                        'NumCompte' => $payeur['NumCompte']  ?? null,
+                    ];
+                })
+                ->toArray();
+
+                $AssuresGaranties = collect($data['assures'] ?? [])
+                ->where('CodeRole', 'ASS')
+                ->values()
+                ->map(function ($assureGarantie) {
+                    return [
+                        'NomPrenom' => $assureGarantie['NomPrenom'] ?? null,
+                        'CodeGarantie' => $assureGarantie['CodeGarantie'] ?? null,
+                        'Libelle' => $assureGarantie['MonLibelle'] ?? null,
+                        'Capital' => (float) ($assureGarantie['Capital'] ?? 0),
+                        'Prime' => (float) ($assureGarantie['Prime'] ?? 0),
+                        'PrimePrincipale' => $assureGarantie['PrimePrincipale'] ?? 0,
+                        'FraisAccessoires' => (float) ($assureGarantie['FraisAcces'] ?? 0),
+                        'DateEffet' => $assureGarantie['DateEffet'] ?? null,
+                        'DateEcheance' => $assureGarantie['DateEcheance'] ?? null,
+                        'DureeCouvAns' => (int) ($assureGarantie['DureeCouvAns'] ?? 0),
+                        'DureePrimeAns' => (float) ($assureGarantie['DureePrimeAns'] ?? 0),
+                        'Periodicite' => $assureGarantie['CodePerodicite'] ?? null,
+                    ];
+                })
+                ->toArray();
+
+                $contratData = [
+                    'details' => [
+                        'IdProposition' => $detail['IdProposition'] ?? null,
+                        'NumBulletin' => $detail['CodepropositionForm'] ?? null,
+                        'NumPolice' => $detail['CodePolice'] ?? null,
+                        'CodeProposition' => $detail['CodeProposition'] ?? null,
+                        'CapitalSouscrit' => $detail['CapitalSouscrit'] ?? 0,
+                        'TotalPrime' => $detail['TotalPrime'] ?? 0,
+                        'NbreImpayes' => $detail['NbreImpayes'] ?? 0,
+                        'NbreEmission' => $detail['NbreEmission'] ?? 0,
+                        'NbreEncaissment' => $detail['NbreEncaissment'] ?? 0,
+                        'NbrencPartielle' => $detail['NbrencPartielle'] ?? 0,
+                        'TotalEncaissement' => $detail['TotalEncaissement'] ?? 0,
+                        'TotalEncaissementPartielle' => $detail['TotalEncaissementPartielle'] ?? 0,
+                        'TotalImpayes' => $detail['TotalImpayes'] ?? 0,
+
+                        'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                        'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
+                        'DureeCotisationAns' => (float) $detail['DureeCotisationAns'] ?? null,
+                        'Periodicite' => $detail['LibellePeriodicite'] ?? $detail['periodicite'] ?? null,
+                        'ModePaiement' => $detail['LibelleModePaiement'] ?? $detail['CodeModePaiement'] ?? null,
+                        'DateFinAdhesion' => (isset($detail['FinAdhesion']) && $detail['FinAdhesion'] != null) ? Carbon::parse($detail['FinAdhesion'])->format('d/m/Y') : $detail['FinAdhesion'] ?? null,
+                        'DateEffetAdhesion' => !empty($detail['DateEffetReel']) ? Carbon::parse($detail['DateEffetReel'])->format('d/m/Y') : (!empty($detail['DateEffetSouhaite']) ? Carbon::parse($detail['DateEffetSouhaite'])->format('d/m/Y') : null ),
+                        'Conseiller' => $detail['CodeConseiller'] . '-'. $detail['NomAgent']  ?? null,
+                        'Adherent' => $detail['nomSous'] . ' '. $detail['PrenomSous']  ?? null,
+
+                        'Status' => $this->getContractStatus($detail)
+                    ],
+                    'Assures' => $assures,
+                    'AssuresGaranties' => $AssuresGaranties,
+                    'Beneficiaires' => $beneficiaires,
+                    'PayeurPrime' => $payeur,
+                    'PrimeNonRegles' => $data['enc']['nonRegle'],
+                    'PrimeRegles' => $data['enc']['confirmer'],
+                    'PrimeReglesPartielle' => $data['enc']['partielle'],
+                    
+                ];
+
+                    
+               
+                if (!$result['success']) {
+                    return response()->json([
+                        'success' => false,
+                        'code' => $result['code'],
+                        'message' => $result['message'],
+                    ], 422);
+                }
+
+            return response()->json([
+                'success' => true,
+                'code' => count($contratData) > 0 ? 'GET_ALL_CONTRAT_SUCCESS' : 'NO_CONTRAT_FOUND',
+                'message' => count($contratData) > 0 ? 'Etats de contisation du contrats recuperer avec successe.' : 'Aucun contrat trouvé.',
+                'data' => $contratData,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
 
 
 

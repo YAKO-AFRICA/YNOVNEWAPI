@@ -378,5 +378,6 @@ Route::prefix('v1')->middleware([
         Route::get('dashboard', [CustomerController::class, 'index']);
         Route::get('contrats/', [CustomerController::class, 'getAllContrat']);
         Route::get('contrat-details/{contrat_id}', [CustomerController::class, 'getContratDetails']);
+        Route::get('contrat-etat-cotisation/{contrat_id}', [CustomerController::class, 'getContratEtatCotisation']);
     });
 });

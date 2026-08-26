@@ -382,6 +382,14 @@ class EncaissementBisService
         // Recupérer le nombre de primes encaissées
         $NbrencConfirmer = count($data['enc']['confirmer'] ?? []);
 
+        $TotalEncaissementPartielle = array_sum(array_map(function ($item) {
+            return isset($item['MontantNet']) ? (float) $item['MontantNet'] : 0;
+        }, $data['enc']['partielle'] ?? []));
+
+        $NbrencPartielle = count($data['enc']['partielle'] ?? []);
+
+
+
         // Recupérer le montant total des primes encaissées
         $TotalEncaissement = array_sum(array_map(function ($item) {
             return isset($item['RegltMontant']) ? (float) $item['RegltMontant'] : 0;
@@ -390,6 +398,11 @@ class EncaissementBisService
         // Mettre à jour les variables
         $data['details'][0]['NbreEncaissment'] = $NbrencConfirmer;
         $data['details'][0]['TotalEncaissement'] = $TotalEncaissement;
+
+        $data['details'][0]['NbrencPartielle'] = $NbrencPartielle;
+        $data['details'][0]['TotalEncaissementPartielle'] = $TotalEncaissementPartielle;
+        
+
 
         // Recupérer le nombre de primes impayées ou en attente
         $NbreImpayes = count($data['enc']['nonRegle'] ?? []);
@@ -401,6 +414,7 @@ class EncaissementBisService
 
         $data['details'][0]['NbreImpayes'] = $NbreImpayes;
         $data['details'][0]['TotalImpayes'] = $TotalImpayes;
+       
 
         // Mettre le type de la primes en float
         $prime = (float) ($data['details'][0]['TotalPrime'] ?? 0);
