@@ -37,6 +37,20 @@ Route::get('storage/documents/{file}', function ($file) {
 
 })->where('file', '.*')->name('storage.documents');
 
+Route::get('get-document-contrat/{file}', function ($file) {
+    $path = base_path(env('GET_CUSTOMER_CP') . $file);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    $fileContents = file_get_contents($path);
+    $mimeType = mime_content_type($path);
+
+    return Response::make($fileContents, 200, ['Content-Type' => $mimeType]);
+    
+})->where('file', '.*');
+
 
 Route::get('/api/documentation', function () {
     return view('documentation.index',);

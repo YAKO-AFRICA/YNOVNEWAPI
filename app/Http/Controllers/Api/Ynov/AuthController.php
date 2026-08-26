@@ -185,51 +185,6 @@ class AuthController extends Controller
         }
     }
 
-    // public function register(Request $request): JsonResponse
-    // {
-    //     try {
-
-    //         $result = $this->userService->createClient(
-    //             $request->all()
-    //         );
-
-    //         if (!$result['success']) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'code' => $result['code'],
-    //                 'message' => $result['message'],
-    //             ], 422);
-    //         }
-
-    //         $user = $result['data'];
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'code' => $result['code'],
-    //             'message' => 'Inscription réussie. '
-    //                 . 'Vos paramètres de connexion ont été envoyés.',
-    //             'data' => new UserResource(
-    //                 $user->load('details')
-    //             ),
-    //         ], 201);
-
-    //     } catch (\Throwable $e) {
-
-    //         logger()->error(
-    //             'Erreur création client',
-    //             [
-    //                 'error' => $e->getMessage(),
-    //                 'trace' => $e->getTraceAsString(),
-    //             ]
-    //         );
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage(),
-    //         ], 422);
-    //     }
-    // }
-
     public function register(Request $request): JsonResponse
     {
         try {

@@ -746,6 +746,7 @@ console.warn = function() {
             agences: { label: 'Agences', icon: 'fa-building' },
             contrats: { label: 'Contrats', icon: 'fa-file-contract' },
             faq: { label: 'FAQ', icon: 'fa-circle-question' },
+            espaces_client: { label: 'Espace Client', icon: 'fa-user-tie' },
             errors: { label: 'Codes HTTP & Erreurs', icon: 'fa-bug' }
         },
 
@@ -4266,7 +4267,444 @@ console.warn = function() {
                         }
                     }
                 ]
-            }
+            },
+
+            // ============================================================
+            // ESPACE CLIENT - TABLEAU DE BORD
+            // ============================================================
+            {
+                id: 'customer-dashboard',
+                module: 'espaces_client',
+                name: 'Tableau de bord client',
+                description: 'Récupère les informations de synthèse du client : nombre de contrats, capital total, primes totales, statut global, etc.',
+                method: 'GET',
+                path: '/espaces-client/dashboard',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: { body: {} },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Tableau de bord récupéré',
+                        example: {
+                            success: true,
+                            code: 'DASHBOARD_FOUND',
+                            message: 'Tableau de bord récupéré avec succès.',
+                            data: {
+                                total_contrats: 6,
+                                total_capital: 45000000,
+                                total_prime: 18000000,
+                                total_encaisse: 14200000,
+                                taux_moyen_paiement: 78.9,
+                                contrats_actifs: 4,
+                                contrats_en_retard: 2,
+                                dernier_contrat: {
+                                    IdProposition: 'PROP2024006',
+                                    produit: 'PERFORMA Individuel',
+                                    date: '2023-06-15'
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            // ============================================================
+            // ESPACE CLIENT - CONTRATS
+            // ============================================================
+            {
+                id: 'customer-contrats-list',
+                module: 'espaces_client',
+                name: 'Liste des contrats du client',
+                description: 'Récupère la liste de tous les contrats actifs du client authentifié avec pagination. Exclut les contrats arrêtés (OnStdbyOff = 3). Retourne les informations détaillées de chaque contrat : capital, primes, taux de paiement, statut, ancienneté.',
+                method: 'GET',
+                path: '/espaces-client/contrats',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        per_page: {
+                            type: 'integer',
+                            required: false,
+                            default: 10,
+                            min: 1,
+                            max: 100,
+                            description: 'Nombre d\'éléments par page (1-100)'
+                        },
+                        page: {
+                            type: 'integer',
+                            required: false,
+                            default: 1,
+                            min: 1,
+                            description: 'Numéro de la page'
+                        }
+                    }
+                },
+                exampleRequest: {
+                    per_page: 5,
+                    page: 2
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Liste des contrats récupérée avec succès',
+                        example: {
+                            success: true,
+                            code: 'GET_ALL_CONTRAT_SUCCESS',
+                            message: 'Contrats récupérés avec succès.',
+                            data: [
+                                {
+                                    IdProposition: 'PROP2024001',
+                                    CapitalSouscrit: 15000000,
+                                    TotalPrime: 5400000,
+                                    NbreImpayes: 0,
+                                    produit: 'PERFORMA Individuel',
+                                    EtatAvancementCotisation: 42 + 'En %',
+                                }
+                            ],
+                            meta: {
+                                total: 6,
+                                per_page: 10,
+                                current_page: 1,
+                                last_page: 1,
+                                has_errors: false,
+                                errors: []
+                            }
+                        }
+                    },
+                    {
+                        status: 200,
+                        description: 'Aucun contrat actif trouvé',
+                        example: {
+                            success: true,
+                            code: 'NO_CONTRAT_FOUND',
+                            message: 'Aucun contrat actif trouvé.',
+                            data: [],
+                            meta: {
+                                total: 0,
+                                per_page: 10,
+                                current_page: 1,
+                                last_page: 1,
+                                has_errors: false,
+                                errors: []
+                            }
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de récupération',
+                        example: {
+                            success: false,
+                            code: 'GET_CONTRAT_ERROR',
+                            message: 'Une erreur est survenue lors de la récupération des contrats.'
+                        }
+                    }
+                ]
+            },
+
+            // ============================================================
+            // ESPACE CLIENT - DÉTAILS D'UN CONTRAT
+            // ============================================================
+            {
+                id: 'customer-contrat-detail',
+                module: 'espaces_client',
+                name: 'Détails d\'un contrat',
+                description: 'Récupère les informations détaillées d\'un contrat spécifique du client. Inclut les informations personnelles (assurés, bénéficiaires), les garanties, les documents contractuels (CP, CG, avenants) et l\'état d\'avancement.',
+                method: 'GET',
+                path: '/espaces-client/contrat-details/{contrat_id}',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: {
+                    path: {
+                        contrat_id: {
+                            type: 'integer',
+                            required: true,
+                            description: 'ID du contrat (identifiant numérique)'
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Détails du contrat récupérés avec succès',
+                        example: {
+                            success: true,
+                            code: 'CONTRAT_DETAILS_FOUND',
+                            message: 'Détails du contrat récupérés avec succès.',
+                            data: {
+                                details: {
+                                    IdProposition: 'PROP2024001',
+                                    NumBulletin: 'BUL-2024-001',
+                                    CodeProposition: 'PROP-2024-001',
+                                    CapitalSouscrit: 15000000,
+                                    TotalPrime: 5400000,
+                                    NbreImpayes: 0,
+                                    produit: 'PERFORMA Individuel',
+                                    EtatAvancementCotisation: '78.5',
+                                    Periodicite: 'Mensuel',
+                                    ModePaiement: 'Prélèvement automatique',
+                                    DateFinAdhesion: '31/12/2040',
+                                    DateEffetAdhesion: '15/01/2021',
+                                    Conseiller: 'C12345 - KOFFI Serge',
+                                    Adherent: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                    Status: 'En cours'
+                                },
+                                Assures: [
+                                    {
+                                        CodePersonne: 'P001',
+                                        Nom: 'YAPO',
+                                        Prenoms: 'BRUCE BERNADIN EVRARD JUNIOR',
+                                        NomComplet: 'YAPO BRUCE BERNADIN EVRARD JUNIOR',
+                                        DateNaissance: '2000-11-20',
+                                        LieuNaissance: 'Grand-Lahou',
+                                        Profession: 'Informaticien',
+                                        CodeFiliation: 'FIL001',
+                                        Filiation: 'Fils'
+                                    }
+                                ],
+                                Beneficiaires: [
+                                    {
+                                        CodePersonne: 'P002',
+                                        Nom: 'YAPO',
+                                        Prenoms: 'MARIE CLAIRE',
+                                        NomComplet: 'YAPO MARIE CLAIRE',
+                                        DateNaissance: '1975-03-15',
+                                        LieuNaissance: 'Abidjan',
+                                        Profession: 'Enseignante',
+                                        CodeFiliation: 'FIL002',
+                                        Filiation: 'Conjoint'
+                                    }
+                                ],
+                                Garanties: [
+                                    {
+                                        CodeGarantie: 'G001',
+                                        Libelle: 'Décès',
+                                        Capital: 15000000,
+                                        Prime: 5400000,
+                                        PrimePrincipale: 5400000,
+                                        DateEffet: '2021-01-15',
+                                        DateEcheance: '2040-12-31',
+                                        DureeCouvAns: 20,
+                                        DureePrimeAns: 20,
+                                        Periodicite: 'M'
+                                    }
+                                ],
+                                Documents: {
+                                    CP: 'https://apidev.yakoafricassur.com/get-document-contrat/A2025/M11/DocumentsContractuels_3593104/CP-CG_3593104.pdf',
+                                    avenantsUrls: [
+                                        'https://apidev.yakoafricassur.com/get-document-contrat/A2025/M11/DocumentsContractuels_3593104/AVT_3593104_001.pdf'
+                                    ]
+                                },
+                                Anciennete: {
+                                    date_premier_contrat: '2021-01-15',
+                                    date_aujourdhui: '2025-08-26',
+                                    annees: 4,
+                                    mois: 7,
+                                    jours: 11,
+                                    total_mois: 55,
+                                    total_jours: 1685
+                                }
+                            }
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: 'Contrat non trouvé',
+                        example: {
+                            success: false,
+                            code: 'CONTRAT_NOT_FOUND',
+                            message: 'Contrat non trouvé ou non associé à cet utilisateur.'
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: 'Erreur de récupération des détails',
+                        example: {
+                            success: false,
+                            code: 'CONTRACT_DETAILS_ERROR',
+                            message: 'Une erreur est survenue lors de la récupération des détails du contrat.'
+                        }
+                    },
+                    {
+                        status: 401,
+                        description: 'Non authentifié',
+                        example: { success: false, message: 'Non authentifié.' }
+                    }
+                ]
+            },
+
+
+            // ============================================================
+            // ESPACE CLIENT - HISTORIQUE DES PAIEMENTS
+            // ============================================================
+            {
+                id: 'customer-paiements',
+                module: 'espaces_client',
+                name: 'Historique des paiements',
+                description: 'Récupère l\'historique complet des paiements effectués par le client pour tous ses contrats.',
+                method: 'GET',
+                path: '/espaces-client/paiements',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        contrat_id: {
+                            type: 'integer',
+                            required: false,
+                            description: 'Filtrer par ID de contrat'
+                        },
+                        per_page: {
+                            type: 'integer',
+                            required: false,
+                            default: 20,
+                            min: 1,
+                            max: 100,
+                            description: 'Nombre d\'éléments par page'
+                        },
+                        page: {
+                            type: 'integer',
+                            required: false,
+                            default: 1,
+                            min: 1,
+                            description: 'Numéro de la page'
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Historique des paiements',
+                        example: {
+                            success: true,
+                            code: 'PAIEMENTS_LISTED',
+                            message: 'Historique des paiements récupéré.',
+                            data: [
+                                {
+                                    contrat_id: 3593104,
+                                    produit: 'PERFORMA Individuel',
+                                    date: '2023-12-15',
+                                    montant: 350000,
+                                    mode: 'Carte bancaire',
+                                    statut: 'payé',
+                                    reference: 'PAY-2023-12-15-001'
+                                }
+                            ],
+                            meta: {
+                                total: 24,
+                                per_page: 20,
+                                current_page: 1,
+                                last_page: 2
+                            }
+                        }
+                    }
+                ]
+            },
+
+            // ============================================================
+            // ESPACE CLIENT - PROCHAINES ÉCHÉANCES
+            // ============================================================
+            {
+                id: 'customer-echeances',
+                module: 'espaces_client',
+                name: 'Prochaines échéances',
+                description: 'Récupère les prochaines échéances de paiement pour les contrats du client.',
+                method: 'GET',
+                path: '/espaces-client/echeances',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: {
+                    query: {
+                        limite: {
+                            type: 'integer',
+                            required: false,
+                            default: 5,
+                            min: 1,
+                            max: 20,
+                            description: 'Nombre d\'échéances à afficher'
+                        }
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Prochaines échéances',
+                        example: {
+                            success: true,
+                            code: 'ECHEANCES_LISTED',
+                            message: 'Prochaines échéances récupérées.',
+                            data: [
+                                {
+                                    contrat_id: 3588730,
+                                    produit: 'YAKO Éternité 2018',
+                                    date_echeance: '2024-01-15',
+                                    montant: 400000,
+                                    statut: 'à venir'
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+
+            // ============================================================
+            // ESPACE CLIENT - STATISTIQUES CLIENT
+            // ============================================================
+            {
+                id: 'customer-statistiques',
+                module: 'espaces_client',
+                name: 'Statistiques client',
+                description: 'Récupère les statistiques détaillées du client : ancienneté, taux de paiement, répartition des contrats, etc.',
+                method: 'GET',
+                path: '/espaces-client/statistiques',
+                isProtected: true,
+                headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
+                requestParams: { body: {} },
+                responses: [
+                    {
+                        status: 200,
+                        description: 'Statistiques client',
+                        example: {
+                            success: true,
+                            code: 'STATISTIQUES_FOUND',
+                            message: 'Statistiques récupérées avec succès.',
+                            data: {
+                                anciennete: {
+                                    date_premier_contrat: '2021-01-15',
+                                    annees: '3 ans',
+                                    mois: '6 mois',
+                                    jours: '12 jours',
+                                    total_mois: 42,
+                                    total_jours: 1278
+                                },
+                                taux_paiement: {
+                                    global: 78.9,
+                                    par_contrat: {
+                                        'PERFORMA Individuel': 85.2,
+                                        'YAKO Éternité 2018': 45.0,
+                                        'CADENCE Éducation Plus': 62.5
+                                    }
+                                },
+                                repartition: {
+                                    type: {
+                                        'Vie': 4,
+                                        'Santé': 1,
+                                        'Éducation': 1
+                                    },
+                                    statut: {
+                                        'actif': 4,
+                                        'en_retard': 2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+   
         ],
 
         // ================================================================
@@ -4318,7 +4756,56 @@ console.warn = function() {
             { code: 'OTP_SEND_FAILED', message: 'Impossible d\'envoyer le code OTP.', cause: 'Erreur lors de l\'envoi du code OTP (service indisponible).', endpoint: 'POST /auth/otp/send', action: 'Réessayer plus tard ou contacter le support.' },
             { code: 'PARTNER_HAS_RESEAVX', message: 'Ce partenaire a des réseaux associés et ne peut pas être supprimé.', cause: 'Le partenaire est référencé dans la table reseaux.', endpoint: 'DELETE /partners/{uuid_partner}', action: 'Supprimer les réseaux associés avant de supprimer le partenaire.' },
             { code: 'RESEAU_HAS_AGENCES', message: 'Ce réseau a des agences associées et ne peut pas être supprimé.', cause: 'Le réseau est référencé dans la table agences.', endpoint: 'DELETE /reseaux/{uuid_reseau}', action: 'Supprimer les agences associées avant de supprimer le réseau.' },
-            { code: 'AGENCE_HAS_USERS', message: 'Cette agence est associée à des utilisateurs et ne peut pas être supprimée.', cause: 'L\'agence est référencée dans la table user_agences.', endpoint: 'DELETE /agences/{uuid_agence}', action: 'Retirer les utilisateurs associés avant de supprimer l\'agence.' }
+            { code: 'AGENCE_HAS_USERS', message: 'Cette agence est associée à des utilisateurs et ne peut pas être supprimée.', cause: 'L\'agence est référencée dans la table user_agences.', endpoint: 'DELETE /agences/{uuid_agence}', action: 'Retirer les utilisateurs associés avant de supprimer l\'agence.' },
+            {
+                code: 'GET_ALL_CONTRAT_SUCCESS',
+                message: 'Contrats récupérés avec succès.',
+                cause: 'La liste des contrats du client a été récupérée avec succès.',
+                endpoint: 'GET /espaces-client/contrats',
+                action: 'Aucune action requise.'
+            },
+            {
+                code: 'NO_CONTRAT_FOUND',
+                message: 'Aucun contrat actif trouvé.',
+                cause: 'Le client n\'a pas de contrats actifs ou tous ses contrats sont arrêtés (OnStdbyOff = 3).',
+                endpoint: 'GET /espaces-client/contrats',
+                action: 'Aucune action requise.'
+            },
+            {
+                code: 'GET_CONTRAT_ERROR',
+                message: 'Une erreur est survenue lors de la récupération des contrats.',
+                cause: 'Erreur technique lors de l\'appel au service externe (encaissement-bis).',
+                endpoint: 'GET /espaces-client/contrats',
+                action: 'Réessayer plus tard ou contacter le support.'
+            },
+            {
+                code: 'CONTRAT_DETAILS_FOUND',
+                message: 'Détails du contrat récupérés avec succès.',
+                cause: 'Les détails du contrat ont été récupérés avec succès.',
+                endpoint: 'GET /espaces-client/contrat-details/{contrat_id}',
+                action: 'Aucune action requise.'
+            },
+            {
+                code: 'CONTRAT_NOT_FOUND',
+                message: 'Contrat non trouvé ou non associé à cet utilisateur.',
+                cause: 'Le contrat n\'existe pas ou n\'appartient pas à l\'utilisateur authentifié.',
+                endpoint: 'GET /espaces-client/contrat-details/{contrat_id}',
+                action: 'Vérifier l\'ID du contrat ou contacter le support.'
+            },
+            {
+                code: 'CONTRACT_DETAILS_ERROR',
+                message: 'Une erreur est survenue lors de la récupération des détails du contrat.',
+                cause: 'Erreur technique lors de la récupération des détails du contrat (service externe indisponible).',
+                endpoint: 'GET /espaces-client/contrat-details/{contrat_id}',
+                action: 'Réessayer plus tard ou contacter le support.'
+            },
+            {
+                code: 'CONTRACT_NO_DETAILS',
+                message: 'Aucun détail trouvé pour ce contrat.',
+                cause: 'Le contrat existe mais n\'a pas de détails disponibles.',
+                endpoint: 'GET /espaces-client/contrat-details/{contrat_id}',
+                action: 'Contacter le support pour vérifier l\'intégrité du contrat.'
+            }
         ]
     };
 
