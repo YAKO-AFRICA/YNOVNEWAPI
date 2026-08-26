@@ -19,24 +19,25 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('storage/documents/{file}', function ($file) {
     // Nettoyer le nom du fichier
-    $file = ltrim($file, '/');
+    // $file = ltrim($file, '/');
+    $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
     
     // Construire le chemin complet avec UPLOADS_PATH
-    $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
-    $fullPath = base_path($uploadPath . '/' . $file);
+    // $uploadPath = env('UPLOADS_PATH', '../public_html/upload/documents-test/');
+    // $fullPath = base_path($uploadPath . '/' . $file);
     
     // Alternative: si le fichier n'existe pas, essayer dans storage/app
-    if (!file_exists($fullPath)) {
-        $fullPath = storage_path('app/' . $file);
-    }
+    // if (!file_exists($fullPath)) {
+    //     $fullPath = storage_path('app/' . $file);
+    // }
     
     // Si toujours pas trouvé
-    if (!file_exists($fullPath)) {
+    if (!file_exists($path)) {
         abort(404, 'Fichier non trouvé: ' . $file);
     }
 
-    $fileContents = file_get_contents($fullPath);
-    $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+    $fileContents = file_get_contents($path);
+    $mimeType = mime_content_type($path);
 
     return Response::make($fileContents, 200, [
         'Content-Type' => $mimeType,
@@ -44,6 +45,7 @@ Route::get('storage/documents/{file}', function ($file) {
     ]);
 
 })->where('file', '.*')->name('storage.documents');
+
 
 Route::get('/api/documentation', function () {
     return view('documentation.index',);

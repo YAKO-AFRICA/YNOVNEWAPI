@@ -128,30 +128,6 @@ class ProfileService
         ], fn($value) => $value !== null);
     }
     
-    /**
-     * Uploader une photo
-     */
-    // private function uploadPhoto($photo, string $userUuid): string
-    // {
-    //     $extension = $photo->getClientOriginalExtension();
-    //     $filename = sprintf(
-    //         'profile_%s_%s.%s',
-    //         $userUuid,
-    //         now()->timestamp,
-    //         $extension
-    //     );
-        
-    //     $path = 'profiles/' . $userUuid;
-        
-    //     // Supprimer l'ancienne photo du dossier
-    //     $this->deletePhotoByUser($userUuid);
-        
-    //     // Stocker la nouvelle photo
-    //     $storedPath = $photo->storeAs($path, $filename, config('filesystems.default'));
-        
-    //     // Retourner le chemin relatif (sera utilisé avec UPLOADS_PATH)
-    //     return $storedPath;
-    // }
 
     private function uploadPhoto($photo, string $userUuid): string
     {
@@ -170,12 +146,17 @@ class ProfileService
         $this->deletePhotoByUser($userUuid);
         
         // Créer le dossier
-        $basePath = rtrim(base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test/')), '/');
-        $fullPath = $basePath . '/' . $path;
-        
-        if (!is_dir($fullPath)) {
-            mkdir($fullPath, 0755, true);
+        $basePath = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test/'));
+        if (!is_dir($basePath)) {
+            mkdir($basePath, 0777, true);
         }
+
+        $fullPath = $basePath . $path;
+        
+
+        // if (!is_dir($fullPath)) {
+        //     mkdir($fullPath, 0755, true);
+        // }
         
         // Déplacer le fichier
         $photo->move($fullPath, $filename);
@@ -193,7 +174,7 @@ class ProfileService
             return;
         }
         
-        $fullPath = base_path(env('UPLOADS_PATH') . $path);
+        $fullPath = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test/') . $path);
         
         if (file_exists($fullPath)) {
             @unlink($fullPath);
@@ -212,7 +193,7 @@ class ProfileService
     private function deletePhotoByUser(string $userUuid): void
     {
         $path = 'profiles/' . $userUuid;
-        $fullPath = base_path(env('UPLOADS_PATH') . $path);
+        $fullPath = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test/') . $path);
         
         if (is_dir($fullPath)) {
             $files = glob($fullPath . '/*');
