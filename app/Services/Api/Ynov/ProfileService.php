@@ -244,8 +244,11 @@ class ProfileService
                 if (isset($data['photo']) && $data['photo']->isValid()) {
                     $photoPath = $this->uploadPhoto($data['photo'], $user->uuid_user);
 
-                    $detailsData['photo_path'] = url('/storage/documents/'. $photoPath);
-                    $detailsData['photo'] = $photoPath;
+                    Log::info('Photo path: ' . $photoPath);
+                    
+                    // Stocker UNIQUEMENT le chemin relatif
+                    $detailsData['photo_path'] = $photoPath;
+                    $detailsData['photo'] = null; // On n'utilise plus photo
                 }
                 
                 // Si une URL de photo externe est fournie
@@ -255,7 +258,7 @@ class ProfileService
                         $this->deletePhoto($user->details->photo_path);
                     }
                     $detailsData['photo'] = $data['photo_url'];
-                    $detailsData['photo_path'] = $data['photo_url'];
+                    $detailsData['photo_path'] = null;
                 }
                 
                 // Supprimer la photo
@@ -277,6 +280,7 @@ class ProfileService
                 if (isset($data['photo']) && $data['photo']->isValid()) {
                     $photoPath = $this->uploadPhoto($data['photo'], $user->uuid_user);
                     $detailsData['photo_path'] = $photoPath;
+                    $detailsData['photo'] = null;
                 }
                 
                 UserDetails::create($detailsData);
@@ -334,11 +338,13 @@ class ProfileService
         ], fn($value) => $value !== null);
     }
     
-    /**
-     * Uploader une photo
-     */
+
     private function uploadPhoto($photo, string $userUuid): string
     {
+        Log::info('=== UPLOAD PHOTO START ===');
+        Log::info('User UUID: ' . $userUuid);
+        Log::info('Photo original name: ' . $photo->getClientOriginalName());
+        
         $extension = $photo->getClientOriginalExtension();
         $filename = sprintf(
             'profile_%s_%s.%s',
@@ -347,25 +353,39 @@ class ProfileService
             $extension
         );
         
+        Log::info('Filename: ' . $filename);
+        
         $path = 'profiles/' . $userUuid;
+        Log::info('Relative path: ' . $path);
         
         // Supprimer l'ancienne photo
         $this->deletePhotoByUser($userUuid);
         
         // Construire le chemin complet
         $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
+        Log::info('UPLOADS_PATH: ' . $uploadPath);
+        
         $fullPath = base_path($uploadPath . '/' . $path);
+        Log::info('Full path: ' . $fullPath);
         
         // Créer le dossier s'il n'existe pas
         if (!is_dir($fullPath)) {
+            Log::info('Creating directory: ' . $fullPath);
             mkdir($fullPath, 0755, true);
         }
         
         // Déplacer le fichier
         $photo->move($fullPath, $filename);
         
-        // Retourner le chemin relatif
-        return $path . '/' . $filename;
+        // Vérifier que le fichier existe
+        $filePath = $fullPath . '/' . $filename;
+        Log::info('File exists: ' . (file_exists($filePath) ? 'YES' : 'NO'));
+        
+        $returnPath = $path . '/' . $filename;
+        Log::info('Return path: ' . $returnPath);
+        Log::info('=== UPLOAD PHOTO END ===');
+        
+        return $returnPath;
     }
     
     /**
@@ -377,12 +397,18 @@ class ProfileService
             return;
         }
         
+        // Nettoyer le chemin
+        $path = str_replace('\\', '/', $path);
         $path = ltrim($path, '/');
+        
         $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
         $fullPath = base_path($uploadPath . '/' . $path);
         
+        Log::info('Delete photo: ' . $fullPath);
+        
         if (file_exists($fullPath)) {
             @unlink($fullPath);
+            Log::info('Photo deleted: ' . $fullPath);
         }
         
         // Supprimer le dossier si vide
@@ -401,6 +427,8 @@ class ProfileService
         $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
         $fullPath = base_path($uploadPath . '/' . $path);
         
+        Log::info('Delete photo by user: ' . $fullPath);
+        
         if (is_dir($fullPath)) {
             $files = glob($fullPath . '/*');
             foreach ($files as $file) {
@@ -409,6 +437,7 @@ class ProfileService
                 }
             }
             @rmdir($fullPath);
+            Log::info('Directory deleted: ' . $fullPath);
         }
     }
 }

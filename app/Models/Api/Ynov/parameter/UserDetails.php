@@ -213,17 +213,6 @@ class UserDetails extends Model
     }
 
     /**
-     * Obtenir le photo_path nettoyé
-     */
-    public function getCleanPhotoPathAttribute(): ?string
-    {
-        if (!$this->photo_path) {
-            return null;
-        }
-        return str_replace('\\', '/', $this->photo_path);
-    }
-
-    /**
      * Setter pour photo_path - nettoie automatiquement
      */
     public function setPhotoPathAttribute($value): void
@@ -233,7 +222,9 @@ class UserDetails extends Model
             if (filter_var($value, FILTER_VALIDATE_URL)) {
                 $parsed = parse_url($value);
                 $path = $parsed['path'] ?? '';
+                // Enlever le préfixe /storage/documents/ si présent
                 $value = str_replace('/storage/documents/', '', $path);
+                $value = str_replace('/storage/documents', '', $value);
             }
             
             // Nettoyer le chemin
@@ -243,6 +234,17 @@ class UserDetails extends Model
         } else {
             $this->attributes['photo_path'] = null;
         }
+    }
+    
+    /**
+     * Obtenir le chemin complet de la photo
+     */
+    public function getPhotoPathAttribute($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+        return str_replace('\\', '/', $value);
     }
     
     /**

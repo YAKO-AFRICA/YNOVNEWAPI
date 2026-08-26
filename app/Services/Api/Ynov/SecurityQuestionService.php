@@ -55,7 +55,7 @@ class SecurityQuestionService
                 ];
             })
             ->toArray();
-        Log::info($answers);
+        // Log::info($answers);
         return $answers;
     }
 
