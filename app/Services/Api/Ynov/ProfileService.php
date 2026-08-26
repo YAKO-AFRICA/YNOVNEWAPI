@@ -6,6 +6,7 @@ use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProfileService
@@ -40,6 +41,8 @@ class ProfileService
                     
                     $detailsData['photo_path'] = url('/storage/documents/'. $photoPath);
                     $detailsData['photo'] = $photoPath;
+                    Log::info('Photo path: ' . $detailsData['photo_path']);
+                    Log::info('Photo: ' . $detailsData['photo']);
                 }
                 
                 // Si une URL de photo externe est fournie
@@ -50,6 +53,8 @@ class ProfileService
                     }
                     $detailsData['photo'] = $data['photo_url'];
                     $detailsData['photo_path'] = $data['photo_url'];
+                    Log::info('Photo path photo_url: ' . $detailsData['photo_path']);
+                    Log::info('Photo photo_url: ' . $detailsData['photo']);
                 }
                 
                 // Supprimer la photo
@@ -132,6 +137,7 @@ class ProfileService
 
     private function uploadPhoto($photo, string $userUuid): string
     {
+        Log::info('Photo: ' . $photo);
         $extension = $photo->getClientOriginalExtension();
         $filename = sprintf(
             'profile_%s_%s.%s',
