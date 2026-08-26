@@ -224,7 +224,7 @@ class CustomerController extends Controller
                         'DateFinAdhesion' => (isset($detail['FinAdhesion']) && $detail['FinAdhesion'] != null) ? Carbon::parse($detail['FinAdhesion'])->format('d/m/Y') : $detail['FinAdhesion'] ?? null,
                         'DateEffetAdhesion' => !empty($detail['DateEffetReel']) ? Carbon::parse($detail['DateEffetReel'])->format('d/m/Y') : (!empty($detail['DateEffetSouhaite']) ? Carbon::parse($detail['DateEffetSouhaite'])->format('d/m/Y') : null ),
                         'Conseiller' => $detail['CodeConseiller'] . '-'. $detail['NomAgent']  ?? null,
-                        'Adherent' => $detail['nomSous'] . ' '. $detail['prenomSous']  ?? null,
+                        'Adherent' => $detail['nomSous'] . ' '. $detail['PrenomSous']  ?? null,
                         'Status' => $this->getContractStatus($detail)
                     ],
                     'Assures' => $assures,
