@@ -25,7 +25,7 @@ class UserDetailResource extends JsonResource
             'email_pro' => $this->email_pro,
             'photo' => $this->photo,
             'photo_path' => $this->photo_path,
-            'photo_url' => $this->photo_url,
+            // 'photo_url' => $this->photo_url,
             'date_naissance' => $this->date_naissance,
             'lieu_naissance' => $this->lieu_naissance,
             'lieu_residence' => $this->lieu_residence,

@@ -37,8 +37,9 @@ class ProfileService
                 // Gérer la photo
                 if (isset($data['photo']) && $data['photo']->isValid()) {
                     $photoPath = $this->uploadPhoto($data['photo'], $user->uuid_user);
-                    $detailsData['photo_path'] = $photoPath;
-                    $detailsData['photo'] = null;
+                    
+                    $detailsData['photo_path'] = url('/storage/documents/'. $photoPath);
+                    $detailsData['photo'] = $photoPath;
                 }
                 
                 // Si une URL de photo externe est fournie
@@ -48,7 +49,7 @@ class ProfileService
                         $this->deletePhoto($user->details->photo_path);
                     }
                     $detailsData['photo'] = $data['photo_url'];
-                    $detailsData['photo_path'] = null;
+                    $detailsData['photo_path'] = $data['photo_url'];
                 }
                 
                 // Supprimer la photo
