@@ -36,7 +36,7 @@ class UpdateProfileRequest extends FormRequest
             'lieu_naissance' => ['nullable', 'string', 'max:55'],
             'lieu_residence' => ['nullable', 'string', 'max:55'],
             'nationalite' => ['nullable', 'string', 'max:55'],
-            'genre' => ['nullable', 'in:M,F'],
+            'genre' => ['nullable'],
             'civilite' => ['nullable', 'string', 'max:20', 'in:M.,Mme,Mlle,Dr,Pr'],
             'adresse_complete' => ['nullable', 'string', 'max:255'],
             'code_postal' => ['nullable', 'string', 'max:20'],

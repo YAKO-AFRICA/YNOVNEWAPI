@@ -3,7 +3,6 @@
 // use App\Http\Controllers\Api\ApiController;
 // use App\Http\Controllers\Api\JekoPaymentController;
 // use App\Http\Controllers\Api\ReceiptController;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
 
@@ -18,44 +17,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route::get('storage/documents/{file}', function ($file) {
-//     // Nettoyer le nom du fichier
-//     $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
-    
-    
-//     // Si toujours pas trouvé
-//     if (!file_exists($path)) {
-//         abort(404, 'Fichier non trouvé: ' . $file);
-//     }
-
-//     $fileContents = file_get_contents($path);
-//     $mimeType = mime_content_type($path);
-
-//     return Response::make($fileContents, 200, [
-//         'Content-Type' => $mimeType,
-//         'Cache-Control' => 'public, max-age=86400',
-//     ]);
-
-// })->where('file', '.*')->name('storage.documents');
-
 Route::get('storage/documents/{file}', function ($file) {
-    // Nettoyer le chemin
-    $file = str_replace('\\', '/', $file);
-    $file = ltrim($file, '/');
+    // Nettoyer le nom du fichier
+    $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
     
-    // Construire le chemin complet
-    $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
-    $fullPath = base_path($uploadPath . '/' . $file);
     
-    Log::info('Looking for file: ' . $fullPath);
-    
-    if (!file_exists($fullPath)) {
-        Log::error('File not found: ' . $fullPath);
+    // Si toujours pas trouvé
+    if (!file_exists($path)) {
         abort(404, 'Fichier non trouvé: ' . $file);
     }
 
-    $fileContents = file_get_contents($fullPath);
-    $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+    $fileContents = file_get_contents($path);
+    $mimeType = mime_content_type($path);
 
     return Response::make($fileContents, 200, [
         'Content-Type' => $mimeType,
