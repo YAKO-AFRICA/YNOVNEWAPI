@@ -17,27 +17,41 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Route::get('storage/documents/{file}', function ($file) {
+//     // Nettoyer le nom du fichier
+//     $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
+    
+    
+//     // Si toujours pas trouvé
+//     if (!file_exists($path)) {
+//         abort(404, 'Fichier non trouvé: ' . $file);
+//     }
+
+//     $fileContents = file_get_contents($path);
+//     $mimeType = mime_content_type($path);
+
+//     return Response::make($fileContents, 200, [
+//         'Content-Type' => $mimeType,
+//         'Cache-Control' => 'public, max-age=86400',
+//     ]);
+
+// })->where('file', '.*')->name('storage.documents');
+
 Route::get('storage/documents/{file}', function ($file) {
-    // Nettoyer le nom du fichier
-    // $file = ltrim($file, '/');
-    $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
+    // Nettoyer le chemin
+    $file = str_replace('\\', '/', $file);
+    $file = ltrim($file, '/');
     
-    // Construire le chemin complet avec UPLOADS_PATH
-    // $uploadPath = env('UPLOADS_PATH', '../public_html/upload/documents-test/');
-    // $fullPath = base_path($uploadPath . '/' . $file);
+    // Construire le chemin complet
+    $uploadPath = rtrim(env('UPLOADS_PATH', '../public_html/upload/documents-test/'), '/');
+    $fullPath = base_path($uploadPath . '/' . $file);
     
-    // Alternative: si le fichier n'existe pas, essayer dans storage/app
-    // if (!file_exists($fullPath)) {
-    //     $fullPath = storage_path('app/' . $file);
-    // }
-    
-    // Si toujours pas trouvé
-    if (!file_exists($path)) {
+    if (!file_exists($fullPath)) {
         abort(404, 'Fichier non trouvé: ' . $file);
     }
 
-    $fileContents = file_get_contents($path);
-    $mimeType = mime_content_type($path);
+    $fileContents = file_get_contents($fullPath);
+    $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
 
     return Response::make($fileContents, 200, [
         'Content-Type' => $mimeType,
