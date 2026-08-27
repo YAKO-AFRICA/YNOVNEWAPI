@@ -8326,6 +8326,161 @@
                 },
 
                 // ============================================================
+                // ESPACE CLIENT - CONTRATS AVEC FACTURES IMPRIMÉES
+                // ============================================================
+                {
+                    id: 'customer-contrats-factures',
+                    module: 'espaces_client',
+                    name: 'Contrats avec factures impayées',
+                    description: 'Récupère la liste des contrats du client qui ont des factures impayés. Retourne les informations des contrats avec le détail des factures non réglées. **Possibilité de filtrer par période (aujourd\'hui, semaine, mois, année, personnalisé) et de rechercher par produit ou numéro de contrat.**',
+                    method: 'GET',
+                    path: '/espaces-client/contrats-factures',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 10,
+                                min: 1,
+                                max: 100,
+                                description: 'Nombre d\'éléments par page (1-100)'
+                            },
+                            page: {
+                                type: 'integer',
+                                required: false,
+                                default: 1,
+                                min: 1,
+                                description: 'Numéro de la page'
+                            },
+                            period: {
+                                type: 'string',
+                                required: false,
+                                enum: ['all', 'today', 'week', 'month', 'year', 'custom'],
+                                default: 'all',
+                                description: 'Période de filtrage des factures : all (toutes), today (aujourd\'hui), week (cette semaine), month (ce mois), year (cette année), custom (personnalisé)'
+                            },
+                            date_from: {
+                                type: 'date',
+                                required: false,
+                                format: 'Y-m-d',
+                                description: 'Date de début pour le filtrage personnalisé (period=custom)'
+                            },
+                            date_to: {
+                                type: 'date',
+                                required: false,
+                                format: 'Y-m-d',
+                                description: 'Date de fin pour le filtrage personnalisé (period=custom)'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche par nom du produit ou numéro de contrat (IdProposition)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        period: 'month',
+                        per_page: 10,
+                        page: 1
+                    },
+                    exampleRequestCustom: {
+                        period: 'custom',
+                        date_from: '2025-01-01',
+                        date_to: '2025-12-31',
+                        per_page: 20
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Contrats avec factures récupérés avec succès',
+                            example: {
+                                success: true,
+                                code: 'FACTURE_FOUND',
+                                message: 'Contrats avec factures impayés récupérés',
+                                data: [{
+                                    details: {
+                                        IdProposition: '3593104',
+                                        CapitalSouscrit: 1000000,
+                                        TotalPrime: 10400,
+                                        NbreImpayes: 1,
+                                        TotalImpayes: 7500,
+                                        produit: 'DOIHOO',
+                                        Status: 'En cours'
+                                    },
+                                    PrimeNonRegles: [{
+                                        IdFacture: '31680334',
+                                        DateCreation: '30/11/2025',
+                                        DateCreationFormatted: '2025-11-30',
+                                        MontantARegler: 7500,
+                                        TypeFacture: 'F',
+                                        TypeFactureLibelle: 'Frais d\'adhésion'
+                                    }]
+                                }],
+                                meta: {
+                                    total: 3,
+                                    per_page: 10,
+                                    current_page: 1,
+                                    last_page: 1,
+                                    has_errors: false,
+                                    errors: [],
+                                    filters: {
+                                        period: 'month',
+                                        date_from: null,
+                                        date_to: null,
+                                        search: null
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            status: 200,
+                            description: 'Aucun contrat avec factures trouvé',
+                            example: {
+                                success: true,
+                                code: 'NO_FACTURE_FOUND',
+                                message: 'Aucun contrat trouvé avec facture impayé.',
+                                data: [],
+                                meta: {
+                                    total: 0,
+                                    per_page: 10,
+                                    current_page: 1,
+                                    last_page: 1,
+                                    has_errors: false,
+                                    errors: [],
+                                    filters: {
+                                        period: 'all',
+                                        date_from: null,
+                                        date_to: null,
+                                        search: null
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            status: 401,
+                            description: 'Non authentifié',
+                            example: {
+                                success: false,
+                                message: 'Non authentifié.'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Erreur de récupération',
+                            example: {
+                                success: false,
+                                code: 'GET_CONTRAT_ERROR',
+                                message: 'Une erreur est survenue lors de la récupération des contrats.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
                 // ESPACE CLIENT - ÉTAT DE COTISATION D'UN CONTRAT
                 // ============================================================
                 {
@@ -8499,175 +8654,10 @@
                             }
                         }
                     ]
-                }
+                },
 
 
-                // ============================================================
-                // ESPACE CLIENT - HISTORIQUE DES PAIEMENTS
-                // ============================================================
-                // {
-                //     id: 'customer-paiements',
-                //     module: 'espaces_client',
-                //     name: 'Historique des paiements',
-                //     description: 'Récupère l\'historique complet des paiements effectués par le client pour tous ses contrats.',
-                //     method: 'GET',
-                //     path: '/espaces-client/paiements',
-                //     isProtected: true,
-                //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                //     requestParams: {
-                //         query: {
-                //             contrat_id: {
-                //                 type: 'integer',
-                //                 required: false,
-                //                 description: 'Filtrer par ID de contrat'
-                //             },
-                //             per_page: {
-                //                 type: 'integer',
-                //                 required: false,
-                //                 default: 20,
-                //                 min: 1,
-                //                 max: 100,
-                //                 description: 'Nombre d\'éléments par page'
-                //             },
-                //             page: {
-                //                 type: 'integer',
-                //                 required: false,
-                //                 default: 1,
-                //                 min: 1,
-                //                 description: 'Numéro de la page'
-                //             }
-                //         }
-                //     },
-                //     responses: [
-                //         {
-                //             status: 200,
-                //             description: 'Historique des paiements',
-                //             example: {
-                //                 success: true,
-                //                 code: 'PAIEMENTS_LISTED',
-                //                 message: 'Historique des paiements récupéré.',
-                //                 data: [
-                //                     {
-                //                         contrat_id: 3593104,
-                //                         produit: 'PERFORMA Individuel',
-                //                         date: '2023-12-15',
-                //                         montant: 350000,
-                //                         mode: 'Carte bancaire',
-                //                         statut: 'payé',
-                //                         reference: 'PAY-2023-12-15-001'
-                //                     }
-                //                 ],
-                //                 meta: {
-                //                     total: 24,
-                //                     per_page: 20,
-                //                     current_page: 1,
-                //                     last_page: 2
-                //                 }
-                //             }
-                //         }
-                //     ]
-                // },
 
-                // // ============================================================
-                // // ESPACE CLIENT - PROCHAINES ÉCHÉANCES
-                // // ============================================================
-                // {
-                //     id: 'customer-echeances',
-                //     module: 'espaces_client',
-                //     name: 'Prochaines échéances',
-                //     description: 'Récupère les prochaines échéances de paiement pour les contrats du client.',
-                //     method: 'GET',
-                //     path: '/espaces-client/echeances',
-                //     isProtected: true,
-                //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                //     requestParams: {
-                //         query: {
-                //             limite: {
-                //                 type: 'integer',
-                //                 required: false,
-                //                 default: 5,
-                //                 min: 1,
-                //                 max: 20,
-                //                 description: 'Nombre d\'échéances à afficher'
-                //             }
-                //         }
-                //     },
-                //     responses: [
-                //         {
-                //             status: 200,
-                //             description: 'Prochaines échéances',
-                //             example: {
-                //                 success: true,
-                //                 code: 'ECHEANCES_LISTED',
-                //                 message: 'Prochaines échéances récupérées.',
-                //                 data: [
-                //                     {
-                //                         contrat_id: 3588730,
-                //                         produit: 'YAKO Éternité 2018',
-                //                         date_echeance: '2024-01-15',
-                //                         montant: 400000,
-                //                         statut: 'à venir'
-                //                     }
-                //                 ]
-                //             }
-                //         }
-                //     ]
-                // },
-
-                // // ============================================================
-                // // ESPACE CLIENT - STATISTIQUES CLIENT
-                // // ============================================================
-                // {
-                //     id: 'customer-statistiques',
-                //     module: 'espaces_client',
-                //     name: 'Statistiques client',
-                //     description: 'Récupère les statistiques détaillées du client : ancienneté, taux de paiement, répartition des contrats, etc.',
-                //     method: 'GET',
-                //     path: '/espaces-client/statistiques',
-                //     isProtected: true,
-                //     headers: { 'Authorization': 'Bearer {token}', 'Accept': 'application/json' },
-                //     requestParams: { body: {} },
-                //     responses: [
-                //         {
-                //             status: 200,
-                //             description: 'Statistiques client',
-                //             example: {
-                //                 success: true,
-                //                 code: 'STATISTIQUES_FOUND',
-                //                 message: 'Statistiques récupérées avec succès.',
-                //                 data: {
-                //                     anciennete: {
-                //                         date_premier_contrat: '2021-01-15',
-                //                         annees: '3 ans',
-                //                         mois: '6 mois',
-                //                         jours: '12 jours',
-                //                         total_mois: 42,
-                //                         total_jours: 1278
-                //                     },
-                //                     taux_paiement: {
-                //                         global: 78.9,
-                //                         par_contrat: {
-                //                             'PERFORMA Individuel': 85.2,
-                //                             'YAKO Éternité 2018': 45.0,
-                //                             'CADENCE Éducation Plus': 62.5
-                //                         }
-                //                     },
-                //                     repartition: {
-                //                         type: {
-                //                             'Vie': 4,
-                //                             'Santé': 1,
-                //                             'Éducation': 1
-                //                         },
-                //                         statut: {
-                //                             'actif': 4,
-                //                             'en_retard': 2
-                //                         }
-                //                     }
-                //                 }
-                //             }
-                //         }
-                //     ]
-                // },
 
             ],
 
@@ -9016,6 +9006,21 @@
                     cause: 'Le contrat est arrêté (OnStdbyOff = 3) et ne peut pas être ajouté.',
                     endpoint: 'POST /espaces-client/add-new-contrats',
                     action: 'Le contrat est arrêté, il ne peut pas être ajouté au compte.'
+                },
+                // Dans businessErrors
+                {
+                    code: 'FACTURE_FOUND',
+                    message: 'Contrats avec facture impaymée récupérés',
+                    cause: 'Les contrats avec factures impayées ont été récupérés avec succès.',
+                    endpoint: 'GET /espaces-client/contrats-factures',
+                    action: 'Aucune action requise.'
+                },
+                {
+                    code: 'NO_FACTURE_FOUND',
+                    message: 'Aucun contrat trouvé avec facture impayée.',
+                    cause: 'Le client n\'a pas de contrats avec des factures impayées.',
+                    endpoint: 'GET /espaces-client/contrats-factures',
+                    action: 'Aucune action requise.'
                 }
             ]
         };
