@@ -570,7 +570,7 @@ class EncaissementBisService
         // GESTION DES DOCUMENTS PDF AVEC VÉRIFICATION DES FICHIERS
         // ============================================================
         $data['documents'] = [
-            'CP' => null,
+            'CP' => [],
             'avenantsUrls' => [],
         ];
 
@@ -669,41 +669,49 @@ class EncaissementBisService
                 $avtFiles = glob($fullDirPath . DIRECTORY_SEPARATOR . 'AVT_' . $idcontrat . '*.pdf');
 
                 if (!empty($avtFiles)) {
-                    foreach ($avtFiles as $avtFile) {
+                    foreach ($avtFiles as $i => $avtFile) {
                         $avtFileName = basename($avtFile);
                         $avtFileUrl = url('get-document-contrat/' . $filePath . '/' . $avtFileName);
-                        $avtFileUrls[] = $avtFileUrl;
+                        $avtFileUrls[] = [
+                            'libelle' => 'Avenant de police d\'assurance n° ' . ($i + 1),
+                            'fileName' => $avtFileName,
+                            'docUrl' => $avtFileUrl
+                        ];
                     }
                 }
 
                 $data['documents'] = [
-                    'CP' => $fileUrl,
+                    'CP' => [
+                        'libelle' => 'Police d\'assurance (Conditions particulières et générales)',
+                        'fileName' => $fileName,
+                        'docUrl' => $fileUrl
+                    ],
                     'avenantsUrls' => $avtFileUrls,
                 ];
             } else {
                 // Aucun fichier trouvé
                 $data['documents'] = [
-                    'CP' => null,
+                    'CP' => [],
                     'avenantsUrls' => [],
                     'message' => 'Documents non disponibles'
                 ];
                 
-                Log::warning('Aucun document trouvé pour le contrat', [
-                    'contrat_id' => $idcontrat,
-                    'cp_path' => $CPfilePath,
-                    'cg_path' => $CGProdFilePath
-                ]);
+                // Log::warning('Aucun document trouvé pour le contrat', [
+                //     'contrat_id' => $idcontrat,
+                //     'cp_path' => $CPfilePath,
+                //     'cg_path' => $CGProdFilePath
+                // ]);
             }
 
         } catch (\Exception $e) {
-            Log::error('Erreur génération PDF', [
-                'contrat_id' => $idcontrat,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            // Log::error('Erreur génération PDF', [
+            //     'contrat_id' => $idcontrat,
+            //     'error' => $e->getMessage(),
+            //     'trace' => $e->getTraceAsString()
+            // ]);
             
             $data['documents'] = [
-                'CP' => null,
+                'CP' => [],
                 'avenantsUrls' => [],
                 'error' => 'Impossible de générer les documents: ' . $e->getMessage()
             ];

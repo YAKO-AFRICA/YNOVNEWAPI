@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api\Ynov\EspaceClient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\parameter\UserDetails;
+use App\Models\Api\Ynov\UserContrat;
 use App\Services\EncaissementBisService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -400,6 +403,85 @@ class CustomerController extends Controller
                 'data' => $contratData,
             ], 200);
         } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function addNewContrat(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $existingContract = UserContrat::where(
+                'contrat_id',
+                $request->idcontrat
+            )->where('user_uuid', $user->uuid_user)->first();
+
+            if ($existingContract) {
+                $message = 'Le contrat '. $request->idcontrat. ' est déjà associé à votre compte.';
+
+                return response()->json([
+                    'success' => false,
+                    'code' => 'CONTRAT_ALREADY_EXISTS',
+                    'message' => $message,
+                ], 422);
+            }
+            $userDetail = UserDetails::where('user_uuid', $user->uuid_user)->first();
+            $result = $this->encaissementBisService->getContrat($request->idcontrat);
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 422);
+            }
+
+            $data = $result['data'];
+            $details = $data['details'][0];
+
+            if ($data['details'][0]['DateNaissance'] != $userDetail->date_naissance) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'DATE_OF_BIRTH_MISMATCH',
+                    'message' => 'Votre date de naissance ne correspond pas à celle enregistrée dans le contrat. Veuillez faire une demande de modification.',
+                ], 422);
+            }
+
+            if ($data['details'][0]['OnStdbyOff'] == "3") {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'CONTRACT_FROZEN',
+                    'message' => 'Ce contrat est arreté.',
+                ], 422);
+            }
+
+            $contratAdded = UserContrat::create([
+                'uuid_user_contrat' => (string) Str::uuid(),
+
+                'user_uuid' => $user->uuid_user,
+
+                'contrat_id' => $details['IdProposition'] ?? null,
+
+                'client_number' => $user->client_number ?? null,
+
+                'code_produit' => $details['codeProduit'] ?? null,
+
+                'libelle_produit' => $details['produit'] ?? null,
+
+                'code_produit_formule' => $details['CodeProduitFormule'] ?? null,
+
+                'libelle_produit_formule' => $details['ProduitFormule'] ?? null,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'code' => 'CONTRACT_ADDED',
+                'message' => 'Contract ajouté avec successe.',
+                'data' => $contratAdded ?? $existingContract ?? null, 
+
+            ], 200);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

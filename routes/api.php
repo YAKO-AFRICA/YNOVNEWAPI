@@ -377,6 +377,7 @@ Route::prefix('v1')->middleware([
     Route::prefix('espaces-client')->group(function () {
         Route::get('dashboard', [CustomerController::class, 'index']);
         Route::get('contrats/', [CustomerController::class, 'getAllContrat']);
+        Route::post('add-new-contrats/', [CustomerController::class, 'addNewContrat']);
         Route::get('contrat-details/{contrat_id}', [CustomerController::class, 'getContratDetails']);
         Route::get('contrat-etat-cotisation/{contrat_id}', [CustomerController::class, 'getContratEtatCotisation']);
     });
