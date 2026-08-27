@@ -9,8 +9,10 @@ use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FaqCategoryController;
 use App\Http\Controllers\Api\Ynov\FaqController;
 use App\Http\Controllers\Api\Ynov\FreezeController;
+use App\Http\Controllers\Api\Ynov\GroupNotifController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
+use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
@@ -370,6 +372,89 @@ Route::prefix('v1')->middleware([
         // Dupliquer une catégorie
         Route::post('categories/{uuid_faq_category}/duplicate', [FaqCategoryController::class, 'duplicate'])
             ->middleware('permission:faq_categories.creer');
+    });
+
+
+    // ============================================================
+    // GROUPES DE NOTIFICATION
+    // ============================================================
+    Route::prefix('group-notifs')->group(function () {
+        // Mes groupes (utilisateur connecté)
+        Route::get('my-groups', [GroupNotifController::class, 'myGroups']);
+        
+        // Canaux disponibles
+        Route::get('channels', [GroupNotifController::class, 'channels']);
+        
+        // Définir mon groupe principal
+        Route::post('{uuid_group_notif}/set-primary', [GroupNotifController::class, 'setPrimaryGroup']);
+    });
+
+    // ============================================================
+    // ADMIN - GROUPES DE NOTIFICATION
+    // ============================================================
+    Route::prefix('admin/group-notifs') ->group(function () {
+        // Liste et détails
+        Route::get('/', [GroupNotifController::class, 'index'])
+            ->middleware('permission:group_notifs.afficher');
+
+        Route::get('stats', [GroupNotifController::class, 'stats'])
+            ->middleware('permission:group_notifs.afficher');
+
+        Route::get('{uuid_group_notif}', [GroupNotifController::class, 'show'])
+            ->middleware('permission:group_notifs.afficher');
+
+        // CRUD
+        Route::post('/', [GroupNotifController::class, 'store'])
+            ->middleware('permission:group_notifs.creer');
+
+        Route::put('{uuid_group_notif}', [GroupNotifController::class, 'update'])
+            ->middleware('permission:group_notifs.modifier');
+
+        Route::delete('{uuid_group_notif}', [GroupNotifController::class, 'destroy'])
+            ->middleware('permission:group_notifs.supprimer');
+
+        // Duplication
+        Route::post('{uuid_group_notif}/duplicate', [GroupNotifController::class, 'duplicate'])
+            ->middleware('permission:group_notifs.creer');
+
+        // Gestion des utilisateurs
+        Route::post('{uuid_group_notif}/users', [GroupNotifController::class, 'assignUsers'])
+            ->middleware('permission:group_notifs.assigner');
+
+        Route::delete('{uuid_group_notif}/users/{uuid_user}', [GroupNotifController::class, 'removeUser'])
+            ->middleware('permission:group_notifs.assigner');
+    });
+    // ============================================================
+    // NOTIFICATIONS
+    // ============================================================
+    Route::prefix('notifications')->group(function () {
+        // Liste des notifications
+        Route::get('/', [NotificationController::class, 'index']);
+        
+        // Nombre de notifications non lues
+        Route::get('unread-count', [NotificationController::class, 'unreadCount']);
+        
+        // Marquer toutes comme lues
+        Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        
+        // Actions sur une notification spécifique
+        Route::prefix('{uuid_notification}')->group(function () {
+            Route::post('read', [NotificationController::class, 'markAsRead']);
+            Route::post('important', [NotificationController::class, 'markAsImportant']);
+            Route::post('unimportant', [NotificationController::class, 'unmarkImportant']);
+            Route::delete('/', [NotificationController::class, 'destroy']);
+        });
+    });
+
+    // ============================================================
+    // ADMIN - NOTIFICATIONS
+    // ============================================================
+    Route::prefix('admin/notifications')->group(function () {
+            Route::post('/', [NotificationController::class, 'create'])
+                ->middleware('permission:notifications.creer');
+            
+            Route::post('group', [NotificationController::class, 'createForGroup'])
+                ->middleware('permission:notifications.creer');
     });
 
 

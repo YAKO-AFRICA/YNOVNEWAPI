@@ -1298,6 +1298,17 @@
                     label: 'FAQ',
                     icon: 'fa-circle-question'
                 },
+
+                group_notifs: {
+                    label: 'Groupes de Notifications',
+                    icon: 'fa-layer-group'
+                },
+
+                notifications: {
+                    label: 'Notifications',
+                    icon: 'fa-bell'
+                },
+
                 espaces_client: {
                     label: 'Espace Client',
                     icon: 'fa-user-tie'
@@ -7946,6 +7957,1183 @@
                 },
 
                 // ============================================================
+                // GROUPES DE NOTIFICATION
+                // ============================================================
+
+                // ============================================================
+                // 1. MES GROUPES (Utilisateur connecté)
+                // ============================================================
+                {
+                    id: 'group-notifs-my-groups',
+                    module: 'group_notifs',
+                    name: 'Mes groupes de notification',
+                    description: 'Récupère la liste des groupes de notification auxquels l\'utilisateur connecté appartient. Retourne les informations du groupe et le statut de l\'utilisateur dans le groupe (principal, actif).',
+                    method: 'GET',
+                    path: '/group-notifs/my-groups',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Mes groupes récupérés',
+                            example: {
+                                success: true,
+                                message: 'Mes groupes de notification.',
+                                code: 'MY_GROUPS_LISTED',
+                                data: [{
+                                        uuid_group_notif: '550e8400-e29b-41d4-a716-446655440001',
+                                        code: 'welcome',
+                                        libelle: 'Bienvenue',
+                                        description: 'Notifications de bienvenue et d\'inscription',
+                                        channels: ['database', 'email'],
+                                        status: 'actif',
+                                        is_primary: true,
+                                        is_active: true,
+                                        assigned_at: '2025-01-15T10:00:00.000000Z'
+                                    },
+                                    {
+                                        uuid_group_notif: '550e8400-e29b-41d4-a716-446655440002',
+                                        code: 'security',
+                                        libelle: 'Sécurité',
+                                        description: 'Alertes de sécurité',
+                                        channels: ['database', 'email', 'sms'],
+                                        status: 'actif',
+                                        is_primary: false,
+                                        is_active: true,
+                                        assigned_at: '2025-01-15T10:00:00.000000Z'
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            status: 401,
+                            description: 'Non authentifié',
+                            example: {
+                                success: false,
+                                message: 'Non authentifié.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 2. CANAUX DISPONIBLES
+                // ============================================================
+                {
+                    id: 'group-notifs-channels',
+                    module: 'group_notifs',
+                    name: 'Canaux disponibles',
+                    description: 'Récupère la liste des canaux de notification disponibles (database, email, sms, push, whatsapp). Utile pour configurer les préférences d\'un groupe.',
+                    method: 'GET',
+                    path: '/group-notifs/channels',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {}
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Canaux disponibles',
+                        example: {
+                            success: true,
+                            message: 'Canaux disponibles.',
+                            code: 'CHANNELS_LISTED',
+                            data: [{
+                                    code: 'database',
+                                    label: 'Base de données',
+                                    icon: 'bi-database'
+                                },
+                                {
+                                    code: 'email',
+                                    label: 'Email',
+                                    icon: 'bi-envelope'
+                                },
+                                {
+                                    code: 'sms',
+                                    label: 'SMS',
+                                    icon: 'bi-phone'
+                                },
+                                {
+                                    code: 'push',
+                                    label: 'Push mobile',
+                                    icon: 'bi-bell'
+                                },
+                                {
+                                    code: 'whatsapp',
+                                    label: 'WhatsApp',
+                                    icon: 'bi-whatsapp'
+                                }
+                            ]
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 3. DÉFINIR LE GROUPE PRINCIPAL
+                // ============================================================
+                {
+                    id: 'group-notifs-set-primary',
+                    module: 'group_notifs',
+                    name: 'Définir le groupe principal',
+                    description: 'Définit un groupe comme principal pour l\'utilisateur connecté. Un seul groupe peut être principal à la fois.',
+                    method: 'POST',
+                    path: '/group-notifs/{uuid_group_notif}/set-primary',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe de notification'
+                            }
+                        }
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Groupe principal défini',
+                            example: {
+                                success: true,
+                                message: 'Groupe principal défini.',
+                                code: 'PRIMARY_GROUP_SET'
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Utilisateur non trouvé dans ce groupe',
+                            example: {
+                                success: false,
+                                message: 'Vous n\'appartenez pas à ce groupe.',
+                                code: 'USER_NOT_IN_GROUP'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 4. ADMIN - LISTE DES GROUPES
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-list',
+                    module: 'group_notifs',
+                    name: '[Admin] Liste des groupes de notification',
+                    description: 'Liste paginée des groupes de notification avec filtres (statut, recherche, canal). Nécessite la permission `group_notifs.afficher`.',
+                    method: 'GET',
+                    path: '/admin/group-notifs',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Filtrer par statut'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle (libellé, code, description)'
+                            },
+                            channel: {
+                                type: 'string',
+                                required: false,
+                                enum: ['database', 'email', 'sms', 'push', 'whatsapp'],
+                                description: 'Filtrer par canal'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des groupes',
+                        example: {
+                            success: true,
+                            message: 'Groupes de notification récupérés.',
+                            code: 'GROUPS_LISTED',
+                            data: [{
+                                uuid_group_notif: '...',
+                                code: 'welcome',
+                                libelle: 'Bienvenue',
+                                description: 'Notifications de bienvenue',
+                                channels: ['database', 'email'],
+                                status: 'actif',
+                                users_count: 150,
+                                created_at: '2025-01-15T10:00:00.000000Z'
+                            }],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 5,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 5. ADMIN - CRÉER UN GROUPE
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-create',
+                    module: 'group_notifs',
+                    name: '[Admin] Créer un groupe de notification',
+                    description: 'Crée un nouveau groupe de notification. Nécessite la permission `group_notifs.creer`.',
+                    method: 'POST',
+                    path: '/admin/group-notifs',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 100,
+                                description: 'Libellé du groupe'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 55,
+                                description: 'Code unique (généré automatiquement)'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description du groupe'
+                            },
+                            channels: {
+                                type: 'array',
+                                required: false,
+                                description: 'Canaux de notification'
+                            },
+                            'channels.*': {
+                                type: 'string',
+                                enum: ['database', 'email', 'sms', 'push', 'whatsapp'],
+                                description: 'Canal'
+                            },
+                            preferences: {
+                                type: 'object',
+                                required: false,
+                                description: 'Préférences supplémentaires'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                default: 'actif',
+                                description: 'Statut'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Promotions',
+                        description: 'Notifications sur les offres promotionnelles',
+                        channels: ['database', 'email'],
+                        status: 'actif'
+                    },
+                    responses: [{
+                            status: 201,
+                            description: 'Groupe créé',
+                            example: {
+                                success: true,
+                                message: 'Groupe de notification créé.',
+                                code: 'GROUP_CREATED',
+                                data: {
+                                    uuid_group_notif: '...',
+                                    code: 'promotions',
+                                    libelle: 'Promotions',
+                                    description: 'Notifications sur les offres promotionnelles',
+                                    channels: ['database', 'email'],
+                                    status: 'actif'
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Erreur de validation',
+                            example: {
+                                success: false,
+                                message: 'Données invalides.',
+                                errors: {
+                                    libelle: ['Le libellé est obligatoire.'],
+                                    code: ['Ce code est déjà utilisé.']
+                                }
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 6. ADMIN - DÉTAILS D'UN GROUPE
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-show',
+                    module: 'group_notifs',
+                    name: '[Admin] Détails d\'un groupe',
+                    description: 'Récupère les détails d\'un groupe de notification avec la liste de ses utilisateurs. Nécessite la permission `group_notifs.afficher`.',
+                    method: 'GET',
+                    path: '/admin/group-notifs/{uuid_group_notif}',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe'
+                            }
+                        }
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Détails du groupe',
+                            example: {
+                                success: true,
+                                message: 'Détails du groupe.',
+                                code: 'GROUP_FOUND',
+                                data: {
+                                    uuid_group_notif: '...',
+                                    code: 'welcome',
+                                    libelle: 'Bienvenue',
+                                    description: 'Notifications de bienvenue',
+                                    channels: ['database', 'email'],
+                                    status: 'actif',
+                                    users_count: 150,
+                                    users: [{
+                                        uuid_user: '...',
+                                        email: 'user@example.com',
+                                        login: 'jdupont',
+                                        details: {
+                                            nom: 'Dupont',
+                                            prenoms: 'Jean',
+                                            full_name: 'Jean Dupont'
+                                        },
+                                        pivot: {
+                                            is_primary: true,
+                                            is_active: true,
+                                            assigned_at: '2025-01-15T10:00:00.000000Z'
+                                        }
+                                    }],
+                                    created_at: '2025-01-15T10:00:00.000000Z'
+                                }
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Groupe non trouvé',
+                            example: {
+                                success: false,
+                                message: 'Groupe non trouvé.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 7. ADMIN - MODIFIER UN GROUPE
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-update',
+                    module: 'group_notifs',
+                    name: '[Admin] Modifier un groupe de notification',
+                    description: 'Modifie un groupe de notification existant. Nécessite la permission `group_notifs.modifier`.',
+                    method: 'PUT',
+                    path: '/admin/group-notifs/{uuid_group_notif}',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe'
+                            }
+                        },
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Libellé'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            },
+                            channels: {
+                                type: 'array',
+                                required: false,
+                                description: 'Canaux'
+                            },
+                            'channels.*': {
+                                type: 'string',
+                                enum: ['database', 'email', 'sms', 'push', 'whatsapp'],
+                                description: 'Canal'
+                            },
+                            preferences: {
+                                type: 'object',
+                                required: false,
+                                description: 'Préférences'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Statut'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Promotions (mise à jour)',
+                        channels: ['database', 'email', 'push'],
+                        status: 'actif'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Groupe mis à jour',
+                        example: {
+                            success: true,
+                            message: 'Groupe de notification mis à jour.',
+                            code: 'GROUP_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 8. ADMIN - SUPPRIMER UN GROUPE
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-delete',
+                    module: 'group_notifs',
+                    name: '[Admin] Supprimer un groupe de notification',
+                    description: 'Supprime un groupe de notification (soft delete). Refusé si le groupe contient des utilisateurs. Nécessite la permission `group_notifs.supprimer`.',
+                    method: 'DELETE',
+                    path: '/admin/group-notifs/{uuid_group_notif}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['group_notifs.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Groupe supprimé',
+                            example: {
+                                success: true,
+                                message: 'Groupe de notification supprimé.',
+                                code: 'GROUP_DELETED'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Groupe contient des utilisateurs',
+                            example: {
+                                success: false,
+                                message: 'Erreur de validation.',
+                                errors: {
+                                    group: ['Ce groupe contient des utilisateurs et ne peut pas être supprimé.']
+                                }
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 9. ADMIN - DUPLIQUER UN GROUPE
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-duplicate',
+                    module: 'group_notifs',
+                    name: '[Admin] Dupliquer un groupe de notification',
+                    description: 'Crée une copie d\'un groupe de notification existant. Le nouveau groupe est créé en mode inactif par défaut. Nécessite la permission `group_notifs.creer`.',
+                    method: 'POST',
+                    path: '/admin/group-notifs/{uuid_group_notif}/duplicate',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe à dupliquer'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Groupe dupliqué',
+                        example: {
+                            success: true,
+                            message: 'Groupe dupliqué.',
+                            code: 'GROUP_DUPLICATED',
+                            data: {
+                                uuid_group_notif: '...',
+                                libelle: 'Promotions (copie)',
+                                code: 'promotions_copy_1',
+                                status: 'inactif'
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 10. ADMIN - ASSIGNER DES UTILISATEURS
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-assign-users',
+                    module: 'group_notifs',
+                    name: '[Admin] Assigner des utilisateurs à un groupe',
+                    description: 'Assigne un ou plusieurs utilisateurs à un groupe de notification. Nécessite la permission `group_notifs.assigner`.',
+                    method: 'POST',
+                    path: '/admin/group-notifs/{uuid_group_notif}/users',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.assigner'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe'
+                            }
+                        },
+                        body: {
+                            user_uuids: {
+                                type: 'array',
+                                required: true,
+                                min: 1,
+                                description: 'UUIDs des utilisateurs'
+                            },
+                            'user_uuids.*': {
+                                type: 'uuid',
+                                description: 'UUID d\'un utilisateur'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        user_uuids: ['uuid1', 'uuid2', 'uuid3']
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Utilisateurs assignés',
+                            example: {
+                                success: true,
+                                message: 'Utilisateurs assignés au groupe.',
+                                code: 'USERS_ASSIGNED',
+                                data: {
+                                    assigned_count: 3,
+                                    group: {}
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Erreur de validation',
+                            example: {
+                                success: false,
+                                message: 'Données invalides.',
+                                errors: {
+                                    user_uuids: ['Le champ user_uuids est obligatoire.']
+                                }
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 11. ADMIN - RETIRER UN UTILISATEUR
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-remove-user',
+                    module: 'group_notifs',
+                    name: '[Admin] Retirer un utilisateur d\'un groupe',
+                    description: 'Retire un utilisateur d\'un groupe de notification. Nécessite la permission `group_notifs.assigner`.',
+                    method: 'DELETE',
+                    path: '/admin/group-notifs/{uuid_group_notif}/users/{uuid_user}',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.assigner'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_group_notif: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe'
+                            },
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Utilisateur retiré',
+                            example: {
+                                success: true,
+                                message: 'Utilisateur retiré du groupe.',
+                                code: 'USER_REMOVED'
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Utilisateur non trouvé dans ce groupe',
+                            example: {
+                                success: false,
+                                message: 'Utilisateur non trouvé dans ce groupe.',
+                                code: 'USER_NOT_IN_GROUP'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // 12. ADMIN - STATISTIQUES DES GROUPES
+                // ============================================================
+                {
+                    id: 'admin-group-notifs-stats',
+                    module: 'group_notifs',
+                    name: '[Admin] Statistiques des groupes',
+                    description: 'Récupère les statistiques des groupes de notification : total, actifs, inactifs, nombre d\'utilisateurs assignés. Nécessite la permission `group_notifs.afficher`.',
+                    method: 'GET',
+                    path: '/admin/group-notifs/stats',
+                    isProtected: true,
+                    permissionsRequired: ['group_notifs.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {}
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statistiques des groupes',
+                        example: {
+                            success: true,
+                            message: 'Statistiques des groupes.',
+                            code: 'GROUP_STATS',
+                            data: {
+                                total: 8,
+                                active: 6,
+                                inactive: 2,
+                                total_users_assigned: 450
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // NOTIFICATIONS
+                // ============================================================
+
+                {
+                    id: 'notifications-list',
+                    module: 'notifications',
+                    name: 'Liste des notifications',
+                    description: 'Récupère la liste des notifications de l\'utilisateur connecté avec possibilité de filtrage (lues/non lues, importantes, type, groupe, recherche). Retourne également le nombre de notifications non lues.',
+                    method: 'GET',
+                    path: '/notifications',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            read: {
+                                type: 'boolean',
+                                required: false,
+                                description: 'Filtrer par statut de lecture (true: lues, false: non lues)'
+                            },
+                            important: {
+                                type: 'boolean',
+                                required: false,
+                                description: 'Filtrer les notifications importantes'
+                            },
+                            type: {
+                                type: 'string',
+                                required: false,
+                                description: 'Filtrer par type'
+                            },
+                            group_notif_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'Filtrer par groupe de notification'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche dans le titre et le corps'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des notifications',
+                        example: {
+                            success: true,
+                            message: 'Notifications récupérées.',
+                            code: 'NOTIFICATIONS_LISTED',
+                            data: [{
+                                uuid_notification: '...',
+                                title: 'Bienvenue sur YNOV',
+                                body: 'Votre compte a été créé avec succès.',
+                                type: 'system',
+                                action_url: '/profile',
+                                action_label: 'Voir mon profil',
+                                is_read: false,
+                                is_important: false,
+                                read_at: null,
+                                created_at: '2025-08-27T10:00:00.000000Z',
+                                group_notif: {
+                                    uuid_group_notif: '...',
+                                    code: 'welcome',
+                                    libelle: 'Bienvenue'
+                                }
+                            }],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 5,
+                                last_page: 1,
+                                unread_count: 3,
+                                important_count: 1
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'notifications-unread-count',
+                    module: 'notifications',
+                    name: 'Nombre de notifications non lues',
+                    description: 'Récupère le nombre de notifications non lues de l\'utilisateur connecté. Utile pour afficher un badge sur l\'icône des notifications.',
+                    method: 'GET',
+                    path: '/notifications/unread-count',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Nombre de notifications non lues',
+                        example: {
+                            success: true,
+                            message: 'Nombre de notifications non lues.',
+                            code: 'UNREAD_COUNT',
+                            data: {
+                                unread_count: 3
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'notifications-mark-read',
+                    module: 'notifications',
+                    name: 'Marquer une notification comme lue',
+                    description: 'Marque une notification spécifique comme lue.',
+                    method: 'POST',
+                    path: '/notifications/{uuid_notification}/read',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_notification: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la notification'
+                            }
+                        }
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Notification marquée comme lue',
+                            example: {
+                                success: true,
+                                message: 'Notification marquée comme lue.',
+                                code: 'NOTIFICATION_READ',
+                                data: {}
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Notification non trouvée',
+                            example: {
+                                success: false,
+                                message: 'Notification non trouvée.',
+                                code: 'NOTIFICATION_NOT_FOUND'
+                            }
+                        }
+                    ]
+                },
+
+                {
+                    id: 'notifications-mark-all-read',
+                    module: 'notifications',
+                    name: 'Marquer toutes les notifications comme lues',
+                    description: 'Marque toutes les notifications non lues de l\'utilisateur comme lues en une seule action.',
+                    method: 'POST',
+                    path: '/notifications/mark-all-read',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Toutes les notifications marquées comme lues',
+                        example: {
+                            success: true,
+                            message: 'Toutes les notifications ont été marquées comme lues.',
+                            code: 'ALL_NOTIFICATIONS_READ',
+                            data: {
+                                marked_count: 3
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'notifications-important',
+                    module: 'notifications',
+                    name: 'Marquer une notification comme importante',
+                    description: 'Marque une notification comme importante pour la mettre en avant.',
+                    method: 'POST',
+                    path: '/notifications/{uuid_notification}/important',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_notification: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la notification'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Notification marquée comme importante',
+                        example: {
+                            success: true,
+                            message: 'Notification marquée comme importante.',
+                            code: 'NOTIFICATION_IMPORTANT',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'notifications-unimportant',
+                    module: 'notifications',
+                    name: 'Retirer le statut important',
+                    description: 'Retire le statut important d\'une notification.',
+                    method: 'POST',
+                    path: '/notifications/{uuid_notification}/unimportant',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_notification: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la notification'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statut important retiré',
+                        example: {
+                            success: true,
+                            message: 'Statut important retiré.',
+                            code: 'NOTIFICATION_UNIMPORTANT',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'notifications-delete',
+                    module: 'notifications',
+                    name: 'Supprimer une notification',
+                    description: 'Supprime une notification (soft delete). La notification ne sera plus visible dans la liste.',
+                    method: 'DELETE',
+                    path: '/notifications/{uuid_notification}',
+                    isProtected: true,
+                    isDestructive: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_notification: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la notification'
+                            }
+                        }
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Notification supprimée',
+                            example: {
+                                success: true,
+                                message: 'Notification supprimée.',
+                                code: 'NOTIFICATION_DELETED'
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Notification non trouvée',
+                            example: {
+                                success: false,
+                                message: 'Notification non trouvée.',
+                                code: 'NOTIFICATION_NOT_FOUND'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // ADMIN - NOTIFICATIONS
+                // ============================================================
+
+                {
+                    id: 'admin-notification-create',
+                    module: 'notifications',
+                    name: '[Admin] Créer une notification',
+                    description: 'Crée une notification pour un utilisateur spécifique.',
+                    method: 'POST',
+                    path: '/admin/notifications',
+                    isProtected: true,
+                    permissionsRequired: ['notifications.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            user_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur destinataire'
+                            },
+                            group_notif_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'UUID du groupe de notification'
+                            },
+                            title: {
+                                type: 'string',
+                                required: true,
+                                max: 255,
+                                description: 'Titre de la notification'
+                            },
+                            body: {
+                                type: 'string',
+                                required: true,
+                                description: 'Corps du message'
+                            },
+                            type: {
+                                type: 'string',
+                                required: false,
+                                max: 50,
+                                description: 'Type de notification'
+                            },
+                            action_url: {
+                                type: 'string',
+                                required: false,
+                                max: 500,
+                                description: 'URL d\'action'
+                            },
+                            action_label: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Libellé du bouton d\'action'
+                            },
+                            channel: {
+                                type: 'string',
+                                required: false,
+                                max: 30,
+                                description: 'Canal d\'envoi'
+                            },
+                            metadata: {
+                                type: 'object',
+                                required: false,
+                                description: 'Métadonnées additionnelles'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Notification créée',
+                        example: {
+                            success: true,
+                            message: 'Notification créée.',
+                            code: 'NOTIFICATION_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'admin-notification-create-group',
+                    module: 'notifications',
+                    name: '[Admin] Créer une notification pour un groupe',
+                    description: 'Crée une notification pour tous les utilisateurs d\'un groupe de notification.',
+                    method: 'POST',
+                    path: '/admin/notifications/group',
+                    isProtected: true,
+                    permissionsRequired: ['notifications.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            group_notif_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du groupe de notification'
+                            },
+                            title: {
+                                type: 'string',
+                                required: true,
+                                max: 255,
+                                description: 'Titre de la notification'
+                            },
+                            body: {
+                                type: 'string',
+                                required: true,
+                                description: 'Corps du message'
+                            },
+                            type: {
+                                type: 'string',
+                                required: false,
+                                max: 50,
+                                description: 'Type de notification'
+                            },
+                            action_url: {
+                                type: 'string',
+                                required: false,
+                                max: 500,
+                                description: 'URL d\'action'
+                            },
+                            action_label: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Libellé du bouton d\'action'
+                            },
+                            metadata: {
+                                type: 'object',
+                                required: false,
+                                description: 'Métadonnées additionnelles'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Notifications créées pour le groupe',
+                        example: {
+                            success: true,
+                            message: 'Notifications créées pour le groupe.',
+                            code: 'NOTIFICATIONS_CREATED_FOR_GROUP',
+                            data: {
+                                count: 15,
+                                group_notif_uuid: '...'
+                            }
+                        }
+                    }]
+                },
+
+
+                // ============================================================
                 // ESPACE CLIENT - TABLEAU DE BORD
                 // ============================================================
                 {
@@ -8655,7 +9843,6 @@
                         }
                     ]
                 },
-
 
 
 

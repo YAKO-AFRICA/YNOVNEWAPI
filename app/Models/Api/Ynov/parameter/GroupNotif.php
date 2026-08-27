@@ -35,7 +35,12 @@ class GroupNotif extends Model
 
     protected static function booted(): void
     {
-        static::creating(fn (self $model) => $model->uuid_group_notif ??= (string) Str::uuid());
+        static::creating(function (self $model) {
+            $model->uuid_group_notif ??= (string) Str::uuid();
+            if (empty($model->code)) {
+                $model->code = Str::slug($model->libelle, '_');
+            }
+        });
     }
 
     /**
@@ -68,6 +73,30 @@ class GroupNotif extends Model
     }
     
     /**
+     * Récupérer les utilisateurs principaux du groupe
+     */
+    public function primaryUsers()
+    {
+        return $this->users()->wherePivot('is_primary', true);
+    }
+    
+    /**
+     * Vérifier si le groupe est actif
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'actif';
+    }
+    
+    /**
+     * Compter les utilisateurs du groupe
+     */
+    public function getUsersCountAttribute(): int
+    {
+        return $this->users()->count();
+    }
+    
+    /**
      * Scope pour les groupes actifs
      */
     public function scopeActive($query)
@@ -81,5 +110,17 @@ class GroupNotif extends Model
     public function scopeWithChannel($query, string $channel)
     {
         return $query->whereJsonContains('channels', $channel);
+    }
+    
+    /**
+     * Scope pour une recherche textuelle
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('libelle', 'LIKE', "%{$search}%")
+              ->orWhere('code', 'LIKE', "%{$search}%")
+              ->orWhere('description', 'LIKE', "%{$search}%");
+        });
     }
 }

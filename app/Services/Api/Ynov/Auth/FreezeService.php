@@ -9,9 +9,7 @@ use App\Mail\Api\Ynov\AccountUnfrozenMail;
 use App\Models\Api\Ynov\parameter\AccountFreeze;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
-use App\Notifications\Api\Ynov\AccountFrozenNotification;
-use App\Notifications\Api\Ynov\AccountManualFrozenNotification;
-use App\Notifications\Api\Ynov\AccountUnfrozenNotification;
+
 use App\Services\Api\Ynov\UserService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +32,7 @@ class FreezeService
     public function __construct(
         private UserService $userService,
     ) {}
+    
 
     /**
      * Gérer une tentative échouée
@@ -213,11 +212,11 @@ class FreezeService
     {
         try {
 
-            Notification::send($user, new AccountManualFrozenNotification(
-                $duration,
-                $reason,
-                $admin
-            ));
+            // Notification::send($user, new AccountManualFrozenNotification(
+            //     $duration,
+            //     $reason,
+            //     $admin
+            // ));
 
             if ($user->email){
 
@@ -240,7 +239,7 @@ class FreezeService
     private function sendFreezeNotifications(User $user, int $level, int $count, int $duration): void
     {
         try {
-            Notification::send($user, new AccountFrozenNotification($level, $duration));
+            // Notification::send($user, new AccountFrozenNotification($level, $duration));
             if ($user->email){
                 if ($level === 3) {
                     Mail::to($user->email)->queue(new AccountFrozenMail(
@@ -393,7 +392,7 @@ class FreezeService
     private function sendUnfreezeNotifications(User $user, ?User $admin, string $reason): void
     {
         try {
-            Notification::send($user, new AccountUnfrozenNotification($reason, $admin));
+            // Notification::send($user, new AccountUnfrozenNotification($reason, $admin));
 
             if ($user->email){
                 Mail::to($user->email)->queue(new AccountUnfrozenMail(

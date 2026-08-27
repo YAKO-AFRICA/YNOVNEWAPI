@@ -3,15 +3,12 @@
 namespace App\Http\Controllers\Api\Ynov\EspaceClient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
 use App\Models\Api\Ynov\UserContrat;
 use App\Services\EncaissementBisService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CustomerController extends Controller
