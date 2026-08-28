@@ -3,6 +3,8 @@
 // use App\Http\Controllers\Api\ApiController;
 // use App\Http\Controllers\Api\JekoPaymentController;
 // use App\Http\Controllers\Api\ReceiptController;
+use App\Http\Controllers\Api\Ynov\PaymentController;
+use App\Http\Controllers\Api\Ynov\ReceiptController;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
 
@@ -52,11 +54,15 @@ Route::get('get-document-contrat/{file}', function ($file) {
 })->where('file', '.*');
 
 
+Route::prefix('paiement')->name('paiement.')->group(function () {
+    Route::get('recu/{referenceInterne}', [ReceiptController::class, 'show'])->name('recu');
+    Route::get('recu/{referenceInterne}/download', [ReceiptController::class, 'download'])->name('recu.download');
+});
+Route::get('/api/v1/demo-jeko-widget',[PaymentController::class, 'demoJekoWidget'])->name('demo-jeko-widget');
+
 Route::get('/api/documentation', function () {
     return view('documentation.index',);
 });
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
+
 

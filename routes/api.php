@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
+use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
@@ -96,6 +97,20 @@ Route::prefix('v1')->group(function () {
         
         // Détails d'une FAQ (incrémente les vues)
         Route::get('{uuid_faq}', [FaqController::class, 'show']);
+    });
+
+    Route::prefix('paiements/jeko')->group(function () {
+        // Widget JS
+        Route::get('jeko-payment-widget.js', [PaymentController::class, 'jekoPaymentWidget']);
+
+        // Vérification du contrat
+        Route::post('contrat/verifier', [PaymentController::class, 'verifierContrat']);
+
+        // Initialisation du paiement
+        Route::post('init', [PaymentController::class, 'initierPaiement']);
+
+        // Webhook
+        Route::post('webhook', [PaymentController::class, 'webhook']);
     });
 });
 
