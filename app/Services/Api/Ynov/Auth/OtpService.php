@@ -195,10 +195,6 @@ class OtpService
             } else {
                 $this->SMSService->sendSmsByInfobipAPI($phoneNumber, $message);
             }
-            // $this->SMSService->sendSmsByInfobipAPI(
-            //     $phoneNumber,
-            //     $message
-            // );
 
             return [
                 'success' => true,

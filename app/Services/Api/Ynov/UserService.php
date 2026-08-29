@@ -4,11 +4,12 @@ namespace App\Services\Api\Ynov;
 use App\Mail\Api\Ynov\AccountBlockedMail;
 use App\Mail\Api\Ynov\AccountUnblockedMail;
 use App\Mail\Api\Ynov\WelcomeMail;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
 use App\Models\Api\Ynov\UserContrat;
-use App\Services\EncaissementBisService;
+use App\Services\Api\Ynov\NotificationService;
 use App\Services\SMSService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +21,7 @@ class UserService
     public function __construct(
         // private OtpService $otpService,
         private readonly SMSService $SMSService,
+        private NotificationService $notificationService,
     ) {}
     public function create(array $data, string $creatorUuid): User
     {
@@ -69,182 +71,27 @@ class UserService
                 ]);
             }
 
-            Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $data['password']));
+            // Créer une notification pour le nouvel utilisateur
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+                'title' => '👋 Bienvenue sur YNOV',
+                'body' => 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
+                'type' => 'account',
+                'metadata' => [
+                    'created_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => $creatorUuid,
+            ]);
+
+            if ($user->email){
+                Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $data['password']));
+            }
 
             return $user;
         });
     }
-
-    // public function createClient(array $data): User
-    // {
-    //     // Générer le mot de passe temporaire avant la transaction
-    //     $password = Str::random(12);
-    //     // $password = $data['password'];
-
-    //     $user = DB::transaction(function () use ($data, $password) {
-
-    //         // Récupérer le rôle client
-    //         $roleClient = Role::where('code', 'client')->first();
-
-    //         if (!$roleClient) {
-    //             // throw new \RuntimeException(
-    //             //     'Aucun rôle client configuré.'
-    //             // );
-    //             return [
-    //                 'success' => false,
-    //                 'code' => 'NO_DEFAULT_ROLE',
-    //                 'message' => 'Aucun rôle client configuré.',
-    //             ];
-    //         }
-
-    //         // Générer UUID
-    //         $uuidUser = (string) Str::uuid();
-
-    //         // Login
-    //         $login = $data['login'];
-
-    //         $userExists = User::where('login', $data['login'])->first();
-
-    //         $contratExists = [];
-
-    //         if ($userExists) {
-    //             return [
-    //                 'success' => false,
-    //                 'code' => 'LOGIN_ALREADY_EXISTS',
-    //                 'message' => 'Cet utilisateur avec ce login (' . $data['login'] . ').',
-    //             ];
-    //         }
-
-            
-    //         foreach ($data['contrats'] as $contrat) {
-    //             $contrat = UserContrat::where('contrat_id', $contrat['IdProposition'])->first();
-    //             // ajouter les contrats existants dans la variable $contratExists
-    //             if ($contrat) {
-    //                 $contratExists[] = $contrat;
-    //             }
-                   
-    //         }
-
-    //         if (!empty($contratExists)) {
-    //             return [
-    //                 'success' => false,
-    //                 'code' => 'CONTRAT_ALREADY_EXISTS',
-    //                 'message' => count($contratExists) > 1 ? "Ces contrats (" . implode(', ', $contratExists) . ")  sont déjà associés à un compte." : "Ce contrat (" . implode(', ', $contratExists) . ")  est déjà associé à un compte.",
-    //             ];
-    //         }
-
-    //         // Construire l'adresse complète
-    //         $adresseComplete = implode(', ', array_filter([
-    //             $data['ville'] ?? null,
-    //             $data['code_postal'] ?? null,
-    //             $data['lieu_residence'] ?? null,
-    //             $data['pays'] ?? null,
-    //         ]));
-
-    //         /*
-    //          * Création de l'utilisateur
-    //          */
-    //         $user = User::create([
-    //             'uuid_user' => $uuidUser,
-    //             'email' => $data['email'] ?? null,
-    //             'login' => $login,
-    //             'password' => Hash::make($password),
-
-    //             'role_uuid' => $roleClient->uuid_role,
-    //             'user_type' => 'client',
-    //             'status' => 'actif',
-
-    //             'is_first_login' => true,
-
-    //             'password_expires_at' => now()->addDays(90),
-
-    //             'created_by' => $uuidUser,
-    //         ]);
-
-    //         if ($user) {
-    //             /*
-    //              * Création des détails utilisateur
-    //              */
-    //             UserDetails::create([
-    //                 'uuid_user_details' => (string) Str::uuid(),
-    
-    //                 'user_uuid' => $uuidUser,
-    
-    //                 'numero_client' => $data['numero_client'] ?? null,
-    
-    //                 'nom' => $data['nom'],
-    //                 'prenoms' => $data['prenoms'],
-    
-    //                 'mobile_1' => $data['mobile_1'] ?? null,
-    
-    //                 'email_pro' => $data['email'] ?? null,
-    
-    //                 'fonction' => $data['fonction'] ?? null,
-    
-    //                 'adresse_complete' => $adresseComplete,
-    
-    //                 'code_postal' => $data['code_postal'] ?? null,
-    
-    //                 'lieu_residence' => $data['lieu_residence'] ?? null,
-    
-    //                 'date_naissance' => $data['date_naissance'] ?? null,
-    
-    //                 'lieu_naissance' => $data['lieu_naissance'] ?? null,
-    
-    //                 'genre' => $data['genre'] ?? null,
-    
-    //                 'civilite' => $data['civilite'] ?? null,
-    
-    //                 'ville' => $data['ville'] ?? null,
-    
-    //                 'pays' => $data['pays'] ?? null,
-    
-    //                 'nationalite' => $data['nationalite'] ?? null,
-    
-    //                 'created_by' => $uuidUser,
-    //             ]);
-
-    //             foreach ($data['contrats'] as $contrat) {
-    //                 UserContrat::create([
-    //                     'uuid_user_contrat' => (string) Str::uuid(),
-
-    //                     'user_uuid' => $user->uuid_user,
-
-    //                     'contrat_id' => $contrat['IdProposition'] ?? null,
-
-    //                     'client_number' => $data['client_number'] ?? null,
-
-    //                     'code_produit' => $contrat['codeProduit'] ?? null,
-
-    //                     'libelle_produit' => $contrat['produit'] ?? null,
-
-    //                     'code_produit_formule' => $contrat['CodeProduitFormule'] ?? null,
-
-    //                     'libelle_produit_formule' => $contrat['ProduitFormule'] ?? null,
-    //                 ]);
-    
-    //             }
-    //         }
-
-    //         // return $user;
-    //         return [
-    //             'success' => true,
-    //             'code' => 'USER_CREATED',
-    //             'message' => 'Utilisateur créé avec succès.',
-    //             'data' => $user,
-    //         ];
-    //     });
-
-    //     /*
-    //      * Les notifications sont exécutées uniquement
-    //      * après validation de la transaction.
-    //      */
-    //     DB::afterCommit(function () use ($user, $password) {
-    //         $this->sendWelcomeCredentials($user, $password);
-    //     });
-
-    //     return $user;
-    // }
 
     public function createClient(array $data): array
     {
@@ -416,6 +263,21 @@ class UserService
                 ]);
             }
 
+             // Créer une notification de bienvenue pour le client
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+                'title' => '👋 Bienvenue sur YNOV',
+                'body' => 'Votre compte client a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
+                'type' => 'account',
+                'metadata' => [
+                    'contrat_count' => count($data['contrats'] ?? []),
+                    'created_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => $uuidUser,
+            ]);
+
             /*
             * Retour métier
             */
@@ -553,12 +415,41 @@ class UserService
                 ]);
             }
 
+            // Créer une notification pour la mise à jour du profil
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getAccountGroupUuid(),
+                'title' => '📝 Profil mis à jour',
+                'body' => 'Vos informations de profil ont été mises à jour avec succès.',
+                'type' => 'account',
+                'metadata' => [
+                    'updated_by' => $updaterUuid,
+                    'updated_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => $updaterUuid,
+            ]);
+
             return $user->fresh();
         });
     }
 
     public function delete(User $user, string $deleterUuid): void
     {
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getAccountGroupUuid(),
+            'title' => '🗑️ Compte supprimé',
+            'body' => 'Votre compte a été supprimé. Vous ne pourrez plus vous connecter.',
+            'type' => 'account',
+            'metadata' => [
+                'deleted_by' => $deleterUuid,
+                'deleted_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $deleterUuid,
+        ]);
+
         $user->update([
             'deleted_by' => $deleterUuid,
             'status' => 'inactif',
@@ -570,6 +461,7 @@ class UserService
 
     public function block(User $user, string $reason, string $blockerId): void
     {
+
         $user->update([
             'status' => 'bloque',
             'blocked_by' => $blockerId,
@@ -581,6 +473,23 @@ class UserService
         ]);
         $user->tokens()->delete();
         $blocker = User::where('uuid_user', $blockerId)->first();
+
+        // Créer une notification pour le blocage
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🚫 Compte bloqué',
+            'body' => "Votre compte a été bloqué par un administrateur. Motif : {$reason}",
+            'type' => 'security',
+            'metadata' => [
+                'reason' => $reason,
+                'blocked_by' => $blockerId,
+                'blocked_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $blockerId,
+        ]);
+
         if ($user->email) {
             Mail::to($user->email)->queue(new AccountBlockedMail(
                 $user->fresh('details'),
@@ -603,11 +512,54 @@ class UserService
         ]);
 
         $unblocker = $unblockerId ? User::where('uuid_user', $unblockerId)->first() : null;
+
+        // Créer une notification pour le déblocage
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🔓 Compte débloqué',
+            'body' => 'Votre compte a été débloqué par un administrateur. Vous pouvez maintenant vous connecter.',
+            'type' => 'security',
+            'metadata' => [
+                'unblocked_by' => $unblockerId,
+                'unblocked_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $unblockerId,
+        ]);
+        
         if ($user->email) {
             Mail::to($user->email)->queue(new AccountUnblockedMail(
                 $user->fresh('details'),
                 $unblocker?->details?->full_name,
             ));
         }
+    }
+
+    /**
+     * Récupérer l'UUID du groupe de bienvenue
+     */
+    private function getWelcomeGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'welcome')->first();
+        return $group?->uuid_group_notif;
+    }
+
+    /**
+     * Récupérer l'UUID du groupe de sécurité
+     */
+    private function getSecurityGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'securite')->first();
+        return $group?->uuid_group_notif;
+    }
+
+    /**
+     * Récupérer l'UUID du groupe de compte
+     */
+    private function getAccountGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'compte')->first();
+        return $group?->uuid_group_notif;
     }
 }

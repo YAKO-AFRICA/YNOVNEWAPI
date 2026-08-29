@@ -8,8 +8,9 @@ use App\Mail\Api\Ynov\AccountFrozenMail;
 use App\Mail\Api\Ynov\AccountUnfrozenMail;
 use App\Models\Api\Ynov\parameter\AccountFreeze;
 use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
-
+use App\Services\Api\Ynov\NotificationService;
 use App\Services\Api\Ynov\UserService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +31,7 @@ class FreezeService
 
     public function __construct(
         private UserService $userService,
+        private NotificationService $notificationService,
     ) {}
     
 
@@ -106,6 +108,22 @@ class FreezeService
     private function applyBlockUser(User $user): bool
     {
         try {
+            // Créer une notification pour le blocage automatique
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => '🚫 Compte bloqué automatiquement',
+                'body' => "Votre compte a été bloqué automatiquement après 6 tentatives de connexion échouées. Contactez votre administrateur pour le débloquer.",
+                'type' => 'security',
+                'metadata' => [
+                    'freeze_type' => 'automatic_block',
+                    'failed_attempts' => 6,
+                    'blocked_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+            ]);
+
             $this->userService->block($user, "tentatives de connexion echouées >= 6", $user->uuid_user);
             ActivityLog::log([
                 'user_uuid' => $user->uuid_user,
@@ -207,18 +225,60 @@ class FreezeService
     /**
      * Envoyer les notifications de gel manuel
      */
+    // private function sendManualFreezeNotifications(User $user, User $admin, int $duration, string $reason): void
+    // {
+    //     try {
+
+    //         // Notification::send($user, new AccountManualFrozenNotification(
+    //         //     $duration,
+    //         //     $reason,
+    //         //     $admin
+    //         // ));
+
+    //         if ($user->email){
+
+    //             Mail::to($user->email)->queue(new AccountFrozenMail(
+    //                 $user->details,
+    //                 4,
+    //                 $duration,
+    //                 $reason,
+    //                 $admin->details?->full_name ?? $admin->email
+    //             ));
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::error('Erreur envoi notifications gel manuel: ' . $e->getMessage());
+    //     }
+    // }
+
+    /**
+     * Envoyer les notifications de gel manuel
+     */
     private function sendManualFreezeNotifications(User $user, User $admin, int $duration, string $reason): void
     {
         try {
+            $adminName = $admin->details?->full_name ?? $admin->email;
+            // Créer une notification database
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => '🔒 Compte gelé manuellement',
+                'body' => "Votre compte a été gelé manuellement par {$adminName} pour une durée de  {$this->formatDuration($duration)}. Motif : {$reason}",
+                'type' => 'security',
+                'metadata' => [
+                    'freeze_type' => 'manual',
+                    'admin_uuid' => $admin->uuid_user,
+                    'admin_name' => $admin->details?->full_name ?? $admin->email,
+                    'duration' => $duration,
+                    'duration_formatted' => $this->formatDuration($duration),
+                    'reason' => $reason,
+                    'freeze_level' => 4,
+                ],
+                'channel' => 'database',
+                'created_by' => $admin->uuid_user,
+            ]);
 
-            // Notification::send($user, new AccountManualFrozenNotification(
-            //     $duration,
-            //     $reason,
-            //     $admin
-            // ));
-
-            if ($user->email){
-
+            // Envoi de l'email
+            if ($user->email) {
                 Mail::to($user->email)->queue(new AccountFrozenMail(
                     $user->details,
                     4,
@@ -232,14 +292,65 @@ class FreezeService
         }
     }
 
+
     /**
      * Envoyer les notifications de gel automatique
      */
+    // private function sendFreezeNotifications(User $user, int $level, int $count, int $duration): void
+    // {
+    //     try {
+    //         // Notification::send($user, new AccountFrozenNotification($level, $duration));
+    //         if ($user->email){
+    //             if ($level === 3) {
+    //                 Mail::to($user->email)->queue(new AccountFrozenMail(
+    //                     $user->details,
+    //                     $level,
+    //                     $duration
+    //                 ));
+    //             } else {
+    //                 $nextLevelConfig = self::LEVELS[$level + 1] ?? null;
+    //                 $remaining = $nextLevelConfig ? max(0, $nextLevelConfig['attempts'] - $count) : 0;
+
+    //                 Mail::to($user->email)->queue(new AccountFreezeWarningMail(
+    //                     $user->details,
+    //                     $level,
+    //                     $count,
+    //                     $remaining,
+    //                 ));
+    //             }
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::error('Erreur envoi notifications freeze: ' . $e->getMessage());
+    //     }
+    // }
+
     private function sendFreezeNotifications(User $user, int $level, int $count, int $duration): void
     {
         try {
-            // Notification::send($user, new AccountFrozenNotification($level, $duration));
-            if ($user->email){
+            $levelLabel = self::LEVELS[$level]['label'] ?? 'Inconnu';
+            $durationFormatted = $this->formatDuration($duration);
+
+            // Créer une notification database
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => "🔒 Compte gelé - Niveau {$levelLabel}",
+                'body' => "Votre compte a été automatiquement gelé suite à {$count} tentatives de connexion échouées. Durée : {$durationFormatted}.",
+                'type' => 'security',
+                'metadata' => [
+                    'freeze_type' => 'automatic',
+                    'freeze_level' => $level,
+                    'freeze_level_label' => $levelLabel,
+                    'failed_attempts' => $count,
+                    'duration' => $duration,
+                    'duration_formatted' => $durationFormatted,
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+            ]);
+
+            // Envoi des emails
+            if ($user->email) {
                 if ($level === 3) {
                     Mail::to($user->email)->queue(new AccountFrozenMail(
                         $user->details,
@@ -388,16 +499,51 @@ class FreezeService
     /**
      * Envoyer les notifications de dégel
      */
+    // private function sendUnfreezeNotifications(User $user, ?User $admin, string $reason): void
+    // {
+    //     try {
+    //         // Notification::send($user, new AccountUnfrozenNotification($reason, $admin));
+
+    //         if ($user->email){
+    //             Mail::to($user->email)->queue(new AccountUnfrozenMail(
+    //                 $user->details,
+    //                 $reason,
+    //                 $admin?->details?->full_name ?? 'Système'
+    //             ));
+    //         }
+    //     } catch (\Exception $e) {
+    //         Log::error('Erreur envoi notifications dégel: ' . $e->getMessage());
+    //     }
+    // }
+
     private function sendUnfreezeNotifications(User $user, ?User $admin, string $reason): void
     {
         try {
-            // Notification::send($user, new AccountUnfrozenNotification($reason, $admin));
+            $adminName = $admin?->details?->full_name ?? $admin?->email ?? 'Système';
+            
+            // Créer une notification database
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => '🔓 Compte dégelé',
+                'body' => "Votre compte a été dégelé. Motif : {$reason}" . ($admin ? " par {$adminName}" : ""),
+                'type' => 'security',
+                'metadata' => [
+                    'unfreeze_type' => $admin ? 'manual' : 'automatic',
+                    'admin_uuid' => $admin?->uuid_user,
+                    'admin_name' => $adminName,
+                    'reason' => $reason,
+                ],
+                'channel' => 'database',
+                'created_by' => $admin?->uuid_user,
+            ]);
 
-            if ($user->email){
+            // Envoi de l'email
+            if ($user->email) {
                 Mail::to($user->email)->queue(new AccountUnfrozenMail(
                     $user->details,
                     $reason,
-                    $admin?->details?->full_name ?? 'Système'
+                    $adminName
                 ));
             }
         } catch (\Exception $e) {
@@ -411,6 +557,21 @@ class FreezeService
     public function resetAttempts(User $user): void
     {
         try {
+
+            // Créer une notification pour la réinitialisation
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => '🔄 Tentatives de connexion réinitialisées',
+                'body' => 'Les tentatives de connexion échouées de votre compte ont été réinitialisées.',
+                'type' => 'security',
+                'metadata' => [
+                    'reset_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+            ]);
+
             $user->update([
                 'failed_login_count' => 0,
                 'freeze_level' => 0,
@@ -455,5 +616,38 @@ class FreezeService
             'can_be_unfrozen' => $user->canBeUnfrozenManually(),
             'unfrozen_at' => $user->frozen_until?->toDateTimeString(),
         ];
+    }
+
+    /**
+     * Récupérer l'UUID du groupe de sécurité
+     */
+    private function getSecurityGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'securite')->first();
+        return $group?->uuid_group_notif;
+    }
+
+    /**
+     * Formater la durée en texte lisible
+     */
+    private function formatDuration(int $seconds): string
+    {
+        if ($seconds < 60) {
+            return $seconds . ' seconde' . ($seconds > 1 ? 's' : '');
+        }
+        
+        $minutes = floor($seconds / 60);
+        $remainingSeconds = $seconds % 60;
+        
+        if ($minutes < 60) {
+            return $minutes . ' minute' . ($minutes > 1 ? 's' : '') . 
+                   ($remainingSeconds > 0 ? ' et ' . $remainingSeconds . ' seconde' . ($remainingSeconds > 1 ? 's' : '') : '');
+        }
+        
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+        
+        return $hours . ' heure' . ($hours > 1 ? 's' : '') . 
+               ($remainingMinutes > 0 ? ' et ' . $remainingMinutes . ' minute' . ($remainingMinutes > 1 ? 's' : '') : '');
     }
 }

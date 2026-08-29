@@ -5,16 +5,16 @@ namespace App\Http\Controllers\Api\Ynov;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\TwoFactorEnableRequest;
 use App\Http\Resources\Api\Ynov\LoginResource;
-use App\Mail\Api\Ynov\OtpMail;
 use App\Mail\Api\Ynov\TwoFactorDisabledMail;
 use App\Mail\Api\Ynov\TwoFactorEnabledMail;
 use App\Mail\Api\Ynov\TwoFactorRecoveryCodesMail;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\TwoFactorRecoveryCode;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\DeviceService;
 use App\Services\Api\Ynov\Auth\OtpService;
 use App\Services\Api\Ynov\Auth\TwoFactorService;
-use App\Services\SMSService;
+use App\Services\Api\Ynov\NotificationService;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -23,126 +23,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-
-// class TwoFactorController extends Controller
-// {
-//     public function __construct(
-//         private TwoFactorService $twoFactorService,
-//         private OtpService $otpService,
-//         private DeviceService $deviceService,
-//         private SMSService $SMSService
-//     ) {}
-
-//     public function enable(Request $request): JsonResponse
-//     {
-//         $user = $request->user();
-//         if ($user->two_factor_enabled) {
-//             return response()->json(['success' => false, 'message' => '2FA déjà activé.'], 422);
-//         }
-
-//         $secret = $this->twoFactorService->generateSecret();
-//         $user->update(['two_factor_secret' => $secret]);
-//         $qrUrl = $this->twoFactorService->getQRCodeUrl('YNOV', $user->email, $secret);
-
-//         $renderer = new ImageRenderer(new RendererStyle(400), new SvgImageBackEnd());
-//         $writer = new Writer($renderer);
-//         $qrSvg = $writer->writeString($qrUrl);
-
-//         return response()->json([
-//             'success' => true,
-//             'data' => ['secret' => $secret, 'qr_code_svg' => $qrSvg],
-//         ]);
-//     }
-
-//     public function confirm(TwoFactorEnableRequest $request): JsonResponse
-//     {
-//         $user = $request->user();
-
-//         if (!$this->twoFactorService->verify($user->two_factor_secret, $request->code)) {
-//             return response()->json(['success' => false, 'message' => 'Code invalide.'], 422);
-//         }
-
-//         $codes = $this->twoFactorService->generateRecoveryCodes($user);
-
-//         $user->update([
-//             'two_factor_enabled' => true,
-//             'two_factor_recovery_codes' => encrypt(implode(',', $codes)),
-//         ]);
-
-
-//         if ($user->email) {
-            
-//             Mail::to($user->email)->queue(new TwoFactorEnabledMail($user->fresh('details'), $codes));
-//         }
-//         return response()->json([
-//             'success' => true,
-//             'message' => '2FA activé avec succès.',
-//             'data' => ['recovery_codes' => $codes],
-//         ]);
-//     }
-
-//     public function disable(Request $request): JsonResponse
-//     {
-//         $request->validate(['password' => 'required|string']);
-//         $user = $request->user();
-
-//         if (!Hash::check($request->password, $user->password)) {
-//             return response()->json(['success' => false, 'message' => 'Mot de passe incorrect.'], 403);
-//         }
-
-//         $user->update([
-//             'two_factor_secret' => null,
-//             'two_factor_enabled' => false,
-//             'two_factor_recovery_codes' => null,
-//         ]);
-//         $user->twoFactorRecoveryCodes()->delete();
-
-//         if ($user->email) {
-//             Mail::to($user->email)->queue(new TwoFactorDisabledMail($user->fresh('details'), $request->ip()));
-//         }
-
-//         return response()->json(['success' => true, 'message' => '2FA désactivé.']);
-//     }
-
-//     public function verifyLogin(Request $request): JsonResponse
-//     {
-//         $request->validate(['code' => 'required|string|size:6']);
-//         $user = $request->user();
-
-//         if (!$user || !$request->user()->currentAccessToken()->can('2fa-verify')) {
-//             return response()->json(['success' => false, 'message' => 'Token invalide.'], 401);
-//         }
-
-//         if (!$this->twoFactorService->verify($user->two_factor_secret, $request->code)) {
-//             return response()->json(['success' => false, 'message' => 'Code 2FA invalide.'], 422);
-//         }
-
-//         $user->currentAccessToken()->delete();
-
-//         if ($request->boolean('trust_device')) {
-//             // Le fingerprint est recalculé côté serveur à partir de la requête
-//             // courante (IP + User-Agent), jamais fourni par le front, pour
-//             // garantir qu'il correspond bien à celui enregistré lors du login.
-//             $fingerprint = $this->deviceService->fingerprint($request);
-//             $this->deviceService->trust($user, $fingerprint);
-//         }
-
-//         $token = $user->createToken('API Token', ['*'], now()->addHours(24));
-
-//         return (new LoginResource((object)[
-//             'user' => $user,
-//             'token' => $token->plainTextToken,
-//             'expires_at' => now()->addHours(24),
-//             'requires_2fa' => false,
-//             'must_change_password' => false,
-//             'trusted_device' => true,
-//         ]))->response()->setStatusCode(200);
-//     }
-    
-// }
 
 class TwoFactorController extends Controller
 {
@@ -150,6 +32,8 @@ class TwoFactorController extends Controller
         private TwoFactorService $twoFactorService,
         private OtpService $otpService,
         private DeviceService $deviceService,
+        
+        private NotificationService $notificationService,
     ) {}
 
     /**
@@ -225,16 +109,114 @@ class TwoFactorController extends Controller
     /**
      * Confirmer l'activation 2FA
      */
+    // public function confirm(TwoFactorEnableRequest $request): JsonResponse
+    // {
+    //     $user = $request->user();
+    //     $method = $request->input('method', 'authenticator');
+
+    //     // Vérifier le code
+    //     $codeValid = false;
+
+    //     if ($method === 'authenticator') {
+    //         // Vérification TOTP
+    //         if (!$user->two_factor_secret) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Secret 2FA non trouvé. Veuillez recommencer l\'activation.'
+    //             ], 422);
+    //         }
+    //         $codeValid = $this->twoFactorService->verify($user->two_factor_secret, $request->code);
+    //     } else {
+    //         // Vérification OTP
+    //         $codeValid = $this->otpService->verify($user, $request->code, '2fa_activation');
+    //     }
+
+    //     if (!$codeValid) {
+    //         // Incrémenter les tentatives
+    //         $user->incrementTwoFactorAttempts();
+            
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Code invalide.',
+    //             'attempts' => $user->two_factor_attempts,
+    //             'is_locked' => $user->isTwoFactorLocked(),
+    //             'locked_until' => $user->isTwoFactorLocked() ? $user->two_factor_locked_until : null,
+    //         ], 422);
+    //     }
+
+    //     // Générer les codes de récupération
+    //     $codes = $this->twoFactorService->generateRecoveryCodes($user);
+
+    //     // Activer la 2FA
+    //     $user->enableTwoFactor(
+    //         $method,
+    //         $user->two_factor_secret,
+    //         $codes
+    //     );
+
+    //     // Réinitialiser les tentatives
+    //     $user->resetTwoFactorAttempts();
+
+    //     // Envoyer email de confirmation
+    //     if ($user->email) {
+    //         Mail::to($user->email)->queue(new TwoFactorEnabledMail(
+    //             $user->fresh('details'),
+    //             $codes
+    //         ));
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => '2FA activé avec succès.',
+    //         'data' => [
+    //             'method' => $method,
+    //             'recovery_codes' => $codes,
+    //             'recovery_codes_count' => count($codes),
+    //         ],
+    //     ], 201);
+    // }
+
+    // /**
+    //  * Désactiver la 2FA
+    //  */
+    // public function disable(Request $request): JsonResponse
+    // {
+    //     $request->validate(['password' => 'required|string']);
+    //     $user = $request->user();
+
+    //     if (!Hash::check($request->password, $user->password)) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Mot de passe incorrect.'
+    //         ], 403);
+    //     }
+
+    //     $user->disableTwoFactor();
+
+    //     // Supprimer les codes de récupération
+    //     TwoFactorRecoveryCode::where('user_uuid', $user->uuid_user)->delete();
+
+    //     if ($user->email) {
+    //         Mail::to($user->email)->queue(new TwoFactorDisabledMail(
+    //             $user->fresh('details'),
+    //             $request->ip()
+    //         ));
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => '2FA désactivé.'
+    //     ]);
+    // }
+
     public function confirm(TwoFactorEnableRequest $request): JsonResponse
     {
         $user = $request->user();
         $method = $request->input('method', 'authenticator');
 
-        // Vérifier le code
         $codeValid = false;
 
         if ($method === 'authenticator') {
-            // Vérification TOTP
             if (!$user->two_factor_secret) {
                 return response()->json([
                     'success' => false,
@@ -243,12 +225,10 @@ class TwoFactorController extends Controller
             }
             $codeValid = $this->twoFactorService->verify($user->two_factor_secret, $request->code);
         } else {
-            // Vérification OTP
             $codeValid = $this->otpService->verify($user, $request->code, '2fa_activation');
         }
 
         if (!$codeValid) {
-            // Incrémenter les tentatives
             $user->incrementTwoFactorAttempts();
             
             return response()->json([
@@ -260,20 +240,31 @@ class TwoFactorController extends Controller
             ], 422);
         }
 
-        // Générer les codes de récupération
         $codes = $this->twoFactorService->generateRecoveryCodes($user);
 
-        // Activer la 2FA
         $user->enableTwoFactor(
             $method,
             $user->two_factor_secret,
             $codes
         );
 
-        // Réinitialiser les tentatives
         $user->resetTwoFactorAttempts();
 
-        // Envoyer email de confirmation
+        // Créer une notification pour l'activation 2FA
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🔐 2FA activée',
+            'body' => "La double authentification a été activée sur votre compte avec la méthode {$method}.",
+            'type' => 'security',
+            'metadata' => [
+                'method' => $method,
+                'activated_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $user->uuid_user,
+        ]);
+
         if ($user->email) {
             Mail::to($user->email)->queue(new TwoFactorEnabledMail(
                 $user->fresh('details'),
@@ -292,9 +283,6 @@ class TwoFactorController extends Controller
         ], 201);
     }
 
-    /**
-     * Désactiver la 2FA
-     */
     public function disable(Request $request): JsonResponse
     {
         $request->validate(['password' => 'required|string']);
@@ -308,9 +296,22 @@ class TwoFactorController extends Controller
         }
 
         $user->disableTwoFactor();
-
-        // Supprimer les codes de récupération
         TwoFactorRecoveryCode::where('user_uuid', $user->uuid_user)->delete();
+
+        // Créer une notification pour la désactivation 2FA
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🔓 2FA désactivée',
+            'body' => 'La double authentification a été désactivée sur votre compte.',
+            'type' => 'security',
+            'metadata' => [
+                'disabled_at' => now()->toISOString(),
+                'ip_address' => $request->ip(),
+            ],
+            'channel' => 'database',
+            'created_by' => $user->uuid_user,
+        ]);
 
         if ($user->email) {
             Mail::to($user->email)->queue(new TwoFactorDisabledMail(
@@ -368,6 +369,23 @@ class TwoFactorController extends Controller
         if (!$codeValid) {
             $user->incrementTwoFactorAttempts();
             
+            // Créer une notification pour une tentative 2FA échouée
+            if ($user->two_factor_attempts >= 3) {
+                $this->notificationService->create([
+                    'user_uuid' => $user->uuid_user,
+                    'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                    'title' => '⚠️ Tentatives 2FA échouées',
+                    'body' => "{$user->two_factor_attempts} tentatives de vérification 2FA ont échoué sur votre compte.",
+                    'type' => 'security',
+                    'metadata' => [
+                        'attempts' => $user->two_factor_attempts,
+                        'ip_address' => $request->ip(),
+                    ],
+                    'channel' => 'database',
+                    'created_by' => null,
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Code 2FA invalide.',
@@ -390,6 +408,7 @@ class TwoFactorController extends Controller
 
         // Créer un nouveau token complet
         $token = $user->createToken('API Token', ['*'], now()->addHours(24));
+
 
         return (new LoginResource((object)[
             'user' => $user,
@@ -420,16 +439,51 @@ class TwoFactorController extends Controller
             ], 422);
         }
 
+        // if ($request->action === 'regenerate') {
+        //     $newCodes = $this->twoFactorService->regenerateRecoveryCodes($user);
+
+        //     // Envoyer les nouveaux codes par email
+        //     if ($user->email) {
+        //         Mail::to($user->email)->queue(new TwoFactorRecoveryCodesMail(
+        //             $user->fresh('details'),
+        //             $newCodes
+        //         ));
+        //     }
+
+        //     return response()->json([
+        //         'success' => true,
+        //         'message' => 'Nouveaux codes de récupération générés.',
+        //         'data' => [
+        //             'recovery_codes' => $newCodes,
+        //             'count' => count($newCodes),
+        //         ]
+        //     ]);
+        // }
+
         if ($request->action === 'regenerate') {
             $newCodes = $this->twoFactorService->regenerateRecoveryCodes($user);
 
-            // Envoyer les nouveaux codes par email
             if ($user->email) {
                 Mail::to($user->email)->queue(new TwoFactorRecoveryCodesMail(
                     $user->fresh('details'),
                     $newCodes
                 ));
             }
+
+            // Créer une notification pour la régénération
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                'title' => '🔄 Codes de récupération 2FA régénérés',
+                'body' => 'Vos codes de récupération 2FA ont été régénérés avec succès.',
+                'type' => 'security',
+                'metadata' => [
+                    'codes_count' => count($newCodes),
+                    'regenerated_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => $user->uuid_user,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -554,5 +608,11 @@ class TwoFactorController extends Controller
                 'is_enabled' => $user->isTwoFactorEnabled(),
             ]
         ]);
+    }
+
+    private function getSecurityGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'securite')->first();
+        return $group?->uuid_group_notif;
     }
 }

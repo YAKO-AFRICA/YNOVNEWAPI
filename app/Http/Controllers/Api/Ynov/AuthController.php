@@ -7,9 +7,11 @@ use App\Http\Requests\Api\Ynov\LoginRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
 use App\Mail\Api\Ynov\SessionRevokedMail;
 use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\AuthService;
 use App\Services\Api\Ynov\Auth\DeviceService;
+use App\Services\Api\Ynov\NotificationService;
 use App\Services\Api\Ynov\UserService;
 use App\Services\EncaissementBisService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +25,8 @@ class AuthController extends Controller
         private AuthService $authService,
         private DeviceService $deviceService,
         private UserService $userService,
-        private EncaissementBisService $encaissementBisService
+        private EncaissementBisService $encaissementBisService,
+        private NotificationService $notificationService,
     ) {}
 
     
@@ -50,6 +53,23 @@ class AuthController extends Controller
 
             // Si 2FA requis
             if ($result['requires_2fa'] ?? false) {
+                // Créer une notification pour la 2FA
+                if ($result['user'] ?? null) {
+                    $this->notificationService->create([
+                        'user_uuid' => $result['user']->uuid_user,
+                        'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                        'title' => '🔐 Code 2FA requis',
+                        'body' => 'Une vérification 2FA est requise pour finaliser votre connexion. Veuillez vérifier votre code.',
+                        'type' => 'security',
+                        'metadata' => [
+                            'ip_address' => $deviceInfo['ip'],
+                            'device_name' => $deviceInfo['device_name'],
+                            'trusted_device' => $result['trusted_device'] ?? false,
+                        ],
+                        'channel' => 'database',
+                        'created_by' => null,
+                    ]);
+                }
                 return response()->json([
                     'success' => true,
                     'code' => '2FA_REQUIRED',
@@ -64,6 +84,21 @@ class AuthController extends Controller
 
             // Si changement de mot de passe requis
             if ($result['must_change_password'] ?? false) {
+                if ($result['user'] ?? null) {
+                    $this->notificationService->create([
+                        'user_uuid' => $result['user']->uuid_user,
+                        'group_notif_uuid' => $this->getSecurityGroupUuid(),
+                        'title' => '🔑 Changement de mot de passe requis',
+                        'body' => 'Vous devez changer votre mot de passe avant de continuer. Il s\'agit soit de votre première connexion, soit de l\'expiration de votre mot de passe.',
+                        'type' => 'security',
+                        'metadata' => [
+                            'is_first_login' => $result['user']->is_first_login ?? false,
+                            'password_expired' => $result['user']->isPasswordExpired() ?? false,
+                        ],
+                        'channel' => 'database',
+                        'created_by' => null,
+                    ]);
+                }
                 return response()->json([
                     'success' => true,
                     'code' => 'PASSWORD_CHANGE_REQUIRED',
@@ -286,6 +321,20 @@ class AuthController extends Controller
     public function logoutAll(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🔒 Déconnexion de tous les appareils',
+            'body' => 'Vous avez été déconnecté de tous vos appareils. Un email vous a été envoyé pour confirmation.',
+            'type' => 'security',
+            'metadata' => [
+                'reason' => 'Logout all devices',
+                'ip_address' => $request->ip(),
+            ],
+            'channel' => 'database',
+            'created_by' => null,
+        ]);
+
         $this->authService->logoutAll($user);
         if ($user->email) {
             Mail::to($user->email)->queue(new SessionRevokedMail($user->fresh('details'), '', true));
@@ -305,9 +354,25 @@ class AuthController extends Controller
 
     public function refresh(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
+        // Créer une notification pour le rafraîchissement du token
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getSecurityGroupUuid(),
+            'title' => '🔄 Token rafraîchi',
+            'body' => 'Votre token d\'authentification a été rafraîchi avec succès.',
+            'type' => 'security',
+            'metadata' => [
+                'ip_address' => $request->ip(),
+            ],
+            'channel' => 'database',
+            'created_by' => null,
+        ]);
+
         $token = $this->authService->refresh(
-            $request->user(),
-            $request->user()->currentAccessToken()->id,
+            $user,
+            $user->currentAccessToken()->id,
             $request->header('X-Device-Name', 'API Token')
         );
         ActivityLog::log([
@@ -324,5 +389,14 @@ class AuthController extends Controller
             'success' => true,
             'data' => ['access_token' => $token, 'token_type' => 'Bearer', 'expires_at' => now()->addHours(24)],
         ], 200);
+    }
+
+    /**
+     * Récupérer l'UUID du groupe de sécurité
+     */
+    private function getSecurityGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'securite')->first();
+        return $group?->uuid_group_notif;
     }
 }

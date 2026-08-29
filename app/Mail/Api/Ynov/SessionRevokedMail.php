@@ -46,7 +46,7 @@ class SessionRevokedMail extends Mailable implements ShouldQueue
                 'sessionName' => $this->sessionName,
                 'allSessions' => $this->allSessions,
                 'revokedAt' => now()->format('d/m/Y à H:i'),
-                'securityUrl' => config('app.frontend_url') . '/profile/sessions',
+                'securityUrl' => config('app.frontend_url'),
             ],
         );
     }
