@@ -53,7 +53,7 @@ class DeviceService
             $this->notificationService->create([
                 'user_uuid' => $user->uuid_user,
                 'group_notif_uuid' => $this->getSecurityGroupUuid(),
-                'title' => 'Nouvel appareil détecté',
+                'title' => '📱 Nouvel appareil détecté',
                 'body' => "Un nouvel appareil a été connecté à votre compte : {$info['device_name']} depuis l'adresse IP {$info['ip']}.",
                 'type' => 'security',
                 'metadata' => [
