@@ -10,18 +10,42 @@ use Illuminate\Support\Str;
 
 class NotificationService
 {
+
+    /**
+     * Nettoyer une chaîne pour la base de données
+     * Supprime les émojis et caractères spéciaux non supportés
+     */
+    private function cleanString(string $string): string
+    {
+        // Supprimer les émojis et caractères spéciaux
+        // Cette expression régulière supprime les caractères Unicode au-delà de BMP
+        $string = preg_replace('/[\x{10000}-\x{10FFFF}]/u', '', $string);
+        
+        // Alternative: supprimer tous les emojis courants
+        $string = preg_replace('/[\x{1F600}-\x{1F64F}]/u', '', $string); // Emoticons
+        $string = preg_replace('/[\x{1F300}-\x{1F5FF}]/u', '', $string); // Misc Symbols
+        $string = preg_replace('/[\x{1F680}-\x{1F6FF}]/u', '', $string); // Transport
+        $string = preg_replace('/[\x{1F700}-\x{1F77F}]/u', '', $string); // Alchemical
+        $string = preg_replace('/[\x{1F780}-\x{1F7FF}]/u', '', $string); // Geometric
+        $string = preg_replace('/[\x{1F800}-\x{1F8FF}]/u', '', $string); // Supplemental
+        $string = preg_replace('/[\x{2600}-\x{26FF}]/u', '', $string); // Misc Symbols
+        
+        return trim($string);
+    }
     /**
      * Créer une notification
      */
     public function create(array $data): Notification
     {
         return DB::transaction(function () use ($data) {
+            $title = isset($data['title']) ? $this->cleanString($data['title']) : null;
+            $body = isset($data['body']) ? $this->cleanString($data['body']) : null;
             $notification = Notification::create([
                 'uuid_notification' => (string) Str::uuid(),
                 'user_uuid' => $data['user_uuid'],
                 'group_notif_uuid' => $data['group_notif_uuid'] ?? null,
-                'title' => $data['title'],
-                'body' => $data['body'],
+                'title' => $title,
+                'body' => $body,
                 'type' => $data['type'] ?? 'system',
                 'action_url' => $data['action_url'] ?? null,
                 'action_label' => $data['action_label'] ?? null,
@@ -35,7 +59,7 @@ class NotificationService
                 'action' => 'notification_created',
                 'action_type' => 'notification',
                 'module' => 'notifications',
-                'description' => "Notification créée : {$data['title']}",
+                'description' => "Notification créée : {$title}",
                 'resource_type' => 'notification',
                 'resource_id' => $notification->uuid_notification,
                 'level' => 'info',

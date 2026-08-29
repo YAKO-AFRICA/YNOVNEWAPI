@@ -58,7 +58,7 @@ class AuthController extends Controller
                     $this->notificationService->create([
                         'user_uuid' => $result['user']->uuid_user,
                         'group_notif_uuid' => $this->getSecurityGroupUuid(),
-                        'title' => '🔐 Code 2FA requis',
+                        'title' => 'Code 2FA requis',
                         'body' => 'Une vérification 2FA est requise pour finaliser votre connexion. Veuillez vérifier votre code.',
                         'type' => 'security',
                         'metadata' => [
@@ -88,7 +88,7 @@ class AuthController extends Controller
                     $this->notificationService->create([
                         'user_uuid' => $result['user']->uuid_user,
                         'group_notif_uuid' => $this->getSecurityGroupUuid(),
-                        'title' => '🔑 Changement de mot de passe requis',
+                        'title' => 'Changement de mot de passe requis',
                         'body' => 'Vous devez changer votre mot de passe avant de continuer. Il s\'agit soit de votre première connexion, soit de l\'expiration de votre mot de passe.',
                         'type' => 'security',
                         'metadata' => [
