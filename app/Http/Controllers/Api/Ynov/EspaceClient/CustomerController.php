@@ -887,6 +887,9 @@ class CustomerController extends Controller
             $errors = [];
             $allContrats = [];
             $hasUnpaidInvoices = false;
+            $totalImpayes = 0;
+            $totalFactures = 0;
+            $totalContrats = 0;
 
             foreach ($user->userContrats as $userContrat) {
                 try {
@@ -985,7 +988,11 @@ class CustomerController extends Controller
                         continue;
                     }
 
+                    // ✅ Mettre à jour les compteurs globaux
                     $hasUnpaidInvoices = true;
+                    $totalImpayes += array_sum(array_column($PrimeNonRegles, 'MontantARegler'));
+                    $totalFactures += count($PrimeNonRegles);
+                    $totalContrats++;
 
                     $contratData = [
                         'details' => [
@@ -1014,7 +1021,8 @@ class CustomerController extends Controller
             // ============================================================
             
             if ($hasUnpaidInvoices) {
-                $this->createOrUpdateUnpaidNotification($user, $allContrats);
+                // ✅ Passer les données calculées à la notification
+                $this->createOrUpdateUnpaidNotification($user, $allContrats, $totalImpayes, $totalFactures, $totalContrats);
             } else {
                 $this->clearUnpaidNotifications($user);
             }
@@ -1061,6 +1069,11 @@ class CustomerController extends Controller
                         'search' => $search,
                     ],
                     'has_unpaid_invoices' => $hasUnpaidInvoices,
+                    'summary' => [
+                        'total_impayes' => $totalImpayes,
+                        'total_factures' => $totalFactures,
+                        'total_contrats' => $totalContrats,
+                    ],
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -1082,12 +1095,8 @@ class CustomerController extends Controller
     /**
      * Créer ou mettre à jour la notification d'impayés
      */
-    private function createOrUpdateUnpaidNotification($user, array $contrats): void
+    private function createOrUpdateUnpaidNotification($user, array $contrats, float $totalImpayes, int $totalFactures, int $totalContrats): void
     {
-        $totalImpayes = array_sum(array_column($contrats, 'details.TotalImpayes'));
-        $totalContrats = count($contrats);
-        $totalFactures = array_sum(array_column($contrats, 'details.NbreImpayes'));
-
         $paiementsGroup = GroupNotif::where('code', 'paiements')->first();
 
         $existingNotification = Notification::where('user_uuid', $user->uuid_user)
@@ -1157,11 +1166,9 @@ class CustomerController extends Controller
         }
 
         try {
-            // Essayer avec le format d/m/Y
             return Carbon::createFromFormat('d/m/Y', $date);
         } catch (\Exception $e) {
             try {
-                // Essayer avec le format Y-m-d
                 return Carbon::parse($date);
             } catch (\Exception $e) {
                 return null;
@@ -1179,7 +1186,6 @@ class CustomerController extends Controller
             return '1970-01-01';
         }
 
-        // Trier les dates et prendre la plus récente
         usort($dates, function ($a, $b) {
             return strtotime($b) - strtotime($a);
         });
