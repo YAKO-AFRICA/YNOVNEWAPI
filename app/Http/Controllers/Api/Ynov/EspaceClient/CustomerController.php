@@ -1100,7 +1100,7 @@ class CustomerController extends Controller
         $paiementsGroup = GroupNotif::where('code', 'paiements')->first();
 
         $existingNotification = Notification::where('user_uuid', $user->uuid_user)
-            ->where('type', 'unpaid_invoices')
+            ->where('type', 'impayee')
             ->whereNull('read_at')
             ->first();
 
@@ -1135,7 +1135,7 @@ class CustomerController extends Controller
                 'group_notif_uuid' => $paiementsGroup?->uuid_group_notif,
                 'title' => $title,
                 'body' => $body,
-                'type' => 'unpaid_invoices',
+                'type' => 'impayee',
                 'metadata' => $metadata,
                 'channel' => 'database',
                 'created_by' => null,
@@ -1149,7 +1149,7 @@ class CustomerController extends Controller
     private function clearUnpaidNotifications($user): void
     {
         Notification::where('user_uuid', $user->uuid_user)
-            ->where('type', 'unpaid_invoices')
+            ->where('type', 'impayees')
             ->whereNull('read_at')
             ->update([
                 'read_at' => now(),
