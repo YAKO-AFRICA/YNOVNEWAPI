@@ -8674,20 +8674,96 @@
                 {
                     id: 'jeko-widget-intro',
                     module: 'jeko_widget',
-                    name: 'Introduction au Widget Jeko',
+                    name: 'Widget Jeko Payment',
                     description: 'Le widget Jeko est un composant JavaScript autonome qui permet d\'intégrer facilement un paiement sécurisé via Jeko dans n\'importe quelle application web. Il gère automatiquement la vérification des contrats, la sélection des factures et l\'initialisation du paiement pour les 3 types : <strong>firstPayment</strong> (premier paiement), <strong>earlyPayment</strong> (paiement anticipé) et <strong>recoveryPrime</strong> (régularisation de primes impayées).',
+                    method: 'GET',
+                    path: '/paiements/jeko/jeko-payment-widget.js',
+                    isProtected: false,
+                    isHome: false,
+                    hasWidgetInfo: true,
+                    widgetInfo: {
+                        features: [
+                            'Vérification automatique des contrats',
+                            'Sélection des factures impayées',
+                            '3 types de paiement supportés',
+                            'Pré-sélection des factures',
+                            'Design responsive et personnalisable',
+                            'Gestion d\'erreurs avancée',
+                            'Accessibilité (ARIA)',
+                            'Intégrable dans n\'importe quel framework'
+                        ],
+                        paymentTypes: [
+                            { 
+                                code: 'firstPayment', 
+                                label: 'Premier paiement', 
+                                description: 'Souscription d\'un nouveau contrat',
+                                icon: 'fa-file-contract'
+                            },
+                            { 
+                                code: 'earlyPayment', 
+                                label: 'Paiement anticipé', 
+                                description: 'Paiement en avance des primes',
+                                icon: 'fa-calendar-check'
+                            },
+                            { 
+                                code: 'recoveryPrime', 
+                                label: 'Régularisation', 
+                                description: 'Récupération de primes impayées',
+                                icon: 'fa-hand-holding-usd'
+                            }
+                        ],
+                        docsLink: '/api/v1/demo-jeko-widget',
+                        widgetJs: '/api/v1/paiements/jeko/jeko-payment-widget.js'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Documentation du widget Jeko',
+                        example: {
+                            title: 'Widget Jeko Payment',
+                            description: 'Paiement sécurisé intégré',
+                            version: '1.0.0',
+                            paymentTypes: ['firstPayment', 'earlyPayment', 'recoveryPrime'],
+                            documentation: 'https://votre-domaine.com/demo-jeko-widget'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // WIDGET JEKO - PAGE DE DÉMONSTRATION
+                // ============================================================
+                {
+                    id: 'jeko-widget-demo',
+                    module: 'jeko_widget',
+                    name: 'Démonstration du Widget Jeko',
+                    description: 'Page de démonstration interactive du widget Jeko avec les 3 types de paiement. Permet de tester le widget en conditions réelles avec des exemples concrets.',
                     method: 'GET',
                     path: '/demo-jeko-widget',
                     isProtected: false,
                     isHome: false,
+                    isWidgetDemo: true,
                     responses: [{
                         status: 200,
-                        description: 'Documentation du widget',
+                        description: 'Page de démonstration du widget',
                         example: {
-                            title: 'Widget Jeko',
-                            description: 'Paiement sécurisé intégré',
-                            version: '1.0.0',
-                            paymentTypes: ['firstPayment', 'earlyPayment', 'recoveryPrime']
+                            title: 'Jeko Payment Widget - Démonstration',
+                            description: 'Testez les 3 types de paiement en direct',
+                            scenarios: [
+                                {
+                                    type: 'firstPayment',
+                                    label: 'Premier paiement',
+                                    description: 'Souscription d\'un nouveau contrat'
+                                },
+                                {
+                                    type: 'earlyPayment',
+                                    label: 'Paiement anticipé',
+                                    description: 'Paiement en avance des primes'
+                                },
+                                {
+                                    type: 'recoveryPrime',
+                                    label: 'Régularisation',
+                                    description: 'Récupération de primes impayées'
+                                }
+                            ]
                         }
                     }]
                 },
@@ -9613,6 +9689,78 @@
                     </div>
                 `;
                 }
+
+                // ============================================================
+    // WIDGET JEKO - RENDU SPÉCIFIQUE
+    // ============================================================
+    let widgetDemoHtml = '';
+    if (endpoint.isWidgetDemo || endpoint.id === 'jeko-widget-demo') {
+        // Rediriger vers la page de démonstration
+        window.location.href = '/api/v1/demo-jeko-widget';
+        return;
+    }
+
+    if (endpoint.hasWidgetInfo && endpoint.widgetInfo) {
+        const features = endpoint.widgetInfo.features || [];
+        const paymentTypes = endpoint.widgetInfo.paymentTypes || [];
+        const docsLink = endpoint.widgetInfo.docsLink || '/api/v1/demo-jeko-widget';
+        const widgetJs = endpoint.widgetInfo.widgetJs || '/api/v1/paiements/jeko/jeko-payment-widget.js';
+
+        widgetDemoHtml = `
+            <div class="section-title"><i class="fas fa-credit-card text-success"></i> Widget Jeko</div>
+            
+            <div style="background: linear-gradient(135deg, #f0f7f3, #e8f3ec); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; border: 1px solid #cde6db;">
+                <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h4 style="margin: 0 0 8px; color: #1D603D;">🚀 Intégration rapide</h4>
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #374151;">
+                            Le widget Jeko s'intègre en quelques minutes dans votre application.
+                            Il est autonome et ne nécessite aucune dépendance externe.
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <a href="${docsLink}" target="_blank" style="display: inline-block; background: #1D603D; color: #fff; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                                <i class="fas fa-external-link-alt"></i> Voir la démo
+                            </a>
+                            <a href="${widgetJs}" target="_blank" style="display: inline-block; background: #fff; color: #1D603D; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #1D603D;">
+                                <i class="fas fa-file-code"></i> Widget JS
+                            </a>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        ${paymentTypes.map(p => `
+                            <div style="background: #fff; border-radius: 8px; padding: 12px 16px; min-width: 120px; border: 1px solid #dce8e0; text-align: center;">
+                                <div style="font-size: 24px; margin-bottom: 4px;">${p.icon === 'fa-file-contract' ? '📄' : p.icon === 'fa-calendar-check' ? '📅' : '💰'}</div>
+                                <div style="font-weight: 700; font-size: 12px; color: #1D603D;">${p.label}</div>
+                                <code style="font-size: 10px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; display: block; margin-top: 4px;">${p.code}</code>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 12px 0 16px;">
+                ${features.map(f => `
+                    <div style="background: #f8faf9; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; border: 1px solid #eef2f0;">
+                        <span style="color: #1D603D; font-size: 16px;">✅</span>
+                        <span style="font-size: 13px; color: #374151;">${f}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div style="background: #fef9e7; border-radius: 8px; padding: 14px 18px; border: 1px solid #fcd34d; margin-bottom: 16px;">
+                <strong style="color: #92400e;">💡 Intégration dans votre projet :</strong>
+                <div style="margin-top: 8px; font-size: 13px; color: #78350f;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <code style="background: #fff; padding: 2px 8px; border-radius: 4px; font-size: 12px;">&lt;script src="${widgetJs}"&gt;&lt;/script&gt;</code>
+                        <span style="color: #6b7280; font-size: 12px;">— Ajoutez ceci dans votre HTML</span>
+                    </div>
+                    <div style="font-size: 12px; color: #6b7280;">
+                        <a href="${docsLink}" target="_blank" style="color: #1D603D; font-weight: 600;">📖 Voir la documentation complète →</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 
                 const authBadges = [];
                 if (endpoint.isProtected) {

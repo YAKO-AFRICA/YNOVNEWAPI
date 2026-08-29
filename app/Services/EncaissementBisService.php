@@ -477,21 +477,31 @@ class EncaissementBisService
     public function recupDetailsContratWeb(string $idContrat, string $paymentType): array
     {
         try {
-                $contrat = Contrat::where('id', $idContrat)->first();
+                // $contrat = Contrat::where('id', $idContrat)->first();
 
-                if (!$contrat) {
-                    Log::warning('Contrat non trouvé', ['idContrat' => $idContrat]);
-                    return $this->failure('Impossible de récupérer les détails du contrat.');
-                }
+                // if (!$contrat) {
+                //     Log::warning('Contrat non trouvé', ['idContrat' => $idContrat]);
+                //     return $this->failure('Impossible de récupérer les détails du contrat.');
+                // }
+
+                // return [
+                //     'success' => true,
+                //     'contratIdWeb' => $contrat->id ?? null,
+                //     'primePrincipale' => (int) ($contrat->primepricipale ?? 0),
+                //     'fraisAdhesion' => (int) ($contrat->fraisadhesion ?? 0),
+                //     'devise' => 'XOF',
+                //     'codeProduit' => $contrat->codeproduit ?? null,
+                //     'produit' => $contrat->libelleproduit ?? null,
+                // ];
 
                 return [
                     'success' => true,
-                    'contratIdWeb' => $contrat->id ?? null,
-                    'primePrincipale' => (int) ($contrat->primepricipale ?? 0),
-                    'fraisAdhesion' => (int) ($contrat->fraisadhesion ?? 0),
+                    'contratIdWeb' => $idContrat,
+                    'primePrincipale' => 0,
+                    'fraisAdhesion' => 0,
                     'devise' => 'XOF',
-                    'codeProduit' => $contrat->codeproduit ?? null,
-                    'produit' => $contrat->libelleproduit ?? null,
+                    'codeProduit' => $paymentType,
+                    'produit' => '',
                 ];
                 
         } catch (\Throwable $e) {
@@ -552,12 +562,3 @@ class EncaissementBisService
     }
 }
 
-// return [
-//     'success' => true,
-//     'contratIdWeb' => $idContrat,
-//     'primePrincipale' => 0,
-//     'fraisAdhesion' => 0,
-//     'devise' => 'XOF',
-//     'codeProduit' => $paymentType,
-//     'produit' => '',
-// ];

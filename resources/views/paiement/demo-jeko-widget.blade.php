@@ -18,7 +18,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 820px;
+            max-width: 990px;
             margin: 40px auto;
             padding: 0 20px;
             color: #1f2937;
@@ -427,6 +427,7 @@
                 font-size: 11px;
             }
         }
+
     </style>
 </head>
 @verbatim
@@ -466,6 +467,7 @@
                     <span class="card-badge green">1️⃣ Souscription</span>
                     <h4>Premier paiement</h4>
                     <p>Après validation d'un nouveau contrat</p>
+                    <input type="hidden" id="contractIdFirstPayment" value="1093" />
                     <button class="btn-pay-sm" id="btnFirstPayment">Payer la première prime</button>
                 </div>
 
@@ -486,11 +488,7 @@
                     <h4>Récupération d'impayés</h4>
                     <p>Renseignez l'identifiant du contrat et Sélectionnez les factures à régulariser</p>
                     <div style="margin-bottom:8px;">
-                        <input
-                            type="text"
-                            id="contractIdRecovery"
-                            placeholder="Ex: 12452"
-                            value="82718"  style="width:100%; padding:6px 10px; border:1.5px solid #e5e7eb; border-radius:6px; font-size:13px; box-sizing:border-box;"/>
+                        <input type="text" id="contractIdRecovery" placeholder="Ex: 12452" value="82718" style="width:100%; padding:6px 10px; border:1.5px solid #e5e7eb; border-radius:6px; font-size:13px; box-sizing:border-box;" />
                     </div>
                     <button class="btn-pay-sm" id="btnRecoveryPrime">Régulariser mes impayés</button>
                 </div>
@@ -549,100 +547,636 @@
                 </button>
             </div>
 
-            <!-- ==========================================================
-            TAB 1: HTML / Vanilla JS
-            ========================================================== -->
+            <!-- ============================================================
+TAB 1: HTML / Vanilla JS - Version complète avec 3 types
+============================================================ -->
             <div class="tab-content active" id="tab-html">
                 <p class="code-description">
-                    Intégration simple dans une page HTML classique.
+                    Intégration simple dans une page HTML classique avec les 3 types de paiement.
                     Chargez le script du widget et initialisez-le avec vos paramètres.
                 </p>
+
+                <!-- ============================================================
+    DOCUMENTATION DÉTAILLÉE HTML / VANILLA JS
+    ============================================================ -->
+                <div style="background: #f8faf9; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #1D603D;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; color: #1D603D;">📖 Documentation d'intégration</h4>
+
+                    <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
+                        <p style="margin: 0 0 8px;"><strong>1. Inclure le widget JS :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+&lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js"&gt;&lt;/script&gt;</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>2. Initialiser le widget :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+const widget = new JekoWidget({
+    // Endpoint pour initialiser le paiement
+    backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+    
+    // Endpoint pour vérifier le contrat
+    contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+    
+    // Devise par défaut (XOF, XAF, USD, EUR)
+    currency: "XOF",
+    
+    // Timeout de la requête en millisecondes
+    timeout: 30000,
+    
+    // Vérification automatique du contrat si contractId fourni
+    autoVerifyContract: true,
+    
+    // Headers personnalisés (CSRF, etc.)
+    headers: {
+        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
+        "Accept": "application/json",
+    },
+    
+    // Callbacks pour gérer les événements
+    callbacks: {
+        onSuccess: (redirectUrl, data) => {
+            console.log("✅ Paiement initialisé", { redirectUrl, data });
+            window.open(redirectUrl, "_blank");
+        },
+        onError: (message, data) => {
+            console.error("❌ Erreur de paiement", { message, data });
+            alert("Erreur: " + message);
+        },
+        onOpen: (data) => console.log("🔄 Widget ouvert", data),
+        onClose: () => console.log("❌ Widget fermé"),
+    },
+    
+    // Personnalisation du thème (optionnel)
+    theme: {
+        primary: "#1D603D",
+        primaryDark: "#0B482F",
+        accent: "#E09518",
+        radius: "16px",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        maxWidth: "550px",
+    },
+    
+    // Traductions personnalisées (optionnel)
+    translations: {
+        title: "Paiement sécurisé",
+        close: "Fermer",
+        back: "Retour",
+        stepContract: "Contrat",
+        stepMethod: "Paiement",
+        stepSummary: "Résumé",
+        chooseMethod: "Choisissez un moyen de paiement",
+        confirmAndPay: "Confirmer et payer",
+        processing: "Initialisation du paiement en cours...",
+        success: "Paiement initialisé",
+        error: "Échec du paiement",
+        retry: "Réessayer",
+        networkError: "Erreur réseau",
+        requiredField: "Ce champ est requis",
+        contractIdLabel: "Identifiant du contrat",
+        contractIdPlaceholder: "Ex: 345678",
+        verify: "Vérifier le contrat",
+        verifying: "Vérification en cours...",
+        loadingContract: "Chargement des informations du contrat...",
+    },
+});</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>3. Générer une référence unique :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+function generateReference() {
+    const now = new Date();
+    const timestamp = now.getTime();
+    const random = Math.random().toString(36).substring(2, 10);
+    const code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    // Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+    return `PAI-${year}${month}${day}${hours}${minutes}${seconds}-${timestamp}-${random}-${code}`;
+}</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>4. Récupérer les factures pré-sélectionnées :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+function getPreselectedInvoices() {
+    var ids = [];
+    document.querySelectorAll('input[name="invoice_ids"]:checked').forEach(function(el) {
+        ids.push(el.value);
+    });
+    return ids;
+}</pre>
+                    </div>
+                </div>
+
+                <!-- ============================================================
+    CODE COMPLET
+    ============================================================ -->
                 <div class="code-block">
                     <span class="lang-tag">HTML</span>
                     <button class="copy-btn" onclick="copyCode(this)">Copier</button>
-                    <pre><code>&lt;!-- 1. Inclure le widget JS --&gt;
-&lt;script src="{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}"&gt;&lt;/script&gt;
+                    <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;
+    &lt;meta name="csrf-token" content="{{ csrf_token() }}"&gt;
+    &lt;title&gt;Jeko Payment Widget&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;h1&gt;💳 Paiement sécurisé&lt;/h1&gt;
+        &lt;p&gt;Démo des 3 types de paiement — Jeko Widget&lt;/p&gt;
 
-&lt;!-- 2. Initialiser le widget --&gt;
-&lt;script&gt;
-    const widget = new JekoWidget({
-        backendEndpoint: '{{ url("/api/v1/paiements/jeko/init") }}',
-        contractCheckEndpoint: '{{ url("/api/v1/paiements/jeko/contrat/verifier") }}',
-        currency: 'XOF',
-        autoVerifyContract: true,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-        },
-        callbacks: {
-            onSuccess: (redirectUrl, data) => {
-                window.open(redirectUrl, '_blank');
-            },
-            onError: (message, data) => {
-                alert('Erreur: ' + message);
-            },
-        },
-    });
+        &lt;!-- ============================================ --&gt;
+        &lt;!-- 1) PREMIER PAIEMENT (firstPayment) --&gt;
+        &lt;!-- ============================================ --&gt;
+        &lt;div class="scenario"&gt;
+            &lt;span class="badge"&gt;1️⃣ Souscription&lt;/span&gt;
+            &lt;h3&gt;Premier paiement&lt;/h3&gt;
+            &lt;p&gt;Après validation d'un nouveau contrat. La vérification est automatique.&lt;/p&gt;
+            &lt;input type="hidden" id="contractIdFirstPayment" value="1093" /&gt;
+            &lt;button class="btn-pay" id="btnFirstPayment"&gt;Payer la première prime&lt;/button&gt;
+        &lt;/div&gt;
 
-    function generateReference() {
-        const now = new Date();
-        const timestamp = now.getTime();
-        const random = Math.random().toString(36).substring(2, 10);
-        const code = String(Math.floor(Math.random() * 9999) + 1).padStart(
-            4,
-            "0",
-        );
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const day = String(now.getDate()).padStart(2, "0");
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        const seconds = String(now.getSeconds()).padStart(2, "0");
-        return `PAI-${year}${month}${day}${hours}${minutes}${seconds}-${timestamp}-${random}-${code}`;
-    }
+        &lt;!-- ============================================ --&gt;
+        &lt;!-- 2) PAIEMENT ANTICIPÉ (earlyPayment) --&gt;
+        &lt;!-- ============================================ --&gt;
+        &lt;div class="scenario"&gt;
+            &lt;span class="badge"&gt;2️⃣ Avance&lt;/span&gt;
+            &lt;h3&gt;Paiement anticipé&lt;/h3&gt;
+            &lt;p&gt;Le client renseigne son identifiant de contrat. La vérification est automatique.&lt;/p&gt;
+            &lt;div class="field"&gt;
+                &lt;label for="contractIdEarly"&gt;Identifiant de contrat&lt;/label&gt;
+                &lt;input type="text" id="contractIdEarly" placeholder="Ex: 12452" value="12452" /&gt;
+            &lt;/div&gt;
+            &lt;button class="btn-pay" id="btnEarlyPayment"&gt;Payer en avance&lt;/button&gt;
+        &lt;/div&gt;
 
-    // 3. Ouvrir le widget
-    document.getElementById('payBtn').addEventListener('click', () => {
-        widget.open({
-            reference: generateReference(),
-            paymentType: 'firstPayment', // firstPayment | earlyPayment | recoveryPrime
-            contractId: '1093',
-            customerEmail: 'client@example.com',
-            customerName: 'Jean Dupont',
-        });
-    });
-&lt;/script&gt;</code></pre>
+        &lt;!-- ============================================ --&gt;
+        &lt;!-- 3) RÉGULARISATION (recoveryPrime) --&gt;
+        &lt;!-- ============================================ --&gt;
+        &lt;div class="scenario"&gt;
+            &lt;span class="badge"&gt;3️⃣ Régularisation&lt;/span&gt;
+            &lt;h3&gt;Récupération de primes impayées&lt;/h3&gt;
+            &lt;p&gt;Le client sélectionne les factures en attente. Pré-sélection possible.&lt;/p&gt;
+            &lt;div class="field"&gt;
+                &lt;label for="contractIdRecovery"&gt;Identifiant de contrat&lt;/label&gt;
+                &lt;input type="text" id="contractIdRecovery" placeholder="Ex: 12452" value="12452" /&gt;
+            &lt;/div&gt;
+            &lt;div style="margin: 12px 0; padding: 12px; background: #f8faf9; border-radius: 8px;"&gt;
+                &lt;p style="margin: 0 0 8px; font-size: 13px; font-weight: 600;"&gt;🧪 Pré-sélection de factures :&lt;/p&gt;
+                &lt;label style="display: inline-block; margin-right: 16px;"&gt;
+                    &lt;input type="checkbox" name="invoice_ids" value="173669" checked /&gt; Facture #173669
+                &lt;/label&gt;
+                &lt;label style="display: inline-block; margin-right: 16px;"&gt;
+                    &lt;input type="checkbox" name="invoice_ids" value="3073532" /&gt; Facture #3073532
+                &lt;/label&gt;
+                &lt;label style="display: inline-block;"&gt;
+                    &lt;input type="checkbox" name="invoice_ids" value="3132514" checked /&gt; Facture #3132514
+                &lt;/label&gt;
+            &lt;/div&gt;
+            &lt;button class="btn-pay" id="btnRecoveryPrime"&gt;Régulariser mes impayés&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ============================================ --&gt;
+    &lt;!-- CHARGEMENT DU WIDGET --&gt;
+    &lt;!-- ============================================ --&gt;
+    &lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js"&gt;&lt;/script&gt;
+
+    &lt;script&gt;
+        (function() {
+            "use strict";
+
+            // ============================================================
+            // VÉRIFICATION DU CHARGEMENT
+            // ============================================================
+            if (typeof JekoWidget === "undefined") {
+                console.error("❌ JekoWidget non chargé");
+                document.querySelectorAll(".btn-pay").forEach(function(btn) {
+                    btn.disabled = true;
+                    btn.textContent = "⚠️ Service indisponible";
+                });
+                return;
+            }
+
+            console.log("✅ JekoWidget chargé avec succès");
+
+            // ============================================================
+            // INITIALISATION DU WIDGET
+            // ============================================================
+            var widget = new JekoWidget({
+                // --- Configuration des endpoints ---
+                backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                
+                // --- Configuration générale ---
+                currency: "XOF",
+                timeout: 30000,
+                autoVerifyContract: true,
+                
+                // --- Headers ---
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
+                    "Accept": "application/json",
+                },
+                
+                // --- Callbacks ---
+                callbacks: {
+                    onSuccess: function(redirectUrl, data) {
+                        console.log("✅ Paiement initialisé", { redirectUrl, data });
+                        window.open(redirectUrl, "_blank");
+                    },
+                    onError: function(message, data) {
+                        console.error("❌ Erreur de paiement", { message, data });
+                        alert("Erreur: " + message);
+                    },
+                    onOpen: function(data) {
+                        console.log("🔄 Widget ouvert", data);
+                    },
+                    onClose: function() {
+                        console.log("❌ Widget fermé");
+                    },
+                },
+                
+                // --- Thème personnalisé ---
+                theme: {
+                    primary: "#1D603D",
+                    primaryDark: "#0B482F",
+                    accent: "#E09518",
+                    radius: "16px",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    maxWidth: "550px",
+                },
+                
+                // --- Traductions ---
+                translations: {
+                    title: "Paiement sécurisé",
+                    close: "Fermer",
+                    back: "Retour",
+                    stepContract: "Contrat",
+                    stepMethod: "Paiement",
+                    stepSummary: "Résumé",
+                    chooseMethod: "Choisissez un moyen de paiement",
+                    confirmAndPay: "Confirmer et payer",
+                    processing: "Initialisation du paiement en cours...",
+                    success: "Paiement initialisé",
+                    error: "Échec du paiement",
+                    retry: "Réessayer",
+                    networkError: "Erreur réseau",
+                    requiredField: "Ce champ est requis",
+                    contractIdLabel: "Identifiant du contrat",
+                    contractIdPlaceholder: "Ex: 345678",
+                    verify: "Vérifier le contrat",
+                    verifying: "Vérification en cours...",
+                    loadingContract: "Chargement des informations du contrat...",
+                },
+            });
+
+            // ============================================================
+            // FONCTIONS UTILITAIRES
+            // ============================================================
+
+            /**
+             * Génère une référence unique pour le paiement
+             * Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+             * @returns {string} Référence unique
+             */
+            function generateReference() {
+                var now = new Date();
+                var timestamp = now.getTime();
+                var random = Math.random().toString(36).substring(2, 10);
+                var code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+                var year = now.getFullYear();
+                var month = String(now.getMonth() + 1).padStart(2, "0");
+                var day = String(now.getDate()).padStart(2, "0");
+                var hours = String(now.getHours()).padStart(2, "0");
+                var minutes = String(now.getMinutes()).padStart(2, "0");
+                var seconds = String(now.getSeconds()).padStart(2, "0");
+                return "PAI-" + year + month + day + hours + minutes + seconds + "-" + timestamp + "-" + random + "-" + code;
+            }
+
+            /**
+             * Récupère les factures pré-sélectionnées par l'utilisateur
+             * @returns {string[]} Tableau des IDs de factures
+             */
+            function getPreselectedInvoices() {
+                var ids = [];
+                document.querySelectorAll('input[name="invoice_ids"]:checked').forEach(function(el) {
+                    ids.push(el.value);
+                });
+                return ids;
+            }
+
+            /**
+             * Met à jour le message d'état d'un scénario
+             * @param {string} elementId - ID de l'élément de statut
+             * @param {string} message - Message à afficher
+             * @param {string} type - Type de message (info, success, error)
+             */
+            function updateStatus(elementId, message, type) {
+                var el = document.getElementById(elementId);
+                if (!el) return;
+                el.textContent = message;
+                el.className = "status-msg visible";
+                if (type === "error") {
+                    el.style.background = "#fef2f2";
+                    el.style.color = "#991b1b";
+                } else if (type === "success") {
+                    el.style.background = "#f0fdf4";
+                    el.style.color = "#166534";
+                } else {
+                    el.style.background = "#f3f4f6";
+                    el.style.color = "#6b7280";
+                }
+            }
+
+            // ============================================================
+            // 1) PREMIER PAIEMENT (firstPayment)
+            // ============================================================
+            /**
+             * Scénario: Premier paiement d'un contrat
+             * - Utilisé lors de la souscription d'un nouveau contrat
+             * - Le contractId est optionnel (peut être récupéré automatiquement)
+             * - La prime principale et les frais d'adhésion sont calculés côté serveur
+             */
+            document.getElementById("btnFirstPayment").addEventListener("click", function() {
+                var contractId = document.getElementById("contractIdFirstPayment").value;
+                console.log("🔹 Premier paiement initié", { contractId: contractId });
+
+                widget.open({
+                    // Référence unique du paiement
+                    reference: generateReference(),
+                    
+                    // Type de paiement: firstPayment, earlyPayment, recoveryPrime
+                    paymentType: "firstPayment",
+                    
+                    // Identifiant du contrat (optionnel pour firstPayment)
+                    contractId: contractId || undefined,
+                    
+                    // Description du paiement (affichée dans le widget)
+                    description: "Souscription — première prime",
+                    
+                    // Email du client (pour les notifications)
+                    customerEmail: "client@example.com",
+                    
+                    // Nom du client
+                    customerName: "Jean Dupont",
+                    
+                    // URL de redirection en cas de succès
+                    successUrl: window.location.origin + "/paiements/jeko/success",
+                    
+                    // URL de redirection en cas d'erreur
+                    errorUrl: window.location.origin + "/paiements/jeko/error",
+                    
+                    // Métadonnées additionnelles (pour le suivi)
+                    metadata: {
+                        source: "web_demo",
+                        scenario: "firstPayment",
+                        timestamp: new Date().toISOString(),
+                    },
+                });
+            });
+
+            // ============================================================
+            // 2) PAIEMENT ANTICIPÉ (earlyPayment)
+            // ============================================================
+            /**
+             * Scénario: Paiement anticipé des primes
+             * - L'utilisateur renseigne l'identifiant du contrat
+             * - Le widget vérifie automatiquement le contrat
+             * - Vérifie qu'il n'y a pas d'impayés avant de permettre le paiement anticipé
+             */
+            document.getElementById("btnEarlyPayment").addEventListener("click", function() {
+                var contractId = document.getElementById("contractIdEarly").value.trim();
+                if (!contractId) {
+                    alert("⚠️ Veuillez saisir un identifiant de contrat.");
+                    return;
+                }
+                console.log("🔹 Paiement anticipé initié", { contractId: contractId });
+                updateStatus("earlyStatus", "⏳ Vérification automatique du contrat en cours...", "info");
+
+                widget.open({
+                    reference: generateReference(),
+                    paymentType: "earlyPayment",
+                    contractId: contractId,
+                    description: "Paiement anticipé de primes",
+                    customerEmail: "client@example.com",
+                    customerName: "Jean Dupont",
+                    successUrl: window.location.origin + "/paiements/jeko/success",
+                    errorUrl: window.location.origin + "/paiements/jeko/error",
+                    metadata: {
+                        source: "web_demo",
+                        scenario: "earlyPayment",
+                        contractId: contractId,
+                    },
+                });
+            });
+
+            // ============================================================
+            // 3) RÉGULARISATION (recoveryPrime)
+            // ============================================================
+            /**
+             * Scénario: Régularisation de primes impayées
+             * - L'utilisateur renseigne l'identifiant du contrat
+             * - Le widget liste les factures en attente
+             * - L'utilisateur sélectionne les factures à régulariser
+             * - Possibilité de pré-sélectionner des factures
+             */
+            document.getElementById("btnRecoveryPrime").addEventListener("click", function() {
+                var contractId = document.getElementById("contractIdRecovery").value.trim();
+                var preselectedIds = getPreselectedInvoices();
+
+                if (!contractId) {
+                    alert("⚠️ Veuillez saisir un identifiant de contrat.");
+                    return;
+                }
+
+                console.log("🔹 Régularisation initiée", {
+                    contractId: contractId,
+                    preselectedCount: preselectedIds.length,
+                    preselectedIds: preselectedIds,
+                });
+
+                updateStatus(
+                    "recoveryStatus",
+                    "⏳ Vérification automatique du contrat avec " + preselectedIds.length + " facture(s) pré-sélectionnée(s)...",
+                    "info"
+                );
+
+                widget.open({
+                    reference: generateReference(),
+                    paymentType: "recoveryPrime",
+                    contractId: contractId,
+                    preselectedInvoiceIds: preselectedIds.length > 0 ? preselectedIds : undefined,
+                    description: "Régularisation de primes impayées",
+                    customerEmail: "client@example.com",
+                    customerName: "Jean Dupont",
+                    successUrl: window.location.origin + "/paiements/jeko/success",
+                    errorUrl: window.location.origin + "/paiements/jeko/error",
+                    metadata: {
+                        source: "web_demo",
+                        scenario: "recoveryPrime",
+                        contractId: contractId,
+                        preselectedCount: preselectedIds.length,
+                    },
+                });
+            });
+
+            console.log("✅ Widget Jeko initialisé avec succès");
+
+        })();
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
                 </div>
 
+                <!-- ============================================================
+    RÉCAPITULATIF DES TYPES
+    ============================================================ -->
                 <div class="info-box">
-                    <strong>💡 Utilisation minimale :</strong>
-                    <div class="separator">• Le widget est autonome — pas besoin de dépendances externes</div>
-                    <div class="separator">• Les clés API sont sécurisées côté serveur</div>
-                    <div class="separator">• Supporte les 3 types de paiement : <code>firstPayment</code>, <code>earlyPayment</code>, <code>recoveryPrime</code></div>
+                    <strong>📌 Récapitulatif des 3 types :</strong>
+                    <div class="separator">
+                        <code>firstPayment</code> : Premier paiement d'un contrat (souscription) — <span class="highlight">contractId optionnel</span>
+                    </div>
+                    <div class="separator">
+                        <code>earlyPayment</code> : Paiement anticipé des primes — <span class="highlight">contractId obligatoire</span>
+                    </div>
+                    <div class="separator">
+                        <code>recoveryPrime</code> : Régularisation de primes impayées — <span class="highlight">contractId obligatoire + preselectedInvoiceIds optionnel</span>
+                    </div>
+                </div>
+
+                <!-- ============================================================
+    PARAMÈTRES DÉTAILLÉS
+    ============================================================ -->
+                <div class="info-box" style="margin-top: 12px; background: #fef9e7; border-left-color: #F7A400;">
+                    <strong>🔧 Paramètres de configuration du widget :</strong>
+                    <div class="separator" style="margin-top: 6px;">
+                        <code>backendEndpoint</code> : URL pour initialiser le paiement <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>contractCheckEndpoint</code> : URL pour vérifier le contrat <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>currency</code> : Devise (XOF, XAF, USD, EUR) <span style="color: #6b7280; font-size: 12px;">(défaut: XOF)</span>
+                    </div>
+                    <div class="separator">
+                        <code>timeout</code> : Timeout de la requête en ms <span style="color: #6b7280; font-size: 12px;">(défaut: 30000)</span>
+                    </div>
+                    <div class="separator">
+                        <code>autoVerifyContract</code> : Vérification automatique du contrat <span style="color: #6b7280; font-size: 12px;">(défaut: true)</span>
+                    </div>
+                    <div class="separator">
+                        <code>headers</code> : Headers personnalisés (CSRF, etc.) <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>callbacks</code> : Callbacks (onSuccess, onError, onOpen, onClose) <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>theme</code> : Personnalisation du thème <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>translations</code> : Traductions personnalisées <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- ==========================================================
-            TAB 2: React
-            ========================================================== -->
+            <!-- ============================================================
+TAB 2: React - Version complète avec 3 types et documentation
+============================================================ -->
             <div class="tab-content" id="tab-react">
                 <p class="code-description">
-                    Composant React réutilisable avec gestion d'état et chargement dynamique du widget.
+                    Composant React réutilisable avec les 3 types de paiement.
+                    Gestion d'état, chargement dynamique et callbacks personnalisés.
                 </p>
+
+                <!-- Documentation détaillée React -->
+                <div style="background: #f8faf9; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #61dafb;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; color: #1D603D;">⚛️ Documentation d'intégration React</h4>
+
+                    <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
+                        <p style="margin: 0 0 8px;"><strong>1. Installation du composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// Copier le composant JekoPaymentButton dans votre projet
+// Fichier: components/JekoPaymentButton.tsx</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env.local) :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+REACT_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
+REACT_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// 1) Premier paiement
+&lt;JekoPaymentButton contractId="1093" paymentType="firstPayment" /&gt;
+
+// 2) Paiement anticipé
+&lt;JekoPaymentButton contractId="12452" paymentType="earlyPayment" /&gt;
+
+// 3) Régularisation avec pré-sélection
+&lt;JekoPaymentButton 
+    contractId="12452" 
+    paymentType="recoveryPrime" 
+    preselectedInvoiceIds={['173669', '3132514']} 
+/&gt;</pre>
+                    </div>
+                </div>
+
+                <!-- Code React -->
                 <div class="code-block">
                     <span class="lang-tag">React</span>
                     <button class="copy-btn" onclick="copyCode(this)">Copier</button>
                     <pre><code>import React, { useState, useEffect, useRef } from "react";
 
-// Chargement dynamique du widget
-const loadJekoWidget = () => new Promise((resolve) => {
-    if (window.JekoWidget) return resolve(window.JekoWidget);
-    const script = document.createElement("script");
-    script.src = "{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}";
-    script.onload = () => resolve(window.JekoWidget);
-    document.head.appendChild(script);
-});
+// ============================================================
+// TYPES
+// ============================================================
+type PaymentType = "firstPayment" | "earlyPayment" | "recoveryPrime";
 
-const JekoPaymentButton = ({
+interface JekoPaymentButtonProps {
+    // Identifiant du contrat (obligatoire pour earlyPayment et recoveryPrime)
+    contractId: string;
+    // Type de paiement: firstPayment | earlyPayment | recoveryPrime
+    paymentType?: PaymentType;
+    // Email du client
+    customerEmail?: string;
+    // Nom du client
+    customerName?: string;
+    // Factures pré-sélectionnées (uniquement pour recoveryPrime)
+    preselectedInvoiceIds?: string[];
+    // Callback en cas de succès
+    onSuccess?: (redirectUrl: string, data: any) => void;
+    // Callback en cas d'erreur
+    onError?: (message: string, data?: any) => void;
+    // Classe CSS personnalisée
+    className?: string;
+    // Contenu du bouton
+    children?: React.ReactNode;
+}
+
+// ============================================================
+// CHARGEMENT DYNAMIQUE DU WIDGET
+// ============================================================
+const loadJekoWidget = (): Promise&lt;any&gt; => {
+    return new Promise((resolve) => {
+        if (window.JekoWidget) {
+            resolve(window.JekoWidget);
+            return;
+        }
+        const script = document.createElement("script");
+        script.src = "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+        script.onload = () => resolve(window.JekoWidget);
+        script.onerror = () => resolve(null);
+        document.head.appendChild(script);
+    });
+};
+
+// ============================================================
+// COMPOSANT PRINCIPAL
+// ============================================================
+const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
     contractId,
     paymentType = "firstPayment",
     customerEmail = "",
@@ -655,55 +1189,124 @@ const JekoPaymentButton = ({
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isReady, setIsReady] = useState(false);
-    const widgetRef = useRef(null);
+    const widgetRef = useRef&lt;any&gt;(null);
 
     useEffect(() => {
-        const init = async () => {
+        const initWidget = async () => {
             try {
                 const JekoWidget = await loadJekoWidget();
+                if (!JekoWidget) {
+                    console.error("❌ JekoWidget non chargé");
+                    return;
+                }
+
                 widgetRef.current = new JekoWidget({
-                    backendEndpoint: process.env.REACT_APP_JEKO_API_URL || "{{ url('/api/v1/paiements/jeko/init') }}",
-                    contractCheckEndpoint: process.env.REACT_APP_JEKO_CONTRACT_CHECK_URL || "{{ url('/api/v1/paiements/jeko/contrat/verifier') }}",
+                    // Endpoint pour initialiser le paiement
+                    backendEndpoint: process.env.REACT_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                    // Endpoint pour vérifier le contrat
+                    contractCheckEndpoint: process.env.REACT_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                    // Devise par défaut
                     currency: "XOF",
+                    // Timeout de la requête (ms)
+                    timeout: 30000,
+                    // Vérification automatique du contrat si contractId fourni
                     autoVerifyContract: true,
+                    // Headers personnalisés
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
+                    },
+                    // Callbacks
                     callbacks: {
-                        onSuccess: (url, data) => {
+                        onSuccess: (redirectUrl: string, data: any) => {
                             setIsLoading(false);
-                            onSuccess?.(url, data);
-                            window.open(url, "_blank");
+                            onSuccess?.(redirectUrl, data);
+                            window.open(redirectUrl, "_blank");
                         },
-                        onError: (msg, data) => {
+                        onError: (message: string, data: any) => {
                             setIsLoading(false);
-                            onError?.(msg, data);
+                            onError?.(message, data);
                         },
                         onOpen: () => setIsLoading(true),
                         onClose: () => setIsLoading(false),
                     },
+                    // Personnalisation du thème (optionnel)
+                    theme: {
+                        primary: "#1D603D",
+                        primaryDark: "#0B482F",
+                        accent: "#E09518",
+                        radius: "16px",
+                    },
+                    // Traductions personnalisées (optionnel)
+                    translations: {
+                        title: "Paiement sécurisé",
+                        close: "Fermer",
+                        back: "Retour",
+                        stepContract: "Contrat",
+                        stepMethod: "Paiement",
+                        stepSummary: "Résumé",
+                        chooseMethod: "Choisissez un moyen de paiement",
+                        confirmAndPay: "Confirmer et payer",
+                        processing: "Initialisation du paiement en cours...",
+                    },
                 });
                 setIsReady(true);
             } catch (error) {
-                onError?.(error.message);
+                console.error("❌ Erreur chargement widget Jeko:", error);
+                onError?.(error instanceof Error ? error.message : "Erreur inconnue");
             }
         };
-        init();
-    }, []);
+        initWidget();
+    }, [onSuccess, onError]);
+
+    /**
+     * Génère une référence unique pour le paiement
+     * Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+     */
+    const generateReference = (): string => {
+        const now = new Date();
+        const timestamp = now.getTime();
+        const random = Math.random().toString(36).substring(2, 10);
+        const code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+        const date = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, "0") +
+            String(now.getDate()).padStart(2, "0") +
+            String(now.getHours()).padStart(2, "0") +
+            String(now.getMinutes()).padStart(2, "0") +
+            String(now.getSeconds()).padStart(2, "0");
+        return `PAI-${date}-${timestamp}-${random}-${code}`;
+    };
 
     const handlePayment = () => {
         if (!widgetRef.current || !isReady) return;
-        const reference = `PAI-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-        widgetRef.current.open({
+
+        const reference = generateReference();
+
+        // Construction des données selon le type de paiement
+        const paymentData: any = {
             reference,
             paymentType,
             contractId,
+            description: `Paiement via Jeko - ${paymentType}`,
             customerEmail,
             customerName,
-            preselectedInvoiceIds: paymentType === "recoveryPrime" ? preselectedInvoiceIds : undefined,
-            metadata: { source: "react_app" },
-        });
+            successUrl: window.location.origin + "/paiements/jeko/success",
+            errorUrl: window.location.origin + "/paiements/jeko/error",
+            metadata: {
+                source: "react_app",
+                timestamp: new Date().toISOString(),
+            },
+        };
+
+        // Ajouter les factures pré-sélectionnées pour recoveryPrime
+        if (paymentType === "recoveryPrime" && preselectedInvoiceIds.length > 0) {
+            paymentData.preselectedInvoiceIds = preselectedInvoiceIds;
+        }
+
+        widgetRef.current.open(paymentData);
     };
 
     return (
-        <button
+        &lt;button
             onClick={handlePayment}
             disabled={!isReady || isLoading}
             className={`btn-pay ${className}`}
@@ -717,19 +1320,63 @@ const JekoPaymentButton = ({
                 fontSize: "15px",
                 cursor: "pointer",
                 width: "100%",
+                transition: "all 0.2s",
                 opacity: (!isReady || isLoading) ? 0.5 : 1,
             }}
-        >
+        &gt;
             {isLoading ? "Chargement..." : (children || "Payer avec Jeko")}
-        </button>
+        &lt;/button&gt;
     );
 };
 
-export default JekoPaymentButton;</code></pre>
+export default JekoPaymentButton;
+
+// ============================================================
+// EXEMPLES D'UTILISATION DES 3 TYPES
+// ============================================================
+
+/*
+// 1) PREMIER PAIEMENT (firstPayment)
+&lt;JekoPaymentButton
+    contractId="1093"
+    paymentType="firstPayment"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    onSuccess={(url) => console.log("Succès", url)}
+    onError={(msg) => console.error("Erreur", msg)}
+&gt;
+    Payer la première prime
+&lt;/JekoPaymentButton&gt;
+
+// 2) PAIEMENT ANTICIPÉ (earlyPayment)
+&lt;JekoPaymentButton
+    contractId="12452"
+    paymentType="earlyPayment"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    onSuccess={(url) => console.log("Succès", url)}
+    onError={(msg) => console.error("Erreur", msg)}
+&gt;
+    Payer en avance
+&lt;/JekoPaymentButton&gt;
+
+// 3) RÉGULARISATION (recoveryPrime) avec pré-sélection
+&lt;JekoPaymentButton
+    contractId="12452"
+    paymentType="recoveryPrime"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    preselectedInvoiceIds={['173669', '3132514']}
+    onSuccess={(url) => console.log("Succès", url)}
+    onError={(msg) => console.error("Erreur", msg)}
+&gt;
+    Régulariser mes impayés
+&lt;/JekoPaymentButton&gt;
+*/</code></pre>
                 </div>
 
                 <div class="info-box">
-                    <strong>⚛️ Exemples d'utilisation :</strong>
+                    <strong>⚛️ Exemples d'utilisation des 3 types :</strong>
                     <div class="separator">
                         <code>firstPayment</code> : <span class="highlight">&lt;JekoPaymentButton contractId="1093" paymentType="firstPayment" /&gt;</span>
                     </div>
@@ -737,22 +1384,155 @@ export default JekoPaymentButton;</code></pre>
                         <code>earlyPayment</code> : <span class="highlight">&lt;JekoPaymentButton contractId="12452" paymentType="earlyPayment" /&gt;</span>
                     </div>
                     <div class="separator">
-                        <code>recoveryPrime</code> : <span class="highlight">&lt;JekoPaymentButton contractId="12452" paymentType="recoveryPrime" preselectedInvoiceIds={['173669']} /&gt;</span>
+                        <code>recoveryPrime</code> : <span class="highlight">&lt;JekoPaymentButton contractId="12452" paymentType="recoveryPrime" preselectedInvoiceIds={['173669', '3132514']} /&gt;</span>
+                    </div>
+                </div>
+
+                <!-- Paramètres React -->
+                <div class="info-box" style="margin-top: 12px; background: #fef9e7; border-left-color: #F7A400;">
+                    <strong>🔧 Props du composant React :</strong>
+                    <div class="separator" style="margin-top: 6px;">
+                        <code>contractId</code> : Identifiant du contrat <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>paymentType</code> : Type de paiement (firstPayment, earlyPayment, recoveryPrime) <span style="color: #6b7280; font-size: 12px;">(défaut: firstPayment)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerEmail</code> : Email du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerName</code> : Nom du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>preselectedInvoiceIds</code> : Factures pré-sélectionnées <span style="color: #6b7280; font-size: 12px;">(optionnel, uniquement pour recoveryPrime)</span>
+                    </div>
+                    <div class="separator">
+                        <code>onSuccess</code> : Callback en cas de succès <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>onError</code> : Callback en cas d'erreur <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>className</code> : Classe CSS personnalisée <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>children</code> : Contenu du bouton <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
                     </div>
                 </div>
             </div>
 
-            <!-- ==========================================================
-            TAB 3: Vue.js
-            ========================================================== -->
+
+            <!-- ============================================================
+TAB 3: Vue.js - Version complète avec 3 types et documentation
+============================================================ -->
             <div class="tab-content" id="tab-vue">
                 <p class="code-description">
-                    Composant Vue.js avec gestion d'état réactive et événements personnalisés.
+                    Composant Vue.js avec les 3 types de paiement.
+                    Gestion d'état réactive, événements personnalisés et props typées.
                 </p>
+
+                <!-- Documentation détaillée Vue.js -->
+                <div style="background: #f8faf9; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #42b883;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; color: #1D603D;">🟢 Documentation d'intégration Vue.js</h4>
+
+                    <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
+                        <p style="margin: 0 0 8px;"><strong>1. Créer le composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// Fichier: components/JekoPaymentButton.vue
+// Copier le code du composant ci-dessous</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env) :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+VUE_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
+VUE_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// 1) Premier paiement
+&lt;JekoPaymentButton contract-id="1093" payment-type="firstPayment" /&gt;
+
+// 2) Paiement anticipé
+&lt;JekoPaymentButton contract-id="12452" payment-type="earlyPayment" /&gt;
+
+// 3) Régularisation avec pré-sélection
+&lt;JekoPaymentButton 
+    contract-id="12452" 
+    payment-type="recoveryPrime" 
+    :preselected-invoice-ids="['173669', '3132514']" 
+/&gt;</pre>
+                    </div>
+                </div>
+
+                <!-- Code Vue.js -->
                 <div class="code-block">
                     <span class="lang-tag">Vue.js</span>
                     <button class="copy-btn" onclick="copyCode(this)">Copier</button>
                     <pre><code>&lt;template&gt;
+    &lt;div&gt;
+        &lt;!-- 1) PREMIER PAIEMENT --&gt;
+        &lt;JekoPaymentButton
+            contract-id="1093"
+            payment-type="firstPayment"
+            customer-email="client@example.com"
+            customer-name="Jean Dupont"
+            label="Payer la première prime"
+            @success="handleSuccess"
+            @error="handleError"
+        /&gt;
+
+        &lt;!-- 2) PAIEMENT ANTICIPÉ --&gt;
+        &lt;JekoPaymentButton
+            :contract-id="earlyContractId"
+            payment-type="earlyPayment"
+            customer-email="client@example.com"
+            customer-name="Jean Dupont"
+            label="Payer en avance"
+            @success="handleSuccess"
+            @error="handleError"
+        /&gt;
+
+        &lt;!-- 3) RÉGULARISATION avec pré-sélection --&gt;
+        &lt;JekoPaymentButton
+            :contract-id="recoveryContractId"
+            payment-type="recoveryPrime"
+            :preselected-invoice-ids="['173669', '3132514']"
+            customer-email="client@example.com"
+            customer-name="Jean Dupont"
+            label="Régulariser mes impayés"
+            @success="handleSuccess"
+            @error="handleError"
+        /&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+import JekoPaymentButton from "./components/JekoPaymentButton.vue";
+
+export default {
+    name: "PaymentPage",
+    components: { JekoPaymentButton },
+    data() {
+        return {
+            earlyContractId: "12452",
+            recoveryContractId: "12452",
+        };
+    },
+    methods: {
+        handleSuccess(redirectUrl, data) {
+            console.log("✅ Paiement réussi", { redirectUrl, data });
+        },
+        handleError(message, data) {
+            console.error("❌ Erreur de paiement", { message, data });
+        },
+    },
+};
+&lt;/script&gt;
+
+&lt;!-- ============================================================ --&gt;
+&lt;!-- COMPOSANT JekoPaymentButton.vue --&gt;
+&lt;!-- ============================================================ --&gt;
+
+&lt;template&gt;
     &lt;button
         @click="handlePayment"
         :disabled="!isReady || isLoading"
@@ -766,12 +1546,39 @@ export default JekoPaymentButton;</code></pre>
 export default {
     name: "JekoPaymentButton",
     props: {
-        contractId: { type: String, required: true },
-        paymentType: { type: String, default: "firstPayment" },
-        customerEmail: { type: String, default: "" },
-        customerName: { type: String, default: "" },
-        preselectedInvoiceIds: { type: Array, default: () => [] },
-        label: { type: String, default: "Payer avec Jeko" },
+        // Identifiant du contrat (obligatoire)
+        contractId: {
+            type: String,
+            required: true,
+        },
+        // Type de paiement: firstPayment | earlyPayment | recoveryPrime
+        paymentType: {
+            type: String,
+            default: "firstPayment",
+            validator: function(value) {
+                return ["firstPayment", "earlyPayment", "recoveryPrime"].includes(value);
+            },
+        },
+        // Email du client
+        customerEmail: {
+            type: String,
+            default: "",
+        },
+        // Nom du client
+        customerName: {
+            type: String,
+            default: "",
+        },
+        // Factures pré-sélectionnées (uniquement pour recoveryPrime)
+        preselectedInvoiceIds: {
+            type: Array,
+            default: () => [],
+        },
+        // Libellé du bouton
+        label: {
+            type: String,
+            default: "Payer avec Jeko",
+        },
     },
     data() {
         return {
@@ -784,53 +1591,144 @@ export default {
         this.loadWidget();
     },
     methods: {
+        /**
+         * Charge le widget Jeko dynamiquement
+         */
         loadWidget() {
             if (window.JekoWidget) {
                 this.initWidget();
                 return;
             }
             const script = document.createElement("script");
-            script.src = "{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}";
+            script.src = process.env.VUE_APP_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
             script.onload = this.initWidget;
+            script.onerror = () => {
+                console.error("❌ Erreur chargement du widget Jeko");
+                this.$emit("error", "Impossible de charger le widget");
+            };
             document.head.appendChild(script);
         },
+
+        /**
+         * Initialise le widget avec la configuration
+         */
         initWidget() {
             this.widget = new JekoWidget({
-                backendEndpoint: "{{ url('/api/v1/paiements/jeko/init') }}",
-                contractCheckEndpoint: "{{ url('/api/v1/paiements/jeko/contrat/verifier') }}",
+                // Endpoint pour initialiser le paiement
+                backendEndpoint: process.env.VUE_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                // Endpoint pour vérifier le contrat
+                contractCheckEndpoint: process.env.VUE_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                // Devise par défaut
                 currency: "XOF",
+                // Timeout de la requête (ms)
+                timeout: 30000,
+                // Vérification automatique du contrat si contractId fourni
                 autoVerifyContract: true,
+                // Headers personnalisés
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
                 },
+                // Callbacks
                 callbacks: {
                     onSuccess: (redirectUrl, data) => {
                         this.isLoading = false;
-                        this.$emit("success", { redirectUrl, data });
+                        this.$emit("success", redirectUrl, data);
                         window.open(redirectUrl, "_blank");
                     },
                     onError: (message, data) => {
                         this.isLoading = false;
-                        this.$emit("error", { message, data });
+                        this.$emit("error", message, data);
                     },
-                    onOpen: () => { this.isLoading = true; },
-                    onClose: () => { this.isLoading = false; },
+                    onOpen: () => {
+                        this.isLoading = true;
+                    },
+                    onClose: () => {
+                        this.isLoading = false;
+                    },
+                },
+                // Personnalisation du thème (optionnel)
+                theme: {
+                    primary: "#1D603D",
+                    primaryDark: "#0B482F",
+                    accent: "#E09518",
+                    radius: "16px",
+                    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    maxWidth: "550px",
+                },
+                // Traductions personnalisées (optionnel)
+                translations: {
+                    title: "Paiement sécurisé",
+                    close: "Fermer",
+                    back: "Retour",
+                    stepContract: "Contrat",
+                    stepMethod: "Paiement",
+                    stepSummary: "Résumé",
+                    chooseMethod: "Choisissez un moyen de paiement",
+                    confirmAndPay: "Confirmer et payer",
+                    processing: "Initialisation du paiement en cours...",
+                    success: "Paiement initialisé",
+                    error: "Échec du paiement",
+                    retry: "Réessayer",
+                    networkError: "Erreur réseau",
+                    requiredField: "Ce champ est requis",
+                    contractIdLabel: "Identifiant du contrat",
+                    contractIdPlaceholder: "Ex: 345678",
+                    verify: "Vérifier le contrat",
+                    verifying: "Vérification en cours...",
+                    loadingContract: "Chargement des informations du contrat...",
                 },
             });
             this.isReady = true;
         },
+
+        /**
+         * Génère une référence unique pour le paiement
+         * Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+         */
+        generateReference() {
+            const now = new Date();
+            const timestamp = now.getTime();
+            const random = Math.random().toString(36).substring(2, 10);
+            const code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            const seconds = String(now.getSeconds()).padStart(2, "0");
+            return `PAI-${year}${month}${day}${hours}${minutes}${seconds}-${timestamp}-${random}-${code}`;
+        },
+
+        /**
+         * Gère le clic sur le bouton de paiement
+         */
         handlePayment() {
             if (!this.widget || !this.isReady) return;
-            const reference = `PAI-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-            this.widget.open({
+
+            const reference = this.generateReference();
+
+            // Construction des données selon le type de paiement
+            const paymentData = {
                 reference,
                 paymentType: this.paymentType,
                 contractId: this.contractId,
+                description: `Paiement via Jeko - ${this.paymentType}`,
                 customerEmail: this.customerEmail,
                 customerName: this.customerName,
-                preselectedInvoiceIds: this.paymentType === "recoveryPrime" ? this.preselectedInvoiceIds : undefined,
-                metadata: { source: "vue_app" },
-            });
+                successUrl: window.location.origin + "/paiements/jeko/success",
+                errorUrl: window.location.origin + "/paiements/jeko/error",
+                metadata: {
+                    source: "vue_app",
+                    timestamp: new Date().toISOString(),
+                },
+            };
+
+            // Ajouter les factures pré-sélectionnées pour recoveryPrime
+            if (this.paymentType === "recoveryPrime" && this.preselectedInvoiceIds.length > 0) {
+                paymentData.preselectedInvoiceIds = this.preselectedInvoiceIds;
+            }
+
+            this.widget.open(paymentData);
         },
     },
 };
@@ -861,32 +1759,148 @@ export default {
                 </div>
 
                 <div class="info-box">
-                    <strong>🟢 Utilisation :</strong>
+                    <strong>🟢 Exemples d'utilisation des 3 types :</strong>
                     <div class="separator"><span class="highlight">&lt;JekoPaymentButton contract-id="1093" payment-type="firstPayment" /&gt;</span></div>
+                    <div class="separator"><span class="highlight">&lt;JekoPaymentButton contract-id="12452" payment-type="earlyPayment" /&gt;</span></div>
                     <div class="separator"><span class="highlight">&lt;JekoPaymentButton contract-id="12452" payment-type="recoveryPrime" :preselected-invoice-ids="['173669', '3132514']" /&gt;</span></div>
+                </div>
+
+                <!-- Paramètres Vue.js -->
+                <div class="info-box" style="margin-top: 12px; background: #fef9e7; border-left-color: #F7A400;">
+                    <strong>🔧 Props du composant Vue.js :</strong>
+                    <div class="separator" style="margin-top: 6px;">
+                        <code>contract-id</code> : Identifiant du contrat <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>payment-type</code> : Type de paiement (firstPayment, earlyPayment, recoveryPrime) <span style="color: #6b7280; font-size: 12px;">(défaut: firstPayment)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customer-email</code> : Email du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customer-name</code> : Nom du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>preselected-invoice-ids</code> : Factures pré-sélectionnées <span style="color: #6b7280; font-size: 12px;">(optionnel, uniquement pour recoveryPrime)</span>
+                    </div>
+                    <div class="separator">
+                        <code>label</code> : Libellé du bouton <span style="color: #6b7280; font-size: 12px;">(défaut: "Payer avec Jeko")</span>
+                    </div>
+                    <div class="separator">
+                        <code>@success</code> : Événement en cas de succès <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>@error</code> : Événement en cas d'erreur <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- ==========================================================
-            TAB 4: Angular
-            ========================================================== -->
+            <!-- ============================================================
+TAB 4: Angular - Version complète avec 3 types et documentation
+============================================================ -->
             <div class="tab-content" id="tab-angular">
                 <p class="code-description">
-                    Service et composant Angular pour une intégration propre et typée.
+                    Service et composant Angular pour une intégration propre avec les 3 types de paiement.
                 </p>
+
+                <!-- Documentation détaillée Angular -->
+                <div style="background: #f8faf9; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #c3002f;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; color: #1D603D;">🅰️ Documentation d'intégration Angular</h4>
+
+                    <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
+                        <p style="margin: 0 0 8px;"><strong>1. Créer le service et le composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// Fichiers:
+// - jeko-widget.service.ts
+// - jeko-payment.component.ts
+// Copier les codes ci-dessous</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>2. Importer le module :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// app.module.ts
+import { JekoPaymentComponent } from './components/jeko-payment.component';
+
+@NgModule({
+    declarations: [JekoPaymentComponent],
+    // ...
+})</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// 1) Premier paiement
+&lt;app-jeko-payment
+    contractId="1093"
+    paymentType="firstPayment"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    label="Payer la première prime"
+    (success)="onPaymentSuccess($event)"
+    (error)="onPaymentError($event)"
+&gt;
+&lt;/app-jeko-payment&gt;</pre>
+                    </div>
+                </div>
+
+                <!-- Code Angular -->
                 <div class="code-block">
                     <span class="lang-tag">Angular</span>
                     <button class="copy-btn" onclick="copyCode(this)">Copier</button>
                     <pre>
-<code>// jeko-widget.service.ts
+<code>// ============================================================
+// jeko-widget.service.ts
+// ============================================================
 import { Injectable, Inject, DOCUMENT } from "@angular/core";
 import { Subject } from "rxjs";
 
+export type PaymentType = "firstPayment" | "earlyPayment" | "recoveryPrime";
+
 export interface JekoWidgetConfig {
+    // Endpoint pour initialiser le paiement
     backendEndpoint: string;
+    // Endpoint pour vérifier le contrat
     contractCheckEndpoint: string;
+    // Devise par défaut
     currency: string;
+    // Headers personnalisés
     headers?: Record&lt;string, string&gt;;
+    // Timeout de la requête (ms)
+    timeout?: number;
+    // Vérification automatique du contrat
+    autoVerifyContract?: boolean;
+    // Personnalisation du thème
+    theme?: {
+        primary?: string;
+        primaryDark?: string;
+        accent?: string;
+        radius?: string;
+        fontFamily?: string;
+        maxWidth?: string;
+    };
+    // Traductions personnalisées
+    translations?: Record&lt;string, string&gt;;
+}
+
+export interface JekoPaymentData {
+    // Référence unique du paiement
+    reference: string;
+    // Type de paiement: firstPayment | earlyPayment | recoveryPrime
+    paymentType: PaymentType;
+    // Identifiant du contrat
+    contractId: string;
+    // Description du paiement
+    description?: string;
+    // Email du client
+    customerEmail?: string;
+    // Nom du client
+    customerName?: string;
+    // Factures pré-sélectionnées (uniquement pour recoveryPrime)
+    preselectedInvoiceIds?: string[];
+    // URL de redirection en cas de succès
+    successUrl?: string;
+    // URL de redirection en cas d'erreur
+    errorUrl?: string;
+    // Métadonnées additionnelles
+    metadata?: any;
 }
 
 @Injectable({ providedIn: "root" })
@@ -898,6 +1912,9 @@ export class JekoWidgetService {
 
     constructor(@Inject(DOCUMENT) private document: Document) {}
 
+    /**
+     * Charge le widget Jeko dynamiquement
+     */
     loadWidget(config: JekoWidgetConfig): Promise&lt;void&gt; {
         return new Promise((resolve) => {
             if (window["JekoWidget"]) {
@@ -906,19 +1923,39 @@ export class JekoWidgetService {
                 return;
             }
             const script = this.document.createElement("script");
-            script.src = "{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}";
-            script.onload = () => { this.initWidget(config); resolve(); };
+            script.src = "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+            script.onload = () => {
+                this.initWidget(config);
+                resolve();
+            };
+            script.onerror = () => {
+                console.error("❌ Erreur chargement du widget Jeko");
+                resolve();
+            };
             this.document.head.appendChild(script);
         });
     }
 
+    /**
+     * Initialise le widget avec la configuration
+     */
     private initWidget(config: JekoWidgetConfig): void {
         if (!window["JekoWidget"]) return;
+
         this.widget = new window["JekoWidget"]({
             backendEndpoint: config.backendEndpoint,
             contractCheckEndpoint: config.contractCheckEndpoint,
             currency: config.currency || "XOF",
+            timeout: config.timeout || 30000,
+            autoVerifyContract: config.autoVerifyContract !== undefined ? config.autoVerifyContract : true,
             headers: config.headers || {},
+            theme: config.theme || {
+                primary: "#1D603D",
+                primaryDark: "#0B482F",
+                accent: "#E09518",
+                radius: "16px",
+            },
+            translations: config.translations || {},
             callbacks: {
                 onSuccess: (url: string, data: any) => {
                     this.successSubject.next({ redirectUrl: url, data });
@@ -932,22 +1969,64 @@ export class JekoWidgetService {
         this.isReady = true;
     }
 
-    openPayment(data: any): void {
-        if (!this.widget || !this.isReady) return;
+    /**
+     * Ouvre le widget avec les données de paiement
+     */
+    openPayment(data: JekoPaymentData): void {
+        if (!this.widget || !this.isReady) {
+            console.error("❌ Widget Jeko non prêt");
+            return;
+        }
         this.widget.open(data);
     }
 
-    get onSuccess() { return this.successSubject.asObservable(); }
-    get onError() { return this.errorSubject.asObservable(); }
+    /**
+     * Observable des événements de succès
+     */
+    get onSuccess() {
+        return this.successSubject.asObservable();
+    }
 
+    /**
+     * Observable des événements d'erreur
+     */
+    get onError() {
+        return this.errorSubject.asObservable();
+    }
+
+    /**
+     * Ferme le widget
+     */
     close(): void {
-        if (this.widget) this.widget.close();
+        if (this.widget) {
+            this.widget.close();
+        }
+    }
+
+    /**
+     * Génère une référence unique pour le paiement
+     * Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+     */
+    generateReference(): string {
+        const now = new Date();
+        const timestamp = now.getTime();
+        const random = Math.random().toString(36).substring(2, 10);
+        const code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
+        return `PAI-${year}${month}${day}${hours}${minutes}${seconds}-${timestamp}-${random}-${code}`;
     }
 }
 
+// ============================================================
 // jeko-payment.component.ts
-import { Component, Input, OnInit } from "@angular/core";
-import { JekoWidgetService } from "./jeko-widget.service";
+// ============================================================
+import { Component, Input, OnInit, Output, EventEmitter } from "@angular/core";
+import { JekoWidgetService, PaymentType } from "./jeko-widget.service";
 
 @Component({
     selector: "app-jeko-payment",
@@ -971,21 +2050,34 @@ import { JekoWidgetService } from "./jeko-widget.service";
             font-size: 15px;
             cursor: pointer;
             width: 100%;
+            transition: all 0.2s;
         }
         .btn-pay:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(29, 96, 61, 0.3);
         }
-        .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-pay:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     `]
 })
 export class JekoPaymentComponent implements OnInit {
+    // Identifiant du contrat (obligatoire)
     @Input() contractId!: string;
-    @Input() paymentType: string = "firstPayment";
+    // Type de paiement: firstPayment | earlyPayment | recoveryPrime
+    @Input() paymentType: PaymentType = "firstPayment";
+    // Email du client
     @Input() customerEmail: string = "";
+    // Nom du client
     @Input() customerName: string = "";
+    // Factures pré-sélectionnées (uniquement pour recoveryPrime)
     @Input() preselectedInvoiceIds: string[] = [];
+    // Libellé du bouton
     @Input() label: string = "Payer avec Jeko";
+
+    @Output() success = new EventEmitter&lt;{ redirectUrl: string; data: any }&gt;();
+    @Output() error = new EventEmitter&lt;{ message: string; data?: any }&gt;();
 
     isReady = false;
     isLoading = false;
@@ -993,39 +2085,197 @@ export class JekoPaymentComponent implements OnInit {
     constructor(private widgetService: JekoWidgetService) {}
 
     ngOnInit(): void {
-        this.widgetService.loadWidget({
-            backendEndpoint: "{{ url('/api/v1/paiements/jeko/init') }}",
-            contractCheckEndpoint: "{{ url('/api/v1/paiements/jeko/contrat/verifier') }}",
+        // Configuration du widget
+        const config: JekoWidgetConfig = {
+            backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+            contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
             currency: "XOF",
-        }).then(() => { this.isReady = true; });
+            timeout: 30000,
+            autoVerifyContract: true,
+            theme: {
+                primary: "#1D603D",
+                primaryDark: "#0B482F",
+                accent: "#E09518",
+                radius: "16px",
+            },
+            translations: {
+                title: "Paiement sécurisé",
+                close: "Fermer",
+                back: "Retour",
+                stepContract: "Contrat",
+                stepMethod: "Paiement",
+                stepSummary: "Résumé",
+                chooseMethod: "Choisissez un moyen de paiement",
+                confirmAndPay: "Confirmer et payer",
+                processing: "Initialisation du paiement en cours...",
+            },
+        };
+
+        this.widgetService.loadWidget(config).then(() => {
+            this.isReady = true;
+        });
+
+        this.widgetService.onSuccess.subscribe((result) => {
+            this.isLoading = false;
+            this.success.emit(result);
+        });
+
+        this.widgetService.onError.subscribe((result) => {
+            this.isLoading = false;
+            this.error.emit(result);
+        });
     }
 
+    /**
+     * Gère le clic sur le bouton de paiement
+     */
     handlePayment(): void {
         if (!this.isReady) return;
+
         this.isLoading = true;
-        const reference = `PAI-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-        this.widgetService.openPayment({
+        const reference = this.widgetService.generateReference();
+
+        // Construction des données selon le type de paiement
+        const paymentData: any = {
             reference,
             paymentType: this.paymentType,
             contractId: this.contractId,
+            description: `Paiement via Jeko - ${this.paymentType}`,
             customerEmail: this.customerEmail,
             customerName: this.customerName,
-            preselectedInvoiceIds: this.paymentType === "recoveryPrime" ? this.preselectedInvoiceIds : undefined,
-            metadata: { source: "angular_app" },
-        });
+            successUrl: window.location.origin + "/paiements/jeko/success",
+            errorUrl: window.location.origin + "/paiements/jeko/error",
+            metadata: {
+                source: "angular_app",
+                timestamp: new Date().toISOString(),
+            },
+        };
+
+        // Ajouter les factures pré-sélectionnées pour recoveryPrime
+        if (this.paymentType === "recoveryPrime" && this.preselectedInvoiceIds.length > 0) {
+            paymentData.preselectedInvoiceIds = this.preselectedInvoiceIds;
+        }
+
+        this.widgetService.openPayment(paymentData);
     }
-}</code>
+}
+
+// ============================================================
+// EXEMPLES D'UTILISATION DES 3 TYPES
+// ============================================================
+
+/*
+// 1) PREMIER PAIEMENT (firstPayment)
+&lt;app-jeko-payment
+    contractId="1093"
+    paymentType="firstPayment"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    label="Payer la première prime"
+    (success)="onPaymentSuccess($event)"
+    (error)="onPaymentError($event)"
+&gt;
+&lt;/app-jeko-payment&gt;
+
+// 2) PAIEMENT ANTICIPÉ (earlyPayment)
+&lt;app-jeko-payment
+    contractId="12452"
+    paymentType="earlyPayment"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    label="Payer en avance"
+    (success)="onPaymentSuccess($event)"
+    (error)="onPaymentError($event)"
+&gt;
+&lt;/app-jeko-payment&gt;
+
+// 3) RÉGULARISATION (recoveryPrime) avec pré-sélection
+&lt;app-jeko-payment
+    contractId="12452"
+    paymentType="recoveryPrime"
+    [preselectedInvoiceIds]="['173669', '3132514']"
+    customerEmail="client@example.com"
+    customerName="Jean Dupont"
+    label="Régulariser mes impayés"
+    (success)="onPaymentSuccess($event)"
+    (error)="onPaymentError($event)"
+&gt;
+&lt;/app-jeko-payment&gt;
+*/</code>
 </pre>
+                </div>
+
+                <!-- Paramètres Angular -->
+                <div class="info-box" style="margin-top: 12px; background: #fef9e7; border-left-color: #F7A400;">
+                    <strong>🔧 Inputs du composant Angular :</strong>
+                    <div class="separator" style="margin-top: 6px;">
+                        <code>contractId</code> : Identifiant du contrat <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>paymentType</code> : Type de paiement (firstPayment, earlyPayment, recoveryPrime) <span style="color: #6b7280; font-size: 12px;">(défaut: firstPayment)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerEmail</code> : Email du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerName</code> : Nom du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>preselectedInvoiceIds</code> : Factures pré-sélectionnées <span style="color: #6b7280; font-size: 12px;">(optionnel, uniquement pour recoveryPrime)</span>
+                    </div>
+                    <div class="separator">
+                        <code>label</code> : Libellé du bouton <span style="color: #6b7280; font-size: 12px;">(défaut: "Payer avec Jeko")</span>
+                    </div>
+                    <div class="separator">
+                        <code>success</code> : Événement en cas de succès <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>error</code> : Événement en cas d'erreur <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- ==========================================================
-            TAB 5: Next.js
-            ========================================================== -->
+            <!-- ============================================================
+TAB 5: Next.js - Version complète avec 3 types et documentation
+============================================================ -->
             <div class="tab-content" id="tab-nextjs">
                 <p class="code-description">
-                    Composant Next.js avec App Router et "use client" pour le chargement côté client.
+                    Composant Next.js avec App Router et "use client" pour les 3 types de paiement.
                 </p>
+
+                <!-- Documentation détaillée Next.js -->
+                <div style="background: #f8faf9; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #000;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; color: #1D603D;">▲ Documentation d'intégration Next.js</h4>
+
+                    <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
+                        <p style="margin: 0 0 8px;"><strong>1. Créer le composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// Fichier: components/JekoPaymentButton.tsx
+// Copier le code du composant ci-dessous</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env.local) :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
+NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// 1) Premier paiement
+&lt;JekoPaymentButton contractId="1093" paymentType="firstPayment" /&gt;
+
+// 2) Paiement anticipé
+&lt;JekoPaymentButton contractId="12452" paymentType="earlyPayment" /&gt;
+
+// 3) Régularisation avec pré-sélection
+&lt;JekoPaymentButton 
+    contractId="12452" 
+    paymentType="recoveryPrime" 
+    preselectedInvoiceIds={['173669', '3132514']} 
+/&gt;</pre>
+                    </div>
+                </div>
+
+                <!-- Code Next.js -->
                 <div class="code-block">
                     <span class="lang-tag">Next.js</span>
                     <button class="copy-btn" onclick="copyCode(this)">Copier</button>
@@ -1033,15 +2283,29 @@ export class JekoPaymentComponent implements OnInit {
 
 import React, { useState, useEffect, useRef } from "react";
 
+// ============================================================
+// TYPES
+// ============================================================
+type PaymentType = "firstPayment" | "earlyPayment" | "recoveryPrime";
+
 interface JekoPaymentButtonProps {
+    // Identifiant du contrat (obligatoire)
     contractId: string;
-    paymentType?: "firstPayment" | "earlyPayment" | "recoveryPrime";
+    // Type de paiement: firstPayment | earlyPayment | recoveryPrime
+    paymentType?: PaymentType;
+    // Email du client
     customerEmail?: string;
+    // Nom du client
     customerName?: string;
+    // Factures pré-sélectionnées (uniquement pour recoveryPrime)
     preselectedInvoiceIds?: string[];
+    // Callback en cas de succès
     onSuccess?: (redirectUrl: string, data: any) => void;
+    // Callback en cas d'erreur
     onError?: (message: string, data?: any) => void;
+    // Classe CSS personnalisée
     className?: string;
+    // Contenu du bouton
     children?: React.ReactNode;
 }
 
@@ -1051,18 +2315,30 @@ declare global {
     }
 }
 
+// ============================================================
+// CHARGEMENT DYNAMIQUE DU WIDGET
+// ============================================================
 const loadJekoWidget = (): Promise&lt;any&gt; => {
     return new Promise((resolve) => {
-        if (typeof window === "undefined") return resolve(null);
-        if (window.JekoWidget) return resolve(window.JekoWidget);
+        if (typeof window === "undefined") {
+            resolve(null);
+            return;
+        }
+        if (window.JekoWidget) {
+            resolve(window.JekoWidget);
+            return;
+        }
         const script = document.createElement("script");
-        script.src = "{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}";
+        script.src = process.env.NEXT_PUBLIC_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
         script.onload = () => resolve(window.JekoWidget);
         script.onerror = () => resolve(null);
         document.head.appendChild(script);
     });
 };
 
+// ============================================================
+// COMPOSANT PRINCIPAL
+// ============================================================
 export const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
     contractId,
     paymentType = "firstPayment",
@@ -1079,59 +2355,133 @@ export const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
     const widgetRef = useRef&lt;any&gt;(null);
 
     useEffect(() => {
-        const init = async () => {
+        const initWidget = async () => {
             try {
                 const JekoWidget = await loadJekoWidget();
                 if (!JekoWidget) {
-                    console.error("JekoWidget non chargé");
+                    console.error("❌ JekoWidget non chargé");
                     return;
                 }
+
                 widgetRef.current = new JekoWidget({
-                    backendEndpoint: process.env.NEXT_PUBLIC_JEKO_API_URL || "{{ url('/api/v1/paiements/jeko/init') }}",
-                    contractCheckEndpoint: process.env.NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL || "{{ url('/api/v1/paiements/jeko/contrat/verifier') }}",
+                    // Endpoint pour initialiser le paiement
+                    backendEndpoint: process.env.NEXT_PUBLIC_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                    // Endpoint pour vérifier le contrat
+                    contractCheckEndpoint: process.env.NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                    // Devise par défaut
                     currency: "XOF",
+                    // Timeout de la requête (ms)
+                    timeout: 30000,
+                    // Vérification automatique du contrat si contractId fourni
                     autoVerifyContract: true,
+                    // Headers personnalisés
                     headers: {
                         "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "",
                     },
+                    // Callbacks
                     callbacks: {
-                        onSuccess: (url: string, data: any) => {
+                        onSuccess: (redirectUrl: string, data: any) => {
                             setIsLoading(false);
-                            onSuccess?.(url, data);
-                            window.open(url, "_blank");
+                            onSuccess?.(redirectUrl, data);
+                            window.open(redirectUrl, "_blank");
                         },
-                        onError: (msg: string, data: any) => {
+                        onError: (message: string, data: any) => {
                             setIsLoading(false);
-                            onError?.(msg, data);
+                            onError?.(message, data);
                         },
                         onOpen: () => setIsLoading(true),
                         onClose: () => setIsLoading(false),
                     },
+                    // Personnalisation du thème (optionnel)
+                    theme: {
+                        primary: "#1D603D",
+                        primaryDark: "#0B482F",
+                        accent: "#E09518",
+                        radius: "16px",
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        maxWidth: "550px",
+                    },
+                    // Traductions personnalisées (optionnel)
+                    translations: {
+                        title: "Paiement sécurisé",
+                        close: "Fermer",
+                        back: "Retour",
+                        stepContract: "Contrat",
+                        stepMethod: "Paiement",
+                        stepSummary: "Résumé",
+                        chooseMethod: "Choisissez un moyen de paiement",
+                        confirmAndPay: "Confirmer et payer",
+                        processing: "Initialisation du paiement en cours...",
+                        success: "Paiement initialisé",
+                        error: "Échec du paiement",
+                        retry: "Réessayer",
+                        networkError: "Erreur réseau",
+                        requiredField: "Ce champ est requis",
+                        contractIdLabel: "Identifiant du contrat",
+                        contractIdPlaceholder: "Ex: 345678",
+                        verify: "Vérifier le contrat",
+                        verifying: "Vérification en cours...",
+                        loadingContract: "Chargement des informations du contrat...",
+                    },
                 });
                 setIsReady(true);
             } catch (error) {
+                console.error("❌ Erreur chargement widget Jeko:", error);
                 onError?.(error instanceof Error ? error.message : "Erreur inconnue");
             }
         };
-        init();
-    }, []);
+        initWidget();
+    }, [onSuccess, onError]);
+
+    /**
+     * Génère une référence unique pour le paiement
+     * Format: PAI-YYYYMMDDHHMMSS-TIMESTAMP-RANDOM-CODE
+     */
+    const generateReference = (): string => {
+        const now = new Date();
+        const timestamp = now.getTime();
+        const random = Math.random().toString(36).substring(2, 10);
+        const code = String(Math.floor(Math.random() * 9999) + 1).padStart(4, "0");
+        const date = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, "0") +
+            String(now.getDate()).padStart(2, "0") +
+            String(now.getHours()).padStart(2, "0") +
+            String(now.getMinutes()).padStart(2, "0") +
+            String(now.getSeconds()).padStart(2, "0");
+        return `PAI-${date}-${timestamp}-${random}-${code}`;
+    };
 
     const handlePayment = () => {
         if (!widgetRef.current || !isReady) return;
-        const reference = `PAI-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-        widgetRef.current.open({
+
+        const reference = generateReference();
+
+        // Construction des données selon le type de paiement
+        const paymentData: any = {
             reference,
             paymentType,
             contractId,
+            description: `Paiement via Jeko - ${paymentType}`,
             customerEmail,
             customerName,
-            preselectedInvoiceIds: paymentType === "recoveryPrime" ? preselectedInvoiceIds : undefined,
-            metadata: { source: "nextjs_app" },
-        });
+            successUrl: window.location.origin + "/paiements/jeko/success",
+            errorUrl: window.location.origin + "/paiements/jeko/error",
+            metadata: {
+                source: "nextjs_app",
+                timestamp: new Date().toISOString(),
+            },
+        };
+
+        // Ajouter les factures pré-sélectionnées pour recoveryPrime
+        if (paymentType === "recoveryPrime" && preselectedInvoiceIds.length > 0) {
+            paymentData.preselectedInvoiceIds = preselectedInvoiceIds;
+        }
+
+        widgetRef.current.open(paymentData);
     };
 
     return (
-        <button
+        &lt;button
             onClick={handlePayment}
             disabled={!isReady || isLoading}
             className={`btn-pay ${className}`}
@@ -1145,15 +2495,84 @@ export const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
                 fontSize: "15px",
                 cursor: "pointer",
                 width: "100%",
+                transition: "all 0.2s",
                 opacity: (!isReady || isLoading) ? 0.5 : 1,
             }}
-        >
+        &gt;
             {isLoading ? "Chargement..." : (children || "Payer avec Jeko")}
-        </button>
+        &lt;/button&gt;
     );
 };
 
-export default JekoPaymentButton;</code></pre>
+export default JekoPaymentButton;
+
+// ============================================================
+// PAGE D'EXEMPLE (app/page.tsx)
+// ============================================================
+
+import { JekoPaymentButton } from "@/components/JekoPaymentButton";
+
+export default function PaymentPage() {
+    const handleSuccess = (redirectUrl: string, data: any) => {
+        console.log("✅ Paiement réussi", { redirectUrl, data });
+    };
+
+    const handleError = (message: string, data?: any) => {
+        console.error("❌ Erreur de paiement", { message, data });
+    };
+
+    return (
+        &lt;div style={{ maxWidth: 500, margin: "40px auto", padding: "0 20px" }}&gt;
+            &lt;h1&gt;💳 Paiement sécurisé&lt;/h1&gt;
+
+            &lt;h3&gt;1️⃣ Premier paiement (firstPayment)&lt;/h3&gt;
+            &lt;p style={{ color: "#6b7280", fontSize: "14px" }}&gt;
+                Après validation d'un nouveau contrat. La vérification est automatique.
+            &lt;/p&gt;
+            &lt;JekoPaymentButton
+                contractId="1093"
+                paymentType="firstPayment"
+                customerEmail="client@example.com"
+                customerName="Jean Dupont"
+                onSuccess={handleSuccess}
+                onError={handleError}
+            &gt;
+                Payer la première prime
+            &lt;/JekoPaymentButton&gt;
+
+            &lt;h3 style={{ marginTop: "24px" }}&gt;2️⃣ Paiement anticipé (earlyPayment)&lt;/h3&gt;
+            &lt;p style={{ color: "#6b7280", fontSize: "14px" }}&gt;
+                Le client renseigne son identifiant de contrat. La vérification est automatique.
+            &lt;/p&gt;
+            &lt;JekoPaymentButton
+                contractId="12452"
+                paymentType="earlyPayment"
+                customerEmail="client@example.com"
+                customerName="Jean Dupont"
+                onSuccess={handleSuccess}
+                onError={handleError}
+            &gt;
+                Payer en avance
+            &lt;/JekoPaymentButton&gt;
+
+            &lt;h3 style={{ marginTop: "24px" }}&gt;3️⃣ Régularisation (recoveryPrime)&lt;/h3&gt;
+            &lt;p style={{ color: "#6b7280", fontSize: "14px" }}&gt;
+                Le client sélectionne les factures en attente. Pré-sélection possible.
+            &lt;/p&gt;
+            &lt;JekoPaymentButton
+                contractId="12452"
+                paymentType="recoveryPrime"
+                preselectedInvoiceIds={['173669', '3132514']}
+                customerEmail="client@example.com"
+                customerName="Jean Dupont"
+                onSuccess={handleSuccess}
+                onError={handleError}
+            &gt;
+                Régulariser mes impayés
+            &lt;/JekoPaymentButton&gt;
+        &lt;/div&gt;
+    );
+}</code></pre>
                 </div>
 
                 <div class="info-box">
@@ -1162,37 +2581,86 @@ export default JekoPaymentButton;</code></pre>
                         Ajoutez ces variables dans votre <code>.env.local</code> :
                     </div>
                     <div class="separator">
-                        <code>NEXT_PUBLIC_JEKO_API_URL={{ url('/api/v1/paiements/jeko/init') }}</code>
+                        <code>NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init</code>
                     </div>
                     <div class="separator">
-                        <code>NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ url('/api/v1/paiements/jeko/contrat/verifier') }}</code>
+                        <code>NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</code>
+                    </div>
+                </div>
+
+                <!-- Paramètres Next.js -->
+                <div class="info-box" style="margin-top: 12px; background: #fef9e7; border-left-color: #F7A400;">
+                    <strong>🔧 Props du composant Next.js :</strong>
+                    <div class="separator" style="margin-top: 6px;">
+                        <code>contractId</code> : Identifiant du contrat <span style="color: #6b7280; font-size: 12px;">(obligatoire)</span>
+                    </div>
+                    <div class="separator">
+                        <code>paymentType</code> : Type de paiement (firstPayment, earlyPayment, recoveryPrime) <span style="color: #6b7280; font-size: 12px;">(défaut: firstPayment)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerEmail</code> : Email du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>customerName</code> : Nom du client <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>preselectedInvoiceIds</code> : Factures pré-sélectionnées <span style="color: #6b7280; font-size: 12px;">(optionnel, uniquement pour recoveryPrime)</span>
+                    </div>
+                    <div class="separator">
+                        <code>onSuccess</code> : Callback en cas de succès <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>onError</code> : Callback en cas d'erreur <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>className</code> : Classe CSS personnalisée <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                    <div class="separator">
+                        <code>children</code> : Contenu du bouton <span style="color: #6b7280; font-size: 12px;">(optionnel)</span>
+                    </div>
+                </div>
+
+                <!-- Récapitulatif des 3 types pour Next.js -->
+                <div class="info-box" style="margin-top: 12px;">
+                    <strong>📌 Récapitulatif des 3 types de paiement :</strong>
+                    <div class="separator">
+                        <code>firstPayment</code> : <span class="highlight">&lt;JekoPaymentButton contractId="1093" paymentType="firstPayment" /&gt;</span>
+                        <span style="color: #6b7280; font-size: 12px; display: block; margin-left: 16px;">— Premier paiement d'un contrat (souscription)</span>
+                    </div>
+                    <div class="separator">
+                        <code>earlyPayment</code> : <span class="highlight">&lt;JekoPaymentButton contractId="12452" paymentType="earlyPayment" /&gt;</span>
+                        <span style="color: #6b7280; font-size: 12px; display: block; margin-left: 16px;">— Paiement anticipé des primes</span>
+                    </div>
+                    <div class="separator">
+                        <code>recoveryPrime</code> : <span class="highlight">&lt;JekoPaymentButton contractId="12452" paymentType="recoveryPrime" preselectedInvoiceIds={['173669', '3132514']} /&gt;</span>
+                        <span style="color: #6b7280; font-size: 12px; display: block; margin-left: 16px;">— Régularisation de primes impayées avec pré-sélection</span>
                     </div>
                 </div>
             </div>
+
+
+            <!-- ============================================================
+            NOTE DE BAS
+            ============================================================ -->
+            <div class="info-box" style="margin-top:24px;">
+                <strong>🔒 Sécurité :</strong>
+                <div class="separator">• Le widget n'appelle <strong>JAMAIS</strong> l'API Jeko directement</div>
+                <div class="separator">• Toutes les clés secrètes restent côté serveur</div>
+                <div class="separator">• Le montant est <strong>recalculé et vérifié côté serveur</strong> pour éviter toute fraude</div>
+                <div class="separator">• API accessible via <code>{{ BASE_URL }}/api/v1/paiements/jeko/...</code></div>
+            </div>
         </div>
+        @endverbatim
 
         <!-- ============================================================
-        NOTE DE BAS
-        ============================================================ -->
-        <div class="info-box" style="margin-top:24px;">
-            <strong>🔒 Sécurité :</strong>
-            <div class="separator">• Le widget n'appelle <strong>JAMAIS</strong> l'API Jeko directement</div>
-            <div class="separator">• Toutes les clés secrètes restent côté serveur</div>
-            <div class="separator">• Le montant est <strong>recalculé et vérifié côté serveur</strong> pour éviter toute fraude</div>
-            <div class="separator">• API accessible via <code>/api/v1/paiements/jeko/...</code></div>
-        </div>
-    </div>
-    @endverbatim
-
-    <!-- ============================================================
     CHARGEMENT DU WIDGET
     ============================================================ -->
-    <script src="{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}"></script>
+        <script src="{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}"></script>
 
-    <!-- ============================================================
+        <!-- ============================================================
     CODE PRINCIPAL
     ============================================================ -->
-    <script src="{{ asset('assets/js/demo-jeko-widget.js') }}"></script>
+        <script src="{{ asset('assets/js/demo-jeko-widget.js') }}"></script>
 
 </body>
 
