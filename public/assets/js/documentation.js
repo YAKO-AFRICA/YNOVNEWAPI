@@ -128,6 +128,31 @@
                     icon: 'fa-bell'
                 },
 
+                jour_feries: {
+                    label: 'Jours Fériés',
+                    icon: 'fa-calendar-day'
+                },
+
+                type_produits: {
+                    label: 'Types de Produits',
+                    icon: 'fa-tags'
+                },
+                produits: {
+                    label: 'Gestion des Produits',
+                    icon: 'fa-boxes'
+                },
+
+                prestations: {
+                    label: 'Prestations & Catégories',
+                    icon: 'fa-clipboard-list'
+                },
+                
+
+                rdvs: {
+                    label: 'Rendez-vous',
+                    icon: 'fa-calendar-check'
+                },
+
                 espaces_client: {
                     label: 'Espace Client',
                     icon: 'fa-user-tie'
@@ -5042,11 +5067,171 @@
                 // ============================================================
                 // 3.17 AGENCES
                 // ============================================================
+                // {
+                //     id: 'agences-list',
+                //     module: 'agences',
+                //     name: 'Liste des agences',
+                //     description: 'Récupère la liste des agences avec filtres (ville, quartier, statut, réseau, recherche textuelle, agences ouvertes, géolocalisation). Retourne également les horaires avec la configuration des rendez-vous par jour.',
+                //     method: 'GET',
+                //     path: '/agences',
+                //     isProtected: true,
+                //     permissionsRequired: ['agences.afficher'],
+                //     headers: {
+                //         'Authorization': 'Bearer {token}',
+                //         'Accept': 'application/json'
+                //     },
+                //     requestParams: {
+                //         query: {
+                //             per_page: {
+                //                 type: 'integer',
+                //                 required: false,
+                //                 default: 20,
+                //                 description: 'Nombre par page'
+                //             },
+                //             status: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 enum: ['actif', 'inactif'],
+                //                 description: 'Filtrer par statut'
+                //             },
+                //             reseau_uuid: {
+                //                 type: 'uuid',
+                //                 required: false,
+                //                 description: 'Filtrer par réseau'
+                //             },
+                //             ville: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 description: 'Filtrer par ville'
+                //             },
+                //             quartier: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 description: 'Filtrer par quartier'
+                //             },
+                //             search: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 description: 'Recherche textuelle (libellé, description, adresse)'
+                //             },
+                //             open_now: {
+                //                 type: 'boolean',
+                //                 required: false,
+                //                 description: 'Filtrer les agences ouvertes actuellement'
+                //             },
+                //             latitude: {
+                //                 type: 'number',
+                //                 required: false,
+                //                 description: 'Latitude pour recherche à proximité'
+                //             },
+                //             longitude: {
+                //                 type: 'number',
+                //                 required: false,
+                //                 description: 'Longitude pour recherche à proximité'
+                //             },
+                //             radius: {
+                //                 type: 'number',
+                //                 required: false,
+                //                 default: 10,
+                //                 description: 'Rayon en kilomètres (1-100)'
+                //             }
+                //         }
+                //     },
+                //     responses: [{
+                //         status: 200,
+                //         description: 'Liste des agences avec horaires et configuration rendez-vous',
+                //         example: {
+                //             success: true,
+                //             code: 'AGENCES_LISTED',
+                //             message: 'Liste des agences récupérée.',
+                //             data: [{
+                //                 uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                //                 code: 'AG001',
+                //                 libelle: 'YAKO Plateau',
+                //                 description: 'Agence principale du Plateau',
+                //                 adresse: 'Av. Chardy, Imm. Alpha 2000',
+                //                 ville: 'Abidjan',
+                //                 quartier: 'Plateau',
+                //                 telephone: '+2252720304050',
+                //                 email: 'plateau@yako.ci',
+                //                 latitude: 5.3364,
+                //                 longitude: -4.0271,
+                //                 status: 'actif',
+                //                 is_open: true,
+                //                 is_rdv_actif_aujourdhui: true,
+                //                 horaires: {
+                //                     lundi: {
+                //                         jour: 'lundi',
+                //                         jour_label: 'Lundi',
+                //                         heure_ouverture: '08:00',
+                //                         heure_fermeture: '17:30',
+                //                         heure_ouverture_midi: null,
+                //                         heure_fermeture_midi: null,
+                //                         ferme: false,
+                //                         commentaire: null,
+                //                         rendez_vous_actif: true,
+                //                         capacite_rendez_vous: 10
+                //                     },
+                //                     mardi: {
+                //                         jour: 'mardi',
+                //                         jour_label: 'Mardi',
+                //                         heure_ouverture: '08:00',
+                //                         heure_fermeture: '17:30',
+                //                         ferme: false,
+                //                         rendez_vous_actif: true,
+                //                         capacite_rendez_vous: 10
+                //                     },
+                //                     mercredi: {
+                //                         jour: 'mercredi',
+                //                         jour_label: 'Mercredi',
+                //                         heure_ouverture: '08:00',
+                //                         heure_fermeture: '17:30',
+                //                         ferme: false,
+                //                         rendez_vous_actif: true,
+                //                         capacite_rendez_vous: 8
+                //                     },
+                //                     samedi: {
+                //                         jour: 'samedi',
+                //                         jour_label: 'Samedi',
+                //                         heure_ouverture: '08:00',
+                //                         heure_fermeture: '12:00',
+                //                         ferme: false,
+                //                         rendez_vous_actif: false,
+                //                         capacite_rendez_vous: null
+                //                     },
+                //                     dimanche: {
+                //                         jour: 'dimanche',
+                //                         jour_label: 'Dimanche',
+                //                         heure_ouverture: null,
+                //                         heure_fermeture: null,
+                //                         ferme: true,
+                //                         rendez_vous_actif: false,
+                //                         capacite_rendez_vous: null
+                //                     }
+                //                 },
+                //                 reseau: {
+                //                     uuid_reseau: '...',
+                //                     libelle: 'Réseau Abidjan'
+                //                 }
+                //             }],
+                //             meta: {
+                //                 current_page: 1,
+                //                 per_page: 20,
+                //                 total: 1,
+                //                 last_page: 1
+                //             }
+                //         }
+                //     }]
+                // },
+                // ============================================================
+
+                // 3.17 AGENCES
+                // ============================================================
                 {
                     id: 'agences-list',
                     module: 'agences',
                     name: 'Liste des agences',
-                    description: 'Récupère la liste des agences avec filtres (ville, quartier, statut, réseau, recherche textuelle, agences ouvertes, géolocalisation).',
+                    description: 'Récupère la liste des agences avec filtres (ville, quartier, statut, réseau, recherche textuelle, agences ouvertes, géolocalisation). Retourne également les horaires avec la configuration des rendez-vous par jour.',
                     method: 'GET',
                     path: '/agences',
                     isProtected: true,
@@ -5114,10 +5299,54 @@
                     },
                     responses: [{
                         status: 200,
-                        description: 'Liste des agences',
+                        description: 'Liste des agences avec horaires et configuration rendez-vous',
                         example: {
                             success: true,
-                            data: []
+                            message: 'Liste des agences récupérée.',
+                            code: 'AGENCES_LISTED',
+                            data: [{
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'AG001',
+                                libelle: 'YAKO Plateau',
+                                adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                ville: 'Abidjan',
+                                quartier: 'Plateau',
+                                telephone: '+2252720304050',
+                                email: 'plateau@yako.ci',
+                                latitude: 5.3364,
+                                longitude: -4.0271,
+                                status: 'actif',
+                                is_open: true,
+                                is_rdv_actif_aujourdhui: true,
+                                horaires: {
+                                    lundi: {
+                                        jour: 'lundi',
+                                        jour_label: 'Lundi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    },
+                                    dimanche: {
+                                        jour: 'dimanche',
+                                        jour_label: 'Dimanche',
+                                        ferme: true,
+                                        rendez_vous_actif: false,
+                                        capacite_rendez_vous: null
+                                    }
+                                },
+                                reseau: {
+                                    uuid_reseau: '...',
+                                    libelle: 'Réseau Abidjan'
+                                }
+                            }],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 1,
+                                last_page: 1
+                            }
                         }
                     }]
                 },
@@ -5126,7 +5355,7 @@
                     id: 'agences-create',
                     module: 'agences',
                     name: 'Créer une agence',
-                    description: 'Crée une nouvelle agence avec ses informations (contact, horaires, géolocalisation).',
+                    description: 'Crée une nouvelle agence avec ses informations (contact, horaires, géolocalisation). Chaque horaire peut être configuré pour les rendez-vous avec `rendez_vous_actif` et `capacite_rendez_vous`.',
                     method: 'POST',
                     path: '/agences',
                     isProtected: true,
@@ -5258,31 +5487,37 @@
                             },
                             'horaires.*.jour': {
                                 type: 'string',
+                                required: true,
                                 enum: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'],
                                 description: 'Jour de la semaine'
                             },
                             'horaires.*.heure_ouverture': {
                                 type: 'string',
                                 format: 'H:i',
+                                required: false,
                                 description: 'Heure d\'ouverture'
                             },
                             'horaires.*.heure_fermeture': {
                                 type: 'string',
                                 format: 'H:i',
+                                required: false,
                                 description: 'Heure de fermeture'
                             },
                             'horaires.*.heure_ouverture_midi': {
                                 type: 'string',
                                 format: 'H:i',
+                                required: false,
                                 description: 'Heure d\'ouverture après la pause midi'
                             },
                             'horaires.*.heure_fermeture_midi': {
                                 type: 'string',
                                 format: 'H:i',
+                                required: false,
                                 description: 'Heure de fermeture pour la pause midi'
                             },
                             'horaires.*.ferme': {
                                 type: 'boolean',
+                                required: false,
                                 default: false,
                                 description: 'Fermé ce jour'
                             },
@@ -5291,6 +5526,18 @@
                                 required: false,
                                 max: 255,
                                 description: 'Commentaire'
+                            },
+                            'horaires.*.rendez_vous_actif': {
+                                type: 'boolean',
+                                required: false,
+                                default: false,
+                                description: 'L\'agence reçoit sur rendez-vous ce jour'
+                            },
+                            'horaires.*.capacite_rendez_vous': {
+                                type: 'integer',
+                                required: false,
+                                min: 0,
+                                description: 'Capacité maximale de rendez-vous pour ce jour'
                             }
                         }
                     },
@@ -5305,48 +5552,71 @@
                         latitude: 5.3364,
                         longitude: -4.0271,
                         horaires: [{
-                                jour: 'lundi',
-                                heure_ouverture: '08:00',
-                                heure_fermeture: '17:30'
-                            },
-                            {
-                                jour: 'samedi',
-                                heure_ouverture: '08:00',
-                                heure_fermeture: '12:00'
-                            },
-                            {
-                                jour: 'dimanche',
-                                ferme: true
-                            }
-                        ]
+                            jour: 'lundi',
+                            heure_ouverture: '08:00',
+                            heure_fermeture: '17:30',
+                            rendez_vous_actif: true,
+                            capacite_rendez_vous: 10
+                        }, {
+                            jour: 'mardi',
+                            heure_ouverture: '08:00',
+                            heure_fermeture: '17:30',
+                            rendez_vous_actif: true,
+                            capacite_rendez_vous: 10
+                        }, {
+                            jour: 'mercredi',
+                            heure_ouverture: '08:00',
+                            heure_fermeture: '17:30',
+                            rendez_vous_actif: true,
+                            capacite_rendez_vous: 8
+                        }, {
+                            jour: 'samedi',
+                            heure_ouverture: '08:00',
+                            heure_fermeture: '12:00',
+                            rendez_vous_actif: false
+                        }, {
+                            jour: 'dimanche',
+                            ferme: true
+                        }]
                     },
                     responses: [{
-                            status: 201,
-                            description: 'Agence créée',
-                            example: {
-                                success: true,
-                                message: 'Agence créée avec succès.',
-                                code: 'AGENCE_CREATED',
-                                data: {}
-                            }
-                        },
-                        {
-                            status: 422,
-                            description: 'Erreur de validation',
-                            example: {
-                                success: false,
-                                message: 'Données invalides.',
-                                errors: {}
+                        status: 201,
+                        description: 'Agence créée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Agence créée avec succès.',
+                            code: 'AGENCE_CREATED',
+                            data: {
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'AG001',
+                                libelle: 'YAKO Plateau',
+                                horaires: {
+                                    lundi: {
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    }
+                                }
                             }
                         }
-                    ]
+                    }, {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Données invalides.',
+                            errors: {
+                                code: ['Le code est déjà utilisé.'],
+                                'horaires.0.capacite_rendez_vous': ['La capacité doit être un nombre positif.']
+                            }
+                        }
+                    }]
                 },
 
                 {
                     id: 'agences-show',
                     module: 'agences',
                     name: 'Détails d\'une agence',
-                    description: 'Récupère les informations complètes d\'une agence (avec les horaires, le réseau, les utilisateurs).',
+                    description: 'Récupère les informations complètes d\'une agence (avec les horaires, la configuration rendez-vous, le réseau, les utilisateurs).',
                     method: 'GET',
                     path: '/agences/{uuid_agence}',
                     isProtected: true,
@@ -5365,25 +5635,118 @@
                         }
                     },
                     responses: [{
-                            status: 200,
-                            description: 'Détails de l\'agence',
-                            example: {
-                                success: true,
-                                data: {}
+                        status: 200,
+                        description: 'Détails de l\'agence avec configuration rendez-vous',
+                        example: {
+                            success: true,
+                            code: 'AGENCE_FOUND',
+                            message: 'Détails de l\'agence.',
+                            data: {
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'AG001',
+                                libelle: 'YAKO Plateau',
+                                description: 'Agence principale du Plateau',
+                                adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                ville: 'Abidjan',
+                                quartier: 'Plateau',
+                                telephone: '+2252720304050',
+                                telephone_2: null,
+                                email: 'plateau@yako.ci',
+                                latitude: 5.3364,
+                                longitude: -4.0271,
+                                photo: null,
+                                photos: [],
+                                responsable: 'M. Koffi Serge',
+                                site_web: 'https://www.yako.ci',
+                                status: 'actif',
+                                is_open: true,
+                                is_rdv_actif_aujourdhui: true,
+                                horaires: {
+                                    lundi: {
+                                        jour: 'lundi',
+                                        jour_label: 'Lundi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        heure_ouverture_midi: null,
+                                        heure_fermeture_midi: null,
+                                        ferme: false,
+                                        commentaire: null,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    },
+                                    mardi: {
+                                        jour: 'mardi',
+                                        jour_label: 'Mardi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    },
+                                    mercredi: {
+                                        jour: 'mercredi',
+                                        jour_label: 'Mercredi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 8
+                                    },
+                                    jeudi: {
+                                        jour: 'jeudi',
+                                        jour_label: 'Jeudi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    },
+                                    vendredi: {
+                                        jour: 'vendredi',
+                                        jour_label: 'Vendredi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 10
+                                    },
+                                    samedi: {
+                                        jour: 'samedi',
+                                        jour_label: 'Samedi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '12:00',
+                                        ferme: false,
+                                        rendez_vous_actif: false,
+                                        capacite_rendez_vous: null
+                                    },
+                                    dimanche: {
+                                        jour: 'dimanche',
+                                        jour_label: 'Dimanche',
+                                        heure_ouverture: null,
+                                        heure_fermeture: null,
+                                        ferme: true,
+                                        rendez_vous_actif: false,
+                                        capacite_rendez_vous: null
+                                    }
+                                },
+                                reseau: {
+                                    uuid_reseau: '...',
+                                    libelle: 'Réseau Abidjan'
+                                },
+                                users_count: 5
                             }
-                        },
-                        {
-                            status: 404,
-                            description: 'Agence non trouvée'
                         }
-                    ]
+                    }, {
+                        status: 404,
+                        description: 'Agence non trouvée'
+                    }]
                 },
 
                 {
                     id: 'agences-update',
                     module: 'agences',
                     name: 'Mettre à jour une agence',
-                    description: 'Modifie les informations d\'une agence existante.',
+                    description: 'Modifie les informations d\'une agence existante. Permet de mettre à jour la configuration des rendez-vous par jour. Vous pouvez modifier un ou plusieurs horaires sans fournir tous les horaires existants.',
                     method: 'PUT',
                     path: '/agences/{uuid_agence}',
                     isProtected: true,
@@ -5402,8 +5765,204 @@
                             }
                         },
                         body: {
-                            /* Mêmes champs que la création, tous optionnels */
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 55,
+                                description: 'Code unique de l\'agence'
+                            },
+                            libelle: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Nom de l\'agence'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            },
+                            reseau_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'UUID du réseau'
+                            },
+                            email: {
+                                type: 'email',
+                                required: false,
+                                max: 100,
+                                description: 'Email'
+                            },
+                            telephone: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Téléphone principal'
+                            },
+                            telephone_2: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Téléphone secondaire'
+                            },
+                            adresse: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Adresse'
+                            },
+                            ville: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Ville'
+                            },
+                            quartier: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Quartier'
+                            },
+                            code_postal: {
+                                type: 'string',
+                                required: false,
+                                max: 20,
+                                description: 'Code postal'
+                            },
+                            pays: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Pays'
+                            },
+                            latitude: {
+                                type: 'number',
+                                required: false,
+                                between: [-90, 90],
+                                description: 'Latitude'
+                            },
+                            longitude: {
+                                type: 'number',
+                                required: false,
+                                between: [-180, 180],
+                                description: 'Longitude'
+                            },
+                            photo: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Photo principale'
+                            },
+                            photos: {
+                                type: 'array',
+                                required: false,
+                                description: 'Galerie photos'
+                            },
+                            responsable: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Nom du responsable'
+                            },
+                            site_web: {
+                                type: 'url',
+                                required: false,
+                                max: 255,
+                                description: 'Site web'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Statut'
+                            },
+                            horaires: {
+                                type: 'array',
+                                required: false,
+                                description: 'Horaires d\'ouverture par jour (partiel ou total)'
+                            },
+                            'horaires.*.jour': {
+                                type: 'string',
+                                required: true,
+                                enum: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'],
+                                description: 'Jour de la semaine'
+                            },
+                            'horaires.*.heure_ouverture': {
+                                type: 'string',
+                                format: 'H:i',
+                                required: false,
+                                description: 'Heure d\'ouverture'
+                            },
+                            'horaires.*.heure_fermeture': {
+                                type: 'string',
+                                format: 'H:i',
+                                required: false,
+                                description: 'Heure de fermeture'
+                            },
+                            'horaires.*.heure_ouverture_midi': {
+                                type: 'string',
+                                format: 'H:i',
+                                required: false,
+                                description: 'Heure d\'ouverture après la pause midi'
+                            },
+                            'horaires.*.heure_fermeture_midi': {
+                                type: 'string',
+                                format: 'H:i',
+                                required: false,
+                                description: 'Heure de fermeture pour la pause midi'
+                            },
+                            'horaires.*.ferme': {
+                                type: 'boolean',
+                                required: false,
+                                description: 'Fermé ce jour'
+                            },
+                            'horaires.*.commentaire': {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Commentaire'
+                            },
+                            'horaires.*.rendez_vous_actif': {
+                                type: 'boolean',
+                                required: false,
+                                description: 'L\'agence reçoit sur rendez-vous ce jour'
+                            },
+                            'horaires.*.capacite_rendez_vous': {
+                                type: 'integer',
+                                required: false,
+                                min: 0,
+                                description: 'Capacité maximale de rendez-vous pour ce jour'
+                            }
                         }
+                    },
+                    exampleRequest: {
+                        libelle: 'YAKO Plateau (mise à jour)',
+                        horaires: [
+                            {
+                                jour: 'lundi',
+                                rendez_vous_actif: true,
+                                capacite_rendez_vous: 15
+                            },
+                            {
+                                jour: 'mardi',
+                                rendez_vous_actif: true,
+                                capacite_rendez_vous: 12
+                            },
+                            {
+                                jour: 'samedi',
+                                ferme: true
+                            }
+                        ]
+                    },
+                    exampleRequestPartial: {
+                        // Mise à jour partielle - seul l'horaire du lundi est modifié
+                        horaires: [
+                            {
+                                jour: 'lundi',
+                                rendez_vous_actif: true,
+                                capacite_rendez_vous: 20
+                            }
+                        ]
                     },
                     responses: [{
                         status: 200,
@@ -5412,7 +5971,38 @@
                             success: true,
                             message: 'Agence mise à jour avec succès.',
                             code: 'AGENCE_UPDATED',
-                            data: {}
+                            data: {
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'AG001',
+                                libelle: 'YAKO Plateau (mise à jour)',
+                                horaires: {
+                                    lundi: {
+                                        jour: 'lundi',
+                                        jour_label: 'Lundi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 15
+                                    },
+                                    mardi: {
+                                        jour: 'mardi',
+                                        jour_label: 'Mardi',
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true,
+                                        capacite_rendez_vous: 12
+                                    },
+                                    samedi: {
+                                        jour: 'samedi',
+                                        jour_label: 'Samedi',
+                                        ferme: true,
+                                        rendez_vous_actif: false,
+                                        capacite_rendez_vous: null
+                                    }
+                                }
+                            }
                         }
                     }]
                 },
@@ -5442,24 +6032,22 @@
                         body: {}
                     },
                     responses: [{
-                            status: 200,
-                            description: 'Agence supprimée',
-                            example: {
-                                success: true,
-                                message: 'Agence supprimée avec succès.',
-                                code: 'AGENCE_DELETED'
-                            }
-                        },
-                        {
-                            status: 422,
-                            description: 'Agence associée à des utilisateurs',
-                            example: {
-                                success: false,
-                                message: 'Cette agence est associée à des utilisateurs.',
-                                code: 'AGENCE_HAS_USERS'
-                            }
+                        status: 200,
+                        description: 'Agence supprimée',
+                        example: {
+                            success: true,
+                            message: 'Agence supprimée avec succès.',
+                            code: 'AGENCE_DELETED'
                         }
-                    ]
+                    }, {
+                        status: 422,
+                        description: 'Agence associée à des utilisateurs',
+                        example: {
+                            success: false,
+                            message: 'Cette agence est associée à des utilisateurs.',
+                            code: 'AGENCE_HAS_USERS'
+                        }
+                    }]
                 },
 
                 {
@@ -5518,7 +6106,16 @@
                         description: 'Agences à proximité',
                         example: {
                             success: true,
-                            data: []
+                            code: 'NEARBY_AGENCES',
+                            message: 'Agences à proximité récupérées.',
+                            data: [{
+                                uuid_agence: '...',
+                                libelle: 'YAKO Plateau',
+                                adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                ville: 'Abidjan',
+                                telephone: '+2252720304050',
+                                distance: 1.2
+                            }]
                         }
                     }]
                 },
@@ -5527,7 +6124,7 @@
                     id: 'agences-horaires',
                     module: 'agences',
                     name: 'Horaires d\'une agence',
-                    description: 'Récupère les horaires d\'ouverture d\'une agence.',
+                    description: 'Récupère les horaires d\'ouverture d\'une agence avec la configuration des rendez-vous par jour.',
                     method: 'GET',
                     path: '/agences/{uuid_agence}/horaires',
                     isProtected: true,
@@ -5547,10 +6144,43 @@
                     },
                     responses: [{
                         status: 200,
-                        description: 'Horaires de l\'agence',
+                        description: 'Horaires de l\'agence avec configuration rendez-vous',
                         example: {
                             success: true,
-                            data: []
+                            code: 'AGENCE_HORAIRES_LISTED',
+                            message: 'Horaires de l\'agence récupérés.',
+                            data: {
+                                lundi: {
+                                    jour: 'lundi',
+                                    jour_label: 'Lundi',
+                                    heure_ouverture: '08:00',
+                                    heure_fermeture: '17:30',
+                                    heure_ouverture_midi: null,
+                                    heure_fermeture_midi: null,
+                                    ferme: false,
+                                    commentaire: null,
+                                    rendez_vous_actif: true,
+                                    capacite_rendez_vous: 10
+                                },
+                                mardi: {
+                                    jour: 'mardi',
+                                    jour_label: 'Mardi',
+                                    heure_ouverture: '08:00',
+                                    heure_fermeture: '17:30',
+                                    ferme: false,
+                                    rendez_vous_actif: true,
+                                    capacite_rendez_vous: 10
+                                },
+                                dimanche: {
+                                    jour: 'dimanche',
+                                    jour_label: 'Dimanche',
+                                    heure_ouverture: null,
+                                    heure_fermeture: null,
+                                    ferme: true,
+                                    rendez_vous_actif: false,
+                                    capacite_rendez_vous: null
+                                }
+                            }
                         }
                     }]
                 },
@@ -5602,7 +6232,15 @@
                         example: {
                             success: true,
                             message: 'Utilisateurs assignés avec succès.',
-                            code: 'USERS_ASSIGNED'
+                            code: 'USERS_ASSIGNED',
+                            data: {
+                                agence: {
+                                    uuid_agence: '...',
+                                    libelle: 'YAKO Plateau',
+                                    users_count: 7
+                                },
+                                assigned: ['uuid1', 'uuid2']
+                            }
                         }
                     }]
                 },
@@ -5641,7 +6279,14 @@
                         example: {
                             success: true,
                             message: 'Utilisateur retiré de l\'agence avec succès.',
-                            code: 'USER_REMOVED'
+                            code: 'USER_REMOVED',
+                            data: {
+                                agence: {
+                                    uuid_agence: '...',
+                                    libelle: 'YAKO Plateau'
+                                },
+                                user_uuid: 'uuid_user'
+                            }
                         }
                     }]
                 },
@@ -7956,6 +8601,332 @@
                     }]
                 },
 
+                // ============================================================
+                // JOURS FÉRIÉS
+                // ============================================================
+                {
+                    id: 'jour-feries-list',
+                    module: 'jour_feries',
+                    name: 'Liste des jours fériés',
+                    description: 'Récupère la liste des jours fériés avec filtres (année, récurrent, recherche).',
+                    method: 'GET',
+                    path: '/jour-feries',
+                    isProtected: true,
+                    permissionsRequired: ['jour_feries.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            year: {
+                                type: 'integer',
+                                required: false,
+                                description: 'Filtrer par année'
+                            },
+                            est_recurrent: {
+                                type: 'boolean',
+                                required: false,
+                                description: 'Filtrer par récurrence'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle (libellé, code, description)'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des jours fériés',
+                        example: {
+                            success: true,
+                            message: 'Liste des jours fériés récupérée.',
+                            code: 'FERIES_LISTED',
+                            data: {
+                                current_page: 1,
+                                data: [{
+                                    uuid_jour_ferie: '...',
+                                    date: '2026-01-01',
+                                    libelle: 'Jour de l\'an',
+                                    est_recurrent: true,
+                                    code: 'NOUVEL_AN',
+                                    description: null,
+                                    created_at: '2026-01-01T00:00:00.000000Z'
+                                }],
+                                total: 1,
+                                per_page: 20,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+                {
+                    id: 'jour-feries-create',
+                    module: 'jour_feries',
+                    name: 'Créer un jour férié',
+                    description: 'Crée un nouveau jour férié.',
+                    method: 'POST',
+                    path: '/jour-feries',
+                    isProtected: true,
+                    permissionsRequired: ['jour_feries.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            date: {
+                                type: 'date',
+                                required: true,
+                                description: 'Date du jour férié'
+                            },
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 255,
+                                description: 'Libellé'
+                            },
+                            est_recurrent: {
+                                type: 'boolean',
+                                required: false,
+                                default: false,
+                                description: 'Récurrent chaque année'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 50,
+                                description: 'Code de référence'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        date: '2026-08-07',
+                        libelle: 'Fête de l\'Indépendance',
+                        est_recurrent: true,
+                        code: 'INDEPENDANCE'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Jour férié créé',
+                        example: {
+                            success: true,
+                            message: 'Jour férié créé avec succès.',
+                            code: 'FERIE_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+                {
+                    id: 'jour-feries-verifier',
+                    module: 'jour_feries',
+                    name: 'Vérifier une date',
+                    description: 'Vérifie si une date donnée est un jour férié.',
+                    method: 'POST',
+                    path: '/jour-feries/verifier',
+                    isProtected: true,
+                    permissionsRequired: ['jour_feries.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            date: {
+                                type: 'date',
+                                required: true,
+                                description: 'Date à vérifier'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        date: '2026-01-01'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Date vérifiée',
+                        example: {
+                            success: true,
+                            message: 'Cette date est un jour férié.',
+                            code: 'DATE_FERIE',
+                            data: {
+                                date: '2026-01-01',
+                                est_ferie: true
+                            }
+                        }
+                    }]
+                },
+                // ============================================================
+// JOURS FÉRIÉS D'UNE ANNÉE
+// ============================================================
+{
+    id: 'jour-feries-annee',
+    module: 'jour_feries',
+    name: 'Jours fériés d\'une année',
+    description: 'Récupère tous les jours fériés d\'une année donnée (incluant les récurrents).',
+    method: 'GET',
+    path: '/jour-feries/annee/{year}',
+    isProtected: true,
+    permissionsRequired: ['jour_feries.afficher'],
+    headers: {
+        'Authorization': 'Bearer {token}',
+        'Accept': 'application/json'
+    },
+    requestParams: {
+        path: {
+            year: {
+                type: 'integer',
+                required: true,
+                description: 'Année (2000-2100)',
+                example: 2026
+            }
+        }
+    },
+    exampleRequest: {
+        // Le paramètre est dans l'URL, pas dans le body
+    },
+    exampleResponse: {
+        status: 200,
+        description: 'Jours fériés de l\'année',
+        example: {
+            success: true,
+            message: 'Jours fériés de l\'année 2026.',
+            code: 'FERIES_YEAR',
+            data: [
+                {
+                    uuid_jour_ferie: '550e8400-e29b-41d4-a716-446655440001',
+                    date: '2026-01-01',
+                    libelle: 'Jour de l\'an',
+                    code: 'NOUVEL_AN',
+                    est_recurrent: true,
+                    description: 'Premier jour de l\'année'
+                },
+                {
+                    uuid_jour_ferie: '550e8400-e29b-41d4-a716-446655440002',
+                    date: '2026-04-06',
+                    libelle: 'Lundi de Pâques',
+                    code: 'PAQUES',
+                    est_recurrent: false,
+                    description: 'Lundi suivant le dimanche de Pâques'
+                },
+                {
+                    uuid_jour_ferie: '550e8400-e29b-41d4-a716-446655440003',
+                    date: '2026-05-01',
+                    libelle: 'Fête du Travail',
+                    code: 'FETE_TRAVAIL',
+                    est_recurrent: true,
+                    description: 'Fête internationale du travail'
+                },
+                {
+                    uuid_jour_ferie: '550e8400-e29b-41d4-a716-446655440004',
+                    date: '2026-08-07',
+                    libelle: 'Fête de l\'Indépendance',
+                    code: 'INDEPENDANCE',
+                    est_recurrent: true,
+                    description: 'Fête nationale de l\'indépendance'
+                },
+                {
+                    uuid_jour_ferie: '550e8400-e29b-41d4-a716-446655440005',
+                    date: '2026-12-25',
+                    libelle: 'Noël',
+                    code: 'NOEL',
+                    est_recurrent: true,
+                    description: 'Noël'
+                }
+            ]
+        }
+    },
+    responses: [
+        {
+            status: 200,
+            description: 'Jours fériés de l\'année récupérés avec succès',
+            example: {
+                success: true,
+                message: 'Jours fériés de l\'année 2026.',
+                code: 'FERIES_YEAR',
+                data: []
+            }
+        },
+        {
+            status: 422,
+            description: 'Année invalide',
+            example: {
+                success: false,
+                message: 'L\'année doit être comprise entre 2000 et 2100.',
+                code: 'INVALID_YEAR'
+            }
+        },
+        {
+            status: 403,
+            description: 'Permission manquante',
+            example: {
+                success: false,
+                message: 'Vous n\'avez pas la permission nécessaire.',
+                code: 'PERMISSION_DENIED'
+            }
+        }
+    ]
+},
+                {
+                    id: 'jour-feries-prochains',
+                    module: 'jour_feries',
+                    name: 'Prochains jours ouvrés',
+                    description: 'Récupère les prochains jours ouvrés (non fériés et non week-ends).',
+                    method: 'GET',
+                    path: '/jour-feries/prochains-jours-ouvres',
+                    isProtected: true,
+                    permissionsRequired: ['jour_feries.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            nb_jours: {
+                                type: 'integer',
+                                required: false,
+                                default: 30,
+                                min: 1,
+                                max: 365,
+                                description: 'Nombre de jours à retourner'
+                            },
+                            date_debut: {
+                                type: 'date',
+                                required: false,
+                                description: 'Date de début (aujourd\'hui par défaut)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        nb_jours: 10,
+                        date_debut: '2026-07-01'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Prochains jours ouvrés',
+                        example: {
+                            success: true,
+                            message: 'Prochains jours ouvrés.',
+                            code: 'PROCHAINS_JOURS_OUVRES',
+                            data: ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-06']
+                        }
+                    }]
+                },
+
 
                 // ============================================================
                 // ESPACE CLIENT - TABLEAU DE BORD
@@ -8490,6 +9461,2835 @@
                             }
                         }
                     ]
+                },
+
+
+                // ============================================================
+                // TYPES DE PRODUITS
+                // ============================================================
+                {
+                    id: 'type-produits-list',
+                    module: 'type_produits',
+                    name: 'Liste des types de produits',
+                    description: 'Récupère la liste paginée des types de produits avec possibilité de recherche.',
+                    method: 'GET',
+                    path: '/type-produits',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle (code ou libellé)'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des types de produits',
+                        example: {
+                            success: true,
+                            message: 'Liste des types de produits récupérée.',
+                            code: 'TYPE_PRODUITS_LISTED',
+                            data: {
+                                current_page: 1,
+                                data: [{
+                                    uuid_type_produit: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'individuel',
+                                    libelle: 'Individuel',
+                                    produits_count: 5,
+                                    created_at: '2025-01-15T10:00:00.000000Z'
+                                }],
+                                total: 10,
+                                per_page: 20,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'type-produits-select',
+                    module: 'type_produits',
+                    name: 'Types de produits pour sélection',
+                    description: 'Récupère la liste des types de produits formatée pour un dropdown/select.',
+                    method: 'GET',
+                    path: '/type-produits/select',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Types de produits pour sélection',
+                        example: {
+                            success: true,
+                            message: 'Types de produits pour sélection.',
+                            code: 'TYPE_PRODUITS_SELECT',
+                            data: [{
+                                value: '550e8400-e29b-41d4-a716-446655440001',
+                                label: 'Individuel',
+                                code: 'individuel'
+                            }]
+                        }
+                    }]
+                },
+
+                {
+                    id: 'type-produits-show',
+                    module: 'type_produits',
+                    name: 'Détails d\'un type de produit',
+                    description: 'Récupère les détails d\'un type de produit avec ses produits associés.',
+                    method: 'GET',
+                    path: '/type-produits/{uuid_type_produit}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de produit'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Détails du type de produit',
+                        example: {
+                            success: true,
+                            message: 'Détails du type de produit.',
+                            code: 'TYPE_PRODUIT_FOUND',
+                            data: {
+                                uuid_type_produit: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'individuel',
+                                libelle: 'Individuel',
+                                produits: [{
+                                    uuid_produit: '...',
+                                    code: 'PROD001',
+                                    libelle: 'PERFORMA Individuel',
+                                    statut: 'actif'
+                                }]
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'type-produits-create',
+                    module: 'type_produits',
+                    name: 'Créer un type de produit',
+                    description: 'Crée un nouveau type de produit.',
+                    method: 'POST',
+                    path: '/type-produits',
+                    isProtected: true,
+                    permissionsRequired: ['produits.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 90,
+                                description: 'Libellé du type de produit'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 45,
+                                description: 'Code unique (généré automatiquement)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Collectif',
+                        code: 'collectif'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Type de produit créé',
+                        example: {
+                            success: true,
+                            message: 'Type de produit créé avec succès.',
+                            code: 'TYPE_PRODUIT_CREATED',
+                            data: {
+                                uuid_type_produit: '...',
+                                code: 'collectif',
+                                libelle: 'Collectif'
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'type-produits-update',
+                    module: 'type_produits',
+                    name: 'Modifier un type de produit',
+                    description: 'Met à jour un type de produit existant.',
+                    method: 'PUT',
+                    path: '/type-produits/{uuid_type_produit}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de produit'
+                            }
+                        },
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: false,
+                                max: 90,
+                                description: 'Libellé'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 45,
+                                description: 'Code unique'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Collectif (mise à jour)'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Type de produit mis à jour',
+                        example: {
+                            success: true,
+                            message: 'Type de produit mis à jour.',
+                            code: 'TYPE_PRODUIT_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'type-produits-delete',
+                    module: 'type_produits',
+                    name: 'Supprimer un type de produit',
+                    description: 'Supprime un type de produit. Refusé s\'il est associé à des produits.',
+                    method: 'DELETE',
+                    path: '/type-produits/{uuid_type_produit}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de produit'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Type de produit supprimé',
+                            example: {
+                                success: true,
+                                message: 'Type de produit supprimé.',
+                                code: 'TYPE_PRODUIT_DELETED'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Type utilisé par des produits',
+                            example: {
+                                success: false,
+                                message: 'Ce type de produit est associé à des produits et ne peut pas être supprimé.',
+                                code: 'TYPE_PRODUIT_IN_USE'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // PRODUITS
+                // ============================================================
+                {
+                    id: 'produits-list',
+                    module: 'produits',
+                    name: 'Liste des produits',
+                    description: 'Liste paginée des produits avec filtres (statut, branche, type de produit, recherche).',
+                    method: 'GET',
+                    path: '/produits',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            statut: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Filtrer par statut'
+                            },
+                            code_branche: {
+                                type: 'string',
+                                required: false,
+                                description: 'Filtrer par code branche'
+                            },
+                            type_produit_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'Filtrer par type de produit'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des produits',
+                        example: {
+                            success: true,
+                            message: 'Liste des produits récupérée.',
+                            code: 'PRODUITS_LISTED',
+                            data: {
+                                current_page: 1,
+                                data: [{
+                                    uuid_produit: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'PERF_IND',
+                                    libelle: 'PERFORMA Individuel',
+                                    code_branche: 'Vie',
+                                    statut: 'actif',
+                                    type_produit: {
+                                        uuid_type_produit: '...',
+                                        libelle: 'Individuel'
+                                    },
+                                    formules_actives_count: 2,
+                                    prestations_actives_count: 5,
+                                    created_at: '2025-01-15T10:00:00.000000Z'
+                                }],
+                                total: 10,
+                                per_page: 20,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produits-stats',
+                    module: 'produits',
+                    name: 'Statistiques des produits',
+                    description: 'Récupère les statistiques des produits, formules et prestations.',
+                    method: 'GET',
+                    path: '/produits/stats',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statistiques des produits',
+                        example: {
+                            success: true,
+                            message: 'Statistiques des produits.',
+                            code: 'PRODUIT_STATS',
+                            data: {
+                                total: 45,
+                                active: 32,
+                                inactive: 13,
+                                formules_total: 78,
+                                formules_active: 56,
+                                prestations_total: 120,
+                                prestations_active: 95
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produits-show',
+                    module: 'produits',
+                    name: 'Détails d\'un produit',
+                    description: 'Récupère les détails complets d\'un produit avec ses formules et prestations.',
+                    method: 'GET',
+                    path: '/produits/{uuid_produit}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Détails du produit',
+                        example: {
+                            success: true,
+                            message: 'Détails du produit.',
+                            code: 'PRODUIT_FOUND',
+                            data: {
+                                uuid_produit: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'PERF_IND',
+                                libelle: 'PERFORMA Individuel',
+                                code_branche: 'Vie',
+                                code_produit_nature: 'Individuel',
+                                description: 'Produit d\'assurance vie individuel',
+                                statut: 'actif',
+                                age_mini_adh: 18,
+                                age_maxi_adh: 70,
+                                capital: 1000000,
+                                vie_entiere: false,
+                                type_produit: {
+                                    uuid_type_produit: '...',
+                                    libelle: 'Individuel'
+                                },
+                                formules: [{
+                                    uuid_produit_formule: '...',
+                                    libelle: 'Formule Premium',
+                                    est_actif: true,
+                                    fa: 1.25,
+                                    fg: 0.85,
+                                    tx: 0.05,
+                                    code_canal_distribution: 'Direct'
+                                }],
+                                type_prestations: [{
+                                    uuid_type_prestation: '...',
+                                    code: 'DECES',
+                                    libelle: 'Décès',
+                                    impact: '1',
+                                    pivot: {
+                                        status: 'actif',
+                                        produit_type: 'Principal'
+                                    }
+                                }]
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produits-create',
+                    module: 'produits',
+                    name: 'Créer un produit',
+                    description: 'Crée un nouveau produit avec toutes ses informations.',
+                    method: 'POST',
+                    path: '/produits',
+                    isProtected: true,
+                    permissionsRequired: ['produits.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 128,
+                                description: 'Libellé du produit'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Code unique'
+                            },
+                            code_branche: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Code de la branche'
+                            },
+                            code_produit_nature: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Nature du produit'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            },
+                            statut: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                default: 'actif',
+                                description: 'Statut'
+                            },
+                            type_produit_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'UUID du type de produit'
+                            },
+                            age_mini_adh: {
+                                type: 'integer',
+                                required: false,
+                                min: 0,
+                                max: 127,
+                                description: 'Âge minimum d\'adhésion'
+                            },
+                            age_maxi_adh: {
+                                type: 'integer',
+                                required: false,
+                                min: 0,
+                                max: 127,
+                                description: 'Âge maximum d\'adhésion'
+                            },
+                            capital: {
+                                type: 'integer',
+                                required: false,
+                                description: 'Capital souscrit'
+                            },
+                            vie_entiere: {
+                                type: 'boolean',
+                                required: false,
+                                default: false,
+                                description: 'Vie entière'
+                            },
+                            code_produit_court: {
+                                type: 'string',
+                                required: false,
+                                max: 5,
+                                description: 'Code court'
+                            },
+                            code_marque: {
+                                type: 'string',
+                                required: false,
+                                max: 20,
+                                description: 'Code marque'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'PERFORMA Individuel',
+                        code_branche: 'Vie',
+                        code_produit_nature: 'Individuel',
+                        statut: 'actif',
+                        type_produit_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                        age_mini_adh: 18,
+                        age_maxi_adh: 70,
+                        capital: 1000000,
+                        vie_entiere: false
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Produit créé',
+                        example: {
+                            success: true,
+                            message: 'Produit créé avec succès.',
+                            code: 'PRODUIT_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produits-update',
+                    module: 'produits',
+                    name: 'Modifier un produit',
+                    description: 'Met à jour un produit existant.',
+                    method: 'PUT',
+                    path: '/produits/{uuid_produit}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        body: {
+                            /* Mêmes champs que la création, tous optionnels */
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Produit mis à jour',
+                        example: {
+                            success: true,
+                            message: 'Produit mis à jour.',
+                            code: 'PRODUIT_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produits-delete',
+                    module: 'produits',
+                    name: 'Supprimer un produit',
+                    description: 'Supprime un produit. Refusé s\'il a des formules ou prestations associées.',
+                    method: 'DELETE',
+                    path: '/produits/{uuid_produit}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Produit supprimé',
+                            example: {
+                                success: true,
+                                message: 'Produit supprimé.',
+                                code: 'PRODUIT_DELETED'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Produit a des associations',
+                            example: {
+                                success: false,
+                                message: 'Ce produit a des formules associées et ne peut pas être supprimé.',
+                                code: 'PRODUIT_DELETE_ERROR'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // FORMULES DE PRODUITS
+                // ============================================================
+                {
+                    id: 'produit-formules-list',
+                    module: 'produits',
+                    name: 'Liste des formules d\'un produit',
+                    description: 'Récupère toutes les formules associées à un produit.',
+                    method: 'GET',
+                    path: '/produits/{uuid_produit}/formules',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        query: {
+                            est_actif: {
+                                type: 'boolean',
+                                required: false,
+                                description: 'Filtrer par statut actif'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Formules du produit',
+                        example: {
+                            success: true,
+                            message: 'Formules du produit.',
+                            code: 'FORMULES_LISTED',
+                            data: [{
+                                uuid_produit_formule: '...',
+                                code_produit_formule: 'PREMIUM',
+                                libelle: 'Formule Premium',
+                                est_actif: true,
+                                fa: 1.25,
+                                fg: 0.85,
+                                tx: 0.05,
+                                code_canal_distribution: 'Direct',
+                                date_debut: '2025-01-01',
+                                date_fin: null
+                            }]
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produit-formules-create',
+                    module: 'produits',
+                    name: 'Créer une formule',
+                    description: 'Crée une nouvelle formule pour un produit.',
+                    method: 'POST',
+                    path: '/produits/{uuid_produit}/formules',
+                    isProtected: true,
+                    permissionsRequired: ['produits.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 128,
+                                description: 'Libellé de la formule'
+                            },
+                            code_produit_formule: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Code unique'
+                            },
+                            code_produit: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Code du produit associé'
+                            },
+                            date_debut: {
+                                type: 'date',
+                                required: false,
+                                description: 'Date de début de validité'
+                            },
+                            date_fin: {
+                                type: 'date',
+                                required: false,
+                                description: 'Date de fin de validité'
+                            },
+                            est_actif: {
+                                type: 'boolean',
+                                required: false,
+                                default: true,
+                                description: 'Formule active'
+                            },
+                            fa: {
+                                type: 'number',
+                                required: false,
+                                description: 'Facteur A'
+                            },
+                            fg: {
+                                type: 'number',
+                                required: false,
+                                description: 'Facteur G'
+                            },
+                            tx: {
+                                type: 'number',
+                                required: false,
+                                description: 'Taux'
+                            },
+                            code_canal_distribution: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Canal de distribution'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Formule Premium Plus',
+                        est_actif: true,
+                        fa: 1.35,
+                        fg: 0.90,
+                        tx: 0.055,
+                        code_canal_distribution: 'Courtier'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Formule créée',
+                        example: {
+                            success: true,
+                            message: 'Formule créée.',
+                            code: 'FORMULE_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produit-formules-update',
+                    module: 'produits',
+                    name: 'Modifier une formule',
+                    description: 'Met à jour une formule existante.',
+                    method: 'PUT',
+                    path: '/produits/formules/{uuid_formule}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_formule: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la formule'
+                            }
+                        },
+                        body: {
+                            /* Mêmes champs que la création, tous optionnels */
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Formule mise à jour',
+                        example: {
+                            success: true,
+                            message: 'Formule mise à jour.',
+                            code: 'FORMULE_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produit-formules-delete',
+                    module: 'produits',
+                    name: 'Supprimer une formule',
+                    description: 'Supprime une formule.',
+                    method: 'DELETE',
+                    path: '/produits/formules/{uuid_formule}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_formule: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la formule'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Formule supprimée',
+                        example: {
+                            success: true,
+                            message: 'Formule supprimée.',
+                            code: 'FORMULE_DELETED'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // PRESTATIONS D'UN PRODUIT
+                // ============================================================
+                {
+                    id: 'produit-prestations-list',
+                    module: 'produits',
+                    name: 'Prestations d\'un produit',
+                    description: 'Récupère toutes les prestations associées à un produit.',
+                    method: 'GET',
+                    path: '/produits/{uuid_produit}/prestations',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Prestations du produit',
+                        example: {
+                            success: true,
+                            message: 'Prestations du produit.',
+                            code: 'PRESTATIONS_LISTED',
+                            data: [{
+                                uuid_type_prestation: '...',
+                                code: 'DECES',
+                                libelle: 'Décès',
+                                impact: '1',
+                                category: {
+                                    uuid: '...',
+                                    libelle: 'Garanties'
+                                },
+                                pivot: {
+                                    status: 'actif',
+                                    produit_type: 'Principal',
+                                    uuid_product_prestation: '...'
+                                }
+                            }]
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produit-prestations-available',
+                    module: 'produits',
+                    name: 'Types de prestations disponibles',
+                    description: 'Récupère les types de prestations non encore associés à un produit.',
+                    method: 'GET',
+                    path: '/produits/{uuid_produit}/prestations/available',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        query: {
+                            category_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'Filtrer par catégorie'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Types de prestations disponibles',
+                        example: {
+                            success: true,
+                            message: 'Types de prestations disponibles.',
+                            code: 'AVAILABLE_PRESTATIONS',
+                            data: [{
+                                uuid_type_prestation: '...',
+                                code: 'INVALIDITE',
+                                libelle: 'Invalidité',
+                                impact: '0',
+                                category: {
+                                    uuid: '...',
+                                    libelle: 'Garanties'
+                                }
+                            }]
+                        }
+                    }]
+                },
+
+
+                {
+                    id: 'produit-prestations-assign',
+                    module: 'produits',
+                    name: 'Associer des prestations à un produit',
+                    description: 'Associe un ou plusieurs types de prestations à un produit. Permet d\'associer plusieurs prestations en une seule requête.',
+                    method: 'POST',
+                    path: '/produits/{uuid_produit}/prestations',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_produit: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du produit'
+                            }
+                        },
+                        body: {
+                            type_prestation_uuids: {
+                                type: 'array',
+                                required: true,
+                                min: 1,
+                                description: 'Liste des UUIDs des types de prestations à associer'
+                            },
+                            'type_prestation_uuids.*': {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID d\'un type de prestation'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                default: 'actif',
+                                description: 'Statut de l\'association'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        type_prestation_uuids: [
+                            '550e8400-e29b-41d4-a716-446655440003',
+                            '550e8400-e29b-41d4-a716-446655440004',
+                            '550e8400-e29b-41d4-a716-446655440005'
+                        ],
+                        status: 'actif'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Prestations associées avec succès',
+                        example: {
+                            success: true,
+                            message: 'Prestations associées au produit avec succès.',
+                            code: 'PRESTATIONS_ASSIGNED',
+                            data: {
+                                associations: [{
+                                    uuid_product_prestation: '...',
+                                    produit: {
+                                        uuid_produit: '...',
+                                        libelle: 'PERFORMA INDIVIDUEL'
+                                    },
+                                    type_prestation: {
+                                        uuid_type_prestation: '...',
+                                        code: 'DECES',
+                                        libelle: 'Décès'
+                                    },
+                                    status: 'actif'
+                                }],
+                                assigned_count: 3,
+                                skipped_count: 0,
+                                already_assigned: []
+                            }
+                        }
+                    }, {
+                        status: 200,
+                        description: 'Aucune nouvelle association (toutes déjà existantes)',
+                        example: {
+                            success: true,
+                            message: 'Aucune nouvelle prestation associée.',
+                            code: 'PRESTATIONS_ASSIGNED',
+                            data: {
+                                associations: [],
+                                assigned_count: 0,
+                                skipped_count: 3,
+                                already_assigned: [
+                                    '550e8400-e29b-41d4-a716-446655440003',
+                                    '550e8400-e29b-41d4-a716-446655440004'
+                                ]
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Erreur de validation ou prestation déjà associée',
+                        example: {
+                            success: false,
+                            message: 'Toutes les prestations sélectionnées sont déjà associées à ce produit.',
+                            code: 'PRESTATION_ASSIGN_ERROR'
+                        }
+                    }]
+                },
+
+                {
+                    id: 'produit-prestations-remove',
+                    module: 'produits',
+                    name: 'Retirer une prestation d\'un produit',
+                    description: 'Retire une prestation d\'un produit.',
+                    method: 'DELETE',
+                    path: '/produits/prestations/{uuid_association}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_association: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'association (uuid_product_prestation)'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Prestation retirée',
+                        example: {
+                            success: true,
+                            message: 'Prestation retirée du produit.',
+                            code: 'PRESTATION_REMOVED'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // CATÉGORIES DE PRESTATIONS
+                // ============================================================
+                {
+                    id: 'prestations-categories-list',
+                    module: 'prestations',
+                    name: 'Liste des catégories de prestations',
+                    description: 'Liste paginée des catégories de prestations avec leurs types associés.',
+                    method: 'GET',
+                    path: '/prestations/categories',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Filtrer par statut'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Catégories de prestations',
+                        example: {
+                            success: true,
+                            message: 'Liste des catégories de prestations.',
+                            code: 'CATEGORIES_LISTED',
+                            data: {
+                                current_page: 1,
+                                data: [{
+                                    uuid_category_type_prestations: '...',
+                                    code: 'garanties',
+                                    libelle: 'Garanties',
+                                    description: 'Garanties principales',
+                                    status: 'actif',
+                                    type_prestations_count: 5,
+                                    type_prestations: [{
+                                        uuid_type_prestation: '...',
+                                        code: 'DECES',
+                                        libelle: 'Décès'
+                                    }]
+                                }],
+                                total: 5,
+                                per_page: 20,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-categories-create',
+                    module: 'prestations',
+                    name: 'Créer une catégorie de prestations',
+                    description: 'Crée une nouvelle catégorie de prestations.',
+                    method: 'POST',
+                    path: '/prestations/categories',
+                    isProtected: true,
+                    permissionsRequired: ['produits.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 90,
+                                description: 'Libellé de la catégorie'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 45,
+                                description: 'Code unique'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                default: 'actif',
+                                description: 'Statut'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Garanties Complémentaires',
+                        code: 'garanties_complementaires',
+                        description: 'Garanties additionnelles',
+                        status: 'actif'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Catégorie créée',
+                        example: {
+                            success: true,
+                            message: 'Catégorie créée avec succès.',
+                            code: 'CATEGORY_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-categories-show',
+                    module: 'prestations',
+                    name: 'Détails d\'une catégorie de prestations',
+                    description: 'Récupère les détails d\'une catégorie avec ses types de prestations.',
+                    method: 'GET',
+                    path: '/prestations/categories/{uuid_category}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_category: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la catégorie'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Détails de la catégorie',
+                        example: {
+                            success: true,
+                            message: 'Détails de la catégorie.',
+                            code: 'CATEGORY_FOUND',
+                            data: {
+                                uuid_category_type_prestations: '...',
+                                code: 'garanties',
+                                libelle: 'Garanties',
+                                description: 'Garanties principales',
+                                status: 'actif',
+                                type_prestations: [{
+                                    uuid_type_prestation: '...',
+                                    code: 'DECES',
+                                    libelle: 'Décès',
+                                    impact: '1',
+                                    delai_traitement: 30
+                                }]
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-categories-update',
+                    module: 'prestations',
+                    name: 'Modifier une catégorie de prestations',
+                    description: 'Met à jour une catégorie de prestations existante.',
+                    method: 'PUT',
+                    path: '/prestations/categories/{uuid_category}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_category: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la catégorie'
+                            }
+                        },
+                        body: {
+                            /* Mêmes champs que la création, tous optionnels */
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Catégorie mise à jour',
+                        example: {
+                            success: true,
+                            message: 'Catégorie mise à jour.',
+                            code: 'CATEGORY_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-categories-delete',
+                    module: 'prestations',
+                    name: 'Supprimer une catégorie de prestations',
+                    description: 'Supprime une catégorie. Refusée si elle contient des types de prestations.',
+                    method: 'DELETE',
+                    path: '/prestations/categories/{uuid_category}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_category: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la catégorie'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Catégorie supprimée',
+                            example: {
+                                success: true,
+                                message: 'Catégorie supprimée.',
+                                code: 'CATEGORY_DELETED'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Catégorie non vide',
+                            example: {
+                                success: false,
+                                message: 'Cette catégorie contient des types de prestations et ne peut pas être supprimée.',
+                                code: 'CATEGORY_DELETE_ERROR'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // TYPES DE PRESTATIONS
+                // ============================================================
+                {
+                    id: 'prestations-types-list',
+                    module: 'prestations',
+                    name: 'Liste des types de prestations',
+                    description: 'Liste paginée des types de prestations avec leur catégorie.',
+                    method: 'GET',
+                    path: '/prestations/types',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            category_uuid: {
+                                type: 'uuid',
+                                required: false,
+                                description: 'Filtrer par catégorie'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                description: 'Filtrer par statut'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Types de prestations',
+                        example: {
+                            success: true,
+                            message: 'Liste des types de prestations.',
+                            code: 'TYPES_LISTED',
+                            data: {
+                                current_page: 1,
+                                data: [{
+                                    uuid_type_prestation: '...',
+                                    code: 'DECES',
+                                    libelle: 'Décès',
+                                    impact: '1',
+                                    delai_traitement: 30,
+                                    status: 'actif',
+                                    category: {
+                                        uuid: '...',
+                                        libelle: 'Garanties'
+                                    },
+                                    produits_count: 12
+                                }],
+                                total: 15,
+                                per_page: 20,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-types-create',
+                    module: 'prestations',
+                    name: 'Créer un type de prestation',
+                    description: 'Crée un nouveau type de prestation.',
+                    method: 'POST',
+                    path: '/prestations/types',
+                    isProtected: true,
+                    permissionsRequired: ['produits.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            libelle: {
+                                type: 'string',
+                                required: true,
+                                max: 90,
+                                description: 'Libellé'
+                            },
+                            code: {
+                                type: 'string',
+                                required: false,
+                                max: 45,
+                                description: 'Code unique'
+                            },
+                            description: {
+                                type: 'string',
+                                required: false,
+                                description: 'Description'
+                            },
+                            category_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de la catégorie'
+                            },
+                            impact: {
+                                type: 'string',
+                                required: false,
+                                enum: ['0', '1'],
+                                default: '0',
+                                description: 'Impact (1: Sortie portefeuille, 0: Non)'
+                            },
+                            delai_traitement: {
+                                type: 'integer',
+                                required: false,
+                                min: 0,
+                                description: 'Délai de traitement en jours'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['actif', 'inactif'],
+                                default: 'actif',
+                                description: 'Statut'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        libelle: 'Invalidité Permanente',
+                        code: 'INVALIDITE',
+                        category_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                        impact: '1',
+                        delai_traitement: 45,
+                        status: 'actif'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Type de prestation créé',
+                        example: {
+                            success: true,
+                            message: 'Type de prestation créé avec succès.',
+                            code: 'TYPE_PRESTATION_CREATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-types-show',
+                    module: 'prestations',
+                    name: 'Détails d\'un type de prestation',
+                    description: 'Récupère les détails d\'un type de prestation avec ses produits associés.',
+                    method: 'GET',
+                    path: '/prestations/types/{uuid_type}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de prestation'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Détails du type de prestation',
+                        example: {
+                            success: true,
+                            message: 'Détails du type de prestation.',
+                            code: 'TYPE_PRESTATION_FOUND',
+                            data: {
+                                uuid_type_prestation: '...',
+                                code: 'DECES',
+                                libelle: 'Décès',
+                                impact: '1',
+                                delai_traitement: 30,
+                                status: 'actif',
+                                category: {
+                                    uuid: '...',
+                                    libelle: 'Garanties'
+                                },
+                                produits: [{
+                                    uuid_produit: '...',
+                                    code: 'PERF_IND',
+                                    libelle: 'PERFORMA Individuel',
+                                    pivot: {
+                                        status: 'actif',
+                                        produit_type: 'Principal'
+                                    }
+                                }]
+                            }
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-types-update',
+                    module: 'prestations',
+                    name: 'Modifier un type de prestation',
+                    description: 'Met à jour un type de prestation existant.',
+                    method: 'PUT',
+                    path: '/prestations/types/{uuid_type}',
+                    isProtected: true,
+                    permissionsRequired: ['produits.modifier'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de prestation'
+                            }
+                        },
+                        body: {
+                            /* Mêmes champs que la création, tous optionnels */
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Type de prestation mis à jour',
+                        example: {
+                            success: true,
+                            message: 'Type de prestation mis à jour.',
+                            code: 'TYPE_PRESTATION_UPDATED',
+                            data: {}
+                        }
+                    }]
+                },
+
+                {
+                    id: 'prestations-types-delete',
+                    module: 'prestations',
+                    name: 'Supprimer un type de prestation',
+                    description: 'Supprime un type de prestation. Refusé s\'il est associé à des produits.',
+                    method: 'DELETE',
+                    path: '/prestations/types/{uuid_type}',
+                    isProtected: true,
+                    isDestructive: true,
+                    permissionsRequired: ['produits.supprimer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_type: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du type de prestation'
+                            }
+                        },
+                        body: {}
+                    },
+                    responses: [{
+                            status: 200,
+                            description: 'Type de prestation supprimé',
+                            example: {
+                                success: true,
+                                message: 'Type de prestation supprimé.',
+                                code: 'TYPE_PRESTATION_DELETED'
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Type associé à des produits',
+                            example: {
+                                success: false,
+                                message: 'Ce type de prestation est associé à des produits et ne peut pas être supprimé.',
+                                code: 'TYPE_PRESTATION_DELETE_ERROR'
+                            }
+                        }
+                    ]
+                },
+
+                {
+                    id: 'prestations-stats',
+                    module: 'prestations',
+                    name: 'Statistiques des prestations',
+                    description: 'Récupère les statistiques des catégories, types et associations.',
+                    method: 'GET',
+                    path: '/prestations/stats',
+                    isProtected: true,
+                    permissionsRequired: ['produits.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statistiques des prestations',
+                        example: {
+                            success: true,
+                            message: 'Statistiques des prestations.',
+                            code: 'PRESTATION_STATS',
+                            data: {
+                                categories_total: 8,
+                                categories_active: 6,
+                                types_total: 25,
+                                types_active: 20,
+                                associations_total: 45,
+                                associations_active: 38
+                            }
+                        }
+                    }]
+                },
+
+
+                // ============================================================
+                // 3.18 RENDEZ-VOUS (RDV)
+                // ============================================================
+
+                // ============================================================
+                // 1. MOTIFS DISPONIBLES
+                // ============================================================
+                {
+    id: 'rdv-motifs',
+    module: 'rdvs',
+    name: 'Motifs disponibles pour un contrat',
+    description: 'Récupère la liste des motifs de rendez-vous disponibles pour un produit/contrat donné. Les motifs sont les types de prestations associés au produit. Possibilité de filtrer par impact (sortie/non sortie portefeuille).',
+    method: 'GET',
+    path: '/rdvs/motifs',
+    isProtected: true,
+    permissionsRequired: ['rdvs.creer'],
+    headers: {
+        'Authorization': 'Bearer {token}',
+        'Accept': 'application/json'
+    },
+    requestParams: {
+        query: {
+            code_produit: {
+                type: 'string',
+                required: true,
+                description: 'Code du produit (ex: PERFORMA_IND)'
+            },
+            impact: {
+                type: 'string',
+                required: false,
+                enum: ['0', '1'],
+                description: 'Filtrer par impact : 1 = Sortie portefeuille, 0 = Non sortie portefeuille. Omettre pour tous.'
+            }
+        }
+    },
+    exampleRequest: {
+        code_produit: 'PERFORMA_IND',
+        impact: '1' // Seulement les motifs avec sortie portefeuille
+    },
+    exampleRequestWithoutFilter: {
+        code_produit: 'PERFORMA_IND' // Tous les motifs
+    },
+    responses: [{
+        status: 200,
+        description: 'Liste des motifs disponibles',
+        example: {
+            success: true,
+            message: 'Motifs disponibles avec impact sortie portefeuille.',
+            code: 'MOTIFS_LISTED',
+            data: [{
+                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
+                code: 'DECES',
+                libelle: 'Décès',
+                description: 'Déclaration de décès',
+                impact: '1',
+                impact_label: 'Sortie portefeuille',
+                category: {
+                    uuid: '550e8400-e29b-41d4-a716-446655440002',
+                    libelle: 'Garanties'
+                }
+            }, {
+                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440004',
+                code: 'INVALIDITE',
+                libelle: 'Invalidité',
+                description: 'Demande d\'invalidité',
+                impact: '1',
+                impact_label: 'Sortie portefeuille',
+                category: {
+                    uuid: '550e8400-e29b-41d4-a716-446655440002',
+                    libelle: 'Garanties'
+                }
+            }],
+            meta: {
+                total: 2,
+                filter_impact: '1',
+                filter_impact_label: 'Sortie portefeuille'
+            }
+        }
+    }, {
+        status: 200,
+        description: 'Liste des motifs sans filtre',
+        example: {
+            success: true,
+            message: 'Motifs disponibles.',
+            code: 'MOTIFS_LISTED',
+            data: [{
+                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
+                code: 'DECES',
+                libelle: 'Décès',
+                impact: '1',
+                impact_label: 'Sortie portefeuille'
+            }, {
+                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440006',
+                code: 'PAIEMENT',
+                libelle: 'Paiement',
+                impact: '0',
+                impact_label: 'Non sortie portefeuille'
+            }],
+            meta: {
+                total: 2,
+                filter_impact: null,
+                filter_impact_label: 'Tous'
+            }
+        }
+    }, {
+        status: 422,
+        description: 'Erreur de validation',
+        example: {
+            success: false,
+            message: 'Erreur de validation.',
+            code: 'VALIDATION_ERROR',
+            errors: {
+                code_produit: ['Le code produit est requis.'],
+                impact: ['L\'impact doit être 0 ou 1.']
+            }
+        }
+    }]
+},
+
+                // ============================================================
+                // 2. AGENCES DISPONIBLES POUR RENDEZ-VOUS
+                // ============================================================
+                {
+                    id: 'rdv-agences',
+                    module: 'rdvs',
+                    name: 'Agences disponibles pour rendez-vous',
+                    description: 'Récupère la liste des agences qui reçoivent sur rendez-vous. Filtrée par ville ou recherche textuelle.',
+                    method: 'GET',
+                    path: '/rdvs/agences',
+                    isProtected: true,
+                    permissionsRequired: ['rdvs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            ville: {
+                                type: 'string',
+                                required: false,
+                                description: 'Filtrer par ville'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle (libellé, adresse, ville, quartier)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        ville: 'Abidjan'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des agences disponibles',
+                        example: {
+                            success: true,
+                            message: 'Agences disponibles.',
+                            code: 'AGENCES_RDV_LISTED',
+                            data: [{
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                code: 'AG001',
+                                libelle: 'YAKO Plateau',
+                                adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                ville: 'Abidjan',
+                                quartier: 'Plateau',
+                                telephone: '+2252720304050',
+                                email: 'plateau@yako.ci',
+                                latitude: 5.3364,
+                                longitude: -4.0271,
+                                jours_rdv: [{
+                                    jour: 'lundi',
+                                    jour_label: 'Lundi',
+                                    capacite_rendez_vous: 10,
+                                }, {
+                                    jour: 'mardi',
+                                    jour_label: 'Mardi',
+                                    capacite_rendez_vous: 10,
+                                }, {
+                                    jour: 'mercredi',
+                                    jour_label: 'Mercredi',
+                                    capacite_rendez_vous: 8,
+                                }],
+                                horaires: {
+                                    lundi: {
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true
+                                    },
+                                    dimanche: {
+                                        ferme: true,
+                                        rendez_vous_actif: false
+                                    }
+                                }
+                            }, {
+                                uuid_agence: '550e8400-e29b-41d4-a716-446655440002',
+                                code: 'AG002',
+                                libelle: 'YAKO Cocody',
+                                adresse: 'Bd de la Corniche, Riviera 3',
+                                ville: 'Abidjan',
+                                quartier: 'Cocody',
+                                telephone: '+2252722445566',
+                                email: 'cocody@yako.ci',
+                                latitude: 5.3364,
+                                longitude: -4.0271,
+                                jours_rdv: [{
+                                    jour: 'lundi',
+                                    jour_label: 'Lundi',
+                                    capacite_rendez_vous: 8,
+                                }, {
+                                    jour: 'mercredi',
+                                    jour_label: 'Mercredi',
+                                    capacite_rendez_vous: 8,
+                                }, {
+                                    jour: 'vendredi',
+                                    jour_label: 'Vendredi',
+                                    capacite_rendez_vous: 6,
+                                }],
+                                horaires: {
+                                    lundi: {
+                                        heure_ouverture: '08:00',
+                                        heure_fermeture: '17:30',
+                                        ferme: false,
+                                        rendez_vous_actif: true
+                                    }
+                                }
+                            }]
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 3. DATES DISPONIBLES
+                // ============================================================
+                {
+                    id: 'rdv-dates-disponibles',
+                    module: 'rdvs',
+                    name: 'Dates disponibles pour une agence',
+                    description: 'Récupère les dates disponibles pour une agence sur un mois donné. Vérifie automatiquement : jours fériés, week-ends, périodes clôturées, capacité journalière.',
+                    method: 'GET',
+                    path: '/rdvs/dates-disponibles',
+                    isProtected: true,
+                    permissionsRequired: ['rdvs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            agence_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence'
+                            },
+                            mois: {
+                                type: 'integer',
+                                required: true,
+                                min: 1,
+                                max: 12,
+                                description: 'Mois (1-12)'
+                            },
+                            annee: {
+                                type: 'integer',
+                                required: true,
+                                min: 2020,
+                                max: 2100,
+                                description: 'Année'
+                            },
+                            // id_contrat: {
+                            //     type: 'integer',
+                            //     required: false,
+                            //     description: 'ID du contrat (pour vérifier l\'éligibilité)'
+                            // }
+                        }
+                    },
+                    exampleRequest: {
+                        agence_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                        mois: 7,
+                        annee: 2026,
+                        id_contrat: 12345
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Dates disponibles avec places restantes',
+                        example: {
+                            success: true,
+                            message: 'Dates disponibles.',
+                            code: 'DATES_DISPONIBLES',
+                            data: [{
+                                date: '2026-07-01',
+                                date_formatee: 'Mercredi 1 Juillet 2026',
+                                jour_semaine: 'mercredi',
+                                places_restantes: 8,
+                                disponible: true,
+                                capacite_max: 10,
+                                heure_ouverture: '08:00',
+                                heure_fermeture: '17:30'
+                            }, {
+                                date: '2026-07-02',
+                                date_formatee: 'Jeudi 2 Juillet 2026',
+                                jour_semaine: 'jeudi',
+                                places_restantes: 3,
+                                disponible: true,
+                                capacite_max: 10,
+                                heure_ouverture: '08:00',
+                                heure_fermeture: '17:30'
+                            }, {
+                                date: '2026-07-03',
+                                date_formatee: 'Vendredi 3 Juillet 2026',
+                                jour_semaine: 'vendredi',
+                                places_restantes: 0,
+                                disponible: false,
+                                capacite_max: 10,
+                                heure_ouverture: '08:00',
+                                heure_fermeture: '17:30'
+                            }, {
+                                date: '2026-07-06',
+                                date_formatee: 'Lundi 6 Juillet 2026',
+                                jour_semaine: 'lundi',
+                                places_restantes: 10,
+                                disponible: true,
+                                capacite_max: 10,
+                                heure_ouverture: '08:00',
+                                heure_fermeture: '17:30'
+                            }]
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Agence ne reçoit pas sur rendez-vous',
+                        example: {
+                            success: false,
+                            message: 'Cette agence ne reçoit pas sur rendez-vous.',
+                            code: 'AGENCE_NON_DISPONIBLE'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 4. VÉRIFIER UNE DATE
+                // ============================================================
+                {
+                    id: 'rdv-verifier-date',
+                    module: 'rdvs',
+                    name: 'Vérifier une date spécifique',
+                    description: 'Vérifie si une date spécifique est disponible pour un rendez-vous dans une agence donnée.',
+                    method: 'POST',
+                    path: '/rdvs/verifier-date',
+                    isProtected: true,
+                    permissionsRequired: ['rdvs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            agence_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence'
+                            },
+                            date_rdv: {
+                                type: 'date',
+                                required: true,
+                                format: 'Y-m-d',
+                                description: 'Date à vérifier (aujourd\'hui ou plus tard)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        agence_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                        date_rdv: '2026-07-06'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Date disponible',
+                        example: {
+                            success: true,
+                            message: 'Date disponible.',
+                            code: 'DATE_DISPONIBLE',
+                            data: {
+                                disponible: true,
+                                places_restantes: 10,
+                                capacite_max: 10,
+                                heure_ouverture: '08:00',
+                                heure_fermeture: '17:30'
+                            }
+                        }
+                    }, {
+                        status: 200,
+                        description: 'Date non disponible',
+                        example: {
+                            success: false,
+                            message: 'Plus de places disponibles pour cette date.',
+                            code: 'DATE_NON_DISPONIBLE',
+                            data: {
+                                disponible: false,
+                                places_restantes: 0,
+                                message: 'Plus de places disponibles pour cette date.'
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 5. CRÉER UN RENDEZ-VOUS
+                // ============================================================
+                {
+                    id: 'rdv-create',
+                    module: 'rdvs',
+                    name: 'Créer un rendez-vous',
+                    description: 'Crée un nouveau rendez-vous pour le client connecté. Vérifie automatiquement : éligibilité du client, disponibilité de la date, capacité de l\'agence, jours fériés, périodes clôturées.',
+                    method: 'POST',
+                    path: '/rdvs',
+                    isProtected: true,
+                    permissionsRequired: ['rdvs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        body: {
+                            id_contrat: {
+                                type: 'integer',
+                                required: true,
+                                description: 'ID du contrat concerné'
+                            },
+                            // code_produit: {
+                            //     type: 'string',
+                            //     required: true,
+                            //     description: 'Code du produit (ex: PERFORMA_IND)'
+                            // },
+                            motif_rdv: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du motif (type de prestation)'
+                            },
+                            agence_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence souhaitée'
+                            },
+                            date_rdv: {
+                                type: 'date',
+                                required: true,
+                                format: 'Y-m-d',
+                                description: 'Date du rendez-vous'
+                            },
+                            // contrat_reference: {
+                            //     type: 'string',
+                            //     required: false,
+                            //     max: 100,
+                            //     description: 'Référence du contrat (pour affichage)'
+                            // },
+                            demandeur: {
+                                type: 'string',
+                                required: false,
+                                max: 50,
+                                description: 'Titre du demandeur (Souscripteur, Assuré, Bénéficiaire, etc.)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        id_contrat: 12345,
+                        // code_produit: 'PERFORMA_IND',
+                        motif_rdv: '550e8400-e29b-41d4-a716-446655440001',
+                        agence_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                        date_rdv: '2026-07-06',
+                        // contrat_reference: 'YAK-2021-004821',
+                        demandeur: 'Souscripteur'
+                    },
+                    responses: [{
+                        status: 201,
+                        description: 'Rendez-vous créé avec succès',
+                        example: {
+                            success: true,
+                            message: 'Rendez-vous créé avec succès. Code : RDV-20260706-AbC12345',
+                            code: 'RDV_CREATED',
+                            data: {
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440010',
+                                code: 'RDV-20260706-AbC12345',
+                                client_uuid: '550e8400-e29b-41d4-a716-446655440000',
+                                id_contrat: 12345,
+                                // contrat_reference: 'YAK-2021-004821',
+                                motif_rdv: {
+                                    uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'Décès'
+                                },
+                                demandeur: 'Souscripteur',
+                                date_rdv: '2026-07-06',
+                                date_rdv_souhaiter: '2026-07-01T10:30:00.000000Z',
+                                agence_souhaiter_uuid: '550e8400-e29b-41d4-a716-446655440001',
+                                agence_souhaitee: {
+                                    uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'YAKO Plateau',
+                                    adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                    ville: 'Abidjan'
+                                },
+                                status: 'en_attente',
+                                is_permitted: false,
+                                created_at: '2026-07-01T10:30:00.000000Z'
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            code: 'VALIDATION_ERROR',
+                            errors: {
+                                date_rdv: ['Cette date n\'est plus disponible.'],
+                                eligibilite: [
+                                    {
+                                        code: 'RDV_RECENT',
+                                        message: 'Vous avez déjà un rendez-vous sur ce contrat datant de moins de 30 jours.',
+                                        rdv_code: 'RDV-20260620-XyZ78910',
+                                        rdv_date: '2026-06-20',
+                                        rdv_status: 'confirme'
+                                    }
+                                ]
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 6. LISTE DES RENDEZ-VOUS DU CLIENT
+                // ============================================================
+                {
+                    id: 'rdv-list',
+                    module: 'rdvs',
+                    name: 'Mes rendez-vous',
+                    description: 'Récupère la liste paginée des rendez-vous du client connecté avec filtres (statut, contrat, recherche).',
+                    method: 'GET',
+                    path: '/rdvs',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['en_attente', 'confirme', 'annule', 'rejete', 'traite', 'present', 'absent', 'reporte'],
+                                description: 'Filtrer par statut'
+                            },
+                            id_contrat: {
+                                type: 'integer',
+                                required: false,
+                                description: 'Filtrer par contrat'
+                            },
+                            search: {
+                                type: 'string',
+                                required: false,
+                                description: 'Recherche textuelle (code, référence contrat)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        status: 'confirme',
+                        per_page: 10
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des rendez-vous',
+                        example: {
+                            success: true,
+                            message: 'Liste des rendez-vous.',
+                            code: 'RDVS_LISTED',
+                            data: [{
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440010',
+                                code: 'RDV-20260706-AbC12345',
+                                motif: {
+                                    uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'Décès'
+                                },
+                                date_rdv: '2026-07-06',
+                                agence_souhaitee: {
+                                    uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'YAKO Plateau',
+                                    ville: 'Abidjan'
+                                },
+                                status: 'confirme',
+                                status_label: 'Confirmé',
+                                created_at: '2026-07-01T10:30:00.000000Z'
+                            }, {
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440011',
+                                code: 'RDV-20260628-XyZ78910',
+                                motif: {
+                                    uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440004',
+                                    libelle: 'Paiement'
+                                },
+                                date_rdv: '2026-06-28',
+                                agence_souhaitee: {
+                                    uuid_agence: '550e8400-e29b-41d4-a716-446655440002',
+                                    libelle: 'YAKO Cocody',
+                                    ville: 'Abidjan'
+                                },
+                                status: 'termine',
+                                status_label: 'Terminé',
+                                created_at: '2026-06-20T14:00:00.000000Z'
+                            }],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 2,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 7. STATISTIQUES DES RENDEZ-VOUS
+                // ============================================================
+                {
+                    id: 'rdv-stats',
+                    module: 'rdvs',
+                    name: 'Statistiques des rendez-vous',
+                    description: 'Récupère les statistiques des rendez-vous du client connecté (total, par statut).',
+                    method: 'GET',
+                    path: '/rdvs/stats',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statistiques des rendez-vous',
+                        example: {
+                            success: true,
+                            message: 'Statistiques des rendez-vous.',
+                            code: 'RDV_STATS',
+                            data: {
+                                total: 5,
+                                en_attente: 1,
+                                confirme: 2,
+                                traite: 1,
+                                termine: 0,
+                                annule: 1,
+                                rejete: 0,
+                                reporte: 0
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 8. DÉTAILS D'UN RENDEZ-VOUS
+                // ============================================================
+                {
+                    id: 'rdv-show',
+                    module: 'rdvs',
+                    name: 'Détails d\'un rendez-vous',
+                    description: 'Récupère les détails complets d\'un rendez-vous (client, motif, agences, gestionnaire). Le client ne peut voir que ses propres rendez-vous.',
+                    method: 'GET',
+                    path: '/rdvs/{uuid_rdvs}',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_rdvs: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du rendez-vous'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Détails du rendez-vous',
+                        example: {
+                            success: true,
+                            message: 'Détails du rendez-vous.',
+                            code: 'RDV_FOUND',
+                            data: {
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440010',
+                                code: 'RDV-20260706-AbC12345',
+                                client: {
+                                    uuid_user: '550e8400-e29b-41d4-a716-446655440000',
+                                    email: 'client@example.com',
+                                    login: 'jdupont',
+                                    details: {
+                                        nom: 'Dupont',
+                                        prenoms: 'Jean',
+                                        full_name: 'Jean Dupont'
+                                    }
+                                },
+                                id_contrat: 12345,
+                                contrat_reference: 'YAK-2021-004821',
+                                motif: {
+                                    uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440001',
+                                    code: 'DECES',
+                                    libelle: 'Décès',
+                                    description: 'Déclaration de décès'
+                                },
+                                demandeur: 'Souscripteur',
+                                date_rdv: '2026-07-06',
+                                date_rdv_souhaiter: '2026-07-01T10:30:00.000000Z',
+                                date_rdv_effective: null,
+                                agence_souhaitee: {
+                                    uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                    libelle: 'YAKO Plateau',
+                                    adresse: 'Av. Chardy, Imm. Alpha 2000',
+                                    ville: 'Abidjan',
+                                    telephone: '+2252720304050'
+                                },
+                                agence_effective: null,
+                                gestionnaire: null,
+                                status: 'confirme',
+                                status_label: 'Confirmé',
+                                // is_permitted: true,
+                                observation: null,
+                                created_at: '2026-07-01T10:30:00.000000Z',
+                                updated_at: '2026-07-01T10:30:00.000000Z'
+                            }
+                        }
+                    }, {
+                        status: 403,
+                        description: 'Accès non autorisé',
+                        example: {
+                            success: false,
+                            message: 'Accès non autorisé.',
+                            code: 'FORBIDDEN'
+                        }
+                    }, {
+                        status: 404,
+                        description: 'Rendez-vous non trouvé',
+                        example: {
+                            success: false,
+                            message: 'Rendez-vous non trouvé.',
+                            code: 'RDV_NOT_FOUND'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 9. ANNULER UN RENDEZ-VOUS
+                // ============================================================
+                {
+                    id: 'rdv-cancel',
+                    module: 'rdvs',
+                    name: 'Annuler un rendez-vous',
+                    description: 'Annule un rendez-vous. Un rendez-vous confirmé ou traité ne peut pas être annulé.',
+                    method: 'POST',
+                    path: '/rdvs/{uuid_rdvs}/cancel',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_rdvs: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du rendez-vous'
+                            }
+                        },
+                        body: {
+                            motif: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Motif de l\'annulation'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        motif: 'Impossibilité de me déplacer'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Rendez-vous annulé',
+                        example: {
+                            success: true,
+                            message: 'Rendez-vous annulé avec succès.',
+                            code: 'RDV_CANCELLED',
+                            data: {
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440010',
+                                code: 'RDV-20260706-AbC12345',
+                                status: 'annule',
+                                status_label: 'Annulé',
+                                motif_traitement: {
+                                    annulation: 'Impossibilité de me déplacer',
+                                    admin_action: true
+                                },
+                                date_traitement: '2026-07-02T08:00:00.000000Z'
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Rendez-vous déjà traité',
+                        example: {
+                            success: false,
+                            message: 'Ce rendez-vous ne peut plus être annulé car il est déjà confirmé ou traité.',
+                            code: 'RDV_DEJA_TRAITE'
+                        }
+                    }, {
+                        status: 403,
+                        description: 'Accès non autorisé',
+                        example: {
+                            success: false,
+                            message: 'Accès non autorisé.',
+                            code: 'FORBIDDEN'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 10. SIGNALER SA PRÉSENCE
+                // ============================================================
+                {
+                    id: 'rdv-signaler-presence',
+                    module: 'rdvs',
+                    name: 'Signaler sa présence',
+                    description: 'Permet au client de signaler sa présence à l\'agence le jour du rendez-vous. Vérifie la géolocalisation si configurée.',
+                    method: 'POST',
+                    path: '/rdvs/{uuid_rdvs}/signaler-presence',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_rdvs: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du rendez-vous'
+                            }
+                        },
+                        body: {
+                            latitude: {
+                                type: 'number',
+                                required: false,
+                                between: [-90, 90],
+                                description: 'Latitude de la position du client'
+                            },
+                            longitude: {
+                                type: 'number',
+                                required: false,
+                                between: [-180, 180],
+                                description: 'Longitude de la position du client'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        latitude: 5.3364,
+                        longitude: -4.0271
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Présence signalée avec succès',
+                        example: {
+                            success: true,
+                            message: 'Présence signalée avec succès.',
+                            code: 'PRESENCE_SIGNALEE',
+                            data: {
+                                uuid_rdvs: '550e8400-e29b-41d4-a716-446655440010',
+                                code: 'RDV-20260706-AbC12345',
+                                is_present: true,
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            code: 'VALIDATION_ERROR',
+                            errors: {
+                                geolocalisation: ['Vous n\'êtes pas à proximité de l\'agence. Veuillez vous rapprocher pour valider votre présence.']
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Rendez-vous non confirmé',
+                        example: {
+                            success: false,
+                            message: 'Ce rendez-vous n\'est pas confirmé.',
+                            code: 'RDV_NOT_CONFIRMED'
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Rendez-vous pas aujourd\'hui',
+                        example: {
+                            success: false,
+                            message: 'Le rendez-vous n\'est pas prévu aujourd\'hui.',
+                            code: 'RDV_NOT_TODAY'
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // ADMIN - GESTION DES RENDEZ-VOUS
+                // ============================================================
+
+                // ============================================================
+                // 11. ADMIN - LISTE DES RENDEZ-VOUS D'UNE AGENCE
+                // ============================================================
+                {
+                    id: 'rdv-admin-agence',
+                    module: 'rdvs',
+                    name: '[Admin] Rendez-vous d\'une agence',
+                    description: 'Liste paginée des rendez-vous d\'une agence spécifique (souhaitée ou effective). Réservé aux administrateurs.',
+                    method: 'GET',
+                    path: '/admin/rdvs/agence/{uuid_agence}',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_agence: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence'
+                            }
+                        },
+                        query: {
+                            per_page: {
+                                type: 'integer',
+                                required: false,
+                                default: 20,
+                                description: 'Nombre par page'
+                            },
+                            status: {
+                                type: 'string',
+                                required: false,
+                                enum: ['en_attente', 'confirme', 'annule', 'rejete', 'traite', 'tremine','reporte'],
+                                description: 'Filtrer par statut'
+                            },
+                            date: {
+                                type: 'date',
+                                required: false,
+                                description: 'Filtrer par date (YYYY-MM-DD)'
+                            }
+                        }
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des rendez-vous de l\'agence',
+                        example: {
+                            success: true,
+                            message: 'Liste des rendez-vous de l\'agence.',
+                            code: 'AGENCE_RDVS_LISTED',
+                            data: [{
+                                uuid_rdvs: '...',
+                                code: 'RDV-20260706-AbC12345',
+                                client: {
+                                    uuid_user: '...',
+                                    email: 'client@example.com',
+                                    details: {
+                                        full_name: 'Jean Dupont'
+                                    }
+                                },
+                                motif: {
+                                    libelle: 'Décès'
+                                },
+                                contrat_reference: 'YAK-2021-004821',
+                                date_rdv: '2026-07-06',
+                                status: 'confirme',
+                                status_label: 'Confirmé',
+                                created_at: '2026-07-01T10:30:00.000000Z'
+                            }],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 5,
+                                last_page: 1
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 12. ADMIN - METTRE À JOUR LE STATUT
+                // ============================================================
+                {
+                    id: 'rdv-admin-update-status',
+                    module: 'rdvs',
+                    name: '[Admin] Mettre à jour le statut d\'un rendez-vous',
+                    description: 'Met à jour le statut d\'un rendez-vous. Permet de confirmer, rejeter, traiter, treminer un rendez-vous ou de reporter un rendez-vous. Réservé aux administrateurs.',
+                    method: 'PUT',
+                    path: '/admin/rdvs/{uuid_rdvs}/status',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_rdvs: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du rendez-vous'
+                            }
+                        },
+                        body: {
+                            status: {
+                                type: 'string',
+                                required: true,
+                                enum: ['en_attente', 'confirme', 'rejete', 'traite', 'tremine', 'reporte'],
+                                description: 'Nouveau statut'
+                            },
+                            observation: {
+                                type: 'string',
+                                required: false,
+                                description: 'Observation du gestionnaire'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        status: 'confirme',
+                        observation: 'Rendez-vous confirmé par le gestionnaire'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Statut mis à jour',
+                        example: {
+                            success: true,
+                            message: 'Statut du rendez-vous mis à jour.',
+                            code: 'RDV_STATUS_UPDATED',
+                            data: {
+                                uuid_rdvs: '...',
+                                code: 'RDV-20260706-AbC12345',
+                                status: 'confirme',
+                                status_label: 'Confirmé',
+                                date_traitement: '2026-07-02T08:00:00.000000Z',
+                                observation: 'Rendez-vous confirmé par le gestionnaire'
+                            }
+                        }
+                    }]
+                },
+
+                // ============================================================
+                // 13. ADMIN - ASSIGNER UN GESTIONNAIRE
+                // ============================================================
+                {
+                    id: 'rdv-admin-assign-gestionnaire',
+                    module: 'rdvs',
+                    name: '[Admin] Assigner un gestionnaire',
+                    description: 'Assigne un gestionnaire à un rendez-vous. Réservé aux administrateurs.',
+                    method: 'POST',
+                    path: '/admin/rdvs/{uuid_rdvs}/assign-gestionnaire',
+                    isProtected: true,
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_rdvs: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID du rendez-vous'
+                            }
+                        },
+                        body: {
+                            gestionnaire_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur gestionnaire'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        gestionnaire_uuid: '550e8400-e29b-41d4-a716-446655440020'
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Gestionnaire assigné avec succès',
+                        example: {
+                            success: true,
+                            message: 'Gestionnaire assigné avec succès.',
+                            code: 'GESTIONNAIRE_ASSIGNED',
+                            data: {
+                                uuid_rdvs: '...',
+                                code: 'RDV-20260706-AbC12345',
+                                gestionnaire: {
+                                    uuid_user: '550e8400-e29b-41d4-a716-446655440020',
+                                    email: 'gestionnaire@yako.ci',
+                                    details: {
+                                        full_name: 'Koffi Serge'
+                                    }
+                                }
+                            }
+                        }
+                    }]
                 },
 
                 // ============================================================

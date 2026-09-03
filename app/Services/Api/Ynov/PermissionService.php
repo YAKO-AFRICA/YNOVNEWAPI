@@ -1909,33 +1909,223 @@ class PermissionService
 
             ],
 
-            // // ============================================================
-            // // ESPACE CLIENT - PAIEMENTS
-            // // ============================================================
-            // [
-            //     'module' => [
-            //         'code' => 'paiements',
-            //         'libelle' => 'Paiements',
-            //         'description' => 'Gestion des paiements client',
-            //         'icone' => 'credit-card',
-            //         'color' => '#2ecc71',
-            //         'ordre' => 18,
-            //     ],
-            //     'permissions' => [
-            //         [
-            //             'category' => 'report',
-            //             'action' => 'historique',
-            //             'libelle' => 'Afficher l\'historique des paiements',
-            //             'description' => 'Permet d\'afficher l\'historique des paiements du client'
-            //         ],
-            //         [
-            //             'category' => 'report',
-            //             'action' => 'contrat',
-            //             'libelle' => 'Voir les paiements d\'un contrat',
-            //             'description' => 'Permet de visualiser les paiements associés à un contrat'
-            //         ],
-            //     ]
-            // ],
+            // ============================================================
+            // TYPES DE PRODUITS
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'produits',
+                    'libelle' => 'Types de produits',
+                    'description' => 'Gestion des types de produits',
+                    'icone' => 'tags',
+                    'color' => '#8e44ad',
+                    'ordre' => 17,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les types de produits',
+                        'description' => 'Permet de visualiser la liste des types de produits'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer un type de produit',
+                        'description' => 'Permet de créer un nouveau type de produit'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier un type de produit',
+                        'description' => 'Permet de modifier un type de produit'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer un type de produit',
+                        'description' => 'Permet de supprimer un type de produit'
+                    ],
+                ]
+            ],
+
+            // ============================================================
+            // PRODUITS
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'produits',
+                    'libelle' => 'Produits',
+                    'description' => 'Gestion des produits d\'assurance',
+                    'icone' => 'box',
+                    'color' => '#2ecc71',
+                    'ordre' => 18,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les produits',
+                        'description' => 'Permet de visualiser la liste des produits'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer un produit',
+                        'description' => 'Permet de créer un nouveau produit'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier un produit',
+                        'description' => 'Permet de modifier un produit'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer un produit',
+                        'description' => 'Permet de supprimer un produit'
+                    ],
+                    [
+                        'category' => 'admin',
+                        'action' => 'gerer_formules',
+                        'libelle' => 'Gérer les formules de produits',
+                        'description' => 'Permet de gérer les formules associées aux produits'
+                    ],
+                    [
+                        'category' => 'admin',
+                        'action' => 'gerer_prestations',
+                        'libelle' => 'Gérer les prestations de produits',
+                        'description' => 'Permet de gérer les prestations associées aux produits'
+                    ],
+                ]
+            ],
+
+            // ============================================================
+            // PRESTATIONS
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'prestations',
+                    'libelle' => 'Prestations',
+                    'description' => 'Gestion des prestations et catégories',
+                    'icone' => 'clipboard-list',
+                    'color' => '#f39c12',
+                    'ordre' => 19,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les prestations',
+                        'description' => 'Permet de visualiser la liste des prestations'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer une prestation',
+                        'description' => 'Permet de créer une nouvelle prestation'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier une prestation',
+                        'description' => 'Permet de modifier une prestation'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer une prestation',
+                        'description' => 'Permet de supprimer une prestation'
+                    ],
+                    [
+                        'category' => 'admin',
+                        'action' => 'gerer_categories',
+                        'libelle' => 'Gérer les catégories de prestations',
+                        'description' => 'Permet de gérer les catégories de prestations'
+                    ],
+                ]
+            ],
+
+            // ============================================================
+            // RENDEZ-VOUS (RDV)
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'rdvs',
+                    'libelle' => 'Rendez-vous',
+                    'description' => 'Gestion des rendez-vous',
+                    'icone' => 'calendar-check',
+                    'color' => '#0d6efd',
+                    'ordre' => 20,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer un rendez-vous',
+                        'description' => 'Permet de créer un rendez-vous'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les rendez-vous',
+                        'description' => 'Permet de visualiser les rendez-vous'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'annuler',
+                        'libelle' => 'Annuler un rendez-vous',
+                        'description' => 'Permet d\'annuler un rendez-vous'
+                    ],
+                    [
+                        'category' => 'admin',
+                        'action' => 'admin',
+                        'libelle' => 'Administrer les rendez-vous',
+                        'description' => 'Permet d\'administrer tous les rendez-vous (changement de statut, assignation)'
+                    ],
+                ]
+            ],
+
+            // ============================================================
+            // JOURS FÉRIÉS
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'jour_feries',
+                    'libelle' => 'Jours fériés',
+                    'description' => 'Gestion des jours fériés',
+                    'icone' => 'calendar-day',
+                    'color' => '#dc3545',
+                    'ordre' => 21,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les jours fériés',
+                        'description' => 'Permet de visualiser la liste des jours fériés'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer un jour férié',
+                        'description' => 'Permet de créer un nouveau jour férié'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier un jour férié',
+                        'description' => 'Permet de modifier un jour férié'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer un jour férié',
+                        'description' => 'Permet de supprimer un jour férié'
+                    ],
+                ]
+            ],
         ];
     }
 }

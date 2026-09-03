@@ -46,6 +46,8 @@ class UpdateAgenceRequest extends FormRequest
             'horaires.*.heure_fermeture_midi' => ['nullable', 'date_format:H:i', 'after:heure_ouverture_midi', 'before:heure_fermeture'],
             'horaires.*.ferme' => ['nullable', 'boolean'],
             'horaires.*.commentaire' => ['nullable', 'string', 'max:255'],
+            'horaires.*.capacite_rendez_vous' => ['nullable', 'integer', 'min:0'],
+            'horaires.*.rendez_vous_actif' => ['nullable', 'boolean'],
         ];
     }
 }

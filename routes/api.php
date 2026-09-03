@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Ynov\FaqController;
 use App\Http\Controllers\Api\Ynov\FreezeController;
 use App\Http\Controllers\Api\Ynov\GroupNotifController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
+use App\Http\Controllers\Api\Ynov\JourFerieController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
 use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
@@ -19,12 +20,16 @@ use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
+use App\Http\Controllers\Api\Ynov\PrestationController;
+use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
+use App\Http\Controllers\Api\Ynov\RdvController;
 use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
 use App\Http\Controllers\Api\Ynov\SessionController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
+use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
@@ -470,6 +475,255 @@ Route::prefix('v1')->middleware([
             
             Route::post('group', [NotificationController::class, 'createForGroup'])
                 ->middleware('permission:notifications.creer');
+    });
+
+
+    // ============================================================
+    // TYPES DE PRODUITS
+    // ============================================================
+    Route::prefix('type-produits')->group(function () {
+        Route::get('/', [TypeProduitController::class, 'index'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::get('select', [TypeProduitController::class, 'select'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::get('{uuid_type_produit}', [TypeProduitController::class, 'show'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::post('/', [TypeProduitController::class, 'store'])
+            ->middleware('permission:produits.creer');
+        
+        Route::put('{uuid_type_produit}', [TypeProduitController::class, 'update'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('{uuid_type_produit}', [TypeProduitController::class, 'destroy'])
+            ->middleware('permission:produits.supprimer');
+    });
+
+    // ============================================================
+    // PRODUITS
+    // ============================================================
+    Route::prefix('produits')->group(function () {
+        // Liste et détails
+        Route::get('/', [ProduitController::class, 'index'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::get('stats', [ProduitController::class, 'stats'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::get('{uuid_produit}', [ProduitController::class, 'show'])
+            ->middleware('permission:produits.afficher');
+        
+        // CRUD
+        Route::post('/', [ProduitController::class, 'store'])
+            ->middleware('permission:produits.creer');
+        
+        Route::put('{uuid_produit}', [ProduitController::class, 'update'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('{uuid_produit}', [ProduitController::class, 'destroy'])
+            ->middleware('permission:produits.supprimer');
+        
+        // Formules
+        Route::get('{uuid_produit}/formules', [ProduitController::class, 'getFormules'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::post('{uuid_produit}/formules', [ProduitController::class, 'storeFormule'])
+            ->middleware('permission:produits.creer');
+        
+        Route::put('formules/{uuid_formule}', [ProduitController::class, 'updateFormule'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('formules/{uuid_formule}', [ProduitController::class, 'destroyFormule'])
+            ->middleware('permission:produits.supprimer');
+        
+        // Prestations du produit
+        Route::get('{uuid_produit}/prestations', [ProduitController::class, 'getPrestations']);
+            // ->middleware('permission:produits.afficher');
+        
+        // Types de prestations disponibles pour le produit
+        Route::get('{uuid_produit}/prestations/available', [ProduitController::class, 'availablePrestations']);
+            // ->middleware('permission:produits.afficher');
+        
+        Route::post('{uuid_produit}/prestations', [ProduitController::class, 'assignPrestation'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('prestations/{uuid_association}', [ProduitController::class, 'removePrestation'])
+            ->middleware('permission:produits.modifier');
+    });
+
+    // ============================================================
+    // PRESTATIONS
+    // ============================================================
+    Route::prefix('prestations')->group(function () {
+        // Catégories
+        Route::get('categories', [PrestationController::class, 'categories'])
+            ->middleware('permission:prestations.afficher');
+        
+        Route::post('categories', [PrestationController::class, 'storeCategory'])
+            ->middleware('permission:prestations.creer');
+        
+        Route::get('categories/{uuid_category}', [PrestationController::class, 'showCategory'])
+            ->middleware('permission:prestations.afficher');
+        
+        Route::put('categories/{uuid_category}', [PrestationController::class, 'updateCategory'])
+            ->middleware('permission:prestations.modifier');
+        
+        Route::delete('categories/{uuid_category}', [PrestationController::class, 'deleteCategory'])
+            ->middleware('permission:prestations.supprimer');
+        
+        // Types de prestations
+        Route::get('types', [PrestationController::class, 'types'])
+            ->middleware('permission:prestations.afficher');
+        
+        Route::post('types', [PrestationController::class, 'storeType'])
+            ->middleware('permission:prestations.creer');
+        
+        Route::get('types/{uuid_type}', [PrestationController::class, 'showType'])
+            ->middleware('permission:prestations.afficher');
+        
+        Route::put('types/{uuid_type}', [PrestationController::class, 'updateType'])
+            ->middleware('permission:prestations.modifier');
+        
+        Route::delete('types/{uuid_type}', [PrestationController::class, 'deleteType'])
+            ->middleware('permission:prestations.supprimer');
+        
+        // Statistiques
+        Route::get('stats', [PrestationController::class, 'stats'])
+            ->middleware('permission:prestations.afficher');
+    });
+
+    // ============================================================
+    // RENDEZ-VOUS (RDV) - CLIENT
+    // ============================================================
+    Route::prefix('rdvs')->group(function () {
+        // Motifs disponibles
+        Route::get('motifs', [RdvController::class, 'motifs'])
+            ->middleware('permission:rdvs.creer');
+
+        // Agences disponibles
+        Route::get('agences', [RdvController::class, 'agences'])
+            ->middleware('permission:rdvs.creer');
+
+        // Dates disponibles
+        Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles'])
+            ->middleware('permission:rdvs.creer');
+
+        // Vérifier une date
+        Route::post('verifier-date', [RdvController::class, 'verifierDate'])
+            ->middleware('permission:rdvs.creer');
+
+        // Mes rendez-vous
+        Route::get('/', [RdvController::class, 'index']);
+        Route::get('stats', [RdvController::class, 'stats']);
+        Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
+
+        // Créer un rendez-vous
+        Route::post('/', [RdvController::class, 'store'])
+            ->middleware('permission:rdvs.creer');
+
+        // Signaler sa présence
+        Route::post('{uuid_rdvs}/signaler-presence', [RdvController::class, 'signalerPresence']);
+
+        // Annuler un rendez-vous
+        Route::post('{uuid_rdvs}/cancel', [RdvController::class, 'cancel'])->middleware('permission:rdvs.annuler');
+    });
+
+    // ============================================================
+    // RENDEZ-VOUS (RDV) - ADMIN
+    // ============================================================
+    Route::prefix('admin/rdvs')->group(function () {
+        // Liste des rendez-vous d'une agence
+        Route::get('agence/{uuid_agence}', [RdvController::class, 'agenceRdvs']);
+
+        // Mettre à jour le statut
+        Route::put('{uuid_rdvs}/status', [RdvController::class, 'updateStatus']);
+
+        // Assigner un gestionnaire
+        Route::post('{uuid_rdvs}/assign-gestionnaire', [RdvController::class, 'assignGestionnaire']);
+    });
+
+    // // ============================================================
+    // // JOURS FÉRIÉS
+    // // ============================================================
+    // Route::prefix('jour-feries')->group(function () {
+    //     // Liste et détails
+    //     Route::get('/', [JourFerieController::class, 'index'])
+    //         ->middleware('permission:jour_feries.afficher');
+        
+    //     Route::get('stats', [JourFerieController::class, 'stats'])
+    //         ->middleware('permission:jour_feries.afficher');
+        
+    //     Route::get('{uuid_jour_ferie}', [JourFerieController::class, 'show'])
+    //         ->middleware('permission:jour_feries.afficher');
+        
+    //     // CRUD
+    //     Route::post('/', [JourFerieController::class, 'store'])
+    //         ->middleware('permission:jour_feries.creer');
+        
+    //     Route::put('{uuid_jour_ferie}', [JourFerieController::class, 'update'])
+    //         ->middleware('permission:jour_feries.modifier');
+        
+    //     Route::delete('{uuid_jour_ferie}', [JourFerieController::class, 'destroy'])
+    //         ->middleware('permission:jour_feries.supprimer');
+        
+    //     // Utilitaires
+    //     Route::post('verifier', [JourFerieController::class, 'verifier'])
+    //         ->middleware('permission:jour_feries.afficher');
+        
+    //     Route::get('annee/{year}', [JourFerieController::class, 'annee'])
+    //         ->middleware('permission:jour_feries.afficher');
+        
+    //     Route::get('prochains-jours-ouvres', [JourFerieController::class, 'prochainsJoursOuvres'])
+    //         ->middleware('permission:jour_feries.afficher');
+    // });
+
+    // ============================================================
+    // JOURS FÉRIÉS
+    // ============================================================
+    Route::prefix('jour-feries')->group(function () {
+        
+        // ============================================================
+        // ROUTES SPÉCIFIQUES (DOIVENT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
+        // ============================================================
+        
+        // Utilitaires - routes sans paramètre
+        Route::get('stats', [JourFerieController::class, 'stats'])
+            ->middleware('permission:jour_feries.afficher');
+        
+        Route::post('verifier', [JourFerieController::class, 'verifier'])
+            ->middleware('permission:jour_feries.afficher');
+        
+        Route::get('prochains-jours-ouvres', [JourFerieController::class, 'prochainsJoursOuvres'])
+            ->middleware('permission:jour_feries.afficher');
+        
+        // Route avec paramètre dans l'URL
+        Route::get('annee/{year}', [JourFerieController::class, 'annee'])
+            ->middleware('permission:jour_feries.afficher')
+            ->where('year', '[0-9]{4}');
+        
+        // ============================================================
+        // ROUTES AVEC PARAMÈTRE UUID (DOIVENT ÊTRE APRÈS LES ROUTES SPÉCIFIQUES)
+        // ============================================================
+        
+        // Liste (sans paramètre)
+        Route::get('/', [JourFerieController::class, 'index'])
+            ->middleware('permission:jour_feries.afficher');
+        
+        // Routes avec UUID - doivent être en dernier
+        Route::get('{uuid_jour_ferie}', [JourFerieController::class, 'show'])
+            ->middleware('permission:jour_feries.afficher');
+        
+        Route::put('{uuid_jour_ferie}', [JourFerieController::class, 'update'])
+            ->middleware('permission:jour_feries.modifier');
+        
+        Route::delete('{uuid_jour_ferie}', [JourFerieController::class, 'destroy'])
+            ->middleware('permission:jour_feries.supprimer');
+        
+        // CRUD - Création (sans paramètre)
+        Route::post('/', [JourFerieController::class, 'store'])
+            ->middleware('permission:jour_feries.creer');
     });
 
 

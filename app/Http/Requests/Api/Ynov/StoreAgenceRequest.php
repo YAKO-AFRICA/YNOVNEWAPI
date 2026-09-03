@@ -33,7 +33,6 @@ class StoreAgenceRequest extends FormRequest
             'photos' => ['nullable', 'array'],
             'photos.*' => ['nullable', 'string', 'max:255'],
             'responsable' => ['nullable', 'string', 'max:255'],
-            'site_web' => ['nullable', 'url', 'max:255'],
             'status' => ['nullable', 'string', Rule::in(['actif', 'inactif'])],
             'horaires' => ['nullable', 'array'],
             'horaires.*.jour' => ['required_with:horaires', 'string', Rule::in(['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'])],
@@ -43,6 +42,9 @@ class StoreAgenceRequest extends FormRequest
             'horaires.*.heure_fermeture_midi' => ['nullable', 'date_format:H:i', 'after:heure_ouverture_midi', 'before:heure_fermeture'],
             'horaires.*.ferme' => ['nullable', 'boolean'],
             'horaires.*.commentaire' => ['nullable', 'string', 'max:255'],
+            'horaires.*.capacite_rendez_vous' => ['nullable', 'integer', 'min:0'],
+            'horaires.*.rendez_vous_actif' => ['nullable', 'boolean'],
+
         ];
     }
 
@@ -55,7 +57,6 @@ class StoreAgenceRequest extends FormRequest
             'email.email' => 'L\'email doit être une adresse valide.',
             'latitude.between' => 'La latitude doit être comprise entre -90 et 90.',
             'longitude.between' => 'La longitude doit être comprise entre -180 et 180.',
-            'site_web.url' => 'Le site web doit être une URL valide.',
             'horaires.*.jour.in' => 'Le jour doit être un jour de la semaine valide.',
             'horaires.*.heure_fermeture.after' => 'L\'heure de fermeture doit être après l\'heure d\'ouverture.',
             'horaires.*.heure_fermeture_midi.after' => 'L\'heure de fermeture midi doit être après l\'heure d\'ouverture midi.',

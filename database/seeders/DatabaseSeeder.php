@@ -13,9 +13,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SuperAdminRoleSeeder::class,
             AssignSuperAdminPermissionsSeeder::class,
+            AssignClientPermissionsSeeder::class,
             PermissionSeeder::class,
             SuperAdminUserSeeder::class,
             FaqCategorySeeder::class,
+            JourFerieSeeder::class,
+            TypeProduitSeeder::class,
+            ProduitSeeder::class,
+            CategoryTypePrestationSeeder::class,
         ]);
     }
 }

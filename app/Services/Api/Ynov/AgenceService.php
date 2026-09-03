@@ -11,14 +11,12 @@ use Illuminate\Support\Str;
 // class AgenceService
 // {
 //     /**
-//      * Créer une nouvelle agence
+//      * Créer une nouvelle agence avec ses horaires
 //      */
 //     public function create(array $data, string $creatorUuid): Agence
 //     {
 //         return DB::transaction(function () use ($data, $creatorUuid) {
-//             // Formater les horaires
-//             $horaires = $this->formatHoraires($data['horaires'] ?? []);
-            
+//             // Créer l'agence
 //             $agence = Agence::create([
 //                 'uuid_agence' => (string) Str::uuid(),
 //                 'code' => $data['code'],
@@ -35,14 +33,19 @@ use Illuminate\Support\Str;
 //                 'pays' => $data['pays'] ?? 'Côte d\'Ivoire',
 //                 'latitude' => $data['latitude'] ?? null,
 //                 'longitude' => $data['longitude'] ?? null,
-//                 'horaires' => $horaires,
 //                 'photo' => $data['photo'] ?? null,
 //                 'photos' => $data['photos'] ?? null,
 //                 'responsable' => $data['responsable'] ?? null,
 //                 'site_web' => $data['site_web'] ?? null,
+//                 'config' => $data['config'] ?? null,
 //                 'status' => $data['status'] ?? 'actif',
 //                 'created_by' => $creatorUuid,
 //             ]);
+
+//             // Créer les horaires
+//             if (isset($data['horaires']) && !empty($data['horaires'])) {
+//                 $this->syncHoraires($agence, $data['horaires'], $creatorUuid);
+//             }
 
 //             // Journaliser l'action
 //             ActivityLog::log([
@@ -57,22 +60,17 @@ use Illuminate\Support\Str;
 //                 'level' => 'info',
 //             ]);
 
-//             return $agence;
+//             return $agence->load('horaires');
 //         });
 //     }
 
 //     /**
-//      * Mettre à jour une agence
+//      * Mettre à jour une agence et ses horaires
 //      */
 //     public function update(Agence $agence, array $data, string $updaterUuid): Agence
 //     {
 //         return DB::transaction(function () use ($agence, $data, $updaterUuid) {
 //             $oldValues = $agence->toArray();
-            
-//             // Formater les horaires
-//             if (isset($data['horaires'])) {
-//                 $data['horaires'] = $this->formatHoraires($data['horaires']);
-//             }
             
 //             $agence->update([
 //                 'code' => $data['code'] ?? $agence->code,
@@ -89,16 +87,20 @@ use Illuminate\Support\Str;
 //                 'pays' => $data['pays'] ?? $agence->pays,
 //                 'latitude' => $data['latitude'] ?? $agence->latitude,
 //                 'longitude' => $data['longitude'] ?? $agence->longitude,
-//                 'horaires' => $data['horaires'] ?? $agence->horaires,
 //                 'photo' => $data['photo'] ?? $agence->photo,
 //                 'photos' => $data['photos'] ?? $agence->photos,
 //                 'responsable' => $data['responsable'] ?? $agence->responsable,
 //                 'site_web' => $data['site_web'] ?? $agence->site_web,
+//                 'config' => $data['config'] ?? $agence->config,
 //                 'status' => $data['status'] ?? $agence->status,
 //                 'updated_by' => $updaterUuid,
 //             ]);
 
-//             // Journaliser l'action
+//             // Mettre à jour les horaires
+//             if (isset($data['horaires'])) {
+//                 $this->syncHoraires($agence, $data['horaires'], $updaterUuid);
+//             }
+
 //             ActivityLog::log([
 //                 'user_uuid' => $updaterUuid,
 //                 'action' => 'update',
@@ -112,8 +114,33 @@ use Illuminate\Support\Str;
 //                 'level' => 'info',
 //             ]);
 
-//             return $agence->fresh();
+//             return $agence->fresh('horaires');
 //         });
+//     }
+
+//     /**
+//      * Synchroniser les horaires d'une agence
+//      */
+//     public function syncHoraires(Agence $agence, array $horaires, string $creatorUuid): void
+//     {
+//         // Supprimer les anciens horaires
+//         $agence->horaires()->delete();
+
+//         // Créer les nouveaux horaires
+//         foreach ($horaires as $horaire) {
+//             AgenceHoraire::create([
+//                 'uuid_horaire' => (string) Str::uuid(),
+//                 'agence_uuid' => $agence->uuid_agence,
+//                 'jour' => $horaire['jour'],
+//                 'heure_ouverture' => $horaire['heure_ouverture'] ?? null,
+//                 'heure_fermeture' => $horaire['heure_fermeture'] ?? null,
+//                 'heure_ouverture_midi' => $horaire['heure_ouverture_midi'] ?? null,
+//                 'heure_fermeture_midi' => $horaire['heure_fermeture_midi'] ?? null,
+//                 'ferme' => $horaire['ferme'] ?? false,
+//                 'commentaire' => $horaire['commentaire'] ?? null,
+//                 // 'created_by' => $creatorUuid,
+//             ]);
+//         }
 //     }
 
 //     /**
@@ -141,43 +168,11 @@ use Illuminate\Support\Str;
 //     }
 
 //     /**
-//      * Formater les horaires pour le stockage JSON
-//      */
-//     private function formatHoraires(array $horaires): array
-//     {
-//         $jours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-//         $formatted = [];
-        
-//         // Initialiser tous les jours par défaut
-//         foreach ($jours as $jour) {
-//             $formatted[$jour] = [
-//                 'ouverture' => '08:00',
-//                 'fermeture' => '17:30',
-//                 'ferme' => false,
-//             ];
-//         }
-        
-//         // Appliquer les horaires fournis
-//         foreach ($horaires as $horaire) {
-//             if (isset($horaire['jour'])) {
-//                 $jour = $horaire['jour'];
-//                 $formatted[$jour] = [
-//                     'ouverture' => $horaire['ouverture'] ?? null,
-//                     'fermeture' => $horaire['fermeture'] ?? null,
-//                     'ferme' => $horaire['ferme'] ?? false,
-//                 ];
-//             }
-//         }
-        
-//         return $formatted;
-//     }
-
-//     /**
 //      * Récupérer les agences avec filtres
 //      */
 //     public function getAgences(array $filters = [], int $perPage = 20)
 //     {
-//         $query = Agence::query()->with(['reseau']);
+//         $query = Agence::query()->with(['reseau', 'horaires']);
         
 //         // Filtres
 //         if (isset($filters['status'])) {
@@ -212,7 +207,6 @@ use Illuminate\Support\Str;
 //         }
         
 //         if (isset($filters['latitude']) && isset($filters['longitude']) && isset($filters['radius'])) {
-//             // Distance en kilomètres
 //             $lat = $filters['latitude'];
 //             $lng = $filters['longitude'];
 //             $radius = $filters['radius'] ?? 10;
@@ -231,6 +225,7 @@ use Illuminate\Support\Str;
 //         return $query->orderBy('libelle')->paginate($perPage);
 //     }
 // }
+
 
 class AgenceService
 {
@@ -260,8 +255,6 @@ class AgenceService
                 'photo' => $data['photo'] ?? null,
                 'photos' => $data['photos'] ?? null,
                 'responsable' => $data['responsable'] ?? null,
-                'site_web' => $data['site_web'] ?? null,
-                'config' => $data['config'] ?? null,
                 'status' => $data['status'] ?? 'actif',
                 'created_by' => $creatorUuid,
             ]);
@@ -271,7 +264,6 @@ class AgenceService
                 $this->syncHoraires($agence, $data['horaires'], $creatorUuid);
             }
 
-            // Journaliser l'action
             ActivityLog::log([
                 'user_uuid' => $creatorUuid,
                 'action' => 'create',
@@ -291,11 +283,91 @@ class AgenceService
     /**
      * Mettre à jour une agence et ses horaires
      */
+    // public function update(Agence $agence, array $data, string $updaterUuid): Agence
+    // {
+    //     return DB::transaction(function () use ($agence, $data, $updaterUuid) {
+    //         $oldValues = $agence->toArray();
+            
+    //         $agence->update([
+    //             'code' => $data['code'] ?? $agence->code,
+    //             'libelle' => $data['libelle'] ?? $agence->libelle,
+    //             'description' => $data['description'] ?? $agence->description,
+    //             'reseau_uuid' => $data['reseau_uuid'] ?? $agence->reseau_uuid,
+    //             'email' => $data['email'] ?? $agence->email,
+    //             'telephone' => $data['telephone'] ?? $agence->telephone,
+    //             'telephone_2' => $data['telephone_2'] ?? $agence->telephone_2,
+    //             'adresse' => $data['adresse'] ?? $agence->adresse,
+    //             'ville' => $data['ville'] ?? $agence->ville,
+    //             'quartier' => $data['quartier'] ?? $agence->quartier,
+    //             'code_postal' => $data['code_postal'] ?? $agence->code_postal,
+    //             'pays' => $data['pays'] ?? $agence->pays,
+    //             'latitude' => $data['latitude'] ?? $agence->latitude,
+    //             'longitude' => $data['longitude'] ?? $agence->longitude,
+    //             'photo' => $data['photo'] ?? $agence->photo,
+    //             'photos' => $data['photos'] ?? $agence->photos,
+    //             'responsable' => $data['responsable'] ?? $agence->responsable,
+    //             'site_web' => $data['site_web'] ?? $agence->site_web,
+    //             'status' => $data['status'] ?? $agence->status,
+    //             'updated_by' => $updaterUuid,
+    //         ]);
+
+    //         // Mettre à jour les horaires
+    //         if (isset($data['horaires'])) {
+    //             $this->syncHoraires($agence, $data['horaires'], $updaterUuid);
+    //         }
+
+    //         ActivityLog::log([
+    //             'user_uuid' => $updaterUuid,
+    //             'action' => 'update',
+    //             'action_type' => 'crud',
+    //             'module' => 'agences',
+    //             'description' => "Mise à jour de l'agence : {$agence->libelle}",
+    //             'resource_type' => 'agence',
+    //             'resource_id' => $agence->uuid_agence,
+    //             'old_values' => $oldValues,
+    //             'new_values' => $agence->toArray(),
+    //             'level' => 'info',
+    //         ]);
+
+    //         return $agence->fresh('horaires');
+    //     });
+    // }
+
+    /**
+     * Synchroniser les horaires d'une agence
+     */
+    // public function syncHoraires(Agence $agence, array $horaires, string $creatorUuid): void
+    // {
+    //     // Supprimer les anciens horaires
+    //     $agence->horaires()->delete();
+
+    //     // Créer les nouveaux horaires
+    //     foreach ($horaires as $horaire) {
+    //         AgenceHoraire::create([
+    //             'uuid_horaire' => (string) Str::uuid(),
+    //             'agence_uuid' => $agence->uuid_agence,
+    //             'jour' => $horaire['jour'],
+    //             'heure_ouverture' => $horaire['heure_ouverture'] ?? null,
+    //             'heure_fermeture' => $horaire['heure_fermeture'] ?? null,
+    //             'heure_ouverture_midi' => $horaire['heure_ouverture_midi'] ?? null,
+    //             'heure_fermeture_midi' => $horaire['heure_fermeture_midi'] ?? null,
+    //             'ferme' => $horaire['ferme'] ?? false,
+    //             'commentaire' => $horaire['commentaire'] ?? null,
+    //             'rendez_vous_actif' => $horaire['rendez_vous_actif'] ?? false,
+    //             'capacite_rendez_vous' => $horaire['capacite_rendez_vous'] ?? null,
+    //         ]);
+    //     }
+    // }
+
+    /**
+     * Mettre à jour une agence et ses horaires
+     */
     public function update(Agence $agence, array $data, string $updaterUuid): Agence
     {
         return DB::transaction(function () use ($agence, $data, $updaterUuid) {
             $oldValues = $agence->toArray();
             
+            // Mettre à jour l'agence
             $agence->update([
                 'code' => $data['code'] ?? $agence->code,
                 'libelle' => $data['libelle'] ?? $agence->libelle,
@@ -315,14 +387,13 @@ class AgenceService
                 'photos' => $data['photos'] ?? $agence->photos,
                 'responsable' => $data['responsable'] ?? $agence->responsable,
                 'site_web' => $data['site_web'] ?? $agence->site_web,
-                'config' => $data['config'] ?? $agence->config,
                 'status' => $data['status'] ?? $agence->status,
                 'updated_by' => $updaterUuid,
             ]);
 
             // Mettre à jour les horaires
-            if (isset($data['horaires'])) {
-                $this->syncHoraires($agence, $data['horaires'], $updaterUuid);
+            if (isset($data['horaires']) && !empty($data['horaires'])) {
+                $this->updateHoraires($agence, $data['horaires'], $updaterUuid);
             }
 
             ActivityLog::log([
@@ -343,7 +414,50 @@ class AgenceService
     }
 
     /**
-     * Synchroniser les horaires d'une agence
+     * Mettre à jour les horaires d'une agence (partiel ou total)
+     */
+    public function updateHoraires(Agence $agence, array $horaires, string $updaterUuid): void
+    {
+        foreach ($horaires as $horaireData) {
+            // Vérifier que le jour est spécifié
+            if (empty($horaireData['jour'])) {
+                continue;
+            }
+
+            $jour = $horaireData['jour'];
+
+            // Chercher l'horaire existant pour ce jour
+            $existingHoraire = AgenceHoraire::where('agence_uuid', $agence->uuid_agence)
+                ->where('jour', $jour)
+                ->first();
+
+            $data = [
+                'jour' => $jour,
+                'heure_ouverture' => $horaireData['heure_ouverture'] ?? $existingHoraire?->heure_ouverture ?? null,
+                'heure_fermeture' => $horaireData['heure_fermeture'] ?? $existingHoraire?->heure_fermeture ?? null,
+                'heure_ouverture_midi' => $horaireData['heure_ouverture_midi'] ?? $existingHoraire?->heure_ouverture_midi ?? null,
+                'heure_fermeture_midi' => $horaireData['heure_fermeture_midi'] ?? $existingHoraire?->heure_fermeture_midi ?? null,
+                'ferme' => $horaireData['ferme'] ?? $existingHoraire?->ferme ?? false,
+                'commentaire' => $horaireData['commentaire'] ?? $existingHoraire?->commentaire ?? null,
+                'rendez_vous_actif' => $horaireData['rendez_vous_actif'] ?? $existingHoraire?->rendez_vous_actif ?? false,
+                'capacite_rendez_vous' => $horaireData['capacite_rendez_vous'] ?? $existingHoraire?->capacite_rendez_vous ?? 0,
+            ];
+
+            if ($existingHoraire) {
+                // Mettre à jour l'horaire existant
+                $existingHoraire->update($data);
+            } else {
+                // Créer un nouvel horaire
+                AgenceHoraire::create(array_merge($data, [
+                    'uuid_horaire' => (string) Str::uuid(),
+                    'agence_uuid' => $agence->uuid_agence,
+                ]));
+            }
+        }
+    }
+
+    /**
+     * Synchroniser complètement les horaires d'une agence (remplacement total)
      */
     public function syncHoraires(Agence $agence, array $horaires, string $creatorUuid): void
     {
@@ -362,7 +476,8 @@ class AgenceService
                 'heure_fermeture_midi' => $horaire['heure_fermeture_midi'] ?? null,
                 'ferme' => $horaire['ferme'] ?? false,
                 'commentaire' => $horaire['commentaire'] ?? null,
-                // 'created_by' => $creatorUuid,
+                'rendez_vous_actif' => $horaire['rendez_vous_actif'] ?? false,
+                'capacite_rendez_vous' => $horaire['capacite_rendez_vous'] ?? null,
             ]);
         }
     }
@@ -398,7 +513,6 @@ class AgenceService
     {
         $query = Agence::query()->with(['reseau', 'horaires']);
         
-        // Filtres
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }

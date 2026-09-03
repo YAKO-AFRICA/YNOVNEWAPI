@@ -48,6 +48,8 @@ class AgenceResource extends JsonResource
                         'heure_fermeture' => $horaire->heure_fermeture?->format('H:i'),
                         'heure_ouverture_midi' => $horaire->heure_ouverture_midi?->format('H:i'),
                         'heure_fermeture_midi' => $horaire->heure_fermeture_midi?->format('H:i'),
+                        'rendez_vous_actif' => $horaire->rendez_vous_actif,
+                        'capacite_rendez_vous' => $horaire->capacite_rendez_vous,
                         'ferme' => $horaire->ferme,
                         'commentaire' => $horaire->commentaire,
                         'plage_horaire' => $horaire->plage_horaire,
