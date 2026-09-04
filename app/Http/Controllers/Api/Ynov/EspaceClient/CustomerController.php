@@ -92,6 +92,7 @@ class CustomerController extends Controller
                         'TotalPrime' => $detail['TotalPrime'] ?? 0,
                         'NbreImpayes' => $detail['NbreImpayes'] ?? 0,
                         'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                        'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? 'Non défini',
                         'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
                     ];
 
@@ -212,6 +213,7 @@ class CustomerController extends Controller
                     'TotalPrime' => $detail['TotalPrime'] ?? 0,
                     'NbreImpayes' => $detail['NbreImpayes'] ?? 0,
                     'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                    'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? null,
                     'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
                     'Periodicite' => $detail['LibellePeriodicite'] ?? $detail['periodicite'] ?? null,
                     'ModePaiement' => $detail['LibelleModePaiement'] ?? $detail['CodeModePaiement'] ?? null,
@@ -704,6 +706,7 @@ class CustomerController extends Controller
                             'NbreImpayes' => count($PrimeNonRegles),
                             'TotalImpayes' => array_sum(array_column($PrimeNonRegles, 'MontantARegler')),
                             'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                            'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? 'Non défini',
                             'Status' => $this->getContractStatus($detail)
                         ],
                         'PrimeNonRegles' => $PrimeNonRegles,
