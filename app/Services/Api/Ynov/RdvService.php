@@ -15,7 +15,7 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
+// use Illuminate\Validation\ValidationException;
 
 class RdvService
 {
@@ -175,9 +175,15 @@ class RdvService
             ->first();
 
         if (!$agence) {
-            throw ValidationException::withMessages([
-                'agence' => ['Cette agence ne reçoit pas sur rendez-vous.']
-            ]);
+            return [
+                'success' => false,
+                'code' => 'AGENCE_NOT_FOUND',
+                'message' => 'Cette agence ne reçoit pas sur rendez-vous.',
+            ];
+        
+            // throw ValidationException::withMessages([
+            //     'agence' => ['']
+            // ]);
         }
 
         $horairesRdv = $agence->horaires->keyBy('jour');
@@ -274,6 +280,7 @@ class RdvService
 
         if ($rdvRecent) {
             $errors[] = [
+                'success' => false,
                 'code' => 'RDV_RECENT',
                 'message' => 'Vous avez déjà un rendez-vous sur ce contrat datant de moins de 30 jours.',
                 'rdv_code' => $rdvRecent->code,
@@ -293,13 +300,16 @@ class RdvService
 
         if (!$horaire) {
             $errors[] = [
+                'success' => false,
                 'code' => 'AGENCE_NON_DISPONIBLE',
                 'message' => 'Cette agence ne reçoit pas sur rendez-vous ce jour.',
             ];
         }
 
         return [
+            'success' => true,
             'eligible' => empty($errors),
+            'message' => 'Eligible',
             'errors' => $errors,
         ];
     }
@@ -307,7 +317,7 @@ class RdvService
     /**
      * Créer un rendez-vous
      */
-    public function create(array $data, User $client, string $creatorUuid): Rdv
+    public function create(array $data, User $client, string $creatorUuid): array
     {
         return DB::transaction(function () use ($data, $client, $creatorUuid) {
             $eligibilite = $this->verifierEligibiliteClient(
@@ -318,9 +328,15 @@ class RdvService
             );
 
             if (!$eligibilite['eligible']) {
-                throw ValidationException::withMessages([
+                return [
+                    'success' => false,
+                    'code' => $eligibilite['code'],
+                    'message' => $eligibilite['message'],
                     'eligibilite' => $eligibilite['errors'],
-                ]);
+                ];
+                // throw ValidationException::withMessages([
+                //     'eligibilite' => $eligibilite['errors'],
+                // ]);
             }
 
             $dateDispo = $this->verifierDateDisponible(
@@ -329,9 +345,14 @@ class RdvService
             );
 
             if (!$dateDispo['disponible']) {
-                throw ValidationException::withMessages([
-                    'date_rdv' => [$dateDispo['message']],
-                ]);
+                return [
+                    'success' => false,
+                    'code' => $dateDispo['code'],
+                    'message' => $dateDispo['message'],
+                ];
+                // throw ValidationException::withMessages([
+                //     'date_rdv' => [$dateDispo['message']],
+                // ]);
             }
 
             $motif = TypePrestation::where('uuid_type_prestation', $data['motif_rdv'])
@@ -339,9 +360,14 @@ class RdvService
                 ->first();
 
             if (!$motif) {
-                throw ValidationException::withMessages([
-                    'motif_rdv' => ['Ce motif n\'est pas valide.'],
-                ]);
+                return [
+                    'success' => false,
+                    'code' => 'MOTIF_NON_DISPONIBLE',
+                    'message' => 'Ce motif n\'est pas disponible.',
+                ];
+                // throw ValidationException::withMessages([
+                //     'motif_rdv' => ['Ce motif n\'est pas valide.'],
+                // ]);
             }
 
             $contrat = Produit::where('code', $data['code_produit'])->first();
@@ -352,9 +378,14 @@ class RdvService
                     ->exists();
 
                 if (!$association) {
-                    throw ValidationException::withMessages([
-                        'motif_rdv' => ['Ce motif n\'est pas disponible pour ce contrat.'],
-                    ]);
+                        // throw ValidationException::withMessages([
+                        //     'motif_rdv' => ['Ce motif n\'est pas disponible pour ce contrat.'],
+                        // ]);
+                    return [
+                        'success' => false,
+                        'code' => 'MOTIF_NON_DISPONIBLE',
+                        'message' => 'Ce motif n\'est pas disponible pour ce contrat.', 
+                    ];
                 }
             }
 
@@ -383,7 +414,12 @@ class RdvService
                 'level' => 'info',
             ]);
 
-            return $rdv->load(['client', 'motif', 'agenceSouhaitee']);
+            return [
+                'success' => true,
+                'code' => 'RDV_CREATED',
+                'message' => 'Rendez-vous cree avec succes. Code : ' . $rdv->code,
+                'data' => $rdv->load(['client', 'motif', 'agenceSouhaitee']),
+            ];
         });
     }
 
@@ -407,7 +443,9 @@ class RdvService
 
         if (!$agence || $agence->horaires->isEmpty()) {
             return [
+                'success' => false,
                 'disponible' => false,
+                'code' => 'AGENCE_NON_DISPONIBLE',
                 'message' => 'Cette agence ne reçoit pas sur rendez-vous ce jour.',
             ];
         }
@@ -416,21 +454,27 @@ class RdvService
 
         if (in_array($date->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY])) {
             return [
+                'success' => false,
                 'disponible' => false,
+                'code' => 'DATE_WEEKEND',
                 'message' => 'Les rendez-vous ne sont pas disponibles le week-end.',
             ];
         }
 
         if (JourFerie::isFerie($date)) {
             return [
+                'success' => false,
                 'disponible' => false,
+                'code' => 'DATE_FERIE',
                 'message' => 'Cette date est un jour férié.',
             ];
         }
 
         if (BordereauRdv::isDateCloturee($date)) {
             return [
+                'success' => false,
                 'disponible' => false,
+                'code' => 'DATE_CLOTUREE',
                 'message' => 'Cette date appartient à une période clôturée.',
             ];
         }
@@ -445,16 +489,21 @@ class RdvService
 
         if ($placesRestantes <= 0) {
             return [
+                'success' => false,
                 'disponible' => false,
+                'code' => 'DATE_NON_DISPONIBLE',
                 'message' => 'Plus de places disponibles pour cette date.',
                 'places_restantes' => 0,
             ];
         }
 
         return [
+            'success' => true,
             'disponible' => true,
+            'code' => 'DATE_DISPONIBLE',
             'places_restantes' => $placesRestantes,
             'capacite_max' => $capaciteMax,
+            'message' => 'Date disponible',
         ];
     }
 
@@ -465,7 +514,8 @@ class RdvService
     {
         $query = Rdv::forClient($clientUuid)
             ->with(['motif', 'agenceSouhaitee'])
-            ->orderBy('date_rdv_souhaiter', 'desc');
+            ->orderBy('created_at', 'desc');
+            // ->orderBy('date_rdv_souhaiter', 'desc');
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -542,24 +592,40 @@ class RdvService
     /**
      * Signaler la présence d'un client
      */
-    public function signalerPresence(Rdv $rdv, string $clientUuid, array $data = []): Rdv
+    public function signalerPresence(Rdv $rdv, string $clientUuid, array $data = []): array
     {
         if ($rdv->client_uuid !== $clientUuid) {
-            throw ValidationException::withMessages([
-                'client' => ['Ce rendez-vous ne vous appartient pas.'],
-            ]);
+
+            return [
+                'success' => false,
+                'code' => 'RDV_CLIENT_DIFFERENT',
+                'message' => 'Ce rendez-vous ne vous appartient pas.',
+            ];
+            // throw ValidationException::withMessages([
+            //     'client' => ['Ce rendez-vous ne vous appartient pas.'],
+            // ]);
         }
 
         if ($rdv->status !== 'confirme') {
-            throw ValidationException::withMessages([
-                'status' => ['Ce rendez-vous n\'est pas confirmé.'],
-            ]);
+            return [
+                'success' => false,
+                'code' => 'RDV_NON_CONFIRME',
+                'message' => 'Ce rendez-vous n\'est pas confirmé.',
+            ];
+            // throw ValidationException::withMessages([
+            //     'status' => ['Ce rendez-vous n\'est pas confirmé.'],
+            // ]);
         }
 
         if ($rdv->date_rdv_souhaiter->format('Y-m-d') !== now()->format('Y-m-d')) {
-            throw ValidationException::withMessages([
-                'date_rdv' => ['Le rendez-vous n\'est pas prévu aujourd\'hui.'],
-            ]);
+            return [
+                'success' => false,
+                'code' => 'RDV_NON_PREVU',
+                'message' => 'Le rendez-vous n\'est pas prévu aujourd\'hui.',
+            ];
+            // throw ValidationException::withMessages([
+            //     'date_rdv' => ['Le rendez-vous n\'est pas prévu aujourd\'hui.'],
+            // ]);
         }
 
         if (isset($data['latitude']) && isset($data['longitude'])) {
@@ -573,11 +639,11 @@ class RdvService
                 );
 
                 if ($distance > 0.02) {
-                    throw ValidationException::withMessages([
-                        'geolocalisation' => ['Vous n\'êtes pas à proximité de l\'agence. Veuillez vous rapprocher pour valider votre présence.',
-                         'distance' => round($distance * 1000, 0) . ' mètres',
-                        ],
-                    ]);
+                    return [
+                        'success' => false,
+                        'code' => 'RDV_DISTANCE',
+                        'message' => "Vous n'êtes pas à proximité de l'agence. Veuillez vous rapprocher d'au moins 20 mètres pour valider votre présence.",
+                    ];
                 }
             }
         }
@@ -587,7 +653,12 @@ class RdvService
             'updated_by' => $clientUuid,
         ]);
 
-        return $rdv->fresh();
+        return [
+            'success' => true,
+            'code' => 'RDV_PRESENCE',
+            'message' => 'Vous avez signalé votre présence.',
+            'data' => $rdv->fresh(),
+        ];
     }
 
     /**
