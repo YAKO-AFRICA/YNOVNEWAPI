@@ -46,11 +46,11 @@ class UserResource extends JsonResource
             'user_contrats' => $this->whenLoaded('userContrats', fn() => $this->userContrats->map(fn($c) => [
                 'uuid_user_contrat' => $c->uuid_user_contrat,
                 'contrat_id' => $c->contrat_id,
-                'client_number', $c->client_number,
-                'code_produit',  $c->code_produit,
-                'libelle_produit', $c->libelle_produit,
-                'code_produit_formule', $c->code_produit_formule,
-                'libelle_produit_formule', $c->libelle_produit_formule,
+                'client_number' => $c->client_number,
+                'code_produit' =>  $c->code_produit,
+                'libelle_produit' => $c->libelle_produit,
+                'code_produit_formule' => $c->code_produit_formule,
+                'libelle_produit_formule' => $c->libelle_produit_formule,
 
             ])),
             'details' => new UserDetailResource($this->whenLoaded('details')),
