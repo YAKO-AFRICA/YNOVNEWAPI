@@ -487,8 +487,8 @@ class RdvController extends Controller
     {
         try {
             $validated = $request->validate([
-                'id_contrat' => ['required', 'string'],
-                // 'code_produit' => ['required', 'string', 'exists:produits,code'],
+                'id_contrat' => ['required', 'integer'],
+                'code_produit' => ['required', 'string', 'exists:produits,code'],
                 'motif_rdv' => ['required', 'exists:type_prestations,uuid_type_prestation'],
                 'demandeur' => ['nullable', 'string', 'max:50'],
                 'agence_uuid' => ['required', 'exists:agences,uuid_agence'],

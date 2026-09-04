@@ -11188,116 +11188,116 @@
                 // 1. MOTIFS DISPONIBLES
                 // ============================================================
                 {
-    id: 'rdv-motifs',
-    module: 'rdvs',
-    name: 'Motifs disponibles pour un contrat',
-    description: 'Récupère la liste des motifs de rendez-vous disponibles pour un produit/contrat donné. Les motifs sont les types de prestations associés au produit. Possibilité de filtrer par impact (sortie/non sortie portefeuille).',
-    method: 'GET',
-    path: '/rdvs/motifs',
-    isProtected: true,
-    permissionsRequired: ['rdvs.creer'],
-    headers: {
-        'Authorization': 'Bearer {token}',
-        'Accept': 'application/json'
-    },
-    requestParams: {
-        query: {
-            code_produit: {
-                type: 'string',
-                required: true,
-                description: 'Code du produit (ex: PERFORMA_IND)'
-            },
-            impact: {
-                type: 'string',
-                required: false,
-                enum: ['0', '1'],
-                description: 'Filtrer par impact : 1 = Sortie portefeuille, 0 = Non sortie portefeuille. Omettre pour tous.'
-            }
-        }
-    },
-    exampleRequest: {
-        code_produit: 'PERFORMA_IND',
-        impact: '1' // Seulement les motifs avec sortie portefeuille
-    },
-    exampleRequestWithoutFilter: {
-        code_produit: 'PERFORMA_IND' // Tous les motifs
-    },
-    responses: [{
-        status: 200,
-        description: 'Liste des motifs disponibles',
-        example: {
-            success: true,
-            message: 'Motifs disponibles avec impact sortie portefeuille.',
-            code: 'MOTIFS_LISTED',
-            data: [{
-                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
-                code: 'DECES',
-                libelle: 'Décès',
-                description: 'Déclaration de décès',
-                impact: '1',
-                impact_label: 'Sortie portefeuille',
-                category: {
-                    uuid: '550e8400-e29b-41d4-a716-446655440002',
-                    libelle: 'Garanties'
-                }
-            }, {
-                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440004',
-                code: 'INVALIDITE',
-                libelle: 'Invalidité',
-                description: 'Demande d\'invalidité',
-                impact: '1',
-                impact_label: 'Sortie portefeuille',
-                category: {
-                    uuid: '550e8400-e29b-41d4-a716-446655440002',
-                    libelle: 'Garanties'
-                }
-            }],
-            meta: {
-                total: 2,
-                filter_impact: '1',
-                filter_impact_label: 'Sortie portefeuille'
-            }
-        }
-    }, {
-        status: 200,
-        description: 'Liste des motifs sans filtre',
-        example: {
-            success: true,
-            message: 'Motifs disponibles.',
-            code: 'MOTIFS_LISTED',
-            data: [{
-                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
-                code: 'DECES',
-                libelle: 'Décès',
-                impact: '1',
-                impact_label: 'Sortie portefeuille'
-            }, {
-                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440006',
-                code: 'PAIEMENT',
-                libelle: 'Paiement',
-                impact: '0',
-                impact_label: 'Non sortie portefeuille'
-            }],
-            meta: {
-                total: 2,
-                filter_impact: null,
-                filter_impact_label: 'Tous'
-            }
-        }
-    }, {
-        status: 422,
-        description: 'Erreur de validation',
-        example: {
-            success: false,
-            message: 'Erreur de validation.',
-            code: 'VALIDATION_ERROR',
-            errors: {
-                code_produit: ['Le code produit est requis.'],
-                impact: ['L\'impact doit être 0 ou 1.']
-            }
-        }
-    }]
-},
+                    id: 'rdv-motifs',
+                    module: 'rdvs',
+                    name: 'Motifs disponibles pour un contrat',
+                    description: 'Récupère la liste des motifs de rendez-vous disponibles pour un produit/contrat donné. Les motifs sont les types de prestations associés au produit. Possibilité de filtrer par impact (sortie/non sortie portefeuille).',
+                    method: 'GET',
+                    path: '/rdvs/motifs',
+                    isProtected: true,
+                    permissionsRequired: ['rdvs.creer'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        query: {
+                            code_produit: {
+                                type: 'string',
+                                required: true,
+                                description: 'Code du produit (ex: PERFORMA_IND)'
+                            },
+                            impact: {
+                                type: 'string',
+                                required: false,
+                                enum: ['0', '1'],
+                                description: 'Filtrer par impact : 1 = Sortie portefeuille, 0 = Non sortie portefeuille. Omettre pour tous.'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        code_produit: 'PERFORMA_IND',
+                        impact: '1' // Seulement les motifs avec sortie portefeuille
+                    },
+                    exampleRequestWithoutFilter: {
+                        code_produit: 'PERFORMA_IND' // Tous les motifs
+                    },
+                    responses: [{
+                        status: 200,
+                        description: 'Liste des motifs disponibles',
+                        example: {
+                            success: true,
+                            message: 'Motifs disponibles avec impact sortie portefeuille.',
+                            code: 'MOTIFS_LISTED',
+                            data: [{
+                                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
+                                code: 'DECES',
+                                libelle: 'Décès',
+                                description: 'Déclaration de décès',
+                                impact: '1',
+                                impact_label: 'Sortie portefeuille',
+                                category: {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440002',
+                                    libelle: 'Garanties'
+                                }
+                            }, {
+                                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440004',
+                                code: 'INVALIDITE',
+                                libelle: 'Invalidité',
+                                description: 'Demande d\'invalidité',
+                                impact: '1',
+                                impact_label: 'Sortie portefeuille',
+                                category: {
+                                    uuid: '550e8400-e29b-41d4-a716-446655440002',
+                                    libelle: 'Garanties'
+                                }
+                            }],
+                            meta: {
+                                total: 2,
+                                filter_impact: '1',
+                                filter_impact_label: 'Sortie portefeuille'
+                            }
+                        }
+                    }, {
+                        status: 200,
+                        description: 'Liste des motifs sans filtre',
+                        example: {
+                            success: true,
+                            message: 'Motifs disponibles.',
+                            code: 'MOTIFS_LISTED',
+                            data: [{
+                                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440003',
+                                code: 'DECES',
+                                libelle: 'Décès',
+                                impact: '1',
+                                impact_label: 'Sortie portefeuille'
+                            }, {
+                                uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440006',
+                                code: 'PAIEMENT',
+                                libelle: 'Paiement',
+                                impact: '0',
+                                impact_label: 'Non sortie portefeuille'
+                            }],
+                            meta: {
+                                total: 2,
+                                filter_impact: null,
+                                filter_impact_label: 'Tous'
+                            }
+                        }
+                    }, {
+                        status: 422,
+                        description: 'Erreur de validation',
+                        example: {
+                            success: false,
+                            message: 'Erreur de validation.',
+                            code: 'VALIDATION_ERROR',
+                            errors: {
+                                code_produit: ['Le code produit est requis.'],
+                                impact: ['L\'impact doit être 0 ou 1.']
+                            }
+                        }
+                    }]
+                },
 
                 // ============================================================
                 // 2. AGENCES DISPONIBLES POUR RENDEZ-VOUS
@@ -11609,11 +11609,11 @@
                                 required: true,
                                 description: 'ID du contrat concerné'
                             },
-                            // code_produit: {
-                            //     type: 'string',
-                            //     required: true,
-                            //     description: 'Code du produit (ex: PERFORMA_IND)'
-                            // },
+                            code_produit: {
+                                type: 'string',
+                                required: true,
+                                description: 'Code du produit (ex: PERFORMA_IND)'
+                            },
                             motif_rdv: {
                                 type: 'uuid',
                                 required: true,
@@ -11630,12 +11630,6 @@
                                 format: 'Y-m-d',
                                 description: 'Date du rendez-vous'
                             },
-                            // contrat_reference: {
-                            //     type: 'string',
-                            //     required: false,
-                            //     max: 100,
-                            //     description: 'Référence du contrat (pour affichage)'
-                            // },
                             demandeur: {
                                 type: 'string',
                                 required: false,
@@ -11646,11 +11640,10 @@
                     },
                     exampleRequest: {
                         id_contrat: 12345,
-                        // code_produit: 'PERFORMA_IND',
+                        code_produit: 'PERFORMA_IND',
                         motif_rdv: '550e8400-e29b-41d4-a716-446655440001',
                         agence_uuid: '550e8400-e29b-41d4-a716-446655440001',
                         date_rdv: '2026-07-06',
-                        // contrat_reference: 'YAK-2021-004821',
                         demandeur: 'Souscripteur'
                     },
                     responses: [{
@@ -11665,7 +11658,6 @@
                                 code: 'RDV-20260706-AbC12345',
                                 client_uuid: '550e8400-e29b-41d4-a716-446655440000',
                                 id_contrat: 12345,
-                                // contrat_reference: 'YAK-2021-004821',
                                 motif_rdv: {
                                     uuid_type_prestation: '550e8400-e29b-41d4-a716-446655440001',
                                     libelle: 'Décès'
