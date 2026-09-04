@@ -574,7 +574,9 @@ class RdvService
 
                 if ($distance > 0.02) {
                     throw ValidationException::withMessages([
-                        'geolocalisation' => ['Vous n\'êtes pas à proximité de l\'agence. Veuillez vous rapprocher pour valider votre présence.'],
+                        'geolocalisation' => ['Vous n\'êtes pas à proximité de l\'agence. Veuillez vous rapprocher pour valider votre présence.',
+                         'distance' => round($distance * 1000, 0) . ' mètres',
+                        ],
                     ]);
                 }
             }

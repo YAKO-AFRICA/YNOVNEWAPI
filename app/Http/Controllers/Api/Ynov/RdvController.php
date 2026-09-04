@@ -4,6 +4,12 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Rdv\DatesDisponiblesRequest;
+use App\Http\Requests\Api\Ynov\Rdv\MotifsRequest;
+use App\Http\Requests\Api\Ynov\Rdv\SignalerPresenceRequest;
+use App\Http\Requests\Api\Ynov\Rdv\StoreRdvRequest;
+use App\Http\Requests\Api\Ynov\Rdv\UpdateRdvStatusRequest;
+use App\Http\Requests\Api\Ynov\Rdv\VerifierDateRequest;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\RdvService;
 use Illuminate\Http\JsonResponse;
@@ -380,17 +386,47 @@ class RdvController extends Controller
     /**
      * Récupérer les motifs disponibles pour un produit
      */
-     public function motifs(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'code_produit' => ['required', 'string', 'exists:produits,code'],
-            'impact' => ['nullable', 'string', 'in:0,1'],
-        ]);
+    // public function motifs(Request $request): JsonResponse
+    // {
+    //     $validated = $request->validate([
+    //         'code_produit' => ['required', 'string', 'exists:produits,code'],
+    //         'impact' => ['nullable', 'string', 'in:0,1'],
+    //     ]);
 
-        $impact = $request->has('impact') && $request->impact !== '' ? $request->impact : null;
+    //     $impact = $request->has('impact') && $request->impact !== '' ? $request->impact : null;
+
+    //     $motifs = $this->rdvService->getMotifsForContrat(
+    //         $validated['code_produit'],
+    //         $impact
+    //     );
+
+    //     $message = 'Motifs disponibles.';
+    //     if ($impact !== null) {
+    //         $impactLabel = $impact === '1' ? 'sortie portefeuille' : 'non sortie portefeuille';
+    //         $message = "Motifs disponibles avec impact {$impactLabel}.";
+    //     }
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => $message,
+    //         'code' => 'MOTIFS_LISTED',
+    //         'data' => $motifs,
+    //         'meta' => [
+    //             'total' => count($motifs),
+    //             'filter_impact' => $impact,
+    //             'filter_impact_label' => $impact !== null 
+    //                 ? ($impact === '1' ? 'Sortie portefeuille' : 'Non sortie portefeuille')
+    //                 : 'Tous',
+    //         ],
+    //     ]);
+    // }
+
+    public function motifs(MotifsRequest $request): JsonResponse
+    {
+        $impact = $request->getImpact();
 
         $motifs = $this->rdvService->getMotifsForContrat(
-            $validated['code_produit'],
+            $request->code_produit,
             $impact
         );
 
@@ -415,6 +451,7 @@ class RdvController extends Controller
         ]);
     }
 
+
     /**
      * Récupérer les agences disponibles
      */
@@ -434,19 +471,37 @@ class RdvController extends Controller
     /**
      * Récupérer les dates disponibles
      */
-    public function datesDisponibles(Request $request): JsonResponse
+    // public function datesDisponibles(Request $request): JsonResponse
+    // {
+    //     $request->validate([
+    //         'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
+    //         'mois' => ['required', 'integer', 'min:1', 'max:12'],
+    //         'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
+    //         // 'id_contrat' => ['nullable', 'integer', 'exists:produits,id'],
+    //     ]);
+
+    //     $dates = $this->rdvService->getDatesDisponibles(
+    //         $request->agence_uuid,
+    //         $request->mois,
+    //         $request->annee,
+    //     );
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Dates disponibles.',
+    //         'code' => 'DATES_DISPONIBLES',
+    //         'data' => $dates,
+    //     ]);
+    // }
+
+    public function datesDisponibles(DatesDisponiblesRequest $request): JsonResponse
     {
-        $request->validate([
-            'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
-            'mois' => ['required', 'integer', 'min:1', 'max:12'],
-            'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
-            // 'id_contrat' => ['nullable', 'integer', 'exists:produits,id'],
-        ]);
+        $params = $request->getDateParams();
 
         $dates = $this->rdvService->getDatesDisponibles(
-            $request->agence_uuid,
-            $request->mois,
-            $request->annee,
+            $params['agence_uuid'],
+            $params['mois'],
+            $params['annee']
         );
 
         return response()->json([
@@ -454,19 +509,40 @@ class RdvController extends Controller
             'message' => 'Dates disponibles.',
             'code' => 'DATES_DISPONIBLES',
             'data' => $dates,
+            'meta' => [
+                'total' => count($dates),
+                'mois' => $params['mois'],
+                'annee' => $params['annee'],
+            ],
         ]);
     }
+
 
     /**
      * Vérifier une date spécifique
      */
-    public function verifierDate(Request $request): JsonResponse
-    {
-        $request->validate([
-            'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
-            'date_rdv' => ['required', 'date', 'after_or_equal:today'],
-        ]);
+    // public function verifierDate(Request $request): JsonResponse
+    // {
+    //     $request->validate([
+    //         'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
+    //         'date_rdv' => ['required', 'date', 'after_or_equal:today'],
+    //     ]);
 
+    //     $resultat = $this->rdvService->verifierDateDisponible(
+    //         $request->agence_uuid,
+    //         $request->date_rdv
+    //     );
+
+    //     return response()->json([
+    //         'success' => $resultat['disponible'],
+    //         'message' => $resultat['disponible'] ? 'Date disponible.' : 'Date non disponible.',
+    //         'code' => $resultat['disponible'] ? 'DATE_DISPONIBLE' : 'DATE_NON_DISPONIBLE',
+    //         'data' => $resultat,
+    //     ]);
+    // }
+
+    public function verifierDate(VerifierDateRequest $request): JsonResponse
+    {
         $resultat = $this->rdvService->verifierDateDisponible(
             $request->agence_uuid,
             $request->date_rdv
@@ -483,20 +559,47 @@ class RdvController extends Controller
     /**
      * Créer un rendez-vous
      */
-    public function store(Request $request): JsonResponse
+    // public function store(Request $request): JsonResponse
+    // {
+    //     try {
+    //         $validated = $request->validate([
+    //             'id_contrat' => ['required', 'integer'],
+    //             'code_produit' => ['required', 'string', 'exists:produits,code'],
+    //             'motif_rdv' => ['required', 'exists:type_prestations,uuid_type_prestation'],
+    //             'demandeur' => ['nullable', 'string', 'max:50'],
+    //             'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
+    //             'date_rdv' => ['required', 'date', 'after_or_equal:today'],
+    //         ]);
+
+    //         $rdv = $this->rdvService->create(
+    //             $validated,
+    //             $request->user(),
+    //             $request->user()->uuid_user
+    //         );
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Rendez-vous créé avec succès. Code : ' . $rdv->code,
+    //             'code' => 'RDV_CREATED',
+    //             'data' => $rdv,
+    //         ], 201);
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Erreur de validation.',
+    //             'errors' => $e->errors(),
+    //             'code' => 'VALIDATION_ERROR',
+    //         ], 422);
+    //     }
+    // }
+
+     public function store(StoreRdvRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'id_contrat' => ['required', 'integer'],
-                'code_produit' => ['required', 'string', 'exists:produits,code'],
-                'motif_rdv' => ['required', 'exists:type_prestations,uuid_type_prestation'],
-                'demandeur' => ['nullable', 'string', 'max:50'],
-                'agence_uuid' => ['required', 'exists:agences,uuid_agence'],
-                'date_rdv' => ['required', 'date', 'after_or_equal:today'],
-            ]);
+            $data = $request->getRdvData();
 
             $rdv = $this->rdvService->create(
-                $validated,
+                $data,
                 $request->user(),
                 $request->user()->uuid_user
             );
@@ -617,27 +720,61 @@ class RdvController extends Controller
     /**
      * Signaler sa présence
      */
-    public function signalerPresence(Request $request, string $uuid_rdvs): JsonResponse
+    // public function signalerPresence(Request $request, string $uuid_rdvs): JsonResponse
+    // {
+    //     try {
+    //         $request->validate([
+    //             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+    //             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+    //         ]);
+
+    //         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+
+    //         $rdv = $this->rdvService->signalerPresence(
+    //             $rdv,
+    //             $request->user()->uuid_user,
+    //             $request->only(['latitude', 'longitude'])
+    //         );
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Présence signalée avec succès.',
+    //             'code' => 'PRESENCE_SIGNALEE',
+    //             'data' => $rdv,
+    //         ]);
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Erreur de validation.',
+    //             'errors' => $e->errors(),
+    //             'code' => 'VALIDATION_ERROR',
+    //         ], 422);
+    //     }
+    // }
+
+    public function signalerPresence(SignalerPresenceRequest $request, string $uuid_rdvs): JsonResponse
     {
         try {
-            $request->validate([
-                'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-                'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            ]);
-
             $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
             $rdv = $this->rdvService->signalerPresence(
                 $rdv,
                 $request->user()->uuid_user,
-                $request->only(['latitude', 'longitude'])
+                $request->getCoordinates()
             );
 
             return response()->json([
                 'success' => true,
                 'message' => 'Présence signalée avec succès.',
                 'code' => 'PRESENCE_SIGNALEE',
-                'data' => $rdv,
+                'data' => [
+                    'uuid_rdvs' => $rdv->uuid_rdvs,
+                    'code' => $rdv->code,
+                    'status' => $rdv->status,
+                    'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+                    'is_present' => $rdv->is_present,
+                    'date_rdv_effective' => $rdv->date_rdv_effective,
+                ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -646,8 +783,15 @@ class RdvController extends Controller
                 'errors' => $e->errors(),
                 'code' => 'VALIDATION_ERROR',
             ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors du signalement de présence.',
+                'code' => 'PRESENCE_ERROR',
+            ], 500);
         }
     }
+
 
     /**
      * Statistiques des rendez-vous du client
@@ -695,7 +839,7 @@ class RdvController extends Controller
     /**
      * [Admin] Mettre à jour le statut d'un rendez-vous
      */
-    public function updateStatus(Request $request, string $uuid_rdvs): JsonResponse
+    public function updateStatus(UpdateRdvStatusRequest $request, string $uuid_rdvs): JsonResponse
     {
         $request->validate([
             'status' => ['required', 'in:en_attente,confirme,rejete,traite,termine,annule,reporte'],
@@ -706,11 +850,8 @@ class RdvController extends Controller
 
         $rdv = $this->rdvService->updateStatus(
             $rdv,
-            $request->status,
-            [
-                'observation' => $request->observation,
-                'admin_action' => true,
-            ],
+            $request->getStatus(),
+            $request->getUpdateData(),
             $request->user()->uuid_user
         );
 

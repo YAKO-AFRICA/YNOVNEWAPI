@@ -1,5 +1,5 @@
 <?php
-
+// helper.php
 function Refgenerate($table, $prefix, $key)
 {
     $latest = $table::orderBy('id', 'desc')->first();
