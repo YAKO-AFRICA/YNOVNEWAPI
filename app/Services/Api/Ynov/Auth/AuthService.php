@@ -176,7 +176,9 @@ class AuthService
         $mustChange = $this->passwordService->isExpired($user) || $user->is_first_login;
 
         // 6. Réinitialiser les tentatives (connexion réussie)
-        $this->freezeService->resetAttempts($user);
+        if ($user->failed_login_count > 0) {
+            $this->freezeService->resetAttempts($user);
+        }
         $this->deviceService->updateOrCreate($user, $deviceInfo);
         $this->logAttempt($user, $credentials['login'], $deviceInfo, true);
 

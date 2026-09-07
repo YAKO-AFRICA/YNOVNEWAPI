@@ -496,26 +496,6 @@ class FreezeService
         }
     }
 
-    /**
-     * Envoyer les notifications de dégel
-     */
-    // private function sendUnfreezeNotifications(User $user, ?User $admin, string $reason): void
-    // {
-    //     try {
-    //         // Notification::send($user, new AccountUnfrozenNotification($reason, $admin));
-
-    //         if ($user->email){
-    //             Mail::to($user->email)->queue(new AccountUnfrozenMail(
-    //                 $user->details,
-    //                 $reason,
-    //                 $admin?->details?->full_name ?? 'Système'
-    //             ));
-    //         }
-    //     } catch (\Exception $e) {
-    //         Log::error('Erreur envoi notifications dégel: ' . $e->getMessage());
-    //     }
-    // }
-
     private function sendUnfreezeNotifications(User $user, ?User $admin, string $reason): void
     {
         try {

@@ -708,17 +708,6 @@ class RdvController extends Controller
     {
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
-        // if ($rdv->client_uuid !== $request->user()->uuid_user) {
-        //     $user = $request->user();
-        //     if (!$user->hasPermission('rdvs.annuler')) {
-        //         return response()->json([
-        //             'success' => false,
-        //             'message' => 'Accès non autorisé.',
-        //             'code' => 'FORBIDDEN',
-        //         ], 403);
-        //     }
-        // }
-
         if (in_array($rdv->status, ['confirme', 'termine', 'traite'])) {
             return response()->json([
                 'success' => false,
@@ -745,37 +734,6 @@ class RdvController extends Controller
     /**
      * Signaler sa présence
      */
-    // public function signalerPresence(Request $request, string $uuid_rdvs): JsonResponse
-    // {
-    //     try {
-    //         $request->validate([
-    //             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-    //             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-    //         ]);
-
-    //         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
-
-    //         $rdv = $this->rdvService->signalerPresence(
-    //             $rdv,
-    //             $request->user()->uuid_user,
-    //             $request->only(['latitude', 'longitude'])
-    //         );
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Présence signalée avec succès.',
-    //             'code' => 'PRESENCE_SIGNALEE',
-    //             'data' => $rdv,
-    //         ]);
-    //     } catch (ValidationException $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Erreur de validation.',
-    //             'errors' => $e->errors(),
-    //             'code' => 'VALIDATION_ERROR',
-    //         ], 422);
-    //     }
-    // }
 
     public function signalerPresence(SignalerPresenceRequest $request, string $uuid_rdvs): JsonResponse
     {

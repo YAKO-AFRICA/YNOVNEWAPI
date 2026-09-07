@@ -3,14 +3,15 @@
 
 namespace App\Services\Api\Ynov;
 
+use App\Models\Api\Ynov\BordereauRdv;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Agence;
-use App\Models\Api\Ynov\BordereauRdv;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\JourFerie;
 use App\Models\Api\Ynov\parameter\Produit;
-use App\Models\Api\Ynov\Rdv;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\Rdv;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -19,38 +20,10 @@ use Illuminate\Support\Str;
 
 class RdvService
 {
-    /**
-     * Récupérer les motifs disponibles pour un contrat
-     */
-    // public function getMotifsForContrat(string $codeProduit, string $clientUuid): array
-    // {
-    //     $produit = Produit::where('code', $codeProduit)->first();
-    //     if (!$produit) {
-    //         return [];
-    //     }
 
-    //     $prestations = $produit->typePrestations()
-    //         ->wherePivot('status', 'actif')
-    //         ->where('status', 'actif')
-    //         ->with('category')
-    //         ->orderBy('libelle')
-    //         ->get();
-
-    //     return $prestations->map(function ($prestation) {
-    //         return [
-    //             'uuid_type_prestation' => $prestation->uuid_type_prestation,
-    //             'code' => $prestation->code,
-    //             'libelle' => $prestation->libelle,
-    //             'description' => $prestation->description,
-    //             'impact' => $prestation->impact,
-    //             'impact_label' => $prestation->getImpactLabel(),
-    //             'category' => $prestation->category ? [
-    //                 'uuid' => $prestation->category->uuid_category_type_prestations,
-    //                 'libelle' => $prestation->category->libelle,
-    //             ] : null,
-    //         ];
-    //     })->toArray();
-    // }
+    public function __construct(
+        private NotificationService $notificationService,
+    ) {}
 
    /**
      * Récupérer les motifs disponibles pour un contrat
@@ -180,10 +153,6 @@ class RdvService
                 'code' => 'AGENCE_NOT_FOUND',
                 'message' => 'Cette agence ne reçoit pas sur rendez-vous.',
             ];
-        
-            // throw ValidationException::withMessages([
-            //     'agence' => ['']
-            // ]);
         }
 
         $horairesRdv = $agence->horaires->keyBy('jour');
@@ -334,9 +303,6 @@ class RdvService
                     'message' => $eligibilite['message'],
                     'eligibilite' => $eligibilite['errors'],
                 ];
-                // throw ValidationException::withMessages([
-                //     'eligibilite' => $eligibilite['errors'],
-                // ]);
             }
 
             $dateDispo = $this->verifierDateDisponible(
@@ -350,9 +316,6 @@ class RdvService
                     'code' => $dateDispo['code'],
                     'message' => $dateDispo['message'],
                 ];
-                // throw ValidationException::withMessages([
-                //     'date_rdv' => [$dateDispo['message']],
-                // ]);
             }
 
             $motif = TypePrestation::where('uuid_type_prestation', $data['motif_rdv'])
@@ -365,9 +328,6 @@ class RdvService
                     'code' => 'MOTIF_NON_DISPONIBLE',
                     'message' => 'Ce motif n\'est pas disponible.',
                 ];
-                // throw ValidationException::withMessages([
-                //     'motif_rdv' => ['Ce motif n\'est pas valide.'],
-                // ]);
             }
 
             $contrat = Produit::where('code', $data['code_produit'])->first();
@@ -378,9 +338,6 @@ class RdvService
                     ->exists();
 
                 if (!$association) {
-                        // throw ValidationException::withMessages([
-                        //     'motif_rdv' => ['Ce motif n\'est pas disponible pour ce contrat.'],
-                        // ]);
                     return [
                         'success' => false,
                         'code' => 'MOTIF_NON_DISPONIBLE',
@@ -412,6 +369,22 @@ class RdvService
                 'resource_id' => $rdv->uuid_rdvs,
                 'new_values' => $rdv->toArray(),
                 'level' => 'info',
+            ]);
+
+            $this->notificationService->create([
+                'user_uuid' => $creatorUuid,
+                'group_notif_uuid' => $this->getRdvGroupUuid(),
+                'title' => '⚠️ Prise de rendez-vous. Code : '. $rdv->code,
+                'body' => 'Votre rendez-vous N°' . $rdv->code . ' est en attente de validation. Vous allez recevoir un message de confirmation après validation.',
+                'type' => 'RENDEZ-VOUS',
+                'metadata' => [
+                    'rdv' => $rdv->toArray(),
+                    'client' => $client->toArray(),
+                    'agence' => Agence::where('uuid_agence', $data['agence_uuid'])->first()->toArray(),
+                    'motif' => $motif->toArray(),
+                ],
+                'channel' => 'database',
+                'created_by' => null,
             ]);
 
             return [
@@ -572,6 +545,23 @@ class RdvService
                 'updated_by' => $updaterUuid,
             ]);
 
+            $this->notificationService->create([
+                'user_uuid' => $updaterUuid,
+                'group_notif_uuid' => $this->getRdvGroupUuid(),
+                'title' => 'Mise à jour du statut du Rendez-vous '. $rdv->code,
+                'message' => "Le statut du rendez-vous {$rdv->code} a changé de {$oldValues['status']} vers {$status}",
+                'type' => 'RENDEZ-VOUS',
+                'metadata' => [
+                    'rdv' => $rdv->toArray(),
+                    'status' => $status,
+                    'old_status' => $oldValues['status'],
+                    'updater_uuid' => $updaterUuid,
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+
+            ]);
+
             ActivityLog::log([
                 'user_uuid' => $updaterUuid,
                 'action' => 'update_status',
@@ -601,9 +591,6 @@ class RdvService
                 'code' => 'RDV_CLIENT_DIFFERENT',
                 'message' => 'Ce rendez-vous ne vous appartient pas.',
             ];
-            // throw ValidationException::withMessages([
-            //     'client' => ['Ce rendez-vous ne vous appartient pas.'],
-            // ]);
         }
 
         if ($rdv->status !== 'confirme') {
@@ -612,9 +599,6 @@ class RdvService
                 'code' => 'RDV_NON_CONFIRME',
                 'message' => 'Ce rendez-vous n\'est pas confirmé.',
             ];
-            // throw ValidationException::withMessages([
-            //     'status' => ['Ce rendez-vous n\'est pas confirmé.'],
-            // ]);
         }
 
         if ($rdv->date_rdv_souhaiter->format('Y-m-d') !== now()->format('Y-m-d')) {
@@ -623,9 +607,6 @@ class RdvService
                 'code' => 'RDV_NON_PREVU',
                 'message' => 'Le rendez-vous n\'est pas prévu aujourd\'hui.',
             ];
-            // throw ValidationException::withMessages([
-            //     'date_rdv' => ['Le rendez-vous n\'est pas prévu aujourd\'hui.'],
-            // ]);
         }
 
         if (isset($data['latitude']) && isset($data['longitude'])) {
@@ -647,6 +628,20 @@ class RdvService
                 }
             }
         }
+
+        $this->notificationService->create([
+            'user_uuid' => $clientUuid,
+            'group_notif_uuid' => $this->getRdvGroupUuid(),
+            'title' => '✅ Présence signalé',
+            'message' => "Vous avez signalé votre présence pour le rendez-vous {$rdv->code}",
+            'type' => 'RENDEZ-VOUS',
+            'metadata' => [
+                'rdv' => $rdv->toArray(),
+                'client_uuid' => $clientUuid,
+            ],
+            'channel' => 'database',
+            'created_by' => null,
+        ]);
 
         $rdv->update([
             'is_present' => true,
@@ -697,5 +692,11 @@ class RdvService
             'rejete' => (clone $query)->where('status', 'rejete')->count(),
             'reporte' => (clone $query)->where('status', 'reporte')->count(),
         ];
+    }
+
+    private function getRdvGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'rendezvous')->first();
+        return $group?->uuid_group_notif;
     }
 }

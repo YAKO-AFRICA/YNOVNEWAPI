@@ -806,7 +806,7 @@ class CustomerController extends Controller
 
         $existingNotification = Notification::where('user_uuid', $user->uuid_user)
             ->where('type', 'impayee')
-            ->whereNull('read_at')
+            // ->whereNull('read_at')
             ->first();
 
         $title = '⚠️ ' . $totalFactures . ' facture' . ($totalFactures > 1 ? 's' : '') . ' impayée' . ($totalFactures > 1 ? 's' : '');
@@ -831,6 +831,7 @@ class CustomerController extends Controller
             $existingNotification->update([
                 'title' => $title,
                 'body' => $body,
+                'read_at' => null,
                 'metadata' => $metadata,
                 'updated_at' => now(),
             ]);
