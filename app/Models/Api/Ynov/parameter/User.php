@@ -153,6 +153,81 @@ class User extends Authenticatable
         ])->withTimestamps();
     }
 
+    /**
+     * Récupérer l'agence principale de l'utilisateur
+     */
+    public function primaryAgence(): ?Agence
+    {
+        return $this->agences()
+            ->wherePivot('is_primary', true)
+            ->wherePivot('is_active', true)
+            ->first();
+    }
+
+    /**
+     * Récupérer les agences actives de l'utilisateur
+     */
+    public function activeAgences()
+    {
+        return $this->agences()
+            ->wherePivot('is_active', true);
+    }
+
+    /**
+     * Vérifier si l'utilisateur appartient à une agence
+     */
+    public function belongsToAgence(string $agenceUuid): bool
+    {
+        return $this->agences()
+            ->where('uuid_agence', $agenceUuid)
+            ->wherePivot('is_active', true)
+            ->exists();
+    }
+
+    /**
+     * Vérifier si l'utilisateur est assigné à une agence comme primaire
+     */
+    public function isPrimaryInAgence(string $agenceUuid): bool
+    {
+        return $this->agences()
+            ->where('uuid_agence', $agenceUuid)
+            ->wherePivot('is_primary', true)
+            ->exists();
+    }
+
+    /**
+     * Obtenir les UUIDs des agences de l'utilisateur
+     */
+    public function getAgenceUuidsAttribute(): array
+    {
+        return $this->agences()
+            ->wherePivot('is_active', true)
+            ->pluck('uuid_agence')
+            ->toArray();
+    }
+
+    /**
+     * Obtenir les détails des agences formatés
+     */
+    public function getAgencesDetailsAttribute(): array
+    {
+        return $this->agences()
+            ->wherePivot('is_active', true)
+            ->get()
+            ->map(function ($agence) {
+                return [
+                    'uuid_agence' => $agence->uuid_agence,
+                    'code' => $agence->code,
+                    'libelle' => $agence->libelle,
+                    'ville' => $agence->ville,
+                    'is_primary' => (bool) $agence->pivot->is_primary,
+                    'role_uuid' => $agence->pivot->role_uuid,
+                    'assigned_at' => $agence->pivot->assigned_at,
+                ];
+            })
+            ->toArray();
+    }
+
     public function userContrats(): HasMany
     {
         return $this->hasMany(UserContrat::class, 'user_uuid', 'uuid_user');
@@ -358,7 +433,7 @@ class User extends Authenticatable
      */
     public function isFrozen(): bool
     {
-        return $this->status === 'gele' || ($this->frozen_until && $this->frozen_until->isFuture()) ;
+        return $this->status === 'gele' || ($this->frozen_until && $this->frozen_until->isFuture());
     }
 
     /**
@@ -405,8 +480,8 @@ class User extends Authenticatable
      */
     public function canBeFrozenManually(): bool
     {
-        return !$this->isFrozen() && 
-            $this->status !== 'bloque' && 
+        return !$this->isFrozen() &&
+            $this->status !== 'bloque' &&
             $this->status !== 'inactif';
     }
 
@@ -432,8 +507,8 @@ class User extends Authenticatable
     {
         return $this->status === 'gele' ||
             ($this->freeze_level > 0 &&
-            $this->frozen_until &&
-            $this->frozen_until->isFuture());
+                $this->frozen_until &&
+                $this->frozen_until->isFuture());
     }
 
 
@@ -480,7 +555,7 @@ class User extends Authenticatable
      */
     public function isTwoFactorLocked(): bool
     {
-        return $this->two_factor_locked_until && 
+        return $this->two_factor_locked_until &&
             now()->lt($this->two_factor_locked_until);
     }
 
@@ -501,12 +576,12 @@ class User extends Authenticatable
     public function incrementTwoFactorAttempts(): self
     {
         $this->two_factor_attempts++;
-        
+
         // Verrouiller après 5 tentatives échouées (30 minutes)
         if ($this->two_factor_attempts >= 5) {
             $this->two_factor_locked_until = now()->addMinutes(30);
         }
-        
+
         $this->save();
         return $this;
     }
@@ -534,7 +609,7 @@ class User extends Authenticatable
         $this->two_factor_attempts = 0;
         $this->two_factor_locked_until = null;
         $this->save();
-        
+
         return $this;
     }
 
@@ -550,7 +625,7 @@ class User extends Authenticatable
         $this->two_factor_attempts = 0;
         $this->two_factor_locked_until = null;
         $this->save();
-        
+
         return $this;
     }
 

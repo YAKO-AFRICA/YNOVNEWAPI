@@ -2675,11 +2675,200 @@
                     }]
                 },
 
+                // {
+                //     id: 'users-create',
+                //     module: 'users',
+                //     name: 'Créer un utilisateur',
+                //     description: 'Crée un nouvel utilisateur interne/partenaire/admin avec ses détails. Envoie un email de bienvenue.',
+                //     method: 'POST',
+                //     path: '/users',
+                //     isProtected: true,
+                //     permissionsRequired: ['users.creer'],
+                //     headers: {
+                //         'Authorization': 'Bearer {token}',
+                //         'Content-Type': 'application/json',
+                //         'Accept': 'application/json'
+                //     },
+                //     requestParams: {
+                //         body: {
+                //             email: {
+                //                 type: 'email',
+                //                 required: true,
+                //                 description: 'Email (unique)'
+                //             },
+                //             login: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 100,
+                //                 description: 'Identifiant (unique)'
+                //             },
+                //             password: {
+                //                 type: 'string',
+                //                 required: true,
+                //                 min: 12,
+                //                 description: 'Mot de passe'
+                //             },
+                //             role_uuid: {
+                //                 type: 'uuid',
+                //                 required: true,
+                //                 description: 'UUID du rôle'
+                //             },
+                //             user_type: {
+                //                 type: 'string',
+                //                 required: true,
+                //                 enum: ['client', 'user_interne', 'user_partner', 'admin'],
+                //                 description: 'Type'
+                //             },
+                //             partner_uuid: {
+                //                 type: 'uuid',
+                //                 required: false,
+                //                 description: 'UUID du partenaire'
+                //             },
+                //             reseau_uuid: {
+                //                 type: 'uuid',
+                //                 required: false,
+                //                 description: 'UUID du réseau'
+                //             },
+                //             agence_uuid: {
+                //                 type: 'uuid',
+                //                 required: false,
+                //                 description: 'UUID de l\'agence'
+                //             },
+                //             nom: {
+                //                 type: 'string',
+                //                 required: true,
+                //                 max: 55,
+                //                 description: 'Nom'
+                //             },
+                //             prenoms: {
+                //                 type: 'string',
+                //                 required: true,
+                //                 max: 255,
+                //                 description: 'Prénoms'
+                //             },
+                //             fonction: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 55,
+                //                 description: 'Fonction'
+                //             },
+                //             mobile_1: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 25,
+                //                 description: 'Téléphone'
+                //             }
+                //         }
+                //     },
+                //     exampleRequest: {
+                //         email: 'nouveau@ynov.ci',
+                //         login: 'nouveau',
+                //         password: 'Password123!',
+                //         role_uuid: 'role-uuid',
+                //         user_type: 'user_interne',
+                //         nom: 'Dupont',
+                //         prenoms: 'Jean'
+                //     },
+                //     responses: [{
+                //         status: 201,
+                //         description: 'Utilisateur créé',
+                //         example: {
+                //             success: true,
+                //             message: 'Utilisateur créé.',
+                //             data: {}
+                //         }
+                //     }]
+                // },
+
+                // {
+                //     id: 'users-update',
+                //     module: 'users',
+                //     name: 'Modifier un utilisateur',
+                //     description: 'Met à jour les informations d\'un utilisateur.',
+                //     method: 'PUT',
+                //     path: '/users/{uuid_user}',
+                //     isProtected: true,
+                //     permissionsRequired: ['users.modifier'],
+                //     headers: {
+                //         'Authorization': 'Bearer {token}',
+                //         'Content-Type': 'application/json',
+                //         'Accept': 'application/json'
+                //     },
+                //     requestParams: {
+                //         path: {
+                //             uuid_user: {
+                //                 type: 'uuid',
+                //                 required: true,
+                //                 description: 'UUID de l\'utilisateur'
+                //             }
+                //         },
+                //         body: {
+                //             email: {
+                //                 type: 'email',
+                //                 required: false,
+                //                 description: 'Email (unique)'
+                //             },
+                //             login: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 100,
+                //                 description: 'Identifiant'
+                //             },
+                //             role_uuid: {
+                //                 type: 'uuid',
+                //                 required: false,
+                //                 description: 'UUID du rôle'
+                //             },
+                //             user_type: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 enum: ['client', 'user_interne', 'user_partner', 'admin'],
+                //                 description: 'Type'
+                //             },
+                //             status: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 enum: ['actif', 'inactif', 'gele', 'bloque'],
+                //                 description: 'Statut'
+                //             },
+                //             nom: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 55,
+                //                 description: 'Nom'
+                //             },
+                //             prenoms: {
+                //                 type: 'string',
+                //                 required: false,
+                //                 max: 255,
+                //                 description: 'Prénoms'
+                //             }
+                //         }
+                //     },
+                //     exampleRequest: {
+                //         email: 'jean.updated@ynov.ci',
+                //         status: 'actif'
+                //     },
+                //     responses: [{
+                //         status: 200,
+                //         description: 'Utilisateur mis à jour',
+                //         example: {
+                //             success: true,
+                //             message: 'Utilisateur mis à jour.',
+                //             data: {}
+                //         }
+                //     }]
+                // },
+
+                
+                // ============================================================
+                // UTILISATEURS - CRÉATION
+                // ============================================================
                 {
                     id: 'users-create',
                     module: 'users',
                     name: 'Créer un utilisateur',
-                    description: 'Crée un nouvel utilisateur interne/partenaire/admin avec ses détails. Envoie un email de bienvenue.',
+                    description: 'Crée un nouvel utilisateur interne/partenaire/admin avec ses détails. L\'utilisateur doit être assigné à au moins une agence. Envoie un email de bienvenue.',
                     method: 'POST',
                     path: '/users',
                     isProtected: true,
@@ -2717,22 +2906,29 @@
                                 type: 'string',
                                 required: true,
                                 enum: ['client', 'user_interne', 'user_partner', 'admin'],
-                                description: 'Type'
+                                description: 'Type d\'utilisateur'
                             },
                             partner_uuid: {
                                 type: 'uuid',
                                 required: false,
-                                description: 'UUID du partenaire'
+                                description: 'UUID du partenaire (requis si user_type = user_partner)'
                             },
                             reseau_uuid: {
                                 type: 'uuid',
                                 required: false,
                                 description: 'UUID du réseau'
                             },
+                            agence_uuids: {
+                                type: 'array',
+                                required: true,
+                                items: 'uuid',
+                                minItems: 1,
+                                description: 'Liste des UUIDs des agences (au moins une)'
+                            },
                             agence_uuid: {
                                 type: 'uuid',
                                 required: false,
-                                description: 'UUID de l\'agence'
+                                description: 'UUID de l\'agence (déprécié, utiliser agence_uuids)'
                             },
                             nom: {
                                 type: 'string',
@@ -2752,11 +2948,70 @@
                                 max: 55,
                                 description: 'Fonction'
                             },
+                            service: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Service'
+                            },
+                            departement: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Département'
+                            },
                             mobile_1: {
                                 type: 'string',
                                 required: false,
                                 max: 25,
-                                description: 'Téléphone'
+                                description: 'Téléphone principal'
+                            },
+                            mobile_2: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Téléphone secondaire'
+                            },
+                            email_pro: {
+                                type: 'email',
+                                required: false,
+                                max: 255,
+                                description: 'Email professionnel'
+                            },
+                            date_naissance: {
+                                type: 'date',
+                                required: false,
+                                description: 'Date de naissance (format YYYY-MM-DD)'
+                            },
+                            lieu_naissance: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Lieu de naissance'
+                            },
+                            genre: {
+                                type: 'string',
+                                required: false,
+                                enum: ['M', 'F'],
+                                description: 'Genre'
+                            },
+                            civilite: {
+                                type: 'string',
+                                required: false,
+                                enum: ['M.', 'Mme', 'Mlle'],
+                                description: 'Civilité'
+                            },
+                            ville: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Ville'
+                            },
+                            pays: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Pays'
                             }
                         }
                     },
@@ -2764,27 +3019,99 @@
                         email: 'nouveau@ynov.ci',
                         login: 'nouveau',
                         password: 'Password123!',
-                        role_uuid: 'role-uuid',
+                        role_uuid: '550e8400-e29b-41d4-a716-446655440000',
                         user_type: 'user_interne',
                         nom: 'Dupont',
-                        prenoms: 'Jean'
+                        prenoms: 'Jean',
+                        fonction: 'Développeur',
+                        service: 'IT',
+                        mobile_1: '+2250701020304',
+                        agence_uuids: [
+                            '550e8400-e29b-41d4-a716-446655440001',
+                            '550e8400-e29b-41d4-a716-446655440002'
+                        ]
                     },
-                    responses: [{
-                        status: 201,
-                        description: 'Utilisateur créé',
-                        example: {
-                            success: true,
-                            message: 'Utilisateur créé.',
-                            data: {}
+                    responses: [
+                        {
+                            status: 201,
+                            description: 'Utilisateur créé avec succès',
+                            example: {
+                                success: true,
+                                message: 'Utilisateur créé avec succès.',
+                                data: {
+                                    uuid_user: '550e8400-e29b-41d4-a716-446655440003',
+                                    email: 'nouveau@ynov.ci',
+                                    login: 'nouveau',
+                                    role_uuid: '550e8400-e29b-41d4-a716-446655440000',
+                                    user_type: 'user_interne',
+                                    status: 'actif',
+                                    is_first_login: true,
+                                    created_at: '2024-01-15T10:30:00.000000Z',
+                                    details: {
+                                        uuid_user_details: '550e8400-e29b-41d4-a716-446655440004',
+                                        nom: 'Dupont',
+                                        prenoms: 'Jean',
+                                        fonction: 'Développeur',
+                                        service: 'IT',
+                                        mobile_1: '+2250701020304',
+                                        created_by: '550e8400-e29b-41d4-a716-446655440005'
+                                    },
+                                    role: {
+                                        uuid_role: '550e8400-e29b-41d4-a716-446655440000',
+                                        libelle: 'Développeur',
+                                        code: 'DEV',
+                                        is_super_admin: false
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            ville: 'Abidjan',
+                                            pays: 'Côte d\'Ivoire',
+                                            is_primary: true,
+                                            is_active: true,
+                                            assigned_at: '2024-01-15T10:30:00.000000Z',
+                                            assigned_by: '550e8400-e29b-41d4-a716-446655440005'
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440002',
+                                            code: 'AG002',
+                                            libelle: 'Agence Secondaire',
+                                            ville: 'Yamoussoukro',
+                                            pays: 'Côte d\'Ivoire',
+                                            is_primary: false,
+                                            is_active: true,
+                                            assigned_at: '2024-01-15T10:30:00.000000Z',
+                                            assigned_by: '550e8400-e29b-41d4-a716-446655440005'
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Erreur de validation',
+                            example: {
+                                success: false,
+                                message: 'Erreur de validation.',
+                                errors: {
+                                    email: ['L\'email est déjà utilisé.'],
+                                    agence_uuids: ['Au moins une agence doit être sélectionnée.']
+                                }
+                            }
                         }
-                    }]
+                    ]
                 },
 
+                // ============================================================
+                // UTILISATEURS - MODIFICATION
+                // ============================================================
                 {
                     id: 'users-update',
                     module: 'users',
                     name: 'Modifier un utilisateur',
-                    description: 'Met à jour les informations d\'un utilisateur.',
+                    description: 'Met à jour les informations d\'un utilisateur. Les agences peuvent être ajoutées ou remplacées selon le paramètre replace.',
                     method: 'PUT',
                     path: '/users/{uuid_user}',
                     isProtected: true,
@@ -2831,6 +3158,19 @@
                                 enum: ['actif', 'inactif', 'gele', 'bloque'],
                                 description: 'Statut'
                             },
+                            agence_uuids: {
+                                type: 'array',
+                                required: false,
+                                items: 'uuid',
+                                minItems: 1,
+                                description: 'Liste des UUIDs des agences'
+                            },
+                            replace: {
+                                type: 'boolean',
+                                required: false,
+                                default: false,
+                                description: 'Si true, remplace toutes les agences. Si false, ajoute les nouvelles agences.'
+                            },
                             nom: {
                                 type: 'string',
                                 required: false,
@@ -2842,23 +3182,557 @@
                                 required: false,
                                 max: 255,
                                 description: 'Prénoms'
+                            },
+                            fonction: {
+                                type: 'string',
+                                required: false,
+                                max: 55,
+                                description: 'Fonction'
+                            },
+                            service: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Service'
+                            },
+                            departement: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Département'
+                            },
+                            mobile_1: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Téléphone principal'
+                            },
+                            mobile_2: {
+                                type: 'string',
+                                required: false,
+                                max: 25,
+                                description: 'Téléphone secondaire'
+                            },
+                            email_pro: {
+                                type: 'email',
+                                required: false,
+                                max: 255,
+                                description: 'Email professionnel'
+                            },
+                            date_naissance: {
+                                type: 'date',
+                                required: false,
+                                description: 'Date de naissance'
+                            },
+                            lieu_naissance: {
+                                type: 'string',
+                                required: false,
+                                max: 255,
+                                description: 'Lieu de naissance'
+                            },
+                            genre: {
+                                type: 'string',
+                                required: false,
+                                enum: ['M', 'F'],
+                                description: 'Genre'
+                            },
+                            civilite: {
+                                type: 'string',
+                                required: false,
+                                enum: ['M.', 'Mme', 'Mlle'],
+                                description: 'Civilité'
+                            },
+                            ville: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Ville'
+                            },
+                            pays: {
+                                type: 'string',
+                                required: false,
+                                max: 100,
+                                description: 'Pays'
                             }
                         }
                     },
                     exampleRequest: {
                         email: 'jean.updated@ynov.ci',
-                        status: 'actif'
+                        status: 'actif',
+                        fonction: 'Lead Développeur',
+                        service: 'IT',
+                        agence_uuids: [
+                            '550e8400-e29b-41d4-a716-446655440001',
+                            '550e8400-e29b-41d4-a716-446655440003'
+                        ],
+                        replace: true
                     },
-                    responses: [{
-                        status: 200,
-                        description: 'Utilisateur mis à jour',
-                        example: {
-                            success: true,
-                            message: 'Utilisateur mis à jour.',
-                            data: {}
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Utilisateur mis à jour avec succès',
+                            example: {
+                                success: true,
+                                message: 'Utilisateur mis à jour avec succès.',
+                                data: {
+                                    uuid_user: '550e8400-e29b-41d4-a716-446655440003',
+                                    email: 'jean.updated@ynov.ci',
+                                    login: 'nouveau',
+                                    role_uuid: '550e8400-e29b-41d4-a716-446655440000',
+                                    user_type: 'user_interne',
+                                    status: 'actif',
+                                    updated_at: '2024-01-15T14:20:00.000000Z',
+                                    details: {
+                                        nom: 'Dupont',
+                                        prenoms: 'Jean',
+                                        fonction: 'Lead Développeur',
+                                        service: 'IT',
+                                        mobile_1: '+2250701020304'
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            is_primary: true,
+                                            is_active: true
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440003',
+                                            code: 'AG003',
+                                            libelle: 'Agence Tertiaire',
+                                            is_primary: false,
+                                            is_active: true
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Utilisateur non trouvé',
+                            example: {
+                                success: false,
+                                message: 'Utilisateur non trouvé.'
+                            }
                         }
-                    }]
+                    ]
                 },
+
+                // ============================================================
+                // UTILISATEURS - LISTE DES AGENCES
+                // ============================================================
+                {
+                    id: 'users-get-agences',
+                    module: 'users',
+                    name: 'Récupérer les agences d\'un utilisateur',
+                    description: 'Récupère la liste des agences auxquelles l\'utilisateur est assigné.',
+                    method: 'GET',
+                    path: '/users/{uuid_user}/agences',
+                    isProtected: true,
+                    permissionsRequired: ['agences.afficher'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            }
+                        }
+                    },
+                    exampleRequest: null,
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Liste des agences récupérée avec succès',
+                            example: {
+                                success: true,
+                                data: {
+                                    user_uuid: '550e8400-e29b-41d4-a716-446655440003',
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            ville: 'Abidjan',
+                                            pays: 'Côte d\'Ivoire',
+                                            is_primary: true,
+                                            role_uuid: '550e8400-e29b-41d4-a716-446655440000',
+                                            assigned_at: '2024-01-15T10:30:00.000000Z',
+                                            assigned_by: '550e8400-e29b-41d4-a716-446655440005'
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440003',
+                                            code: 'AG003',
+                                            libelle: 'Agence Tertiaire',
+                                            ville: 'Bouaké',
+                                            pays: 'Côte d\'Ivoire',
+                                            is_primary: false,
+                                            role_uuid: null,
+                                            assigned_at: '2024-01-15T14:20:00.000000Z',
+                                            assigned_by: '550e8400-e29b-41d4-a716-446655440005'
+                                        }
+                                    ],
+                                    primary_agence: {
+                                        uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                        code: 'AG001',
+                                        libelle: 'Agence Principale',
+                                        ville: 'Abidjan',
+                                        pays: 'Côte d\'Ivoire'
+                                    },
+                                    agence_uuids: [
+                                        '550e8400-e29b-41d4-a716-446655440001',
+                                        '550e8400-e29b-41d4-a716-446655440003'
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Utilisateur non trouvé',
+                            example: {
+                                success: false,
+                                message: 'Utilisateur non trouvé.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // UTILISATEURS - ASSIGNER DES AGENCES
+                // ============================================================
+                {
+                    id: 'users-assign-agences',
+                    module: 'users',
+                    name: 'Assigner des agences à un utilisateur',
+                    description: 'Ajoute de nouvelles agences à un utilisateur sans supprimer les existantes.',
+                    method: 'POST',
+                    path: '/users/{uuid_user}/agences',
+                    isProtected: true,
+                    permissionsRequired: ['agences.assigner_utilisateurs'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            }
+                        },
+                        body: {
+                            agence_uuids: {
+                                type: 'array',
+                                required: true,
+                                items: 'uuid',
+                                minItems: 1,
+                                description: 'Liste des UUIDs des agences à assigner'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        agence_uuids: [
+                            '550e8400-e29b-41d4-a716-446655440004',
+                            '550e8400-e29b-41d4-a716-446655440005'
+                        ]
+                    },
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Agences assignées avec succès',
+                            example: {
+                                success: true,
+                                message: 'Agences assignées avec succès.',
+                                data: {
+                                    user: {
+                                        uuid_user: '550e8400-e29b-41d4-a716-446655440003'
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            is_primary: true,
+                                            is_active: true
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440003',
+                                            code: 'AG003',
+                                            libelle: 'Agence Tertiaire',
+                                            is_primary: false,
+                                            is_active: true
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440004',
+                                            code: 'AG004',
+                                            libelle: 'Agence Quaternaire',
+                                            is_primary: false,
+                                            is_active: true
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Erreur de validation',
+                            example: {
+                                success: false,
+                                message: 'Erreur de validation.',
+                                errors: {
+                                    agence_uuids: [
+                                        'Le champ agence_uuids doit contenir au moins un élément.',
+                                        'La sélection de l\'agence 550e8400-e29b-41d4-a716-446655440006 est invalide.'
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // UTILISATEURS - SYNCHRONISER LES AGENCES
+                // ============================================================
+                {
+                    id: 'users-sync-agences',
+                    module: 'users',
+                    name: 'Synchroniser les agences d\'un utilisateur',
+                    description: 'Remplace toutes les agences existantes par la nouvelle liste. L\'utilisateur doit appartenir à au moins une agence.',
+                    method: 'PUT',
+                    path: '/users/{uuid_user}/agences',
+                    isProtected: true,
+                    permissionsRequired: ['agences.assigner_utilisateurs'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            }
+                        },
+                        body: {
+                            agence_uuids: {
+                                type: 'array',
+                                required: true,
+                                items: 'uuid',
+                                minItems: 1,
+                                description: 'Liste des UUIDs des agences (remplace toutes les existantes)'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        agence_uuids: [
+                            '550e8400-e29b-41d4-a716-446655440001',
+                            '550e8400-e29b-41d4-a716-446655440004'
+                        ]
+                    },
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Agences synchronisées avec succès',
+                            example: {
+                                success: true,
+                                message: 'Agences synchronisées avec succès.',
+                                data: {
+                                    user: {
+                                        uuid_user: '550e8400-e29b-41d4-a716-446655440003'
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            is_primary: true,
+                                            is_active: true
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440004',
+                                            code: 'AG004',
+                                            libelle: 'Agence Quaternaire',
+                                            is_primary: false,
+                                            is_active: true
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 400,
+                            description: 'Erreur - L\'utilisateur doit avoir au moins une agence',
+                            example: {
+                                success: false,
+                                message: 'L\'utilisateur doit appartenir à au moins une agence.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // UTILISATEURS - DÉFINIR L'AGENCE PRINCIPALE
+                // ============================================================
+                {
+                    id: 'users-set-primary-agence',
+                    module: 'users',
+                    name: 'Définir l\'agence principale',
+                    description: 'Définit une agence comme principale pour l\'utilisateur. L\'utilisateur doit appartenir à cette agence.',
+                    method: 'PATCH',
+                    path: '/users/{uuid_user}/agences/primary',
+                    isProtected: true,
+                    permissionsRequired: ['agences.assigner_utilisateurs'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            }
+                        },
+                        body: {
+                            agence_uuid: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence à définir comme principale'
+                            }
+                        }
+                    },
+                    exampleRequest: {
+                        agence_uuid: '550e8400-e29b-41d4-a716-446655440004'
+                    },
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Agence principale définie avec succès',
+                            example: {
+                                success: true,
+                                message: 'Agence principale définie avec succès.',
+                                data: {
+                                    user: {
+                                        uuid_user: '550e8400-e29b-41d4-a716-446655440003'
+                                    },
+                                    primary_agence: {
+                                        uuid_agence: '550e8400-e29b-41d4-a716-446655440004',
+                                        code: 'AG004',
+                                        libelle: 'Agence Quaternaire',
+                                        ville: 'Abidjan',
+                                        pays: 'Côte d\'Ivoire'
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            is_primary: false
+                                        },
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440004',
+                                            code: 'AG004',
+                                            libelle: 'Agence Quaternaire',
+                                            is_primary: true
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'L\'utilisateur n\'appartient pas à cette agence',
+                            example: {
+                                success: false,
+                                message: 'L\'utilisateur n\'appartient pas à cette agence.'
+                            }
+                        }
+                    ]
+                },
+
+                // ============================================================
+                // UTILISATEURS - RETIRER UNE AGENCE
+                // ============================================================
+                {
+                    id: 'users-remove-agence',
+                    module: 'users',
+                    name: 'Retirer un utilisateur d\'une agence',
+                    description: 'Retire l\'utilisateur d\'une agence. L\'utilisateur doit avoir au moins une autre agence et ne pas retirer son agence principale.',
+                    method: 'DELETE',
+                    path: '/users/{uuid_user}/agences/{uuid_agence}',
+                    isProtected: true,
+                    permissionsRequired: ['agences.assigner_utilisateurs'],
+                    headers: {
+                        'Authorization': 'Bearer {token}',
+                        'Accept': 'application/json'
+                    },
+                    requestParams: {
+                        path: {
+                            uuid_user: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'utilisateur'
+                            },
+                            uuid_agence: {
+                                type: 'uuid',
+                                required: true,
+                                description: 'UUID de l\'agence à retirer'
+                            }
+                        }
+                    },
+                    exampleRequest: null,
+                    responses: [
+                        {
+                            status: 200,
+                            description: 'Utilisateur retiré de l\'agence avec succès',
+                            example: {
+                                success: true,
+                                message: 'Utilisateur retiré de l\'agence avec succès.',
+                                data: {
+                                    user: {
+                                        uuid_user: '550e8400-e29b-41d4-a716-446655440003'
+                                    },
+                                    agences: [
+                                        {
+                                            uuid_agence: '550e8400-e29b-41d4-a716-446655440001',
+                                            code: 'AG001',
+                                            libelle: 'Agence Principale',
+                                            is_primary: true
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            status: 422,
+                            description: 'Impossible de retirer l\'agence principale ou dernière agence',
+                            example: {
+                                success: false,
+                                message: 'L\'utilisateur doit appartenir à au moins une agence.'
+                            }
+                        },
+                        {
+                            status: 404,
+                            description: 'Utilisateur ou agence non trouvé',
+                            example: {
+                                success: false,
+                                message: 'Utilisateur ou agence non trouvé.'
+                            }
+                        }
+                    ]
+                },
+
 
                 {
                     id: 'users-destroy',

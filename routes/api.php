@@ -195,6 +195,16 @@ Route::prefix('v1')->middleware([
 
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
+
+    // Gestion des agences pour un utilisateur
+    Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
+        Route::get('/', [UserController::class, 'getAgences']);
+        Route::post('/', [UserController::class, 'assignAgences']);
+        Route::put('/', [UserController::class, 'syncAgences']);
+        Route::patch('/primary', [UserController::class, 'setPrimaryAgence']);
+        Route::delete('/{uuid_agence}', [UserController::class, 'removeAgence']);
+    });
+
     Route::delete('users/{uuid_user}', [UserController::class, 'destroy'])->middleware('permission:users.supprimer');
 
     Route::group(['middleware' => 'permission:users.bloquer'], function () {
@@ -327,6 +337,7 @@ Route::prefix('v1')->middleware([
     Route::group(['middleware' => 'permission:agences.assigner_utilisateurs'], function () {
         Route::post('agences/{uuid_agence}/users', [AgenceController::class, 'assignUsers']);
         Route::delete('agences/{uuid_agence}/users/{uuid_user}', [AgenceController::class, 'removeUser']);
+
     });
 
 

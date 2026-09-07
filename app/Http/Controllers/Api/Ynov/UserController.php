@@ -184,7 +184,9 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\AssignAgencesRequest;
 use App\Http\Requests\Api\Ynov\BlockUserRequest;
+use App\Http\Requests\Api\Ynov\SetPrimaryAgenceRequest;
 use App\Http\Requests\Api\Ynov\StoreUserRequest;
 use App\Http\Requests\Api\Ynov\UpdateUserRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
@@ -346,6 +348,180 @@ class UserController extends Controller
             'message' => 'Utilisateur mis à jour.',
             'data' => new UserResource($updated->load('details')),
         ]);
+    }
+
+    /**
+     * Assigner des agences à un utilisateur
+     */
+    public function assignAgences(AssignAgencesRequest $request, string $uuid_user): JsonResponse
+    {
+        // $request->validate([
+        //     'agence_uuids' => ['required', 'array', 'min:1'],
+        //     'agence_uuids.*' => ['required', 'exists:agences,uuid_agence'],
+        // ]);
+
+        $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+        $this->userService->assignAgences(
+            $user,
+            $request->input('agence_uuids'),
+            $request->user()->uuid_user
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Agences assignées avec succès.',
+            'code' => 'AGENCES_ASSIGNED',
+            'data' => [
+                'user' => new UserResource($user->load(['details', 'agences'])),
+                'assigned_agences' => $request->agence_uuids,
+            ],
+        ]);
+    }
+
+    /**
+     * Synchroniser les agences d'un utilisateur
+     */
+    public function syncAgences(AssignAgencesRequest $request, string $uuid_user): JsonResponse
+    {
+        // $request->validate([
+        //     'agence_uuids' => ['required', 'array'],
+        //     'agence_uuids.*' => ['required', 'exists:agences,uuid_agence'],
+        // ]);
+
+        $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+        $this->userService->syncAgences(
+            $user,
+            $request->input('agence_uuids'),
+            $request->user()->uuid_user
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Agences synchronisées avec succès.',
+            'code' => 'AGENCES_SYNCED',
+            'data' => [
+                'user' => new UserResource($user->load(['details', 'agences'])),
+                'synced_agences' => $request->agence_uuids,
+            ],
+        ]);
+    }
+
+    /**
+     * Définir l'agence principale d'un utilisateur
+     */
+    public function setPrimaryAgence(SetPrimaryAgenceRequest $request, string $uuid_user): JsonResponse
+    {
+        try {
+            $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+            $result = $this->userService->setPrimaryAgence(
+                $user,
+                $request->input('agence_uuid'),
+                $request->user()->uuid_user
+            );
+
+            if (!$result) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'L\'utilisateur n\'appartient pas à cette agence.'
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Agence principale définie avec succès.',
+                'data' => [
+                    'user' => new UserResource($user->load(['agences'])),
+                    'primary_agence' => $user->primaryAgence()
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la définition de l\'agence principale.',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Récupérer les agences d'un utilisateur
+     */
+    public function getAgences(string $uuid_user): JsonResponse
+    {
+        try {
+            $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user_uuid' => $user->uuid_user,
+                    'agences' => $user->getAgencesDetailsAttribute(),
+                    'primary_agence' => $user->primaryAgence(),
+                    'agence_uuids' => $user->getAgenceUuidsAttribute()
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé.'
+            ], 404);
+        }
+    }
+
+    /**
+     * Retirer un utilisateur d'une agence
+     */
+    public function removeAgence(Request $request, string $uuid_user, string $uuid_agence): JsonResponse
+    {
+        try {
+            $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+            // Empêcher la suppression si c'est la seule agence
+            if ($user->agences()->count() <= 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'L\'utilisateur doit appartenir à au moins une agence.'
+                ], 422);
+            }
+
+            // Empêcher la suppression de l'agence principale
+            if ($user->isPrimaryInAgence($uuid_agence)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Impossible de retirer l\'agence principale de l\'utilisateur. Définissez une autre agence principale d\'abord.'
+                ], 422);
+            }
+
+            $user->agences()->detach($uuid_agence);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Utilisateur retiré de l\'agence avec succès.',
+                'data' => [
+                    'user' => new UserResource($user->load(['agences'])),
+                    'agences' => $user->getAgencesDetailsAttribute()
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur ou agence non trouvé.'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du retrait de l\'agence.',
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
