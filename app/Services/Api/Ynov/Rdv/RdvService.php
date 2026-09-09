@@ -1,7 +1,7 @@
 <?php
 // app/Services/Api/Ynov/RdvService.php
 
-namespace App\Services\Api\Ynov;
+namespace App\Services\Api\Ynov\Rdv;
 
 use App\Models\Api\Ynov\BordereauRdv;
 use App\Models\Api\Ynov\parameter\ActivityLog;
@@ -12,6 +12,7 @@ use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
+use App\Services\Api\Ynov\NotificationService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -671,6 +672,306 @@ class RdvService
         return $earthRadius * $c;
     }
 
+
+
+    /**
+     * Récupérer la liste des rendez-vous avec filtres
+     */
+    public function getList(array $filters, int $perPage = 15)
+    {
+        $query = Rdv::query()
+            ->with([
+                'client.details',
+                'motif',
+                'agenceSouhaitee',
+                'agenceEffective',
+                'gestionnaire.details',
+            ]);
+
+        // Recherche
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'LIKE', "%{$search}%")
+                  ->orWhereHas('client', function ($sub) use ($search) {
+                      $sub->where('email', 'LIKE', "%{$search}%")
+                          ->orWhere('login', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('client.details', function ($sub) use ($search) {
+                      $sub->where('nom', 'LIKE', "%{$search}%")
+                          ->orWhere('prenoms', 'LIKE', "%{$search}%")
+                          ->orWhere('mobile_1', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('motif', function ($sub) use ($search) {
+                      $sub->where('libelle', 'LIKE', "%{$search}%")
+                          ->orWhere('code', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filtre par statut
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Filtre par agence
+        if (!empty($filters['agence_uuid'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('agence_souhaiter_uuid', $filters['agence_uuid'])
+                  ->orWhere('agence_effective_uuid', $filters['agence_uuid']);
+            });
+        }
+
+        // Filtre par gestionnaire
+        if (!empty($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
+        // Filtre par motif
+        if (!empty($filters['motif_uuid'])) {
+            $query->where('motif_rdv', $filters['motif_uuid']);
+        }
+
+        // Filtre par date
+        if (!empty($filters['date_debut'])) {
+            $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            
+        }
+        if (!empty($filters['date_fin'])) {
+            $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+        }
+
+        // Tri
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Formater les données pour l'affichage
+     */
+    public function formatForList($rdvs): array
+    {
+        $data = [];
+
+        foreach ($rdvs as $rdv) {
+            $data[] = [
+                'uuid_rdvs' => $rdv->uuid_rdvs,
+                'code' => $rdv->code,
+                'date_creation' => $rdv->created_at?->format('Y-m-d'),
+                'date_rdv' => $rdv->date_rdv_souhaiter?->format('Y-m-d'),
+                'heure_rdv' => $rdv->date_rdv_souhaiter?->format('H:i'),
+                
+                // Client
+                'client' => [
+                    'uuid_user' => $rdv->client?->uuid_user,
+                    'nom' => $rdv->client?->details?->nom ?? '',
+                    'prenoms' => $rdv->client?->details?->prenoms ?? '',
+                    'email' => $rdv->client?->email ?? '',
+                    'mobile' => $rdv->client?->details?->mobile_1 ?? '',
+                    'nom_complet' => $this->formatNomComplet($rdv->client?->details?->nom, $rdv->client?->details?->prenoms),
+                ],
+                
+                // Motif
+                'motif' => [
+                    'uuid' => $rdv->motif?->uuid_type_prestation,
+                    'libelle' => $rdv->motif?->libelle,
+                    'code' => $rdv->motif?->code,
+                    'impact' => $rdv->motif?->impact,
+                    'impact_label' => $rdv->motif?->getImpactLabel(),
+                ],
+                
+                // Agence
+                'agence' => [
+                    'souhaitee' => $rdv->agenceSouhaitee ? [
+                        'uuid' => $rdv->agenceSouhaitee->uuid_agence,
+                        'libelle' => $rdv->agenceSouhaitee->libelle,
+                        'code' => $rdv->agenceSouhaitee->code,
+                        'ville' => $rdv->agenceSouhaitee->ville,
+                    ] : null,
+                    'effective' => $rdv->agenceEffective ? [
+                        'uuid' => $rdv->agenceEffective->uuid_agence,
+                        'libelle' => $rdv->agenceEffective->libelle,
+                        'code' => $rdv->agenceEffective->code,
+                        'ville' => $rdv->agenceEffective->ville,
+                    ] : null,
+                ],
+                
+                // Gestionnaire
+                'gestionnaire' => $rdv->gestionnaire ? [
+                    'uuid_user' => $rdv->gestionnaire->uuid_user,
+                    'nom_complet' => $this->formatNomComplet(
+                        $rdv->gestionnaire?->details?->nom,
+                        $rdv->gestionnaire?->details?->prenoms
+                    ),
+                    'email' => $rdv->gestionnaire?->email,
+                ] : null,
+                
+                // Statut
+                'status' => $rdv->status,
+                'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+                'status_color' => $this->getStatusColor($rdv->status),
+                'status_badge' => $this->getStatusBadge($rdv->status),
+                
+                // Délais
+                'delais' => $this->calculateDelais($rdv),
+                'est_retard' => $this->isInRetard($rdv),
+                // 'bordereau_disponible' => $this->isBordereauDisponible($rdv),
+                'nb_rdv_client_30j' => $this->getNbRdvClient30j($rdv),
+                
+                // Dates
+                'date_rdv_formatee' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
+                'heure_rdv_formatee' => $rdv->date_rdv_souhaiter?->format('H:i'),
+                'date_creation_formatee' => $rdv->created_at?->format('d/m/Y'),
+                
+                // Métadonnées
+                'is_permitted' => $rdv->is_permitted,
+                'is_present' => $rdv->is_present,
+                'observation' => $rdv->observation,
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Formater le nom complet
+     */
+    private function formatNomComplet(?string $nom, ?string $prenoms): string
+    {
+        if (empty($nom) && empty($prenoms)) {
+            return '';
+        }
+        return trim(($nom ?? '') . ' ' . ($prenoms ?? ''));
+    }
+
+    /**
+     * Calculer les délais du rendez-vous
+     */
+    private function calculateDelais(Rdv $rdv): array
+    {
+        $now = now();
+        $dateRdv = $rdv->date_rdv_souhaiter;
+        
+        if (!$dateRdv) {
+            return [
+                'jours' => 0,
+                'label' => 'Non défini',
+                'classe' => 'text-muted',
+                'est_retard' => false,
+            ];
+        }
+
+        $diffDays = $now->diffInDays($dateRdv, false);
+        
+        if ($diffDays > 0) {
+            return [
+                'jours' => $diffDays,
+                'label' => $diffDays . ' jour' . ($diffDays > 1 ? 's' : '') . ' restant' . ($diffDays > 1 ? 's' : ''),
+                'classe' => 'text-success',
+                'est_retard' => false,
+            ];
+        } elseif ($diffDays == 0) {
+            return [
+                'jours' => 0,
+                'label' => 'Aujourd\'hui',
+                'classe' => 'text-warning',
+                'est_retard' => false,
+            ];
+        } else {
+            $retard = abs($diffDays);
+            return [
+                'jours' => -$retard,
+                'label' => $retard . ' jour' . ($retard > 1 ? 's' : '') . ' de retard',
+                'classe' => 'text-danger',
+                'est_retard' => true,
+            ];
+        }
+    }
+
+    /**
+     * Vérifier si le rendez-vous est en retard
+     */
+    private function isInRetard(Rdv $rdv): bool
+    {
+        if (!$rdv->date_rdv_effective) {
+            return false;
+        }
+        
+        // Si le RDV est dans le futur et n'est pas traité
+        if ($rdv->date_rdv_effective->isFuture() && !in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
+            return false;
+        }
+        
+        // Si le RDV est dans le passé et n'est pas traité
+        if ($rdv->date_rdv_effective->isPast() && !in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Vérifier si le bordereau est disponible
+     */
+    // private function isBordereauDisponible(Rdv $rdv): bool
+    // {
+    //     // Logique: Le bordereau est disponible si le RDV est traité ou terminé
+    //     return in_array($rdv->status, ['traite', 'termine']);
+    // }
+
+    /**
+     * Obtenir le nombre de RDV du client dans les 30 derniers jours
+     */
+    private function getNbRdvClient30j(Rdv $rdv): int
+    {
+        if (!$rdv->client_uuid) {
+            return 0;
+        }
+
+        return Rdv::where('client_uuid', $rdv->client_uuid)
+            ->whereDate('created_at', '>=', now()->subDays(30))
+            ->count();
+    }
+
+    /**
+     * Obtenir la couleur du statut
+     */
+    private function getStatusColor(string $status): string
+    {
+        $colors = [
+            'en_attente' => '#FFA726',
+            'transmis' => '#7E57C2',
+            'traite' => '#66BB6A',
+            'annule' => '#EF5350',
+            'rejete' => '#EF5350',
+            'reporte' => '#FFA726',
+            'expire' => '#78909C',
+        ];
+        return $colors[$status] ?? '#9E9E9E';
+    }
+
+    /**
+     * Obtenir le badge du statut
+     */
+    private function getStatusBadge(string $status): string
+    {
+        $badges = [
+            'en_attente' => 'badge-info',
+            'transmis' => 'badge-primary',
+            'traite' => 'badge-success',
+            'annule' => 'badge-danger',
+            'rejete' => 'badge-danger',
+            'reporte' => 'badge-warning',
+            'expire' => 'badge-secondary',
+        ];
+        return $badges[$status] ?? 'badge-secondary';
+    }
+
     /**
      * Statistiques des rendez-vous
      */
@@ -685,14 +986,16 @@ class RdvService
         return [
             'total' => $query->count(),
             'en_attente' => (clone $query)->where('status', 'en_attente')->count(),
-            'confirme' => (clone $query)->where('status', 'confirme')->count(),
+            'transmis' => (clone $query)->where('status', 'transmis')->count(),
             'traite' => (clone $query)->where('status', 'traite')->count(),
-            'termine' => (clone $query)->where('status', 'termine')->count(),
             'annule' => (clone $query)->where('status', 'annule')->count(),
             'rejete' => (clone $query)->where('status', 'rejete')->count(),
             'reporte' => (clone $query)->where('status', 'reporte')->count(),
+            'expire' => (clone $query)->where('status', 'expire')->count(),
         ];
     }
+
+
 
     private function getRdvGroupUuid(): ?string
     {

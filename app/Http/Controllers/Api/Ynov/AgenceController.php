@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreAgenceRequest;
 use App\Http\Requests\Api\Ynov\UpdateAgenceRequest;
 use App\Http\Resources\Api\Ynov\AgenceResource;
-use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\AgenceService;

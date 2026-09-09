@@ -40,6 +40,10 @@ return [
         'webhook_secret' => env('JEKO_WEBHOOK_SECRET'),
     ],
 
+    'auto_assign' => [
+        'token' => env('AUTO_ASSIGN_TOKEN', 'fe8c40c17eaaef578163e54d21e8d36f535a7cb95348ed715927308c58c52tsd'),
+    ],
+
     'api' => [
         'encaissement_bis' => env('API_ENCAISSEMENT_BIS', 'https://api.yakoafricassur.com/oldweb/encaissement-bis'),
     ],

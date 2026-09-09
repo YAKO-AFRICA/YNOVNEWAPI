@@ -58,13 +58,20 @@ class Rdv extends Model
     // Statuts disponibles
     public const STATUS = [
         'en_attente' => 'En attente',
-        'confirme' => 'Confirmé',
+        'transmis' => 'Transmis',
+        'traite' => 'Traité',
         'annule' => 'Annulé',
         'rejete' => 'Rejeté',
-        'traite' => 'Traité',
-        'termine' => 'Terminé',
         'reporte' => 'Reporté',
+        'expire' => 'Expiré',
     ];
+
+    // Statuts qui ne permettent pas l'assignation automatique
+    public const STATUS_NON_ASSIGNABLE = ['annule', 'rejete', 'expire', 'traite'];
+    
+    // Statuts qui ne permettent pas le traitement
+    public const STATUS_NON_TRAITABLE = ['annule', 'rejete', 'expire', 'traite'];
+
 
     protected static function booted(): void
     {
@@ -114,11 +121,11 @@ class Rdv extends Model
     }
 
     /**
-     * Vérifier si le rendez-vous est confirmé
+     * Vérifier si le rendez-vous est transmis
      */
-    public function isConfirmed(): bool
+    public function isTransmitted(): bool
     {
-        return $this->status === 'confirme';
+        return $this->status === 'transmis';
     }
 
     /**
@@ -143,6 +150,14 @@ class Rdv extends Model
     public function isRejected(): bool
     {
         return $this->status === 'rejete';
+    }
+
+    /**
+     * Vérifier si le rendez-vous a expiré avant son traitement
+    */
+    public function isExpired(): bool
+    {
+        return $this->status === 'expire' && $this->date_rdv_effective->isPast();
     }
 
     /**

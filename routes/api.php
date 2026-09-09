@@ -23,6 +23,10 @@ use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\PrestationController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
+use App\Http\Controllers\Api\Ynov\Rdv\CalendrierController;
+use App\Http\Controllers\Api\Ynov\Rdv\DashboardController;
+use App\Http\Controllers\Api\Ynov\Rdv\RoutingController;
+use App\Http\Controllers\Api\Ynov\Rdv\TraitementController;
 use App\Http\Controllers\Api\Ynov\RdvController;
 use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
@@ -117,6 +121,15 @@ Route::prefix('v1')->group(function () {
         // Webhook
         Route::post('webhook', [PaymentController::class, 'webhook']);
     });
+
+    Route::prefix('/rdvs/auto')->group(function () {
+        // Assignation automatique des RDV (appelé par front-end 3 min après création)
+        Route::post('assign', [RoutingController::class, 'autoAssign']);
+        
+        // Gestion des RDV expirés (appelé par front-end tous les jours)
+        Route::post('expires', [RoutingController::class, 'gererExpires']);
+    });
+    
 });
 
 /*
@@ -625,9 +638,19 @@ Route::prefix('v1')->middleware([
         Route::post('verifier-date', [RdvController::class, 'verifierDate'])
             ->middleware('permission:rdvs.creer');
 
+        // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
+        Route::get('list', [RdvController::class, 'getList']);
+
         // Mes rendez-vous
         Route::get('/', [RdvController::class, 'index']);
         Route::get('stats', [RdvController::class, 'stats']);
+
+        // Calendrier des RDV (DOIT ÊTRE AVANT LA ROUTE DYNAMIQUE {uuid_rdvs})
+        Route::get('calendrier', [CalendrierController::class, 'calendrier'])
+            ->middleware('permission:rdvs.afficher');
+        Route::get('calendrier/stats', [CalendrierController::class, 'stats'])
+            ->middleware('permission:rdvs.afficher');
+
         Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
 
         // Créer un rendez-vous
@@ -639,20 +662,68 @@ Route::prefix('v1')->middleware([
 
         // Annuler un rendez-vous
         Route::post('{uuid_rdvs}/cancel', [RdvController::class, 'cancel'])->middleware('permission:rdvs.annuler');
+
+        // Liste des rendez-vous d'une agence
+        Route::get('agence/{uuid_agence}', [RdvController::class, 'agenceRdvs']);
     });
 
     // ============================================================
-    // RENDEZ-VOUS (RDV) - ADMIN
+    // RENDEZ-VOUS (RDV) - CALENDRIER
     // ============================================================
-    Route::prefix('admin/rdvs')->group(function () {
-        // Liste des rendez-vous d'une agence
-        Route::get('agence/{uuid_agence}', [RdvController::class, 'agenceRdvs']);
+    // Les routes spécifiques ci-dessous sont déjà déclarées dans le groupe /rdvs
+    // avant la route générique {uuid_rdvs}, pour éviter le conflit avec "calendrier".
 
-        // Mettre à jour le statut
-        Route::put('{uuid_rdvs}/status', [RdvController::class, 'updateStatus']);
+    // ============================================================
+    // RENDEZ-VOUS (RDV) - TRAITEMENT
+    // ============================================================
+    Route::prefix('rdvs/traitement')->middleware('permission:rdvs.traiter')->group(function () {
+        // Transmettre/Assigner un RDV à un gestionnaire (passe automatiquement en transmis)
+        // Route::post('{uuid_rdvs}/transmettre', [TraitementController::class, 'assignGestionnaire']);
 
-        // Assigner un gestionnaire
-        Route::post('{uuid_rdvs}/assign-gestionnaire', [RdvController::class, 'assignGestionnaire']);
+        // Rééquilibrer la charge des gestionnaires
+        Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
+        
+        // Réassigner un gestionnaire
+        Route::post('{uuid_rdvs}/reassign-gestionnaire', [TraitementController::class, 'reassignGestionnaire']);
+         // Réassigner un RDV manuellement
+        Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner']);
+        
+        // Traiter un RDV (effectuer le traitement)
+        Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter']);
+        
+        // Reporter un RDV (client n'est pas venu)
+        Route::post('{uuid_rdvs}/reporter', [TraitementController::class, 'reporter']);
+        
+        // Rejeter un RDV
+        Route::post('{uuid_rdvs}/rejeter', [TraitementController::class, 'rejeter']);
+        
+        // Annuler un RDV (admin)
+        Route::post('{uuid_rdvs}/annuler', [TraitementController::class, 'annuler']);
+        
+        // Ajouter une observation/commentaire
+        Route::post('{uuid_rdvs}/observation', [TraitementController::class, 'addObservation']);
+        
+        // Historique des traitements d'un RDV
+        Route::get('{uuid_rdvs}/historique', [TraitementController::class, 'historique']);
+        
+        // Marquer comme expiré
+        Route::post('{uuid_rdvs}/expirer', [TraitementController::class, 'expirer']);
+    });
+
+
+    // Tableau de bord
+    Route::prefix('dashboard')->middleware('permission:rdvs.voir_dashboard')->group(function () {
+        Route::get('/', [DashboardController::class, 'dashboard']);
+        Route::get('stats', [DashboardController::class, 'stats']);
+        Route::get('file-attente', [DashboardController::class, 'fileAttente']);
+        Route::get('stats/motif', [DashboardController::class, 'statsByMotif']);
+        Route::get('stats/gestionnaire', [DashboardController::class, 'statsByGestionnaire']);
+        Route::get('stats/agence', [DashboardController::class, 'statsByAgence']);
+        
+        // Vues gestionnaire
+        Route::get('rdvs-du-jour', [DashboardController::class, 'rdvsDuJour']);
+        Route::get('mes-rdvs', [DashboardController::class, 'mesRdvs']);
+        Route::get('clients-arrives', [DashboardController::class, 'clientsArrives']);
     });
 
     // // ============================================================

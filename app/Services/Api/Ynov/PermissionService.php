@@ -2054,38 +2054,165 @@ class PermissionService
                 'module' => [
                     'code' => 'rdvs',
                     'libelle' => 'Rendez-vous',
-                    'description' => 'Gestion des rendez-vous',
+                    'description' => 'Gestion complète des rendez-vous',
                     'icone' => 'calendar-check',
                     'color' => '#0d6efd',
                     'ordre' => 20,
                 ],
                 'permissions' => [
+                    // ============================================================
+                    // CRUD - Actions de base
+                    // ============================================================
                     [
                         'category' => 'crud',
                         'action' => 'creer',
                         'libelle' => 'Créer un rendez-vous',
-                        'description' => 'Permet de créer un rendez-vous'
+                        'description' => 'Permet de créer un rendez-vous',
                     ],
                     [
                         'category' => 'crud',
                         'action' => 'afficher',
                         'libelle' => 'Afficher les rendez-vous',
-                        'description' => 'Permet de visualiser les rendez-vous'
+                        'description' => 'Permet de visualiser la liste et les détails des rendez-vous',
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier un rendez-vous',
+                        'description' => 'Permet de modifier les informations d\'un rendez-vous',
                     ],
                     [
                         'category' => 'crud',
                         'action' => 'annuler',
                         'libelle' => 'Annuler un rendez-vous',
-                        'description' => 'Permet d\'annuler un rendez-vous'
+                        'description' => 'Permet d\'annuler un rendez-vous',
                     ],
                     [
-                        'category' => 'admin',
-                        'action' => 'admin',
-                        'libelle' => 'Administrer les rendez-vous',
-                        'description' => 'Permet d\'administrer tous les rendez-vous (changement de statut, assignation)'
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer un rendez-vous',
+                        'description' => 'Permet de supprimer définitivement un rendez-vous',
                     ],
-                ]
+
+                    // ============================================================
+                    // DASHBOARD - Tableau de bord
+                    // ============================================================
+                    [
+                        'category' => 'dashboard',
+                        'action' => 'voir_dashboard',
+                        'libelle' => 'Voir le tableau de bord',
+                        'description' => 'Permet d\'accéder au tableau de bord des rendez-vous',
+                    ],
+
+                    // ============================================================
+                    // TRAITEMENT - Gestion des RDV
+                    // ============================================================
+                    [
+                        'category' => 'traitement',
+                        'action' => 'traiter',
+                        'libelle' => 'Traiter un rendez-vous',
+                        'description' => 'Permet de traiter un rendez-vous',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'reporter',
+                        'libelle' => 'Reporter un rendez-vous',
+                        'description' => 'Permet de reporter un rendez-vous (client absent)',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'rejeter',
+                        'libelle' => 'Rejeter un rendez-vous',
+                        'description' => 'Permet de rejeter un rendez-vous',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'expirer',
+                        'libelle' => 'Marquer un rendez-vous comme expiré',
+                        'description' => 'Permet de marquer un rendez-vous comme expiré',
+                    ],
+
+                    // ============================================================
+                    // GESTIONNAIRES - Assignation et routing
+                    // ============================================================
+                    [
+                        'category' => 'gestionnaire',
+                        'action' => 'assigner_gestionnaire',
+                        'libelle' => 'Assigner un gestionnaire',
+                        'description' => 'Permet d\'assigner un gestionnaire à un rendez-vous',
+                    ],
+                    [
+                        'category' => 'gestionnaire',
+                        'action' => 'reassigner_gestionnaire',
+                        'libelle' => 'Réassigner un gestionnaire',
+                        'description' => 'Permet de réassigner un rendez-vous à un autre gestionnaire',
+                    ],
+                    [
+                        'category' => 'gestionnaire',
+                        'action' => 'voir_mes_rdvs',
+                        'libelle' => 'Voir mes rendez-vous',
+                        'description' => 'Permet à un gestionnaire de voir ses rendez-vous assignés',
+                    ],
+                    [
+                        'category' => 'gestionnaire',
+                        'action' => 'voir_rdvs_jour',
+                        'libelle' => 'Voir les rendez-vous du jour',
+                        'description' => 'Permet de voir les rendez-vous du jour d\'un gestionnaire',
+                    ],
+
+                    [
+                        'category' => 'routing',
+                        'action' => 'reequilibrer',
+                        'libelle' => 'Rééquilibrer la charge',
+                        'description' => 'Permet de rééquilibrer la charge des gestionnaires',
+                    ],
+
+                    // ============================================================
+                    // PRESENCE - Signalement client
+                    // ============================================================
+                    [
+                        'category' => 'presence',
+                        'action' => 'signaler_presence',
+                        'libelle' => 'Signaler la présence',
+                        'description' => 'Permet de signaler la présence d\'un client',
+                    ],
+                    [
+                        'category' => 'presence',
+                        'action' => 'voir_arrives',
+                        'libelle' => 'Voir les clients arrivés',
+                        'description' => 'Permet de voir les clients arrivés en agence',
+                    ],
+
+                    // ============================================================
+                    // HISTORIQUE & OBSERVATIONS
+                    // ============================================================
+                    [
+                        'category' => 'historique',
+                        'action' => 'voir_historique',
+                        'libelle' => 'Voir l\'historique',
+                        'description' => 'Permet de voir l\'historique des traitements d\'un rendez-vous',
+                    ],
+                    [
+                        'category' => 'historique',
+                        'action' => 'ajouter_observation',
+                        'libelle' => 'Ajouter une observation',
+                        'description' => 'Permet d\'ajouter une observation sur un rendez-vous',
+                    ],
+
+                    // // ============================================================
+                    // // EXPORT - Export des données
+                    // // ============================================================
+                    // [
+                    //     'category' => 'export',
+                    //     'action' => 'exporter',
+                    //     'libelle' => 'Exporter les rendez-vous',
+                    //     'description' => 'Permet d\'exporter la liste des rendez-vous',
+                    //     'code' => 'rdvs.exporter'
+                    // ],
+                ],
             ],
+
+
 
             // ============================================================
             // JOURS FÉRIÉS

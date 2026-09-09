@@ -115,10 +115,6 @@ class AgenceHoraire extends Model
         'commentaire',
         'rendez_vous_actif',
         'capacite_rendez_vous',
-        // 'heure_debut_rdv',
-        // 'heure_fin_rdv',
-        // 'duree_rdv_minutes',
-        // 'plages_rdv',
         'created_by',
         'updated_by',
     ];
@@ -131,10 +127,6 @@ class AgenceHoraire extends Model
         'heure_ouverture_midi' => 'datetime:H:i',
         'heure_fermeture_midi' => 'datetime:H:i',
         'capacite_rendez_vous' => 'integer',
-        // 'heure_debut_rdv' => 'datetime:H:i',
-        // 'heure_fin_rdv' => 'datetime:H:i',
-        // 'plages_rdv' => 'array',
-        // 'duree_rdv_minutes' => 'integer',
     ];
     
     protected static function booted(): void
@@ -191,26 +183,6 @@ class AgenceHoraire extends Model
         return $this->capacite_rendez_vous ?? 0;
     }
     
-    /**
-     * Obtenir les plages horaires de rendez-vous
-     */
-    // public function getPlagesRdv(): array
-    // {
-    //     if ($this->plages_rdv) {
-    //         return $this->plages_rdv;
-    //     }
-        
-    //     if ($this->heure_debut_rdv && $this->heure_fin_rdv) {
-    //         return [
-    //             [
-    //                 'debut' => $this->heure_debut_rdv->format('H:i'),
-    //                 'fin' => $this->heure_fin_rdv->format('H:i'),
-    //             ]
-    //         ];
-    //     }
-        
-    //     return [];
-    // }
     
     /**
      * Obtenir la plage horaire formatée
