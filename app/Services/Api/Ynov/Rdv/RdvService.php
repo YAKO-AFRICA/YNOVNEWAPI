@@ -13,6 +13,7 @@ use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Rdv\RoutingService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class RdvService
 
     public function __construct(
         private NotificationService $notificationService,
+        private RoutingService $routingService
     ) {}
 
    /**
@@ -289,7 +291,9 @@ class RdvService
      */
     public function create(array $data, User $client, string $creatorUuid): array
     {
-        return DB::transaction(function () use ($data, $client, $creatorUuid) {
+        $assignation = null;
+
+        DB::transaction(function () use ($data, $client, $creatorUuid, &$assignation) {
             $eligibilite = $this->verifierEligibiliteClient(
                 $client,
                 $data['id_contrat'],
@@ -349,7 +353,7 @@ class RdvService
 
             $rdv = Rdv::create([
                 'uuid_rdvs' => (string) Str::uuid(),
-                'code' => RefgenerateCode(Rdv::class, 'RDV-', 'code'), // Générer un code de rendez-vous via une fonction dans le helpers.php
+                'code' => RefgenerateCode(Rdv::class, 'RDV-', 'code'),
                 'client_uuid' => $client->uuid_user,
                 'id_contrat' => $data['id_contrat'],
                 'motif_rdv' => $data['motif_rdv'],
@@ -388,13 +392,26 @@ class RdvService
                 'created_by' => null,
             ]);
 
+            DB::afterCommit(function () use ($rdv, &$assignation) {
+                $assignation = $this->routingService->assignerAutomatiquement($rdv);
+            });
+
             return [
                 'success' => true,
                 'code' => 'RDV_CREATED',
-                'message' => 'Rendez-vous cree avec succes. Code : ' . $rdv->code,
+                'message' => 'Rendez-vous créé avec succès. Code : ' . $rdv->code,
                 'data' => $rdv->load(['client', 'motif', 'agenceSouhaitee']),
+                'assignation_automatique' => null,
             ];
         });
+
+        return [
+            'success' => true,
+            'code' => 'RDV_CREATED',
+            'message' => 'Rendez-vous créé avec succès.',
+            'data' => $assignation['data'] ?? null,
+            'assignation_automatique' => $assignation,
+        ];
     }
 
     /**
