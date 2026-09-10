@@ -6,6 +6,7 @@ namespace App\Services\Api\Ynov\Rdv;
 use App\Models\Api\Ynov\Rdv;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DashboardService
 {
@@ -15,12 +16,12 @@ class DashboardService
     public function getDashboardStats(array $filters = []): array
     {
         $query = Rdv::query();
-        
+
         // Filtre par agence
         if (isset($filters['agence_uuid'])) {
-            $query->where('agence_souhaiter_uuid', $filters['agence_uuid']);
+            $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
         }
-        
+
         // Filtre par date
         if (isset($filters['date_debut'])) {
             $query->whereDate('created_at', '>=', $filters['date_debut']);
@@ -62,9 +63,9 @@ class DashboardService
     public function getStatsByStatus(array $filters = []): array
     {
         $query = Rdv::query();
-        
+
         if (isset($filters['agence_uuid'])) {
-            $query->where('agence_souhaiter_uuid', $filters['agence_uuid']);
+            $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
         }
 
         if (isset($filters['date_debut'])) {
@@ -74,28 +75,43 @@ class DashboardService
             $query->whereDate('created_at', '<=', $filters['date_fin']);
         }
 
-        return $query->select('status', DB::raw('count(*) as total'))
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
+        // Récupérer le total pour calculer les pourcentages
+        $total = (clone $query)->count();
+
+        // Récupérer les comptes par statut
+        $groups = $query->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->get()
-            ->mapWithKeys(function ($item) {
-                $labels = [
-                    'en_attente' => 'En attente',
-                    'transmis' => 'Transmis',
-                    'traite' => 'Traité',
-                    'annule' => 'Annulé',
-                    'rejete' => 'Rejeté',
-                    'reporte' => 'Reporté',
-                    'expire' => 'Expiré',
-                ];
-                return [
-                    $item->status => [
-                        'label' => $labels[$item->status] ?? $item->status,
-                        'value' => $item->total,
-                        'color' => $this->getStatusColor($item->status)
-                    ]
-                ];
-            })
-            ->toArray();
+            ->keyBy('status');
+
+        $labels = [
+            'en_attente' => 'En attente',
+            'transmis' => 'Transmis',
+            'traite' => 'Traité',
+            'annule' => 'Annulé',
+            'rejete' => 'Rejeté',
+            'reporte' => 'Reporté',
+            'expire' => 'Expiré',
+        ];
+
+        $result = [];
+        foreach ($labels as $key => $label) {
+            $count = $groups->has($key) ? (int) $groups->get($key)->total : 0;
+            $percent = $total > 0 ? round(($count / $total) * 100, 2) : 0;
+
+            $result[$key] = [
+                'label' => $label,
+                'value' => $count,
+                'percent' => $percent,
+                'color' => $this->getStatusColor($key),
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -114,7 +130,11 @@ class DashboardService
             ->groupBy('type_prestations.uuid_type_prestation', 'type_prestations.libelle', 'type_prestations.code');
 
         if (isset($filters['agence_uuid'])) {
-            $query->where('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
+            $query->where('rdvs.agence_effective_uuid', $filters['agence_uuid'])->orWhere('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
+        }
+
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('rdvs.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
 
         if (isset($filters['date_debut'])) {
@@ -151,15 +171,15 @@ class DashboardService
                 'users.email',
                 DB::raw("CONCAT(user_details.nom, ' ', user_details.prenoms) as nom_complet"),
                 DB::raw('count(*) as total'),
-                DB::raw("SUM(CASE WHEN rdvs.status IN ('traite', 'termine') THEN 1 ELSE 0 END) as traites"),
+                DB::raw("SUM(CASE WHEN rdvs.status IN ('traite') THEN 1 ELSE 0 END) as traites"),
                 DB::raw("SUM(CASE WHEN rdvs.status = 'en_attente' THEN 1 ELSE 0 END) as en_attente"),
-                DB::raw("SUM(CASE WHEN rdvs.status = 'confirme' THEN 1 ELSE 0 END) as confirme")
+                // DB::raw("SUM(CASE WHEN rdvs.status = 'confirme' THEN 1 ELSE 0 END) as confirme")
             )
             ->whereNotNull('rdvs.gestionnaire_uuid')
             ->groupBy('users.uuid_user', 'users.email', 'user_details.nom', 'user_details.prenoms');
 
         if (isset($filters['agence_uuid'])) {
-            $query->where('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
+            $query->where('rdvs.agence_effective_uuid', $filters['agence_uuid'])->orWhere('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
         }
 
         if (isset($filters['date_debut'])) {
@@ -167,6 +187,10 @@ class DashboardService
         }
         if (isset($filters['date_fin'])) {
             $query->whereDate('rdvs.created_at', '<=', $filters['date_fin']);
+        }
+
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('rdvs.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
 
         return $query->orderByDesc('total')
@@ -179,7 +203,7 @@ class DashboardService
                     'total' => $item->total,
                     'traites' => $item->traites,
                     'en_attente' => $item->en_attente,
-                    'confirme' => $item->confirme,
+                    // 'confirme' => $item->confirme,
                     'taux_traitement' => $item->total > 0 ? round(($item->traites / $item->total) * 100, 2) : 0,
                 ];
             })
@@ -192,14 +216,21 @@ class DashboardService
     public function getFileAttente(array $filters = [], int $limit = 10): array
     {
         $query = Rdv::query()
-            ->whereNull('gestionnaire_uuid')
+            // ->whereNotNull('gestionnaire_uuid')
             ->whereIn('status', ['transmis'])
             ->where('is_present', true)
             ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee'])
             ->orderBy('present_at', 'asc');
 
+        Log::debug('Récupération de la file d\'attente avec les filtres : ' . json_encode($filters) . ' et limite : ' . $limit);
+        Log::debug('Requête SQL générée : ' . $query->toSql());
+
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_effective_uuid', $filters['agence_uuid']);
+        }
+
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
 
         if (isset($filters['date_debut'])) {
@@ -221,8 +252,8 @@ class DashboardService
                     'code' => $rdv->code,
                     'client' => [
                         'uuid_user' => $rdv->client?->uuid_user,
-                        'nom_complet' => $rdv->client?->details ? 
-                            $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms : 
+                        'nom_complet' => $rdv->client?->details ?
+                            $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms :
                             $rdv->client?->email,
                         'email' => $rdv->client?->email,
                     ],
@@ -298,7 +329,7 @@ class DashboardService
     public function getEvolution(array $filters = [], string $period = 'daily'): array
     {
         $query = Rdv::query();
-        
+
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_souhaiter_uuid', $filters['agence_uuid']);
         }
@@ -309,12 +340,16 @@ class DashboardService
         $query->whereDate('created_at', '>=', $dateDebut)
             ->whereDate('created_at', '<=', $dateFin);
 
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
         if ($period === 'daily') {
             return $query->select(
-                    DB::raw("DATE(created_at) as date"),
-                    DB::raw('count(*) as total'),
-                    DB::raw("SUM(CASE WHEN status IN ('traite', 'termine') THEN 1 ELSE 0 END) as traites")
-                )
+                DB::raw("DATE(created_at) as date"),
+                DB::raw('count(*) as total'),
+                DB::raw("SUM(CASE WHEN status IN ('traite', 'termine') THEN 1 ELSE 0 END) as traites")
+            )
                 ->groupBy(DB::raw("DATE(created_at)"))
                 ->orderBy('date')
                 ->get()
@@ -331,10 +366,10 @@ class DashboardService
 
         if ($period === 'monthly') {
             return $query->select(
-                    DB::raw("DATE_FORMAT(created_at, '%Y-%m') as mois"),
-                    DB::raw('count(*) as total'),
-                    DB::raw("SUM(CASE WHEN status IN ('traite', 'termine') THEN 1 ELSE 0 END) as traites")
-                )
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as mois"),
+                DB::raw('count(*) as total'),
+                DB::raw("SUM(CASE WHEN status IN ('traite', 'termine') THEN 1 ELSE 0 END) as traites")
+            )
                 ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
                 ->orderBy('mois')
                 ->get()
@@ -371,77 +406,89 @@ class DashboardService
     }
 
     /**
-     * RDV du jour pour un gestionnaire avec toutes les infos
+     * RDV pour un gestionnaire — usage unique pour liste paginée ou liste du jour.
+     *
+     * Filters possibles :
+     * - date: YYYY-MM-DD (retour trié asc, status par défaut 'transmis' si non fourni)
+     * - status
+     * - date_debut
+     * - date_fin
+     * - is_present
+     *
+     * Si $asArray = true, la méthode retourne un tableau mappé (format détaillé),
+     * sinon une pagination (Paginator) est retournée.
      */
-    public function getRdvsDuJourGestionnaire(string $gestionnaireUuid, string $date): array
-    {
-        $rdvs = Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-            ->whereDate('date_rdv_souhaiter', $date)
-            ->whereIn('status', ['transmis', 'en_attente'])
-            ->with(['client.details', 'motif', 'agenceSouhaitee'])
-            ->orderBy('date_rdv_souhaiter', 'asc')
-            ->get();
-
-        return $rdvs->map(function ($rdv) {
-            $estEnRetard = $rdv->date_rdv_souhaiter && $rdv->date_rdv_souhaiter->isPast();
-            
-            return [
-                'uuid_rdvs' => $rdv->uuid_rdvs,
-                'code' => $rdv->code,
-                'client' => [
-                    'uuid_user' => $rdv->client?->uuid_user,
-                    'nom_complet' => $rdv->client?->details ? 
-                        $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms : 
-                        $rdv->client?->email,
-                    'email' => $rdv->client?->email,
-                    'mobile' => $rdv->client?->details?->mobile_1,
-                ],
-                'motif' => $rdv->motif ? [
-                    'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
-                    'libelle' => $rdv->motif->libelle,
-                    'code' => $rdv->motif->code,
-                    'impact' => $rdv->motif->impact,
-                    'impact_label' => $rdv->motif->getImpactLabel(),
-                ] : null,
-                'agence' => $rdv->agenceSouhaitee ? [
-                    'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
-                    'libelle' => $rdv->agenceSouhaitee->libelle,
-                    'ville' => $rdv->agenceSouhaitee->ville,
-                    'adresse' => $rdv->agenceSouhaitee->adresse,
-                ] : null,
-                'date_rdv_souhaiter' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
-                'status' => $rdv->status,
-                'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
-                'is_present' => $rdv->is_present,
-                'est_en_retard' => $estEnRetard,
-                'heure_arrivee' => $rdv->updated_at?->format('H:i'),
-                'temps_attente' => $estEnRetard && $rdv->date_rdv_souhaiter ? 
-                    $rdv->date_rdv_souhaiter->diffInMinutes(now()) . ' min' : 
-                    null,
-                'est_prioritaire' => $rdv->is_present,
-            ];
-        })->toArray();
-    }
-
-    /**
-     * RDV assignés à un gestionnaire
-     */
-    public function getRdvsByGestionnaire(string $gestionnaireUuid, array $filters = [], int $perPage = 20)
+    public function getRdvsByGestionnaire(string $gestionnaireUuid, array $filters = [], int $perPage = 20, bool $asArray = false)
     {
         $query = Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-            ->with(['client.details', 'motif', 'agenceSouhaitee'])
-            ->orderBy('date_rdv_souhaiter', 'desc');
+            ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee']);
+
+        // Si on demande une date précise, trier par ordre croissant (journée)
+        if (isset($filters['date'])) {
+            $query->whereDate('date_rdv_effective', $filters['date']);
+            $query->orderBy('date_rdv_effective', 'asc');
+            // pour la vue du jour, si aucun status n'est fourni, on veut les 'transmis'
+            if (!isset($filters['status'])) {
+                $query->whereIn('status', ['transmis']);
+            }
+        } else {
+            $query->orderBy('date_rdv_effective', 'desc');
+            if (isset($filters['date_debut'])) {
+                $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            }
+            if (isset($filters['date_fin'])) {
+                $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            }
+        }
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['date_debut'])) {
-            $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
+        if (isset($filters['is_present'])) {
+            $query->where('is_present', $filters['is_present']);
         }
 
-        if (isset($filters['date_fin'])) {
-            $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
+        if ($asArray) {
+            $rdvs = $query->get();
+            return $rdvs->map(function ($rdv) {
+                $estEnRetard = $rdv->date_rdv_effective && $rdv->date_rdv_effective->isPast();
+                return [
+                    'uuid_rdvs' => $rdv->uuid_rdvs,
+                    'code' => $rdv->code,
+                    'client' => [
+                        'uuid_user' => $rdv->client?->uuid_user,
+                        'nom_complet' => $rdv->client?->details ?
+                            $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms :
+                            $rdv->client?->email,
+                        'email' => $rdv->client?->email,
+                        'mobile' => $rdv->client?->details?->mobile_1,
+                    ],
+                    'motif' => $rdv->motif ? [
+                        'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+                        'libelle' => $rdv->motif->libelle,
+                        'code' => $rdv->motif->code,
+                        'impact' => $rdv->motif->impact,
+                        'impact_label' => $rdv->motif->getImpactLabel(),
+                    ] : null,
+                    'agence' => $rdv->agenceEffective ? [
+                        'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+                        'libelle' => $rdv->agenceEffective->libelle,
+                        'ville' => $rdv->agenceEffective->ville,
+                        'adresse' => $rdv->agenceEffective->adresse,
+                    ] : null,
+                    'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
+                    'status' => $rdv->status,
+                    'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+                    'is_present' => $rdv->is_present,
+                    'est_en_retard' => $estEnRetard,
+                    'heure_arrivee' => $rdv->present_at?->format('H:i'),
+                    'temps_attente' => $estEnRetard && $rdv->date_rdv_effective ?
+                        $rdv->date_rdv_effective->diffInMinutes(now()) . ' min' :
+                        null,
+                    'est_prioritaire' => $rdv->is_present,
+                ];
+            })->toArray();
         }
 
         return $query->paginate($perPage);
@@ -450,18 +497,21 @@ class DashboardService
     /**
      * Clients arrivés et signalés en agence
      */
-    public function getClientsArrives(string $gestionnaireUuid, string $date): array
+    public function getClientsArrives(string $gestionnaireUuid, string $date, array $filters = []): array
     {
-
-    $query = Rdv::query()
-            ->whereNull('gestionnaire_uuid')
+        $query = Rdv::query()
+            ->where('gestionnaire_uuid', $gestionnaireUuid)
+            ->whereDate('date_rdv_effective', $date)
             ->whereIn('status', ['transmis'])
             ->where('is_present', true)
             ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee'])
             ->orderBy('present_at', 'asc');
 
         if (isset($filters['agence_uuid'])) {
-            $query->where('agence_effective_uuid', $filters['agence_uuid']);
+            $query->where(function ($q) use ($filters) {
+                $q->where('agence_souhaiter_uuid', $filters['agence_uuid'])
+                  ->orWhere('agence_effective_uuid', $filters['agence_uuid']);
+            });
         }
 
         if (isset($filters['date_debut'])) {
@@ -475,6 +525,10 @@ class DashboardService
             $query->where('status', $filters['status']);
         }
 
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
         return $query->get()
             ->map(function ($rdv) {
                 return [
@@ -482,9 +536,9 @@ class DashboardService
                     'code' => $rdv->code,
                     'client' => [
                         'uuid_user' => $rdv->client?->uuid_user,
-                        'nom_complet' => $rdv->client?->details ? 
-                            $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms : 
-                            $rdv->client?->email,
+                        'nom_complet' => $rdv->client?->details ?
+                            trim(($rdv->client->details->nom ?? '') . ' ' . ($rdv->client->details->prenoms ?? '')) :
+                            ($rdv->client?->email ?? ''),
                         'email' => $rdv->client?->email,
                     ],
                     'motif' => $rdv->motif ? [
@@ -492,58 +546,19 @@ class DashboardService
                         'libelle' => $rdv->motif->libelle,
                         'code' => $rdv->motif->code,
                     ] : null,
-                    'agence' => $rdv->agenceSouhaitee ? [
-                        'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
-                        'libelle' => $rdv->agenceSouhaitee->libelle,
-                        'ville' => $rdv->agenceSouhaitee->ville,
+                    'agence' => $rdv->agenceEffective ? [
+                        'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+                        'libelle' => $rdv->agenceEffective->libelle,
+                        'ville' => $rdv->agenceEffective->ville,
                     ] : null,
                     'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
                     'date_effective_original' => $rdv->date_rdv_effective?->format('Y-m-d'),
                     'status' => $rdv->status,
                     'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
                     'date_creation' => $rdv->created_at?->format('Y-m-d H:i:s'),
-                    // Indiquer si le rendez-vous est urgent (moins de 3 jours avant la date souhaitée)
                     'est_urgent' => $rdv->date_rdv_effective && $rdv->date_rdv_effective->diffInDays(now()) <= 3,
                 ];
             })
             ->toArray();
-            
-        // return Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-        //     ->whereDate('date_rdv_souhaiter', $date)
-        //     ->where('is_present', true)
-        //     ->whereIn('status', ['transmis', 'en_attente'])
-        //     ->with(['client.details', 'motif', 'agenceSouhaitee'])
-        //     ->orderBy('date_rdv_souhaiter', 'asc')
-        //     ->get()
-        //     ->map(function ($rdv) {
-        //         return [
-        //             'uuid_rdvs' => $rdv->uuid_rdvs,
-        //             'code' => $rdv->code,
-        //             'client' => [
-        //                 'uuid_user' => $rdv->client?->uuid_user,
-        //                 'nom_complet' => $rdv->client?->details ? 
-        //                     $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms : 
-        //                     $rdv->client?->email,
-        //                 'email' => $rdv->client?->email,
-        //             ],
-        //             'motif' => $rdv->motif ? [
-        //                 'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
-        //                 'libelle' => $rdv->motif->libelle,
-        //                 'code' => $rdv->motif->code,
-        //             ] : null,
-        //             'agence' => $rdv->agenceSouhaitee ? [
-        //                 'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
-        //                 'libelle' => $rdv->agenceSouhaitee->libelle,
-        //                 'ville' => $rdv->agenceSouhaitee->ville,
-        //             ] : null,
-        //             'date_rdv_souhaiter' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
-        //             'heure_rdv' => $rdv->date_rdv_souhaiter?->format('H:i'),
-        //             'heure_arrivee' => $rdv->updated_at?->format('H:i'),
-        //             'status' => $rdv->status,
-        //             'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
-        //             'est_prioritaire' => true, // Clients arrivés sont prioritaires
-        //         ];
-        //     })
-        // ->toArray();
     }
 }

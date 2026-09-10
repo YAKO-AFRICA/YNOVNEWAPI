@@ -457,17 +457,24 @@ class TraitementService
     private function getNotificationBody(string $action, Rdv $rdv): string
     {
         $dateRdv = $rdv->date_rdv_effective ? Carbon::parse($rdv->date_rdv_effective) : Carbon::parse($rdv->date_rdv_souhaiter);
+
+        $gestionnaireNom = $rdv->gestionnaire?->details?->nom ?? '';
+        $gestionnairePrenoms = $rdv->gestionnaire?->details?->prenoms ?? '';
+        $gestionnaireLabel = trim($gestionnaireNom . ' ' . $gestionnairePrenoms) ?: ($rdv->gestionnaire?->email ?? '');
+        $agenceLabel = $rdv->agenceEffective?->libelle ?? '';
+
+        $dateLong = $dateRdv->locale('fr')->translatedFormat('l d F Y');
+        $dateShort = $dateRdv->locale('fr')->translatedFormat('l j F Y');
+
         $bodies = [
-            'assigner' => "Votre rendez-vous N° {$rdv->code} a été confirmé et assigné au gestionnaire "
-                        . "{$rdv->gestionnaire->nom} {$rdv->gestionnaire->prenom}.\n\n"
-                        . "Lieu de rendez-vous : {$rdv->agenceEffective->libelle}\n\n"
-                        . "Date du rendez-vous : "
-                        . $dateRdv->locale('fr')->translate('l d F Y'),
-            'traiter' => "Votre rendez-vous {$rdv->code} du {$dateRdv->locale('fr')->translate('l j F Y')} a été traité avec succès.",
-            'reporter' => "Votre rendez-vous {$rdv->code} du ". Carbon::parse($rdv->date_rdv_souhaiter)->locale('fr')->translate('l j F Y'). " a été reporté au {$dateRdv->locale('fr')->translate('l j F Y')}.",
-            'rejeter' => "Votre rendez-vous N°{$rdv->code} du {$dateRdv->locale('fr')->translate('l j F Y')} a été rejeté.",
-            'annuler' => "Votre rendez-vous N°{$rdv->code} du {$dateRdv->locale('fr')->translate('l j F Y')} a été annulé.",
-            'reassign_gestionnaire' => "Le gestionnaire de votre rendez-vous {$rdv->code} a été changé. \n\n Nouveau gestionnaire : {$rdv->gestionnaire->nom} {$rdv->gestionnaire->prenom}.",
+            'assigner' => "Votre rendez-vous N° {$rdv->code} a été confirmé et assigné au gestionnaire {$gestionnaireLabel}.\n\n"
+                        . "Lieu de rendez-vous : {$agenceLabel}\n\n"
+                        . "Date du rendez-vous : {$dateLong}",
+            'traiter' => "Votre rendez-vous {$rdv->code} du {$dateShort} a été traité avec succès.",
+            'reporter' => "Votre rendez-vous {$rdv->code} du " . Carbon::parse($rdv->date_rdv_souhaiter)->locale('fr')->translatedFormat('l j F Y') . " a été reporté au {$dateShort}.",
+            'rejeter' => "Votre rendez-vous N°{$rdv->code} du {$dateShort} a été rejeté.",
+            'annuler' => "Votre rendez-vous N°{$rdv->code} du {$dateShort} a été annulé.",
+            'reassign_gestionnaire' => "Le gestionnaire de votre rendez-vous {$rdv->code} a été changé. \n\n Nouveau gestionnaire : {$gestionnaireLabel}.",
             'expire' => "Votre rendez-vous {$rdv->code} a expiré.",
         ];
 

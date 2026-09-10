@@ -38,10 +38,8 @@ class RoutingService
 
         // Récupérer les gestionnaires disponibles pour l'agence
         $gestionnaires = $this->getGestionnairesDisponibles($rdv->agence_souhaiter_uuid);
-        Log::debug('Gestionnaires disponibles : ' . json_encode($gestionnaires));
 
         if (empty($gestionnaires)) {
-            Log::debug('Aucun gestionnaire disponible pour cette agence.');
             // Si aucun gestionnaire disponible, on laisse en attente
             return [
                 'success' => false,
@@ -53,19 +51,15 @@ class RoutingService
 
         // Vérifier si le client a déjà des RDV le même jour
         $gestionnaireExistant = $this->getGestionnaireExistantPourClient($rdv);
-        Log::debug('Gestionnaire existant : ' . $gestionnaireExistant);
 
         if ($gestionnaireExistant) {
-            Log::debug('Gestionnaire existant');
             // Assigner au même gestionnaire
             return $this->assignerAuGestionnaire($rdv, $gestionnaireExistant);
         }
 
         // Distribution équitable par agence et par jour
         $gestionnaireChoisi = $this->getGestionnaireParDistributionEquitable($rdv, $gestionnaires);
-        Log::debug('Gestionnaire choisi : ' . $gestionnaireChoisi);
         if (!$gestionnaireChoisi) {
-            Log::debug('Distribution échec');
             return [
                 'success' => false,
                 'code' => 'DISTRIBUTION_ECHEC',
@@ -73,7 +67,6 @@ class RoutingService
                 'data' => null
             ];
         }
-        Log::debug('Gestionnaire choisi : ' . $gestionnaireChoisi);
         return $this->assignerAuGestionnaire($rdv, $gestionnaireChoisi);
     }
 
@@ -128,13 +121,17 @@ class RoutingService
             ]);
 
             // Notification au client
+            $gestionnaireNom = $rdv->gestionnaire?->details?->nom ?? null;
+            $gestionnairePrenoms = $rdv->gestionnaire?->details?->prenoms ?? null;
+            $gestionnaireLabel = $gestionnaireNom || $gestionnairePrenoms ? trim(($gestionnaireNom ?? '') . ' ' . ($gestionnairePrenoms ?? '')) : ($rdv->gestionnaire?->email ?? '');
+            $agenceLabel = $rdv->agenceEffective?->libelle ?? '';
+
             $this->notificationService->create([
                 'user_uuid' => $rdv->client_uuid,
                 'group_notif_uuid' => $this->getRdvGroupUuid(),
                 'title' => '📋 RDV confirmé et assigné',
-                'body' => "Votre rendez-vous N° {$rdv->code} a été confirmé et assigné au gestionnaire "
-                        . "{$rdv->gestionnaire->nom} {$rdv->gestionnaire->prenom}.\n\n"
-                        . "Lieu de rendez-vous : {$rdv->agenceEffective->libelle}\n\n"
+                'body' => "Votre rendez-vous N° {$rdv->code} a été confirmé et assigné au gestionnaire {$gestionnaireLabel}.\n\n"
+                        . "Lieu de rendez-vous : {$agenceLabel}\n\n"
                         . "Date du rendez-vous : "
                         . Carbon::parse($rdv->date_rdv_souhaiter)->locale('fr')->translatedFormat('l d F Y'), 
                 'type' => 'RENDEZ-VOUS',
@@ -217,20 +214,22 @@ class RoutingService
         if (!$dateRdv || !$agenceUuid) {
             return null;
         }
+        // Récupérer les compteurs en une seule requête pour performance
+        $counts = Rdv::query()
+            ->select('gestionnaire_uuid', DB::raw('count(*) as cnt'))
+            ->whereIn('gestionnaire_uuid', $gestionnaires)
+            ->where('agence_souhaiter_uuid', $agenceUuid)
+            ->whereDate('date_rdv_souhaiter', $dateRdv->format('Y-m-d'))
+            ->whereNotIn('status', ['annule', 'rejete', 'expire'])
+            ->groupBy('gestionnaire_uuid')
+            ->pluck('cnt', 'gestionnaire_uuid')
+            ->toArray();
 
-        // Compter les RDV assignés à chaque gestionnaire pour cette agence ce jour-là
         $charges = [];
         foreach ($gestionnaires as $gestionnaireUuid) {
-            $count = Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-                ->where('agence_souhaiter_uuid', $agenceUuid)
-                ->whereDate('date_rdv_souhaiter', $dateRdv->format('Y-m-d'))
-                ->whereNotIn('status', ['annule', 'rejete', 'expire'])
-                ->count();
-
-            $charges[$gestionnaireUuid] = $count;
+            $charges[$gestionnaireUuid] = isset($counts[$gestionnaireUuid]) ? (int) $counts[$gestionnaireUuid] : 0;
         }
 
-        // Trouver le gestionnaire avec la charge la plus faible
         if (empty($charges)) {
             return null;
         }
@@ -504,11 +503,15 @@ class RoutingService
             ]);
 
             // Notification au nouveau gestionnaire
+            $gestionnaireNom = $gestionnaire->details?->nom ?? '';
+            $gestionnairePrenoms = $gestionnaire->details?->prenoms ?? '';
+            $gestionnaireLabel = trim($gestionnaireNom . ' ' . $gestionnairePrenoms) ?: ($gestionnaire->email ?? '');
+
             $this->notificationService->create([
                 'user_uuid' => $nouveauGestionnaireUuid,
                 'group_notif_uuid' => $this->getRdvGroupUuid(),
                 'title' => "📋 RDV N°{$rdv->code} assigné",
-                'body' => "Bonjour " . $gestionnaire->nom . ' ' . $gestionnaire->prenom . "Le rendez-vous N°{$rdv->code} vous a été assigné ",
+                'body' => "Bonjour {$gestionnaireLabel}, le rendez-vous N°{$rdv->code} vous a été assigné.",
                 'type' => 'RENDEZ-VOUS',
                 'metadata' => [
                     'rdv_uuid' => $rdv->uuid_rdvs,

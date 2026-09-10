@@ -17,7 +17,6 @@ use App\Services\Api\Ynov\Rdv\RoutingService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 // use Illuminate\Validation\ValidationException;
 
@@ -396,9 +395,9 @@ class RdvService
             ]);
 
             DB::afterCommit(function () use ($rdv, &$assignation) {
-                Log::info("Tentative d'assignation automatique du rendez-vous {$rdv->code} après création.");
+                // Log::info("Tentative d'assignation automatique du rendez-vous {$rdv->code} après création.");
                 $assignation = $this->routingService->assignerAutomatiquement($rdv);
-                Log::info("Assignation automatique du rendez-vous {$rdv->code} : {$assignation['success']}");
+                // Log::info("Assignation automatique du rendez-vous {$rdv->code} : {$assignation['success']}");
             });
 
             $rdvData = $rdv->load(['client', 'motif', 'agenceSouhaitee']);
@@ -548,13 +547,21 @@ class RdvService
             $query->whereDate('date_rdv_souhaiter', $filters['date']);
         }
 
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
+        if (isset($filters['is_present'])) {
+            $query->where('is_present', $filters['is_present']);
+        }
+
         return $query->paginate($perPage);
     }
 
     /**
      * Mettre à jour le statut d'un rendez-vous
      */
-    public function updateStatus(Rdv $rdv, string $status, array $data = [], string $updaterUuid): Rdv
+    public function updateStatus(Rdv $rdv, string $status, string $updaterUuid, array $data = []): Rdv
     {
         return DB::transaction(function () use ($rdv, $status, $data, $updaterUuid) {
             $oldValues = $rdv->toArray();
@@ -618,11 +625,11 @@ class RdvService
             ];
         }
 
-        if ($rdv->status !== 'confirme') {
+        if (!in_array($rdv->status, ['transmis'])) {
             return [
                 'success' => false,
                 'code' => 'RDV_NON_CONFIRME',
-                'message' => 'Ce rendez-vous n\'est pas confirmé.',
+                'message' => 'Ce rendez-vous n\'est pas dans un état permettant de signaler la présence.',
             ];
         }
 
@@ -634,31 +641,39 @@ class RdvService
             ];
         }
 
-        if (isset($data['latitude']) && isset($data['longitude'])) {
-            $agence = $rdv->agenceSouhaitee;
-            if ($agence && $agence->latitude && $agence->longitude) {
-                $distance = $this->calculerDistance(
-                    $data['latitude'],
-                    $data['longitude'],
-                    $agence->latitude,
-                    $agence->longitude
-                );
+        // Les coordonnées GPS sont obligatoires pour valider la présence
+        if (!isset($data['latitude']) || !isset($data['longitude'])) {
+            return [
+                'success' => false,
+                'code' => 'RDV_NO_COORDINATES',
+                'message' => 'Coordonnées GPS requises pour signaler la présence.',
+            ];
+        }
 
-                if ($distance > 0.02) {
-                    return [
-                        'success' => false,
-                        'code' => 'RDV_DISTANCE',
-                        'message' => "Vous n'êtes pas à proximité de l'agence. Veuillez vous rapprocher d'au moins 20 mètres pour valider votre présence.",
-                    ];
-                }
+        $agence = $rdv->agenceSouhaitee;
+        if ($agence && $agence->latitude && $agence->longitude) {
+            $distanceMeters = $this->calculerDistance(
+                $data['latitude'],
+                $data['longitude'],
+                $agence->latitude,
+                $agence->longitude
+            );
+
+            // Seuil en mètres (20m)
+            if ($distanceMeters > 20) {
+                return [
+                    'success' => false,
+                    'code' => 'RDV_DISTANCE',
+                    'message' => "Vous n'êtes pas à proximité de l'agence. Veuillez vous rapprocher d'au moins 20 mètres pour valider votre présence.",
+                ];
             }
         }
 
         $this->notificationService->create([
             'user_uuid' => $clientUuid,
             'group_notif_uuid' => $this->getRdvGroupUuid(),
-            'title' => '✅ Présence signalé',
-            'message' => "Vous avez signalé votre présence pour le rendez-vous {$rdv->code}",
+            'title' => '✅ Présence signalée',
+            'body' => "Vous avez signalé votre présence pour le rendez-vous {$rdv->code}",
             'type' => 'RENDEZ-VOUS',
             'metadata' => [
                 'rdv' => $rdv->toArray(),
@@ -670,8 +685,32 @@ class RdvService
 
         $rdv->update([
             'is_present' => true,
+            'present_at' => now(),
             'updated_by' => $clientUuid,
         ]);
+
+        // Notifier le gestionnaire si présent
+        if ($rdv->gestionnaire_uuid) {
+            $clientNom = $rdv->client?->details?->nom ?? '';
+            $clientPrenoms = $rdv->client?->details?->prenoms ?? '';
+            $clientLabel = trim($clientPrenoms . ' ' . $clientNom) ?: ($rdv->client?->email ?? 'Client');
+
+            $this->notificationService->create([
+                'user_uuid' => $rdv->gestionnaire_uuid,
+                'group_notif_uuid' => $this->getRdvGroupUuid(),
+                'title' => '👥 Client arrivé en agence',
+                'body' => "Le client {$clientLabel} a signalé sa présence pour le RDV N° {$rdv->code}.",
+                'type' => 'RENDEZ-VOUS',
+                'metadata' => [
+                    'rdv_uuid' => $rdv->uuid_rdvs,
+                    'rdv_code' => $rdv->code,
+                    'client_uuid' => $clientUuid,
+                    'action' => 'presence_signalée',
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+            ]);
+        }
 
         return [
             'success' => true,
@@ -686,14 +725,16 @@ class RdvService
      */
     private function calculerDistance($lat1, $lon1, $lat2, $lon2): float
     {
-        $earthRadius = 6371;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        return $earthRadius * $c;
+           // Retourne la distance en mètres entre deux coordonnées (Haversine)
+           $earthRadiusKm = 6371;
+           $dLat = deg2rad($lat2 - $lat1);
+           $dLon = deg2rad($lon2 - $lon1);
+           $a = sin($dLat / 2) * sin($dLat / 2) +
+               cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+               sin($dLon / 2) * sin($dLon / 2);
+           $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+           $distanceKm = $earthRadiusKm * $c;
+           return $distanceKm * 1000; // mètres
     }
 
 
@@ -701,7 +742,7 @@ class RdvService
     /**
      * Récupérer la liste des rendez-vous avec filtres
      */
-    public function getList(array $filters, int $perPage = 15)
+    public function getList(array $filters, int $perPage = 15, bool $asArray = false)
     {
         $query = Rdv::query()
             ->with([
@@ -712,7 +753,6 @@ class RdvService
                 'gestionnaire.details',
             ]);
 
-        // Recherche
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
@@ -733,12 +773,14 @@ class RdvService
             });
         }
 
-        // Filtre par statut
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        // Filtre par agence
+        if (isset($filters['is_present'])) {
+            $query->where('is_present', $filters['is_present']);
+        }
+
         if (!empty($filters['agence_uuid'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('agence_souhaiter_uuid', $filters['agence_uuid'])
@@ -746,31 +788,79 @@ class RdvService
             });
         }
 
-        // Filtre par gestionnaire
         if (!empty($filters['gestionnaire_uuid'])) {
             $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
 
-        // Filtre par motif
         if (!empty($filters['motif_uuid'])) {
             $query->where('motif_rdv', $filters['motif_uuid']);
         }
 
-        // Filtre par date
+        if (!empty($filters['date'])) {
+            $query->whereDate('date_rdv_effective', $filters['date']);
+            if (!isset($filters['status'])) {
+                $query->whereIn('status', ['transmis']);
+            }
+        }
+
         if (!empty($filters['date_debut'])) {
             $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
             $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
-            
         }
         if (!empty($filters['date_fin'])) {
             $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
         }
 
-        // Tri
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortOrder = $filters['sort_order'] ?? 'desc';
-        $query->orderBy($sortBy, $sortOrder);
+        if (isset($filters['date'])) {
+            $query->orderBy('date_rdv_effective', 'asc');
+        } else {
+            $sortBy = $filters['sort_by'] ?? 'created_at';
+            $sortOrder = $filters['sort_order'] ?? 'desc';
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        if ($asArray) {
+            return $query->get()->map(function ($rdv) {
+                $estEnRetard = $rdv->date_rdv_effective && $rdv->date_rdv_effective->isPast();
+
+                return [
+                    'uuid_rdvs' => $rdv->uuid_rdvs,
+                    'code' => $rdv->code,
+                    'client' => [
+                        'uuid_user' => $rdv->client?->uuid_user,
+                        'nom_complet' => $rdv->client?->details ?
+                            trim(($rdv->client->details->nom ?? '') . ' ' . ($rdv->client->details->prenoms ?? ''))
+                            : ($rdv->client?->email ?? ''),
+                        'email' => $rdv->client?->email,
+                        'mobile' => $rdv->client?->details?->mobile_1,
+                    ],
+                    'motif' => $rdv->motif ? [
+                        'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+                        'libelle' => $rdv->motif->libelle,
+                        'code' => $rdv->motif->code,
+                        'impact' => $rdv->motif->impact,
+                        'impact_label' => $rdv->motif->getImpactLabel(),
+                    ] : null,
+                    'agence' => $rdv->agenceEffective ? [
+                        'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+                        'libelle' => $rdv->agenceEffective->libelle,
+                        'ville' => $rdv->agenceEffective->ville,
+                        'adresse' => $rdv->agenceEffective->adresse,
+                    ] : null,
+                    'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
+                    'status' => $rdv->status,
+                    'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+                    'is_present' => (bool) $rdv->is_present,
+                    'est_en_retard' => $estEnRetard,
+                    'heure_arrivee' => $rdv->present_at?->format('H:i'),
+                    'temps_attente' => $estEnRetard && $rdv->date_rdv_effective ?
+                        $rdv->date_rdv_effective->diffInMinutes(now()) . ' min' :
+                        null,
+                    'est_prioritaire' => (bool) $rdv->is_present,
+                ];
+            })->values()->all();
+        }
 
         return $query->paginate($perPage);
     }

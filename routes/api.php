@@ -641,6 +641,9 @@ Route::prefix('v1')->middleware([
         // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
         Route::get('list', [RdvController::class, 'getList']);
 
+        // Liste globale des RDV avec filtres (gestionnaire auto-appliqué si besoin)
+        Route::get('clients-arrives', [DashboardController::class, 'clientsArrives']);
+
         // Mes rendez-vous
         Route::get('/', [RdvController::class, 'index']);
         Route::get('stats', [RdvController::class, 'stats']);
@@ -714,10 +717,7 @@ Route::prefix('v1')->middleware([
         Route::get('stats/gestionnaire', [DashboardController::class, 'statsByGestionnaire']);
         Route::get('stats/agence', [DashboardController::class, 'statsByAgence']);
         
-        // Vues gestionnaire
-        Route::get('rdvs-du-jour', [DashboardController::class, 'rdvsDuJour']);
-        Route::get('mes-rdvs', [DashboardController::class, 'mesRdvs']);
-        Route::get('clients-arrives', [DashboardController::class, 'clientsArrives']);
+        // Dashboard global uniquement (statistiques, file d'attente...)
     });
 
     // // ============================================================

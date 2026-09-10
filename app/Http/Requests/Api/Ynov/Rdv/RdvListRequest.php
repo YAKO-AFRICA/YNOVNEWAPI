@@ -16,12 +16,14 @@ class RdvListRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'string', 'in:en_attente,confirme,traite,termine,annule,rejete,reporte,expire'],
+            'status' => ['nullable', 'string', 'in:en_attente,transmis,confirme,traite,termine,annule,rejete,reporte,expire'],
+            'date' => ['nullable', 'date'],
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
             'agence_uuid' => ['nullable', 'exists:agences,uuid_agence'],
             'gestionnaire_uuid' => ['nullable', 'exists:users,uuid_user'],
             'motif_uuid' => ['nullable', 'exists:type_prestations,uuid_type_prestation'],
+            'is_present' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort_by' => ['nullable', 'string', 'in:created_at,date_rdv_souhaiter,status,code'],
@@ -42,17 +44,28 @@ class RdvListRequest extends FormRequest
 
     public function getFilters(): array
     {
-        return $this->only([
+        $filters = $this->only([
             'search',
             'status',
+            'date',
             'date_debut',
             'date_fin',
             'agence_uuid',
             'gestionnaire_uuid',
             'motif_uuid',
+            'is_present',
             'sort_by',
             'sort_order',
         ]);
+
+        if ($this->has('is_present')) {
+            $filters['is_present'] = filter_var($this->input('is_present'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($filters['is_present'] === null) {
+                $filters['is_present'] = (bool) $this->input('is_present');
+            }
+        }
+
+        return $filters;
     }
 
     public function getPerPage(): int

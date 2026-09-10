@@ -13865,7 +13865,7 @@
                 module: "rdvs",
                 name: "Signaler sa présence",
                 description:
-                    "Permet au client de signaler sa présence à l'agence le jour du rendez-vous. Vérifie la géolocalisation si configurée.",
+                    "Permet au client de signaler sa présence à l'agence le jour du rendez-vous. Les coordonnées GPS (`latitude`, `longitude`) sont obligatoires et la validation impose une proximité de 20 mètres maximum par rapport à l'agence.",
                 method: "POST",
                 path: "/rdvs/{uuid_rdvs}/signaler-presence",
                 isProtected: true,
@@ -13885,15 +13885,15 @@
                     body: {
                         latitude: {
                             type: "number",
-                            required: false,
+                            required: true,
                             between: [-90, 90],
-                            description: "Latitude de la position du client",
+                            description: "Latitude de la position du client (obligatoire, degrés décimaux)",
                         },
                         longitude: {
                             type: "number",
-                            required: false,
+                            required: true,
                             between: [-180, 180],
-                            description: "Longitude de la position du client",
+                            description: "Longitude de la position du client (obligatoire, degrés décimaux)",
                         },
                     },
                 },
@@ -13919,16 +13919,20 @@
                     },
                     {
                         status: 422,
-                        description: "Erreur de validation",
+                        description: "Coordonnées manquantes",
                         example: {
                             success: false,
-                            message: "Erreur de validation.",
-                            code: "VALIDATION_ERROR",
-                            errors: {
-                                geolocalisation: [
-                                    "Vous n'êtes pas à proximité de l'agence. Veuillez vous rapprocher pour valider votre présence.",
-                                ],
-                            },
+                            message: "Coordonnées GPS requises pour signaler la présence.",
+                            code: "RDV_NO_COORDINATES",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Client trop éloigné de l'agence",
+                        example: {
+                            success: false,
+                            message: "Vous n'êtes pas à proximité de l'agence. Veuillez vous rapprocher d'au moins 20 mètres pour valider votre présence.",
+                            code: "RDV_DISTANCE",
                         },
                     },
                     {
@@ -13961,11 +13965,11 @@
             // 11. ADMIN - LISTE GLOBALE DES RENDEZ-VOUS
             // ============================================================
             {
-                id: "rdv-admin-list",
+                id: "rdv-all-list",
                 module: "rdvs",
-                name: "[Admin] Liste globale des rendez-vous",
+                name: "[RDV] Liste globale des rendez-vous",
                 description:
-                    "Liste paginée de tous les rendez-vous avec filtres avancés. Réservé aux administrateurs.",
+                    "Endpoint unique pour la liste paginée des rendez-vous. La route est utilisée à la fois par les administrateurs et par les gestionnaires. Pour un gestionnaire connecté, le backend force automatiquement le filtre gestionnaire_uuid sur son UUID. Le service applique aussi les filtres de recherche, statut, date, présence, agence, motif et tri. Si aucun RDV ne correspond, la réponse renvoie un code RDVS_NOT_FOUND avec HTTP 404.",
                 method: "GET",
                 path: "/rdvs/list",
                 isProtected: true,
@@ -13979,7 +13983,7 @@
                         search: {
                             type: "string",
                             required: false,
-                            description: "Recherche (nom, email, code RDV)",
+                            description: "Recherche sur le code RDV, le nom/prénom du client, l'email, le téléphone, le motif ou le libellé du service.",
                         },
                         status: {
                             type: "string",
@@ -13993,38 +13997,48 @@
                                 "reporte",
                                 "expire",
                             ],
-                            description: "Filtrer par statut",
+                            description: "Filtrer par statut du rendez-vous.",
+                        },
+                        date: {
+                            type: "date",
+                            required: false,
+                            description: "Filtre précis sur une date effective du rendez-vous (YYYY-MM-DD). Quand il est fourni, la requête ordonne par date croissante et applique le statut transmis par défaut si aucun statut n'est spécifié.",
                         },
                         date_debut: {
                             type: "date",
                             required: false,
-                            description: "Date de début",
+                            description: "Date de début de plage. La requête compare la date du rendez-vous souhaité et la date effective.",
                         },
                         date_fin: {
                             type: "date",
                             required: false,
-                            description: "Date de fin",
+                            description: "Date de fin de plage. Doit être supérieure ou égale à date_debut.",
                         },
                         agence_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "Filtrer par agence",
+                            description: "Filtrer sur l'agence souhaitée ou l'agence effective du rendez-vous.",
                         },
                         gestionnaire_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "Filtrer par gestionnaire",
+                            description: "Filtrer par gestionnaire. Pour un gestionnaire connecté, ce champ est automatiquement remplacé par son UUID.",
                         },
                         motif_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "Filtrer par motif",
+                            description: "Filtrer par UUID du motif / type de prestation.",
+                        },
+                        is_present: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer sur les rendez-vous où le client a signalé sa présence (true/false).",
                         },
                         per_page: {
                             type: "integer",
                             required: false,
                             default: 15,
-                            description: "Nombre par page",
+                            description: "Nombre d'éléments par page. Max 100 selon la validation.",
                         },
                         sort_by: {
                             type: "string",
@@ -14036,19 +14050,22 @@
                                 "code",
                             ],
                             default: "created_at",
-                            description: "Champ de tri",
+                            description: "Champ de tri principal.",
                         },
                         sort_order: {
                             type: "string",
                             required: false,
                             enum: ["asc", "desc"],
                             default: "desc",
-                            description: "Ordre de tri",
+                            description: "Ordre de tri (ascendant ou descendant).",
                         },
                     },
                 },
                 exampleRequest: {
-                    status: "en_attente",
+                    date: "2026-07-06",
+                    status: "transmis",
+                    is_present: true,
+                    agence_uuid: "550e8400-e29b-41d4-a716-446655440001",
                     per_page: 15,
                     sort_by: "date_rdv_souhaiter",
                     sort_order: "asc",
@@ -14056,23 +14073,20 @@
                 responses: [
                     {
                         status: 200,
-                        description: "Liste des rendez-vous",
+                        description: "Liste paginée des rendez-vous avec les filtres appliqués. Pour un gestionnaire connecté, le backend remplace automatiquement le filtre gestionnaire_uuid par son UUID, ce qui permet d’avoir un seul endpoint pour admin et gestionnaire.",
                         example: {
                             success: true,
-                            message:
-                                "Liste des rendez-vous récupérée avec succès.",
+                            message: "Liste des rendez-vous récupérée avec succès.",
                             code: "RDVS_LISTED",
                             data: [
                                 {
-                                    uuid_rdvs:
-                                        "550e8400-e29b-41d4-a716-446655440010",
+                                    uuid_rdvs: "550e8400-e29b-41d4-a716-446655440010",
                                     code: "RDV-20260706-AbC12345",
                                     date_creation: "2026-07-01",
                                     date_rdv: "2026-07-06",
                                     heure_rdv: "10:30",
                                     client: {
-                                        uuid_user:
-                                            "550e8400-e29b-41d4-a716-446655440000",
+                                        uuid_user: "550e8400-e29b-41d4-a716-446655440000",
                                         nom: "Dupont",
                                         prenoms: "Jean",
                                         nom_complet: "Dupont Jean",
@@ -14096,34 +14110,38 @@
                                         effective: null,
                                     },
                                     gestionnaire: {
-                                        uuid_user:
-                                            "550e8400-e29b-41d4-a716-446655440020",
+                                        uuid_user: "550e8400-e29b-41d4-a716-446655440020",
                                         nom_complet: "Koffi Serge",
                                         email: "koffi@yako.ci",
                                     },
-                                    status: "en_attente",
-                                    status_label: "En attente",
-                                    status_color: "#FFA726",
-                                    status_badge: "badge-warning",
+                                    status: "transmis",
+                                    status_label: "Transmis",
+                                    status_color: "#7E57C2",
+                                    status_badge: "badge-primary",
                                     delais: {
-                                        jours: 7,
-                                        label: "7 jours restants",
-                                        classe: "text-success",
+                                        jours: 0,
+                                        label: "Aujourd'hui",
+                                        classe: "text-warning",
                                         est_retard: false,
                                     },
                                     est_retard: false,
                                     nb_rdv_client_30j: 1,
-                                    date_rdv_formatee: "01/07/2026",
-                                    date_creation_formatee: "05/01/2026",
+                                    date_rdv_formatee: "06/07/2026",
+                                    date_creation_formatee: "01/07/2026",
+                                    is_present: true,
                                 },
                             ],
                             meta: {
                                 current_page: 1,
                                 per_page: 15,
-                                total: 50,
-                                last_page: 4,
+                                total: 1,
+                                last_page: 1,
                                 filters: {
-                                    status: "en_attente",
+                                    date: "2026-07-06",
+                                    status: "transmis",
+                                    is_present: true,
+                                    agence_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                    gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440020",
                                     sort_by: "date_rdv_souhaiter",
                                     sort_order: "asc",
                                 },
@@ -14144,7 +14162,20 @@
                                     status: "Statut",
                                     code: "Code",
                                 },
+                                sort_order: {
+                                    asc: "Croissant",
+                                    desc: "Décroissant",
+                                },
                             },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucun rendez-vous trouvé pour les filtres demandés. Le backend renvoie alors une réponse 404 avec le code RDVS_NOT_FOUND.",
+                        example: {
+                            success: false,
+                            message: "Aucun rendez-vous trouvé.",
+                            code: "RDVS_NOT_FOUND",
                         },
                     },
                 ],
@@ -15304,7 +15335,7 @@
                 module: "rdvs",
                 name: "[Dashboard] File d'attente",
                 description:
-                    "Récupère les rendez-vous en attente d'assignation à un gestionnaire.",
+                    "Récupère les clients en attente de rendez-vous avec leurs informations et motifs.",
                 method: "GET",
                 path: "/dashboard/file-attente",
                 isProtected: true,
@@ -15470,17 +15501,173 @@
                 ],
             },
 
+            // // ============================================================
+            // // 33. LISTE RDV GESTIONNAIRE (FLUX UNIQUE)
+            // // ============================================================
+            // {
+            //     id: "rdv-gestionnaire-list",
+            //     module: "rdvs",
+            //     name: "[RDV] Liste des rendez-vous gestionnaire",
+            //     description:
+            //         "Récupère la liste des rendez-vous avec filtres. Pour un gestionnaire, l'endpoint applique automatiquement le filtre sur son UUID afin d'éviter les doublons de routes et de logique.",
+            //     method: "GET",
+            //     path: "/rdvs/list",
+            //     isProtected: true,
+            //     headers: {
+            //         Authorization: "Bearer {token}",
+            //         Accept: "application/json",
+            //     },
+            //     requestParams: {
+            //         query: {
+            //             date: {
+            //                 type: "date",
+            //                 required: false,
+            //                 default: "today",
+            //                 description: "Filtre une date précise (YYYY-MM-DD).",
+            //             },
+            //             status: {
+            //                 type: "string",
+            //                 required: false,
+            //                 enum: [
+            //                     "en_attente",
+            //                     "transmis",
+            //                     "traite",
+            //                     "annule",
+            //                     "rejete",
+            //                     "reporte",
+            //                     "expire",
+            //                 ],
+            //                 description: "Filtrer par statut",
+            //             },
+            //             agence_uuid: {
+            //                 type: "uuid",
+            //                 required: false,
+            //                 description: "Filtrer par agence",
+            //             },
+            //             is_present: {
+            //                 type: "boolean",
+            //                 required: false,
+            //                 description: "Filtrer les clients présents",
+            //             },
+            //             date_debut: {
+            //                 type: "date",
+            //                 required: false,
+            //                 description: "Date de début",
+            //             },
+            //             date_fin: {
+            //                 type: "date",
+            //                 required: false,
+            //                 description: "Date de fin",
+            //             },
+            //             per_page: {
+            //                 type: "integer",
+            //                 required: false,
+            //                 default: 15,
+            //                 description: "Nombre par page",
+            //             },
+            //         },
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: "Liste des rendez-vous gestionnaire",
+            //             example: {
+            //                 success: true,
+            //                 message: "Liste des rendez-vous récupérée avec succès.",
+            //                 code: "RDVS_LISTED",
+            //                 data: [
+            //                     {
+            //                         uuid_rdvs:
+            //                             "550e8400-e29b-41d4-a716-446655440010",
+            //                         code: "RDV-20260706-AbC12345",
+            //                         date_creation: "2026-07-01",
+            //                         date_rdv: "2026-07-06",
+            //                         heure_rdv: "10:30",
+            //                         client: {
+            //                             uuid_user:
+            //                                 "550e8400-e29b-41d4-a716-446655440000",
+            //                             nom: "KONE",
+            //                             prenoms: "Mariam",
+            //                             nom_complet: "KONE Mariam",
+            //                             email: "mariam@email.com",
+            //                             mobile: "+2250701020304",
+            //                         },
+            //                         motif: {
+            //                             uuid: "550e8400-e29b-41d4-a716-446655440001",
+            //                             libelle: "Rachat total",
+            //                             code: "RACHAT_TOTAL",
+            //                             impact: "1",
+            //                             impact_label: "Sortie portefeuille",
+            //                         },
+            //                         agence: {
+            //                             souhaitee: {
+            //                                 uuid: "550e8400-e29b-41d4-a716-446655440001",
+            //                                 libelle: "YAKO Plateau",
+            //                                 code: "AG001",
+            //                                 ville: "Abidjan",
+            //                             },
+            //                             effective: null,
+            //                         },
+            //                         gestionnaire: {
+            //                             uuid_user:
+            //                                 "550e8400-e29b-41d4-a716-446655440020",
+            //                             nom_complet: "KOFFI Serge",
+            //                             email: "serge@yako.ci",
+            //                         },
+            //                         status: "transmis",
+            //                         status_label: "Transmis",
+            //                         status_color: "#7E57C2",
+            //                         status_badge: "badge-primary",
+            //                         delais: {
+            //                             jours: 0,
+            //                             label: "Aujourd'hui",
+            //                             classe: "text-warning",
+            //                             est_retard: false,
+            //                         },
+            //                         est_retard: false,
+            //                         nb_rdv_client_30j: 1,
+            //                         date_rdv_formatee: "06/07/2026",
+            //                         is_present: true,
+            //                     }
+            //                 ],
+            //                 meta: {
+            //                     current_page: 1,
+            //                     per_page: 15,
+            //                     total: 1,
+            //                     last_page: 1,
+            //                     filters: {
+            //                         date: "2026-07-06",
+            //                         gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440020",
+            //                         status: "transmis",
+            //                     },
+            //                 },
+            //                 filters_disponibles: {
+            //                     status: {
+            //                         en_attente: "En attente",
+            //                         transmis: "Transmis",
+            //                         traite: "Traité",
+            //                         annule: "Annulé",
+            //                         rejete: "Rejeté",
+            //                         reporte: "Reporté",
+            //                         expire: "Expiré",
+            //                     }
+            //                 },
+            //             },
+            //         },
+            //     ],
+            // },
+
             // ============================================================
-            // 33. DASHBOARD - RDV DU JOUR (GESTIONNAIRE)
+            // 34. CLIENTS ARRIVÉS (GESTIONNAIRE)
             // ============================================================
             {
-                id: "rdv-dashboard-rdvs-jour",
+                id: "rdv-clients-arrives",
                 module: "rdvs",
-                name: "[Dashboard] RDV du jour pour gestionnaire",
+                name: "[RDV] Clients arrivés en agence",
                 description:
-                    "Récupère les rendez-vous du jour assignés au gestionnaire connecté. Les clients arrivés remontent en priorité.",
+                    "Récupère les clients qui ont signalé leur présence pour le gestionnaire connecté, avec filtrage sur la date et l'agence.",
                 method: "GET",
-                path: "/dashboard/rdvs-du-jour",
+                path: "/rdvs/clients-arrives",
                 isProtected: true,
                 headers: {
                     Authorization: "Bearer {token}",
@@ -15492,125 +15679,17 @@
                             type: "date",
                             required: false,
                             default: "today",
-                            description: "Date (YYYY-MM-DD)",
+                            description: "Date concernée (YYYY-MM-DD)",
                         },
-                    },
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: "RDV du jour",
-                        example: {
-                            success: true,
-                            message: "RDV du jour récupérés avec succès.",
-                            code: "RDV_DU_JOUR",
-                            data: {
-                                rdvs: [
-                                    {
-                                        uuid_rdvs:
-                                            "550e8400-e29b-41d4-a716-446655440010",
-                                        code: "RDV-20260706-AbC12345",
-                                        client: {
-                                            uuid_user:
-                                                "550e8400-e29b-41d4-a716-446655440000",
-                                            nom_complet: "KONE MARIAM",
-                                            email: "mariam@email.com",
-                                            mobile: "+2250701020304",
-                                        },
-                                        motif: {
-                                            uuid_type_prestation:
-                                                "550e8400-e29b-41d4-a716-446655440001",
-                                            libelle: "Rachat total",
-                                            code: "RACHAT_TOTAL",
-                                            impact: "1",
-                                            impact_label: "Sortie portefeuille",
-                                        },
-                                        agence: {
-                                            uuid_agence:
-                                                "550e8400-e29b-41d4-a716-446655440001",
-                                            libelle: "YAKO Plateau",
-                                            ville: "Abidjan",
-                                            adresse:
-                                                "Av. Chardy, Imm. Alpha 2000",
-                                        },
-                                        date_rdv_souhaiter: "06/07/2026",
-                                        status: "transmis",
-                                        status_label: "Transmis",
-                                        is_present: true,
-                                        est_en_retard: false,
-                                        heure_arrivee: "10:15",
-                                        est_prioritaire: true,
-                                        priorite: "haute",
-                                        badge: "Client arrivé",
-                                        badge_color: "#4CAF50",
-                                    },
-                                    {
-                                        uuid_rdvs:
-                                            "550e8400-e29b-41d4-a716-446655440011",
-                                        code: "RDV-20260706-XyZ78910",
-                                        client: {
-                                            uuid_user:
-                                                "550e8400-e29b-41d4-a716-446655440001",
-                                            nom_complet:
-                                                "KOUAKOU KOUASSI ADRIEN",
-                                            email: "adrien@email.com",
-                                        },
-                                        motif: {
-                                            libelle: "Résiliation",
-                                        },
-                                        agence: {
-                                            libelle: "YAKO Plateau",
-                                            ville: "Abidjan",
-                                        },
-                                        date_rdv_souhaiter: "06/07/2026",
-                                        status: "transmis",
-                                        status_label: "Transmis",
-                                        is_present: false,
-                                        est_en_retard: true,
-                                        est_prioritaire: false,
-                                        priorite: "moyenne",
-                                        badge: "En retard",
-                                        badge_color: "#FF9800",
-                                    },
-                                ],
-                                total: 2,
-                                arrives: 1,
-                                en_retard: 1,
-                                date: "2026-07-06",
-                            },
-                        },
-                    },
-                ],
-            },
-
-            // ============================================================
-            // 34. DASHBOARD - MES RENDEZ-VOUS (GESTIONNAIRE)
-            // ============================================================
-            {
-                id: "rdv-dashboard-mes-rdvs",
-                module: "rdvs",
-                name: "[Dashboard] Mes rendez-vous",
-                description:
-                    "Récupère tous les rendez-vous assignés au gestionnaire connecté avec filtres.",
-                method: "GET",
-                path: "/dashboard/mes-rdvs",
-                isProtected: true,
-                headers: {
-                    Authorization: "Bearer {token}",
-                    Accept: "application/json",
-                },
-                requestParams: {
-                    query: {
-                        per_page: {
-                            type: "integer",
+                        agence_uuid: {
+                            type: "uuid",
                             required: false,
-                            default: 20,
+                            description: "Filtrer par agence",
                         },
                         status: {
                             type: "string",
                             required: false,
                             enum: [
-                                "en_attente",
                                 "transmis",
                                 "traite",
                                 "annule",
@@ -15618,85 +15697,7 @@
                                 "reporte",
                                 "expire",
                             ],
-                        },
-                        date_debut: {
-                            type: "date",
-                            required: false,
-                            description: "Date de début",
-                        },
-                        date_fin: {
-                            type: "date",
-                            required: false,
-                            description: "Date de fin",
-                        },
-                    },
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: "Mes rendez-vous",
-                        example: {
-                            success: true,
-                            message: "Mes RDV récupérés avec succès.",
-                            code: "MES_RDV",
-                            data: [
-                                {
-                                    uuid_rdvs:
-                                        "550e8400-e29b-41d4-a716-446655440010",
-                                    code: "RDV-20260706-AbC12345",
-                                    client: {
-                                        uuid_user:
-                                            "550e8400-e29b-41d4-a716-446655440000",
-                                        nom_complet: "KONE MARIAM",
-                                        email: "mariam@email.com",
-                                    },
-                                    motif: {
-                                        libelle: "Rachat total",
-                                    },
-                                    agence_souhaitee: {
-                                        libelle: "YAKO Plateau",
-                                        ville: "Abidjan",
-                                    },
-                                    date_rdv_souhaiter: "2026-07-06",
-                                    status: "transmis",
-                                    status_label: "Transmis",
-                                    created_at: "2026-07-01T10:30:00.000000Z",
-                                },
-                            ],
-                            meta: {
-                                current_page: 1,
-                                per_page: 20,
-                                total: 1,
-                                last_page: 1,
-                            },
-                        },
-                    },
-                ],
-            },
-
-            // ============================================================
-            // 35. DASHBOARD - CLIENTS ARRIVÉS
-            // ============================================================
-            {
-                id: "rdv-dashboard-clients-arrives",
-                module: "rdvs",
-                name: "[Dashboard] Clients arrivés en agence",
-                description:
-                    "Récupère les clients qui ont signalé leur présence en agence pour le gestionnaire connecté.",
-                method: "GET",
-                path: "/dashboard/clients-arrives",
-                isProtected: true,
-                headers: {
-                    Authorization: "Bearer {token}",
-                    Accept: "application/json",
-                },
-                requestParams: {
-                    query: {
-                        date: {
-                            type: "date",
-                            required: false,
-                            default: "today",
-                            description: "Date (YYYY-MM-DD)",
+                            description: "Filtrer par statut",
                         },
                     },
                 },
@@ -15724,6 +15725,7 @@
                                             uuid_type_prestation:
                                                 "550e8400-e29b-41d4-a716-446655440001",
                                             libelle: "Rachat total",
+                                            code: "RACHAT_TOTAL",
                                         },
                                         agence: {
                                             uuid_agence:
@@ -15731,12 +15733,12 @@
                                             libelle: "YAKO Plateau",
                                             ville: "Abidjan",
                                         },
-                                        date_rdv_souhaiter: "06/07/2026",
-                                        heure_rdv: "10:30",
-                                        heure_arrivee: "10:15",
+                                        date_rdv_effective: "06/07/2026",
+                                        date_effective_original: "2026-07-06",
                                         status: "transmis",
                                         status_label: "Transmis",
-                                        est_prioritaire: true,
+                                        date_creation: "2026-07-01 08:22:00",
+                                        est_urgent: false,
                                     },
                                 ],
                                 total: 1,

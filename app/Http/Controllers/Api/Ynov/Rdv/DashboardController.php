@@ -72,77 +72,16 @@ class DashboardController extends Controller
     }
 
     /**
-     * RDV du jour pour un gestionnaire (avec les clients arrivés en évidence)
-     */
-    public function rdvsDuJour(Request $request): JsonResponse
-    {
-        $gestionnaireUuid = $request->user()->uuid_user;
-        $date = $request->date ?? now()->format('Y-m-d');
-
-        $rdvs = $this->dashboardService->getRdvsDuJourGestionnaire($gestionnaireUuid, $date);
-
-        // Mettre en évidence les clients arrivés
-        $rdvsArranges = collect($rdvs)->map(function ($rdv) {
-            // Mettre en évidence les clients qui ont signalé leur présence
-            if ($rdv['is_present']) {
-                $rdv['priorite'] = 'haute';
-                $rdv['badge'] = 'Client arrivé';
-                $rdv['badge_color'] = '#4CAF50';
-            } elseif ($rdv['est_en_retard']) {
-                $rdv['priorite'] = 'moyenne';
-                $rdv['badge'] = 'En retard';
-                $rdv['badge_color'] = '#FF9800';
-            } else {
-                $rdv['priorite'] = 'basse';
-                $rdv['badge'] = 'À venir';
-                $rdv['badge_color'] = '#2196F3';
-            }
-            return $rdv;
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'RDV du jour récupérés avec succès.',
-            'code' => 'RDV_DU_JOUR',
-            'data' => [
-                'rdvs' => $rdvsArranges,
-                'total' => count($rdvsArranges),
-                'arrives' => collect($rdvsArranges)->where('is_present', true)->count(),
-                'en_retard' => collect($rdvsArranges)->where('est_en_retard', true)->count(),
-                'date' => $date,
-            ],
-        ]);
-    }
-
-    /**
-     * RDV assignés à un gestionnaire
-     */
-    public function mesRdvs(Request $request): JsonResponse
-    {
-        $gestionnaireUuid = $request->user()->uuid_user;
-        $filters = $this->getFilters($request);
-        $perPage = $request->integer('per_page', 20);
-
-        $rdvs = $this->dashboardService->getRdvsByGestionnaire($gestionnaireUuid, $filters, $perPage);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Mes RDV récupérés avec succès.',
-            'code' => 'MES_RDV',
-            'data' => $rdvs,
-        ]);
-    }
-
-
-    /**
      * Clients arrivés et signalés en agence (prioritaires)
      */
     public function clientsArrives(Request $request): JsonResponse
     {
         $gestionnaireUuid = $request->user()->uuid_user;
         $date = $request->date ?? now()->format('Y-m-d');
+        $filters = $this->getFilters($request);
+        $filters['date'] = $date;
 
-        $clients = $this->dashboardService->getClientsArrives($gestionnaireUuid, $date);
+        $clients = $this->dashboardService->getClientsArrives($gestionnaireUuid, $date, $filters);
 
         return response()->json([
             'success' => true,
@@ -208,10 +147,12 @@ class DashboardController extends Controller
     {
         return [
             'agence_uuid' => $request->agence_uuid,
+            'date' => $request->date,
             'date_debut' => $request->date_debut,
             'date_fin' => $request->date_fin,
             'gestionnaire_uuid' => $request->gestionnaire_uuid,
             'status' => $request->status,
+            'is_present' => $request->boolean('is_present'),
         ];
     }
 }

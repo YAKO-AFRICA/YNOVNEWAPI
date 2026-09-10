@@ -15,6 +15,7 @@ use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\Rdv\RdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class RdvController extends Controller
@@ -273,8 +274,8 @@ class RdvController extends Controller
         $rdv = $this->rdvService->updateStatus(
             $rdv,
             'annule',
-            ['annulation' => $request->motif ?? 'Annulé par le client'],
-            $request->user()->uuid_user
+            $request->user()->uuid_user,
+            ['annulation' => $request->motif ?? 'Annulé par le client']
         );
 
         return response()->json([
@@ -361,7 +362,7 @@ class RdvController extends Controller
      */
     public function agenceRdvs(Request $request, string $uuid_agence): JsonResponse
     {
-        $filters = $request->only(['status', 'date']);
+        $filters = $request->only(['status', 'date', 'gestionnaire_uuid', 'is_present']);
         $perPage = $request->integer('per_page', 20);
 
         $rdvs = $this->rdvService->getRdvAgence($uuid_agence, $filters, $perPage);
@@ -391,8 +392,8 @@ class RdvController extends Controller
         $rdv = $this->rdvService->updateStatus(
             $rdv,
             $request->getStatus(),
-            $request->getUpdateData(),
-            $request->user()->uuid_user
+            $request->user()->uuid_user,
+            $request->getUpdateData()
         );
 
         return response()->json([
@@ -430,6 +431,72 @@ class RdvController extends Controller
 
 
     /**
+     * RDV du jour pour un gestionnaire (avec les clients arrivés en évidence)
+     */
+    public function rdvsDuJour(Request $request): JsonResponse
+    {
+        $gestionnaireUuid = $request->user()->uuid_user;
+        $date = $request->date ?? now()->format('Y-m-d');
+
+        $filters = $request->only(['status', 'agence_uuid', 'is_present', 'date_debut', 'date_fin']);
+        $filters['date'] = $date;
+        $filters['gestionnaire_uuid'] = $gestionnaireUuid;
+
+        $rdvs = $this->rdvService->getList($filters, 20, true);
+
+        $rdvsArranges = collect($rdvs)->map(function ($rdv) {
+            if (!empty($rdv['is_present'])) {
+                $rdv['priorite'] = 'haute';
+                $rdv['badge'] = 'Client arrivé';
+                $rdv['badge_color'] = '#4CAF50';
+            } elseif (!empty($rdv['est_en_retard'])) {
+                $rdv['priorite'] = 'moyenne';
+                $rdv['badge'] = 'En retard';
+                $rdv['badge_color'] = '#FF9800';
+            } else {
+                $rdv['priorite'] = 'basse';
+                $rdv['badge'] = 'À venir';
+                $rdv['badge_color'] = '#2196F3';
+            }
+
+            return $rdv;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'RDV du jour récupérés avec succès.',
+            'code' => 'RDV_DU_JOUR',
+            'data' => [
+                'rdvs' => $rdvsArranges,
+                'total' => count($rdvsArranges),
+                'arrives' => collect($rdvsArranges)->where('is_present', true)->count(),
+                'en_retard' => collect($rdvsArranges)->where('est_en_retard', true)->count(),
+                'date' => $date,
+            ],
+        ]);
+    }
+
+    /**
+     * RDV assignés à un gestionnaire
+     */
+    public function mesRdvs(Request $request): JsonResponse
+    {
+        $gestionnaireUuid = $request->user()->uuid_user;
+        $filters = $request->only(['status', 'agence_uuid', 'date_debut', 'date_fin', 'is_present']);
+        $filters['gestionnaire_uuid'] = $gestionnaireUuid;
+        $perPage = $request->integer('per_page', 20);
+
+        $rdvs = $this->rdvService->getList($filters, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mes RDV récupérés avec succès.',
+            'code' => 'MES_RDV',
+            'data' => $rdvs,
+        ]);
+    }
+
+    /**
      * Liste des rendez-vous avec filtres
      */
     public function getList(RdvListRequest $request): JsonResponse
@@ -437,10 +504,14 @@ class RdvController extends Controller
         $filters = $request->getFilters();
         $perPage = $request->getPerPage();
 
-        // Récupérer les RDV
+        $user = $request->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+            Log::debug('Utilisateur gestionnaire : ' . $user->uuid_user);
+            $filters['gestionnaire_uuid'] = $user->uuid_user;
+        }
+
         $rdvs = $this->rdvService->getList($filters, $perPage);
 
-        // S'il n'y a aucun RDV, renvoyer une erreur
         if ($rdvs->isEmpty()) {
             return response()->json([
                 'success' => false,
@@ -448,8 +519,7 @@ class RdvController extends Controller
                 'code' => 'RDVS_NOT_FOUND',
             ], 404);
         }
-        
-        // Formater les données
+
         $formattedData = $this->rdvService->formatForList($rdvs);
 
         return response()->json([
@@ -474,8 +544,12 @@ class RdvController extends Controller
     public function export(RdvListRequest $request): JsonResponse
     {
         $filters = $request->getFilters();
-        
-        // Récupérer tous les RDV (sans pagination)
+
+        $user = $request->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+            $filters['gestionnaire_uuid'] = $user->uuid_user;
+        }
+
         $rdvs = $this->rdvService->getList($filters, 99999);
         $formattedData = $this->rdvService->formatForList($rdvs);
 

@@ -404,6 +404,18 @@ class User extends Authenticatable
     }
 
     /**
+     * Vérifier si l'utilisateur a le rôle donné par son code.
+     */
+    public function hasRole(string $roleCode): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->role?->code === $roleCode;
+    }
+
+    /**
      * Vérifier si l'utilisateur est actif
      */
     public function isActive(): bool
