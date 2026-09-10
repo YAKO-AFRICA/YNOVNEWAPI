@@ -58,7 +58,7 @@ class UserResource extends JsonResource
                 $this->relationLoaded('role') && $this->role,
                 fn() => $this->role->is_super_admin ? ['*'] : $this->role->permissions->pluck('code')
             ),
-            'groups' => $this->when(
+            'group_permissions' => $this->when(
                 $this->relationLoaded('role') && $this->role && !$this->role->is_super_admin,
                 function () {
                     return $this->role->permissions()

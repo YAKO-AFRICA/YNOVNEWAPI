@@ -13481,7 +13481,7 @@
                 method: "GET",
                 path: "/rdvs/calendrier",
                 isProtected: true,
-                permissionsRequired: ["rdvs.afficher"],
+                permissionsRequired: ["rdvs.calendrier"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -13600,7 +13600,7 @@
                 method: "GET",
                 path: "/rdvs/calendrier/stats",
                 isProtected: true,
-                permissionsRequired: ["rdvs.afficher"],
+                permissionsRequired: ["rdvs.calendrier"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -14332,7 +14332,7 @@
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/reassigner",
                 isProtected: true,
-                permissionsRequired: ["rdvs.reassigner_gestionnaire"],
+                permissionsRequired: ["rdvs.retransmettre"],
                 headers: {
                     Authorization: "Bearer {token}",
                     "Content-Type": "application/json",
@@ -14674,7 +14674,7 @@
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/observation",
                 isProtected: true,
-                permissionsRequired: ["rdvs.ajouter_observation"],
+                permissionsRequired: ["rdvs.traiter"],
                 headers: {
                     Authorization: "Bearer {token}",
                     "Content-Type": "application/json",
@@ -15089,7 +15089,6 @@
                 method: "GET",
                 path: "/dashboard",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_dashboard"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15250,7 +15249,6 @@
                 method: "GET",
                 path: "/dashboard/stats",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_dashboard"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15310,7 +15308,6 @@
                 method: "GET",
                 path: "/dashboard/file-attente",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_dashboard"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15383,7 +15380,6 @@
                 method: "GET",
                 path: "/dashboard/stats/motif",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_dashboard"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15443,7 +15439,6 @@
                 method: "GET",
                 path: "/dashboard/stats/gestionnaire",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_dashboard"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15487,7 +15482,6 @@
                 method: "GET",
                 path: "/dashboard/rdvs-du-jour",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_rdvs_jour"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15601,7 +15595,6 @@
                 method: "GET",
                 path: "/dashboard/mes-rdvs",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_mes_rdvs"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -15693,7 +15686,6 @@
                 method: "GET",
                 path: "/dashboard/clients-arrives",
                 isProtected: true,
-                permissionsRequired: ["rdvs.voir_arrives"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",

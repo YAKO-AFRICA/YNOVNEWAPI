@@ -647,9 +647,9 @@ Route::prefix('v1')->middleware([
 
         // Calendrier des RDV (DOIT ÊTRE AVANT LA ROUTE DYNAMIQUE {uuid_rdvs})
         Route::get('calendrier', [CalendrierController::class, 'calendrier'])
-            ->middleware('permission:rdvs.afficher');
+            ->middleware('permission:rdvs.calendrier');
         Route::get('calendrier/stats', [CalendrierController::class, 'stats'])
-            ->middleware('permission:rdvs.afficher');
+            ->middleware('permission:rdvs.calendrier');
 
         Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
 
@@ -668,12 +668,6 @@ Route::prefix('v1')->middleware([
     });
 
     // ============================================================
-    // RENDEZ-VOUS (RDV) - CALENDRIER
-    // ============================================================
-    // Les routes spécifiques ci-dessous sont déjà déclarées dans le groupe /rdvs
-    // avant la route générique {uuid_rdvs}, pour éviter le conflit avec "calendrier".
-
-    // ============================================================
     // RENDEZ-VOUS (RDV) - TRAITEMENT
     // ============================================================
     Route::prefix('rdvs/traitement')->middleware('permission:rdvs.traiter')->group(function () {
@@ -684,7 +678,7 @@ Route::prefix('v1')->middleware([
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
         
         // Réassigner un gestionnaire
-        Route::post('{uuid_rdvs}/reassign-gestionnaire', [TraitementController::class, 'reassignGestionnaire']);
+        // Route::post('{uuid_rdvs}/reassign-gestionnaire', [TraitementController::class, 'reassignGestionnaire']);
          // Réassigner un RDV manuellement
         Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner']);
         
@@ -712,7 +706,7 @@ Route::prefix('v1')->middleware([
 
 
     // Tableau de bord
-    Route::prefix('dashboard')->middleware('permission:rdvs.voir_dashboard')->group(function () {
+    Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'dashboard']);
         Route::get('stats', [DashboardController::class, 'stats']);
         Route::get('file-attente', [DashboardController::class, 'fileAttente']);

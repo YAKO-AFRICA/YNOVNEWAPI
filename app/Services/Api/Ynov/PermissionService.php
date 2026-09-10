@@ -2094,15 +2094,15 @@ class PermissionService
                         'description' => 'Permet de supprimer définitivement un rendez-vous',
                     ],
 
-                    // ============================================================
-                    // DASHBOARD - Tableau de bord
-                    // ============================================================
-                    [
-                        'category' => 'dashboard',
-                        'action' => 'voir_dashboard',
-                        'libelle' => 'Voir le tableau de bord',
-                        'description' => 'Permet d\'accéder au tableau de bord des rendez-vous',
-                    ],
+                    // // ============================================================
+                    // // DASHBOARD - Tableau de bord
+                    // // ============================================================
+                    // [
+                    //     'category' => 'dashboard',
+                    //     'action' => 'voir_dashboard',
+                    //     'libelle' => 'Voir le tableau de bord',
+                    //     'description' => 'Permet d\'accéder au tableau de bord des rendez-vous',
+                    // ],
 
                     // ============================================================
                     // TRAITEMENT - Gestion des RDV
@@ -2132,32 +2132,12 @@ class PermissionService
                         'description' => 'Permet de marquer un rendez-vous comme expiré',
                     ],
 
-                    // ============================================================
-                    // GESTIONNAIRES - Assignation et routing
-                    // ============================================================
+                  
                     [
                         'category' => 'gestionnaire',
-                        'action' => 'assigner_gestionnaire',
-                        'libelle' => 'Assigner un gestionnaire',
-                        'description' => 'Permet d\'assigner un gestionnaire à un rendez-vous',
-                    ],
-                    [
-                        'category' => 'gestionnaire',
-                        'action' => 'reassigner_gestionnaire',
-                        'libelle' => 'Réassigner un gestionnaire',
-                        'description' => 'Permet de réassigner un rendez-vous à un autre gestionnaire',
-                    ],
-                    [
-                        'category' => 'gestionnaire',
-                        'action' => 'voir_mes_rdvs',
-                        'libelle' => 'Voir mes rendez-vous',
-                        'description' => 'Permet à un gestionnaire de voir ses rendez-vous assignés',
-                    ],
-                    [
-                        'category' => 'gestionnaire',
-                        'action' => 'voir_rdvs_jour',
-                        'libelle' => 'Voir les rendez-vous du jour',
-                        'description' => 'Permet de voir les rendez-vous du jour d\'un gestionnaire',
+                        'action' => 'retransmettre',
+                        'libelle' => 'Retransmettre un gestionnaire',
+                        'description' => 'Permet de retransmettre un rendez-vous à un autre gestionnaire',
                     ],
 
                     [
@@ -2191,12 +2171,6 @@ class PermissionService
                         'action' => 'voir_historique',
                         'libelle' => 'Voir l\'historique',
                         'description' => 'Permet de voir l\'historique des traitements d\'un rendez-vous',
-                    ],
-                    [
-                        'category' => 'historique',
-                        'action' => 'ajouter_observation',
-                        'libelle' => 'Ajouter une observation',
-                        'description' => 'Permet d\'ajouter une observation sur un rendez-vous',
                     ],
 
                     // // ============================================================

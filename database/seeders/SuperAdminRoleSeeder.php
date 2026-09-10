@@ -76,8 +76,22 @@ class SuperAdminRoleSeeder extends Seeder
             ]
         );
 
+        Role::firstOrCreate(
+            ['code' => 'admin_prestation'],
+            [
+                'libelle' => 'Administrateur Prestation',
+                'description' => 'Rôle administrateur prestation disposant de droits étendus pour la gestion et suppression des prestations.',
+                'is_system' => true,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 4,
+                'priority' => 4,
+                'status' => 'actif',
+            ]
+        );
+
         // ============================================================
-        // Rôle Gestionnaire (optionnel)
+        // Rôle Gestionnaire Rendez-vous
         // ============================================================
         Role::firstOrCreate(
             ['code' => 'gestionnaire_rdv'],
@@ -87,8 +101,25 @@ class SuperAdminRoleSeeder extends Seeder
                 'is_system' => false,
                 'is_super_admin' => false,
                 'is_default' => false,
-                'level' => 4,
-                'priority' => 4,
+                'level' => 5,
+                'priority' => 5,
+                'status' => 'actif',
+            ]
+        );
+
+        // ============================================================
+        // Rôle Gestionnaire Prestation
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'gestionnaire_prestation'],
+            [
+                'libelle' => 'Gestionnaire Prestation',
+                'description' => 'Rôle gestionnaire prestation disposant de droits étendus pour la gestion et traitement des prestations.',
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 6,
+                'priority' => 6,
                 'status' => 'actif',
             ]
         );
