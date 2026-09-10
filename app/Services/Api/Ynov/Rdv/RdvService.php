@@ -293,8 +293,9 @@ class RdvService
     public function create(array $data, User $client, string $creatorUuid): array
     {
         $assignation = null;
+        $rdvData = null;
 
-        DB::transaction(function () use ($data, $client, $creatorUuid, &$assignation) {
+        DB::transaction(function () use ($data, $client, $creatorUuid, &$assignation, &$rdvData) {
             $eligibilite = $this->verifierEligibiliteClient(
                 $client,
                 $data['id_contrat'],
@@ -397,11 +398,13 @@ class RdvService
                 $assignation = $this->routingService->assignerAutomatiquement($rdv);
             });
 
+            $rdvData = $rdv->load(['client', 'motif', 'agenceSouhaitee']);
+
             return [
                 'success' => true,
                 'code' => 'RDV_CREATED',
                 'message' => 'Rendez-vous créé avec succès. Code : ' . $rdv->code,
-                'data' => $rdv->load(['client', 'motif', 'agenceSouhaitee']),
+                'data' => $rdvData,
                 'assignation_automatique' => null,
             ];
         });
@@ -410,7 +413,7 @@ class RdvService
             'success' => true,
             'code' => 'RDV_CREATED',
             'message' => 'Rendez-vous créé avec succès.',
-            'data' => $assignation['data'] ?? null,
+            'data' => $rdvData ?? null,
             'assignation_automatique' => $assignation,
         ];
     }
