@@ -3,8 +3,11 @@
 
 namespace App\Models\Api\Ynov;
 
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -38,6 +41,30 @@ class BordereauRdv extends Model
         static::creating(function (self $model) {
             $model->uuid_bordereau_rdv ??= (string) Str::uuid();
         });
+    }
+
+    public function details(): HasMany
+    {
+        return $this->hasMany(DetailBordereauRdv::class, 'bordereau_rdv_uuid', 'uuid_bordereau_rdv');
+    }
+
+    public function createur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function modificateur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function isDisponiblePourRdv(Rdv $rdv): bool
+    {
+        return $this->details()
+            ->where('rdv_uuid', $rdv->uuid_rdvs)
+            ->where('status', 'traite')
+            ->exists()
+            && $this->status === 'cloture';
     }
 
     /**
@@ -74,11 +101,8 @@ class BordereauRdv extends Model
         return $query->where('status', 'cloture');
     }
 
-    /**
-     * Scope pour les bordereaux valides
-     */
     public function scopeValide($query)
     {
-        return $query->where('status', 'valide');
+        return $query->where('status', 'transfere');
     }
 }

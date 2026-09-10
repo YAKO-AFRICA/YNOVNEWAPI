@@ -4,6 +4,7 @@
 namespace App\Services\Api\Ynov\Rdv;
 
 use App\Models\Api\Ynov\BordereauRdv;
+use App\Models\Api\Ynov\DetailBordereauRdv;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\GroupNotif;
@@ -934,7 +935,7 @@ class RdvService
                 // Délais
                 'delais' => $this->calculateDelais($rdv),
                 'est_retard' => $this->isInRetard($rdv),
-                // 'bordereau_disponible' => $this->isBordereauDisponible($rdv),
+                'bordereau_disponible' => $this->isBordereauDisponible($rdv),
                 'nb_rdv_client_30j' => $this->getNbRdvClient30j($rdv),
                 
                 // Dates
@@ -1030,13 +1031,24 @@ class RdvService
     }
 
     /**
-     * Vérifier si le bordereau est disponible
+     * Vérifier si le bordereau est disponible pour ce rendez-vous.
+     *
+     * Logique métier: le bordereau est disponible si une ligne DetailBordereauRdv
+     * existe pour ce RDV et que le BordereauRdv associé est en statut 'cloture'.
      */
-    // private function isBordereauDisponible(Rdv $rdv): bool
-    // {
-    //     // Logique: Le bordereau est disponible si le RDV est traité ou terminé
-    //     return in_array($rdv->status, ['traite', 'termine']);
-    // }
+    private function isBordereauDisponible(Rdv $rdv): bool
+    {
+        if (!$rdv->exists) {
+            return false;
+        }
+
+        return DetailBordereauRdv::query()
+            ->where('rdv_uuid', $rdv->uuid_rdvs)
+            ->whereHas('bordereauRdv', function ($query) {
+                $query->where('status', 'cloture');
+            })
+            ->exists();
+    }
 
     /**
      * Obtenir le nombre de RDV du client dans les 30 derniers jours
