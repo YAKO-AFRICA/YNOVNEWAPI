@@ -187,7 +187,7 @@ class RoutingService
         // On suppose que les gestionnaires sont les users avec permission 'rdvs.traiter'
         $users = User::whereHas('agences', function ($query) use ($agenceUuid) {
             $query->where('agences.uuid_agence', $agenceUuid)
-                ->wherePivot('is_active', true);
+                ->where('user_agences.is_active', true);
         })
             ->where('status', 'actif')
             ->whereHas('role', function ($query) {
