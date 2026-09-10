@@ -280,6 +280,7 @@ class RdvService
 
         return [
             'success' => true,
+            'code' => 'ELIGIBLE',
             'eligible' => empty($errors),
             'message' => 'Eligible',
             'errors' => $errors,
@@ -301,12 +302,12 @@ class RdvService
                 $data['date_rdv']
             );
 
-            if (!$eligibilite['eligible']) {
+            if (!$eligibilite['success']) {
                 return [
                     'success' => false,
-                    'code' => $eligibilite['code'],
-                    'message' => $eligibilite['message'],
-                    'eligibilite' => $eligibilite['errors'],
+                    'code' => $eligibilite['code'] ?? 'CLIENT_NON_ELIGIBLE',
+                    'message' => $eligibilite['message'] ?? 'Le client n\'est pas éligible pour un rendez-vous.',
+                    'eligibilite' => $eligibilite['errors'] ?? [],
                 ];
             }
 
@@ -318,8 +319,8 @@ class RdvService
             if (!$dateDispo['disponible']) {
                 return [
                     'success' => false,
-                    'code' => $dateDispo['code'],
-                    'message' => $dateDispo['message'],
+                    'code' => $dateDispo['code'] ?? 'DATE_NON_DISPONIBLE',
+                    'message' => $dateDispo['message'] ?? 'La date sélectionnée n\'est pas disponible.',
                 ];
             }
 

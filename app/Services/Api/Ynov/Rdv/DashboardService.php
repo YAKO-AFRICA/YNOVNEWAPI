@@ -193,12 +193,20 @@ class DashboardService
     {
         $query = Rdv::query()
             ->whereNull('gestionnaire_uuid')
-            ->whereIn('status', ['en_attente'])
-            ->with(['client.details', 'motif', 'agenceSouhaitee'])
-            ->orderBy('date_rdv_souhaiter', 'asc');
+            ->whereIn('status', ['transmis'])
+            ->where('is_present', true)
+            ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee'])
+            ->orderBy('present_at', 'asc');
 
         if (isset($filters['agence_uuid'])) {
-            $query->where('agence_souhaiter_uuid', $filters['agence_uuid']);
+            $query->where('agence_effective_uuid', $filters['agence_uuid']);
+        }
+
+        if (isset($filters['date_debut'])) {
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+        }
+        if (isset($filters['date_fin'])) {
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
         }
 
         if (isset($filters['status'])) {
@@ -228,13 +236,14 @@ class DashboardService
                         'libelle' => $rdv->agenceSouhaitee->libelle,
                         'ville' => $rdv->agenceSouhaitee->ville,
                     ] : null,
-                    'date_rdv_souhaiter' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
-                    'date_souhaitee_original' => $rdv->date_rdv_souhaiter?->format('Y-m-d'),
+                    'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
+                    'date_effective_original' => $rdv->date_rdv_effective?->format('Y-m-d'),
                     'status' => $rdv->status,
                     'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
                     'created_at' => $rdv->created_at?->format('d/m/Y H:i'),
                     'date_creation' => $rdv->created_at?->format('Y-m-d H:i:s'),
-                    'est_urgent' => $rdv->date_rdv_souhaiter && $rdv->date_rdv_souhaiter->diffInDays(now()) <= 3,
+                    // Indiquer si le rendez-vous est urgent (moins de 3 jours avant la date souhaitée)
+                    'est_urgent' => $rdv->date_rdv_effective && $rdv->date_rdv_effective->diffInDays(now()) <= 3,
                 ];
             })
             ->toArray();
@@ -443,13 +452,30 @@ class DashboardService
      */
     public function getClientsArrives(string $gestionnaireUuid, string $date): array
     {
-        return Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-            ->whereDate('date_rdv_souhaiter', $date)
+
+    $query = Rdv::query()
+            ->whereNull('gestionnaire_uuid')
+            ->whereIn('status', ['transmis'])
             ->where('is_present', true)
-            ->whereIn('status', ['transmis', 'en_attente'])
-            ->with(['client.details', 'motif', 'agenceSouhaitee'])
-            ->orderBy('date_rdv_souhaiter', 'asc')
-            ->get()
+            ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee'])
+            ->orderBy('present_at', 'asc');
+
+        if (isset($filters['agence_uuid'])) {
+            $query->where('agence_effective_uuid', $filters['agence_uuid']);
+        }
+
+        if (isset($filters['date_debut'])) {
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+        }
+        if (isset($filters['date_fin'])) {
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->get()
             ->map(function ($rdv) {
                 return [
                     'uuid_rdvs' => $rdv->uuid_rdvs,
@@ -471,14 +497,53 @@ class DashboardService
                         'libelle' => $rdv->agenceSouhaitee->libelle,
                         'ville' => $rdv->agenceSouhaitee->ville,
                     ] : null,
-                    'date_rdv_souhaiter' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
-                    'heure_rdv' => $rdv->date_rdv_souhaiter?->format('H:i'),
-                    'heure_arrivee' => $rdv->updated_at?->format('H:i'),
+                    'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
+                    'date_effective_original' => $rdv->date_rdv_effective?->format('Y-m-d'),
                     'status' => $rdv->status,
                     'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
-                    'est_prioritaire' => true, // Clients arrivés sont prioritaires
+                    'date_creation' => $rdv->created_at?->format('Y-m-d H:i:s'),
+                    // Indiquer si le rendez-vous est urgent (moins de 3 jours avant la date souhaitée)
+                    'est_urgent' => $rdv->date_rdv_effective && $rdv->date_rdv_effective->diffInDays(now()) <= 3,
                 ];
             })
             ->toArray();
+            
+        // return Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
+        //     ->whereDate('date_rdv_souhaiter', $date)
+        //     ->where('is_present', true)
+        //     ->whereIn('status', ['transmis', 'en_attente'])
+        //     ->with(['client.details', 'motif', 'agenceSouhaitee'])
+        //     ->orderBy('date_rdv_souhaiter', 'asc')
+        //     ->get()
+        //     ->map(function ($rdv) {
+        //         return [
+        //             'uuid_rdvs' => $rdv->uuid_rdvs,
+        //             'code' => $rdv->code,
+        //             'client' => [
+        //                 'uuid_user' => $rdv->client?->uuid_user,
+        //                 'nom_complet' => $rdv->client?->details ? 
+        //                     $rdv->client->details->nom . ' ' . $rdv->client->details->prenoms : 
+        //                     $rdv->client?->email,
+        //                 'email' => $rdv->client?->email,
+        //             ],
+        //             'motif' => $rdv->motif ? [
+        //                 'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+        //                 'libelle' => $rdv->motif->libelle,
+        //                 'code' => $rdv->motif->code,
+        //             ] : null,
+        //             'agence' => $rdv->agenceSouhaitee ? [
+        //                 'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
+        //                 'libelle' => $rdv->agenceSouhaitee->libelle,
+        //                 'ville' => $rdv->agenceSouhaitee->ville,
+        //             ] : null,
+        //             'date_rdv_souhaiter' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
+        //             'heure_rdv' => $rdv->date_rdv_souhaiter?->format('H:i'),
+        //             'heure_arrivee' => $rdv->updated_at?->format('H:i'),
+        //             'status' => $rdv->status,
+        //             'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+        //             'est_prioritaire' => true, // Clients arrivés sont prioritaires
+        //         ];
+        //     })
+        // ->toArray();
     }
 }
