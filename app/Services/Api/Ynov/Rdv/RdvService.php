@@ -568,7 +568,7 @@ class RdvService
                 'user_uuid' => $updaterUuid,
                 'group_notif_uuid' => $this->getRdvGroupUuid(),
                 'title' => 'Mise à jour du statut du Rendez-vous '. $rdv->code,
-                'message' => "Le statut du rendez-vous {$rdv->code} a changé de {$oldValues['status']} vers {$status}",
+                'body' => "Le statut du rendez-vous {$rdv->code} a changé de {$oldValues['status']} vers {$status}",
                 'type' => 'RENDEZ-VOUS',
                 'metadata' => [
                     'rdv' => $rdv->toArray(),
