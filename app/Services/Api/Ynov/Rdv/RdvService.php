@@ -17,6 +17,7 @@ use App\Services\Api\Ynov\Rdv\RoutingService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 // use Illuminate\Validation\ValidationException;
 
@@ -395,7 +396,9 @@ class RdvService
             ]);
 
             DB::afterCommit(function () use ($rdv, &$assignation) {
+                Log::info("Tentative d'assignation automatique du rendez-vous {$rdv->code} après création.");
                 $assignation = $this->routingService->assignerAutomatiquement($rdv);
+                Log::info("Assignation automatique du rendez-vous {$rdv->code} : {$assignation['success']}");
             });
 
             $rdvData = $rdv->load(['client', 'motif', 'agenceSouhaitee']);

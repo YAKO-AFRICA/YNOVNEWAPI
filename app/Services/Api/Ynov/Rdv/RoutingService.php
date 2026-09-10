@@ -10,7 +10,7 @@ use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 
 class RoutingService
 {
@@ -27,6 +27,7 @@ class RoutingService
     {
         // Vérifier si le RDV peut être assigné
         if (!$this->peutEtreAssigne($rdv)) {
+            Log::debug('RDV non assignable');
             return [
                 'success' => false,
                 'code' => 'RDV_NON_ASSIGNABLE',
@@ -37,8 +38,10 @@ class RoutingService
 
         // Récupérer les gestionnaires disponibles pour l'agence
         $gestionnaires = $this->getGestionnairesDisponibles($rdv->agence_souhaiter_uuid);
+        Log::debug('Gestionnaires disponibles : ' . json_encode($gestionnaires));
 
         if (empty($gestionnaires)) {
+            Log::debug('Aucun gestionnaire disponible pour cette agence.');
             // Si aucun gestionnaire disponible, on laisse en attente
             return [
                 'success' => false,
@@ -50,16 +53,19 @@ class RoutingService
 
         // Vérifier si le client a déjà des RDV le même jour
         $gestionnaireExistant = $this->getGestionnaireExistantPourClient($rdv);
+        Log::debug('Gestionnaire existant : ' . $gestionnaireExistant);
 
         if ($gestionnaireExistant) {
+            Log::debug('Gestionnaire existant');
             // Assigner au même gestionnaire
             return $this->assignerAuGestionnaire($rdv, $gestionnaireExistant);
         }
 
         // Distribution équitable par agence et par jour
         $gestionnaireChoisi = $this->getGestionnaireParDistributionEquitable($rdv, $gestionnaires);
-
+        Log::debug('Gestionnaire choisi : ' . $gestionnaireChoisi);
         if (!$gestionnaireChoisi) {
+            Log::debug('Distribution échec');
             return [
                 'success' => false,
                 'code' => 'DISTRIBUTION_ECHEC',
@@ -67,7 +73,7 @@ class RoutingService
                 'data' => null
             ];
         }
-
+        Log::debug('Gestionnaire choisi : ' . $gestionnaireChoisi);
         return $this->assignerAuGestionnaire($rdv, $gestionnaireChoisi);
     }
 
