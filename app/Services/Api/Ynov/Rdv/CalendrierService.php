@@ -17,7 +17,7 @@ class CalendrierService
 
         // Récupérer les RDV du mois
         $query = Rdv::whereBetween('date_rdv_effective', [$dateDebut, $dateFin])
-            ->whereIn('status', ['transmis', 'reporte']);
+            ->whereIn('status', ['transmis', 'reporte', 'traite', 'expire', 'en_attente']);
 
         
 
@@ -84,6 +84,7 @@ class CalendrierService
                 'expire' => 0,
             ];
 
+            $estOccupe = $rdvsJour['transmis']  + $rdvsJour['reporte'];
             $calendrier[] = [
                 'jour' => $jour,
                 'date' => $dateStr,
@@ -92,9 +93,9 @@ class CalendrierService
                 'est_du_mois' => true,
                 'est_aujourdhui' => $date->isToday(),
                 'est_passe' => $date->isPast(),
-                'rdvs' => $rdvsJour['total'],
+                'rdvs' => $estOccupe,
                 'details' => $rdvsJour,
-                'statut' => $this->getStatutJour($rdvsJour),
+                'statut' => $this->getStatutJour($estOccupe),
             ];
         }
 
@@ -205,7 +206,7 @@ class CalendrierService
         $dateFin = Carbon::create($annee, $mois, 1)->endOfMonth()->endOfDay();
 
         $query = Rdv::whereBetween('date_rdv_effective', [$dateDebut, $dateFin])
-            ->whereIn('status', ['transmis', 'reporte']);
+            ->whereIn('status', ['transmis', 'reporte', 'traite', 'expire', 'en_attente']);
 
         if ($agenceUuid) {
             $query->where('agence_effective_uuid', $agenceUuid);
@@ -254,9 +255,9 @@ class CalendrierService
     /**
      * Déterminer le statut d'un jour (plein, partiel, vide)
      */
-    private function getStatutJour(array $rdvsJour): string
+    private function getStatutJour(int $rdvsJour): string
     {
-        if ($rdvsJour['total'] === 0) {
+        if ($rdvsJour === 0) {
             return 'vide';
         }
 

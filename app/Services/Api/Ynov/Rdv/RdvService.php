@@ -744,17 +744,61 @@ class RdvService
      */
 
     // public function getClientsArrives(array $filters = [], int $perPage = 15, bool $asArray = false): array|\Illuminate\Contracts\Pagination\LengthAwarePaginator
-    
+
     public function getClientsArrives(array $filters = [], int $perPage = 15, bool $asArray = false)
     {
-        $query = Rdv::query()
+        // $query = Rdv::query()
+        //     ->where('is_present', true)
+        //     ->with([
+        //         'client.details',
+        //         'motif',
+        //         'agenceSouhaitee',
+        //         'agenceEffective',
+        //         'gestionnaire.details',
+        //     ]);
+
+            $query = Rdv::query()
+            ->select([
+                'uuid_rdvs',
+                'client_uuid',
+                'code',
+                'motif_rdv',
+                'status',
+                'date_rdv_effective',
+                'present_at',
+                'created_at',
+                'agence_souhaiter_uuid',
+                'agence_effective_uuid',
+                'gestionnaire_uuid',
+                'is_present',
+            ])
             ->where('is_present', true)
             ->with([
-                'client.details',
-                'motif',
-                'agenceSouhaitee',
-                'agenceEffective',
-                'gestionnaire.details',
+                'client' => function ($query) {
+                    $query->select('uuid_user', 'email')
+                        ->with([
+                            'details' => function ($q) {
+                                $q->select('user_uuid', 'nom', 'prenoms', 'mobile_1');
+                            },
+                        ]);
+                },
+                'motif' => function ($query) {
+                    $query->select('uuid_type_prestation', 'libelle', 'code', 'impact');
+                },
+                'agenceSouhaitee' => function ($query) {
+                    $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
+                },
+                'agenceEffective' => function ($query) {
+                    $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
+                },
+                'gestionnaire' => function ($query) {
+                    $query->select('uuid_user', 'email')
+                        ->with([
+                            'details' => function ($q) {
+                                $q->select('user_uuid', 'nom', 'prenoms');
+                            },
+                        ]);
+                },
             ]);
 
         if (!empty($filters['search'])) {
