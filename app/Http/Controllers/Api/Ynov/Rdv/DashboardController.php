@@ -55,46 +55,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * File d'attente des rendez-vous à traiter
-     */
-    public function fileAttente(Request $request): JsonResponse
-    {
-        $filters = $this->getFilters($request);
-        $limit = $request->integer('limit', 10);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'File d\'attente récupérée avec succès.',
-            'code' => 'FILE_ATTENTE_RDV',
-            'data' => $this->dashboardService->getFileAttente($filters, $limit)
-        ]);
-    }
-
-    /**
-     * Clients arrivés et signalés en agence (prioritaires)
-     */
-    public function clientsArrives(Request $request): JsonResponse
-    {
-        $gestionnaireUuid = $request->user()->uuid_user;
-        $date = $request->date ?? now()->format('Y-m-d');
-        $filters = $this->getFilters($request);
-        $filters['date'] = $date;
-
-        $clients = $this->dashboardService->getClientsArrives($gestionnaireUuid, $date, $filters);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Clients arrivés récupérés avec succès.',
-            'code' => 'CLIENTS_ARRIVES',
-            'data' => [
-                'clients' => $clients,
-                'total' => count($clients),
-                'date' => $date,
-            ],
-        ]);
-    }
-
+    
     /**
      * Statistiques par motif
      */

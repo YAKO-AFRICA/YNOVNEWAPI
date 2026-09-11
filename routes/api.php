@@ -642,7 +642,7 @@ Route::prefix('v1')->middleware([
         Route::get('list', [RdvController::class, 'getList']);
 
         // Liste globale des RDV avec filtres (gestionnaire auto-appliqué si besoin)
-        Route::get('clients-arrives', [DashboardController::class, 'clientsArrives']);
+        Route::get('clients-arrives', [RdvController::class, 'clientsArrives']);
 
         // Mes rendez-vous
         Route::get('/', [RdvController::class, 'index']);
@@ -680,9 +680,7 @@ Route::prefix('v1')->middleware([
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
         
-        // Réassigner un gestionnaire
-        // Route::post('{uuid_rdvs}/reassign-gestionnaire', [TraitementController::class, 'reassignGestionnaire']);
-         // Réassigner un RDV manuellement
+        // Réassigner un RDV manuellement
         Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner']);
         
         // Traiter un RDV (effectuer le traitement)
@@ -712,7 +710,6 @@ Route::prefix('v1')->middleware([
     Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'dashboard']);
         Route::get('stats', [DashboardController::class, 'stats']);
-        Route::get('file-attente', [DashboardController::class, 'fileAttente']);
         Route::get('stats/motif', [DashboardController::class, 'statsByMotif']);
         Route::get('stats/gestionnaire', [DashboardController::class, 'statsByGestionnaire']);
         Route::get('stats/agence', [DashboardController::class, 'statsByAgence']);

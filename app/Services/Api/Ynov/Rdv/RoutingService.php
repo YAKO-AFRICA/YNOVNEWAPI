@@ -191,14 +191,17 @@ class RoutingService
         $users = User::whereHas('agences', function ($query) use ($agenceUuid) {
             $query->where('agences.uuid_agence', $agenceUuid)
                 ->where('user_agences.is_active', true);
-        })
-            ->where('status', 'actif')
-            ->whereHas('role', function ($query) {
-                $query->whereHas('permissions', function ($q) {
-                    $q->where('code', 'rdvs.traiter');
-                });
-            })
-            ->get();
+        })->where('status', 'actif')->get();
+            // ->whereHas('role', function ($query) {
+            //     $query->whereHas('permissions', function ($q) {
+            //         $q->where('code', 'rdvs.traiter');
+            //     });
+            // })
+            
+
+            $users = $users->filter(function ($user) {
+                return $user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv');
+            });
 
         return $users->pluck('uuid_user')->toArray();
     }

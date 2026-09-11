@@ -739,6 +739,138 @@ class RdvService
     }
 
 
+    /**
+     * Clients arrivés et signalés en agence
+     */
+
+    // public function getClientsArrives(array $filters = [], int $perPage = 15, bool $asArray = false): array|\Illuminate\Contracts\Pagination\LengthAwarePaginator
+    
+    public function getClientsArrives(array $filters = [], int $perPage = 15, bool $asArray = false)
+    {
+        $query = Rdv::query()
+            ->where('is_present', true)
+            ->with([
+                'client.details',
+                'motif',
+                'agenceSouhaitee',
+                'agenceEffective',
+                'gestionnaire.details',
+            ]);
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'LIKE', "%{$search}%")
+                  ->orWhereHas('client', function ($sub) use ($search) {
+                      $sub->where('email', 'LIKE', "%{$search}%")
+                          ->orWhere('login', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('client.details', function ($sub) use ($search) {
+                      $sub->where('nom', 'LIKE', "%{$search}%")
+                          ->orWhere('prenoms', 'LIKE', "%{$search}%")
+                          ->orWhere('mobile_1', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('motif', function ($sub) use ($search) {
+                      $sub->where('libelle', 'LIKE', "%{$search}%")
+                          ->orWhere('code', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        } else {
+            $query->whereIn('status', ['transmis']);
+        }
+
+        if (isset($filters['is_present'])) {
+            $query->where('is_present', (bool) $filters['is_present']);
+        }
+
+        if (!empty($filters['agence_uuid'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('agence_effective_uuid', $filters['agence_uuid']);
+            });
+        }
+
+        if (!empty($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
+        if (!empty($filters['motif_uuid'])) {
+            $query->where('motif_rdv', $filters['motif_uuid']);
+        }
+
+        if (!empty($filters['date'])) {
+            $query->whereDate('date_rdv_effective', $filters['date']);
+            if (!isset($filters['status'])) {
+                $query->whereIn('status', ['transmis']);
+            }
+        }
+
+        if (!empty($filters['date_debut'])) {
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+        }
+        if (!empty($filters['date_fin'])) {
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+        }
+
+        $sortBy = $filters['sort_by'] ?? 'present_at';
+        $sortOrder = $filters['sort_order'] ?? 'asc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        if ($asArray) {
+
+            return $query->get()->map(function ($rdv) {
+                $estEnRetard = $rdv->date_rdv_effective && $rdv->date_rdv_effective->isPast();
+
+                return [
+                    'uuid_rdvs' => $rdv->uuid_rdvs,
+                    'code' => $rdv->code,
+                    'client' => [
+                        'uuid_user' => $rdv->client?->uuid_user,
+                        'nom_complet' => $rdv->client?->details ?
+                            trim(($rdv->client->details->nom ?? '') . ' ' . ($rdv->client->details->prenoms ?? ''))
+                            : ($rdv->client?->email ?? ''),
+                        'email' => $rdv->client?->email,
+                        'mobile' => $rdv->client?->details?->mobile_1,
+                    ],
+                    'motif' => $rdv->motif ? [
+                        'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+                        'libelle' => $rdv->motif->libelle,
+                        'code' => $rdv->motif->code,
+                        'impact' => $rdv->motif->impact,
+                        'impact_label' => $rdv->motif->getImpactLabel(),
+                    ] : null,
+                    'agence' => $rdv->agenceEffective ? [
+                        'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+                        'libelle' => $rdv->agenceEffective->libelle,
+                        'ville' => $rdv->agenceEffective->ville,
+                        'adresse' => $rdv->agenceEffective->adresse,
+                    ] : null,
+                    'gestionnaire' => $rdv->gestionnaire ? [
+                        'uuid_user' => $rdv->gestionnaire->uuid_user,
+                        'nom_complet' => trim(($rdv->gestionnaire?->details?->nom ?? '') . ' ' . ($rdv->gestionnaire?->details?->prenoms ?? '')),
+                        'email' => $rdv->gestionnaire?->email,
+                    ] : null,
+                    'date_rdv_effective' => $rdv->date_rdv_effective?->format('d/m/Y'),
+                    'date_effective_original' => $rdv->date_rdv_effective?->format('Y-m-d'),
+                    'date_arrivee' => $rdv->present_at?->format('d/m/Y H:i'),
+                    'status' => $rdv->status,
+                    'status_label' => Rdv::STATUS[$rdv->status] ?? $rdv->status,
+                    'date_creation' => $rdv->created_at?->format('Y-m-d H:i:s'),
+                    'is_present' => (bool) $rdv->is_present,
+                    'est_en_retard' => $estEnRetard,
+                    'est_urgent' => $rdv->date_rdv_effective && $rdv->date_rdv_effective->diffInDays(now()) <= 3,
+                    'heure_arrivee' => $rdv->present_at?->format('H:i'),
+                ];
+            })->values()->all();
+        }
+
+        return $query->paginate($perPage);
+    }
+
+
 
     /**
      * Récupérer la liste des rendez-vous avec filtres
@@ -813,13 +945,10 @@ class RdvService
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
         }
 
-        if (isset($filters['date'])) {
-            $query->orderBy('date_rdv_effective', 'asc');
-        } else {
-            $sortBy = $filters['sort_by'] ?? 'created_at';
-            $sortOrder = $filters['sort_order'] ?? 'desc';
-            $query->orderBy($sortBy, $sortOrder);
-        }
+        $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
 
         if ($asArray) {
             return $query->get()->map(function ($rdv) {
