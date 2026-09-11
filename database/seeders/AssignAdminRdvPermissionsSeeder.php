@@ -39,6 +39,7 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
         'rdvs.annuler',
         'rdvs.export',
         'rdvs.gerer_notifications',
+        'rdvs.calendrier',
     ];
 
     public function run(): void

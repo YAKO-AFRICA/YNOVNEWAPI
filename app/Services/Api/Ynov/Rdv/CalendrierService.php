@@ -19,6 +19,8 @@ class CalendrierService
         $query = Rdv::whereBetween('date_rdv_effective', [$dateDebut, $dateFin])
             ->whereIn('status', ['transmis', 'reporte']);
 
+        
+
         if ($agenceUuid) {
             $query->where('agence_effective_uuid', $agenceUuid);
         }

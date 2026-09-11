@@ -2139,6 +2139,12 @@ class PermissionService
                         'libelle' => 'Retransmettre un gestionnaire',
                         'description' => 'Permet de retransmettre un rendez-vous à un autre gestionnaire',
                     ],
+                    [
+                        'category' => 'gestionnaire',
+                        'action' => 'calendrier',
+                        'libelle' => 'Voir le calendrier des rendez-vous',
+                        'description' => 'Permet de voir le calendrier des rendez-vous',
+                    ],
 
                     [
                         'category' => 'routing',

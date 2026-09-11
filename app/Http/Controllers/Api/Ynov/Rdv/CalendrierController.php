@@ -25,10 +25,15 @@ class CalendrierController extends Controller
             'gestionnaire_uuid' => ['nullable', 'exists:users,uuid_user'],
         ]);
 
+        $user = $request->user();
+        $gestionnaireUuid = $request->gestionnaire_uuid ?? '';
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+            $gestionnaireUuid = $user->uuid_user;
+        }
+
         $mois = $request->mois ?? now()->month;
         $annee = $request->annee ?? now()->year;
         $agenceUuid = $request->agence_uuid;
-        $gestionnaireUuid = $request->gestionnaire_uuid;
 
         $calendrier = $this->calendrierService->getCalendrierMois($mois, $annee, $agenceUuid, $gestionnaireUuid);
 
