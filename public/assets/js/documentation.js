@@ -122,6 +122,11 @@
                 icon: "fa-circle-question",
             },
 
+            motif_traitements: {
+                label: "Motifs de Traitement",
+                icon: "fa-clipboard-check",
+            },
+
             group_notifs: {
                 label: "Groupes de Notifications",
                 icon: "fa-layer-group",
@@ -8673,6 +8678,441 @@
             },
 
             // ============================================================
+            // MOTIFS DE TRAITEMENT
+            // ============================================================
+            {
+                id: "motif-traitements-list",
+                module: "motif_traitements",
+                name: "Liste des motifs de traitement",
+                description:
+                    "Récupère la liste paginée des motifs de traitement avec filtres par recherche, statut, type et module. Nécessite la permission `motif_traitements.afficher`.",
+                method: "GET",
+                path: "/motif-traitements",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche textuelle sur le libellé ou le statut",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["actif", "inactif"],
+                            description: "Filtrer par statut",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par type (par ex. validation, correction, annulation)",
+                        },
+                        module: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par module (E-RDV, E-PRESTATION, E-SINISTRE)",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 15,
+                            description: "Nombre d’éléments par page",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste récupérée avec succès",
+                        example: {
+                            success: true,
+                            message: "Liste des motifs de traitement récupérée.",
+                            code: "MOTIF_TRAITEMENTS_LISTED",
+                            data: [
+                                {
+                                    id: 1,
+                                    uuid_motif_traitements: "550e8400-e29b-41d4-a716-446655440001",
+                                    libelle: "ERREUR SUR LA SIMULATION",
+                                    type: ["correction"],
+                                    status: "actif",
+                                    module: ["E-PRESTATION"],
+                                    created_at: "2026-09-11T12:00:00.000000Z",
+                                    updated_at: "2026-09-11T12:00:00.000000Z",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 15,
+                                total: 1,
+                                last_page: 1,
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-actives",
+                module: "motif_traitements",
+                name: "Liste des motifs actifs",
+                description:
+                    "Récupère uniquement les motifs actifs, classés par libellé. Nécessite la permission `motif_traitements.afficher`.",
+                method: "GET",
+                path: "/motif-traitements/actives",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motifs actifs récupérés",
+                        example: {
+                            success: true,
+                            message: "Motifs de traitement actifs récupérés.",
+                            code: "MOTIF_TRAITEMENTS_ACTIVE_LISTED",
+                            data: [
+                                {
+                                    uuid_motif_traitements: "...",
+                                    libelle: "Déclaration",
+                                    type: ["validation"],
+                                    status: "actif",
+                                    module: ["E-PRESTATION"],
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-suggested-types",
+                module: "motif_traitements",
+                name: "Types suggérés pour le formulaire",
+                description:
+                    "Retourne la liste des types standards proposés dans un formulaire. Utile pour alimenter un select de type de motif. Nécessite la permission `motif_traitements.afficher`.",
+                method: "GET",
+                path: "/motif-traitements/types/suggested",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Types de motifs suggérés",
+                        example: {
+                            success: true,
+                            message: "Types de motifs de traitement suggérés.",
+                            code: "MOTIF_TRAITEMENT_TYPES_SUGGESTED",
+                            data: [
+                                { value: "annulation", label: "Annulation" },
+                                { value: "rejet", label: "Rejet" },
+                                { value: "report", label: "Report" },
+                                { value: "validation", label: "Validation" },
+                                { value: "informations", label: "Informations" },
+                                { value: "autre", label: "Autre" },
+                            ],
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-show",
+                module: "motif_traitements",
+                name: "Détails d'un motif de traitement",
+                description:
+                    "Récupère les détails d'un motif de traitement spécifique par UUID. Nécessite la permission `motif_traitements.afficher`.",
+                method: "GET",
+                path: "/motif-traitements/{uuid}",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du motif de traitement",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motif trouvé",
+                        example: {
+                            success: true,
+                            message: "Détails du motif de traitement.",
+                            code: "MOTIF_TRAITEMENT_FOUND",
+                            data: {
+                                uuid_motif_traitements: "550e8400-e29b-41d4-a716-446655440001",
+                                libelle: "ERREUR SUR LA SIMULATION",
+                                type: ["correction"],
+                                status: "actif",
+                                module: ["E-PRESTATION"],
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Motif non trouvé",
+                        example: {
+                            success: false,
+                            message: "No query results for model [App\\Models\\Api\\Ynov\\parameter\\MotifTraitement].",
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-create",
+                module: "motif_traitements",
+                name: "Créer un motif de traitement",
+                description:
+                    "Crée un motif de traitement. Nécessite la permission `motif_traitements.creer`.",
+                method: "POST",
+                path: "/motif-traitements",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        libelle: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Libellé du motif",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["actif", "inactif"],
+                            default: "actif",
+                            description: "Statut du motif",
+                        },
+                        type: {
+                            type: "array",
+                            required: false,
+                            description: "Types associés au motif",
+                        },
+                        "type.*": {
+                            type: "string",
+                            description: "Type possible (validation, correction, annulation, etc.)",
+                        },
+                        module: {
+                            type: "array",
+                            required: false,
+                            description: "Modules associés au motif",
+                        },
+                        "module.*": {
+                            type: "string",
+                            description: "Module cible (E-RDV, E-PRESTATION, E-SINISTRE)",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    libelle: "ERREUR SUR LA SIMULATION",
+                    type: ["correction"],
+                    status: "actif",
+                    module: ["E-PRESTATION"],
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Motif créé avec succès",
+                        example: {
+                            success: true,
+                            message: "Motif de traitement créé avec succès.",
+                            code: "MOTIF_TRAITEMENT_CREATED",
+                            data: {
+                                uuid_motif_traitements: "...",
+                                libelle: "ERREUR SUR LA SIMULATION",
+                                type: ["correction"],
+                                status: "actif",
+                                module: ["E-PRESTATION"],
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                libelle: ["Le libellé est obligatoire."],
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-update",
+                module: "motif_traitements",
+                name: "Mettre à jour un motif de traitement",
+                description:
+                    "Met à jour un motif existant. Nécessite la permission `motif_traitements.modifier`.",
+                method: "PUT",
+                path: "/motif-traitements/{uuid}",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du motif",
+                        },
+                    },
+                    body: {
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Nouveau libellé",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["actif", "inactif"],
+                            description: "Nouveau statut",
+                        },
+                        type: {
+                            type: "array",
+                            required: false,
+                            description: "Nouveaux types associés",
+                        },
+                        module: {
+                            type: "array",
+                            required: false,
+                            description: "Nouveaux modules associés",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motif mis à jour",
+                        example: {
+                            success: true,
+                            message: "Motif de traitement mis à jour avec succès.",
+                            code: "MOTIF_TRAITEMENT_UPDATED",
+                            data: {
+                                uuid_motif_traitements: "...",
+                                libelle: "ERREUR SUR LA SIMULATION",
+                                type: ["correction"],
+                                status: "inactif",
+                                module: ["E-PRESTATION"],
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-toggle",
+                module: "motif_traitements",
+                name: "Activer / désactiver un motif",
+                description:
+                    "Bascule le statut actif/inactif d’un motif. Nécessite la permission `motif_traitements.modifier`.",
+                method: "PATCH",
+                path: "/motif-traitements/{uuid}/toggle",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du motif",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Statut mis à jour",
+                        example: {
+                            success: true,
+                            message: "Statut du motif de traitement mis à jour.",
+                            code: "MOTIF_TRAITEMENT_TOGGLED",
+                            data: {
+                                uuid_motif_traitements: "...",
+                                libelle: "ERREUR SUR LA SIMULATION",
+                                status: "inactif",
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "motif-traitements-delete",
+                module: "motif_traitements",
+                name: "Supprimer un motif de traitement",
+                description:
+                    "Supprime définitivement un motif. Nécessite la permission `motif_traitements.supprimer`.",
+                method: "DELETE",
+                path: "/motif-traitements/{uuid}",
+                isProtected: true,
+                permissionsRequired: ["motif_traitements.supprimer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du motif",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motif supprimé",
+                        example: {
+                            success: true,
+                            message: "Motif de traitement supprimé avec succès.",
+                            code: "MOTIF_TRAITEMENT_DELETED",
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "Suppression impossible",
+                        example: {
+                            success: false,
+                            message: "Impossible de supprimer ce motif de traitement.",
+                            code: "MOTIF_TRAITEMENT_DELETE_FAILED",
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
             // GROUPES DE NOTIFICATION
             // ============================================================
 
@@ -13784,7 +14224,7 @@
                 module: "rdvs",
                 name: "Annuler un rendez-vous",
                 description:
-                    "Annule un rendez-vous. Un rendez-vous confirmé ou traité ne peut pas être annulé.",
+                    "Annule un rendez-vous. Un rendez-vous transmis ou traité ne peut pas être annulé.",
                 method: "POST",
                 path: "/rdvs/{uuid_rdvs}/cancel",
                 isProtected: true,
@@ -14512,6 +14952,141 @@
                                 total: 5,
                                 last_page: 1,
                             },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "rdv-detail-admin",
+                module: "rdvs",
+                name: "[Admin] Détail complet d'un rendez-vous",
+                description:
+                    "Récupère le détail complet d'un rendez-vous pour un gestionnaire ou un administrateur. Retourne le client, le gestionnaire, l'agence, le motif, les informations de traitement, ainsi que le bordereau associé lorsqu'il existe. Nécessite la permission `rdvs.afficher`.",
+                method: "GET",
+                path: "/rdvs/{uuid_rdvs}/detail-rdv",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_rdvs: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du rendez-vous",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Détail complet du rendez-vous récupéré",
+                        example: {
+                            success: true,
+                            message: "Détail complet du rendez-vous récupéré.",
+                            code: "RDV_DETAIL_ADMIN",
+                            data: {
+                                uuid_rdvs: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                code: "RDV-2026-001",
+                                status: "transmis",
+                                status_label: "Transmis",
+                                motif_rdv: "f1a2b3c4-1234-4567-89ab-abcdef123456",
+                                motif_rdv_label: "Rachat partiel",
+                                demandeur: "Client",
+                                date_rdv_souhaiter: "2026-09-15 10:00:00",
+                                date_rdv_effective: "2026-09-15 10:00:00",
+                                date_transmission: "2026-09-12 09:30:00",
+                                date_traitement: null,
+                                is_permitted: true,
+                                is_present: false,
+                                observation: "Client attendu en agence",
+                                motif_traitement: {
+                                    rejet: "Paiement non conforme",
+                                },
+                                client: {
+                                    uuid_user: "2a4d0bce-7e67-4e2d-9b32-99b3b8cb42d1",
+                                    login: "jdupont",
+                                    email: "jdupont@example.com",
+                                    nom: "Dupont",
+                                    prenoms: "Jean",
+                                    full_name: "Dupont Jean",
+                                    phone: "22507070707",
+                                    status: "actif",
+                                    user_type: "client",
+                                },
+                                gestionnaire: {
+                                    uuid_user: "7f22a5ce-7d03-478a-8d40-c5c8f8c32176",
+                                    login: "gestionnaire1",
+                                    email: "gestionnaire@example.com",
+                                    nom: "Kouassi",
+                                    prenoms: "Marie",
+                                    full_name: "Kouassi Marie",
+                                },
+                                agence_souhaitee: {
+                                    uuid_agence: "c22d9d8b-05ef-40dd-b141-ec6d0f7b6d69",
+                                    libelle: "Abidjan Plateau",
+                                    code: "ABI-PL",
+                                    ville: "Abidjan",
+                                    adresse: "Plateau",
+                                },
+                                agence_effective: {
+                                    uuid_agence: "c22d9d8b-05ef-40dd-b141-ec6d0f7b6d69",
+                                    libelle: "Abidjan Plateau",
+                                    code: "ABI-PL",
+                                    ville: "Abidjan",
+                                    adresse: "Plateau",
+                                },
+                                detail_bordereau: {
+                                    uuid_detail_bordereau_rdv: "a3f9d9a1-17e0-4c75-a254-3210a71ba2fa",
+                                    bordereau_rdv_uuid: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                    date_effet: "2026-09-01",
+                                    date_echeance: "2027-09-01",
+                                    duree_contrat: 12,
+                                    type_operation: "retrait",
+                                    status: "traite",
+                                    observation: "Traitement validé",
+                                    cumul_rachats_partiels: 250000.0,
+                                    cumul_avances: 0.0,
+                                    provision_nette: 125000.0,
+                                    valeur_rachat: 50000.0,
+                                    valeur_max_rachat: 50000.0,
+                                    valeur_max_avance: 0.0,
+                                    montant_transformation: 0.0,
+                                    garantie_surete: 0.0,
+                                    conservation_capital: 0.0,
+                                    bordereau: {
+                                        uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                        reference: "BR-2026-001",
+                                        periode_1: "2026-09-01",
+                                        periode_2: "2026-09-30",
+                                        status: "cloture",
+                                        observation: "Bordereau clôturé",
+                                    },
+                                },
+                                created_at: "2026-09-11 10:00:00",
+                                updated_at: "2026-09-11 10:05:00",
+                            },
+                        },
+                    },
+                    {
+                        status: 403,
+                        description: "Permission insuffisante",
+                        example: {
+                            success: false,
+                            message: "Vous n'avez pas les permissions requises.",
+                            code: "FORBIDDEN",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Rendez-vous non trouvé",
+                        example: {
+                            success: false,
+                            message: "No query results for model [App\\Models\\Api\\Ynov\\Rdv].",
+                            code: "MODEL_NOT_FOUND",
                         },
                     },
                 ],

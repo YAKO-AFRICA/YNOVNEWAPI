@@ -1,7 +1,7 @@
 <?php
-// app/Http/Controllers/Api/Ynov/RdvController.php
+// app/Http/Controllers/Api/Ynov/Rdv/RdvController.php
 
-namespace App\Http\Controllers\Api\Ynov;
+namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\DatesDisponiblesRequest;
@@ -11,6 +11,7 @@ use App\Http\Requests\Api\Ynov\Rdv\SignalerPresenceRequest;
 use App\Http\Requests\Api\Ynov\Rdv\StoreRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\UpdateRdvStatusRequest;
 use App\Http\Requests\Api\Ynov\Rdv\VerifierDateRequest;
+use App\Http\Resources\Api\Ynov\RdvResource;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\Rdv\RdvService;
 use Illuminate\Http\JsonResponse;
@@ -228,7 +229,7 @@ class RdvController extends Controller
     }
 
     /**
-     * Détails d'un rendez-vous
+     * Détails d'un rendez-vous du client
      */
     public function show(string $uuid_rdvs): JsonResponse
     {
@@ -256,13 +257,13 @@ class RdvController extends Controller
     }
 
     /**
-     * Annuler un rendez-vous
+     * Annuler un rendez-vous pour le client
      */
     public function cancel(Request $request, string $uuid_rdvs): JsonResponse
     {
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
-        if (in_array($rdv->status, ['confirme', 'termine', 'traite'])) {
+        if (in_array($rdv->status, ['transmis', 'traite'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ce rendez-vous ne peut plus être annulé car il est déjà confirmé ou traité.',
@@ -286,7 +287,7 @@ class RdvController extends Controller
     }
 
     /**
-     * Signaler sa présence
+     * Client signale sa présence
      */
 
     public function signalerPresence(SignalerPresenceRequest $request, string $uuid_rdvs): JsonResponse
@@ -381,6 +382,29 @@ class RdvController extends Controller
     }
 
     /**
+     * [Admin] Détail complet d'un rendez-vous
+     */
+    public function showDetailAdmin(string $uuid_rdvs): JsonResponse
+    {
+        $rdv = Rdv::with([
+            'client.details',
+            'gestionnaire.details',
+            'motif',
+            'agenceSouhaitee',
+            'agenceEffective',
+            'detailBordereau',
+            'detailBordereau.bordereauRdv',
+        ])->where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Détail complet du rendez-vous récupéré.',
+            'code' => 'RDV_DETAIL_ADMIN',
+            'data' => new RdvResource($rdv),
+        ]);
+    }
+
+    /**
      * [Admin] Mettre à jour le statut d'un rendez-vous
      */
 
@@ -459,7 +483,8 @@ class RdvController extends Controller
 
 
     /**
-     * Liste des rendez-vous avec filtres
+     * Liste des rendez-vous avec filtres pour l'administration
+     * (avec pagination et tri)
      */
     public function getList(RdvListRequest $request): JsonResponse
     {
@@ -469,6 +494,7 @@ class RdvController extends Controller
         $user = $request->user();
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
+            $filters['status'] = 'transmis';
         }
 
         $rdvs = $this->rdvService->getList($filters, $perPage);

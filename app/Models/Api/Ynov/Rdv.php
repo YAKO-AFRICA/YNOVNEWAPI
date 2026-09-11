@@ -121,6 +121,14 @@ class Rdv extends Model
     }
 
     /**
+     * Un rendez-vous a au plus un détail de bordereau
+     */
+    public function detailBordereau()
+    {
+        return $this->hasOne(DetailBordereauRdv::class, 'rdv_uuid', 'uuid_rdvs');
+    }
+
+    /**
      * Vérifier si le rendez-vous est transmis
      */
     public function isTransmitted(): bool

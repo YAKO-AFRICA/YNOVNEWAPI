@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Ynov\GroupNotifController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\JourFerieController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
+use App\Http\Controllers\Api\Ynov\MotifTraitementController;
 use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
@@ -25,9 +26,9 @@ use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
 use App\Http\Controllers\Api\Ynov\Rdv\CalendrierController;
 use App\Http\Controllers\Api\Ynov\Rdv\DashboardController;
+use App\Http\Controllers\Api\Ynov\Rdv\RdvController;
 use App\Http\Controllers\Api\Ynov\Rdv\RoutingController;
 use App\Http\Controllers\Api\Ynov\Rdv\TraitementController;
-use App\Http\Controllers\Api\Ynov\RdvController;
 use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
@@ -250,6 +251,32 @@ Route::prefix('v1')->middleware([
     Route::group(['middleware' => 'permission:permissions.afficher'], function () {
         Route::get('permissions', [PermissionController::class, 'index']);
         Route::get('permissions/{uuid_permission}', [PermissionController::class, 'show']);
+    });
+
+    Route::prefix('motif-traitements')->group(function () {
+        Route::get('/', [MotifTraitementController::class, 'index'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('actives', [MotifTraitementController::class, 'actives'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('types/suggested', [MotifTraitementController::class, 'suggestedTypes'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('{uuid}', [MotifTraitementController::class, 'show'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::post('/', [MotifTraitementController::class, 'store'])
+            ->middleware('permission:motif_traitements.creer');
+
+        Route::put('{uuid}', [MotifTraitementController::class, 'update'])
+            ->middleware('permission:motif_traitements.modifier');
+
+        Route::patch('{uuid}/toggle', [MotifTraitementController::class, 'toggle'])
+            ->middleware('permission:motif_traitements.modifier');
+
+        Route::delete('{uuid}', [MotifTraitementController::class, 'destroy'])
+            ->middleware('permission:motif_traitements.supprimer');
     });
 
     Route::post('permissions', [PermissionController::class, 'store'])->middleware('permission:permissions.creer');
@@ -639,22 +666,27 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:rdvs.creer');
 
         // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
-        Route::get('list', [RdvController::class, 'getList']);
+        Route::get('list', [RdvController::class, 'getList'])->middleware('permission:rdvs.afficher');
 
         // Liste globale des RDV avec filtres (gestionnaire auto-appliqué si besoin)
-        Route::get('clients-arrives', [RdvController::class, 'clientsArrives']);
+        Route::get('clients-arrives', [RdvController::class, 'clientsArrives'])->middleware('permission:rdvs.afficher');
 
-        // Mes rendez-vous
+        // Mes rendez-vous CLIENT (connecté)
         Route::get('/', [RdvController::class, 'index']);
         Route::get('stats', [RdvController::class, 'stats']);
 
-        // Calendrier des RDV (DOIT ÊTRE AVANT LA ROUTE DYNAMIQUE {uuid_rdvs})
+        // Calendrier des RDV Gestionnaire (connecté) ou Admin (tous les RDV)
         Route::get('calendrier', [CalendrierController::class, 'calendrier'])
             ->middleware('permission:rdvs.calendrier');
         Route::get('calendrier/stats', [CalendrierController::class, 'stats'])
             ->middleware('permission:rdvs.calendrier');
 
+        // Détails d'un rendez-vous connecté (client)
         Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
+
+        // Détails d'un rendez-vous connecté (admin ou gestionnaire)
+        Route::get('{uuid_rdvs}/detail-rdv', [RdvController::class, 'showDetailAdmin'])
+            ->middleware('permission:rdvs.afficher');
 
         // Créer un rendez-vous
         Route::post('/', [RdvController::class, 'store'])

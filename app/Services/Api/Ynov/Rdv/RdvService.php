@@ -218,8 +218,10 @@ class RdvService
             }
 
             $nbRdv = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
+                // verifier aussi sur date_rdv_effective
                 ->whereDate('date_rdv_souhaiter', $dateStr)
-                ->whereNotIn('status', ['annule', 'rejete', 'termine'])
+                ->orWhereDate('date_rdv_effective', $dateStr)
+                ->whereNotIn('status', ['annule', 'rejete', 'traite'])
                 ->count();
 
             $capaciteMax = $horaire->capacite_rendez_vous ?? 0;
@@ -248,7 +250,7 @@ class RdvService
         $rdvRecent = Rdv::forClient($client->uuid_user)
             ->forContrat($contratId)
             ->whereDate('created_at', '>=', now()->subDays(30))
-            ->whereNotIn('status', ['rejete', 'annule', 'termine'])
+            ->whereNotIn('status', ['rejete', 'annule'])
             ->first();
 
         if ($rdvRecent) {
@@ -757,49 +759,49 @@ class RdvService
         //         'gestionnaire.details',
         //     ]);
 
-            $query = Rdv::query()
-            ->select([
-                'uuid_rdvs',
-                'client_uuid',
-                'code',
-                'motif_rdv',
-                'status',
-                'date_rdv_effective',
-                'present_at',
-                'created_at',
-                'agence_souhaiter_uuid',
-                'agence_effective_uuid',
-                'gestionnaire_uuid',
-                'is_present',
-            ])
-            ->where('is_present', true)
-            ->with([
-                'client' => function ($query) {
-                    $query->select('uuid_user', 'email')
-                        ->with([
-                            'details' => function ($q) {
-                                $q->select('user_uuid', 'nom', 'prenoms', 'mobile_1');
-                            },
-                        ]);
-                },
-                'motif' => function ($query) {
-                    $query->select('uuid_type_prestation', 'libelle', 'code', 'impact');
-                },
-                'agenceSouhaitee' => function ($query) {
-                    $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
-                },
-                'agenceEffective' => function ($query) {
-                    $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
-                },
-                'gestionnaire' => function ($query) {
-                    $query->select('uuid_user', 'email')
-                        ->with([
-                            'details' => function ($q) {
-                                $q->select('user_uuid', 'nom', 'prenoms');
-                            },
-                        ]);
-                },
-            ]);
+        $query = Rdv::query()
+        ->select([
+            'uuid_rdvs',
+            'client_uuid',
+            'code',
+            'motif_rdv',
+            'status',
+            'date_rdv_effective',
+            'present_at',
+            'created_at',
+            'agence_souhaiter_uuid',
+            'agence_effective_uuid',
+            'gestionnaire_uuid',
+            'is_present',
+        ])
+        ->where('is_present', true)
+        ->with([
+            'client' => function ($query) {
+                $query->select('uuid_user', 'email')
+                    ->with([
+                        'details' => function ($q) {
+                            $q->select('user_uuid', 'nom', 'prenoms', 'mobile_1');
+                        },
+                    ]);
+            },
+            'motif' => function ($query) {
+                $query->select('uuid_type_prestation', 'libelle', 'code', 'impact');
+            },
+            'agenceSouhaitee' => function ($query) {
+                $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
+            },
+            'agenceEffective' => function ($query) {
+                $query->select('uuid_agence', 'libelle', 'code', 'ville', 'adresse');
+            },
+            'gestionnaire' => function ($query) {
+                $query->select('uuid_user', 'email')
+                    ->with([
+                        'details' => function ($q) {
+                            $q->select('user_uuid', 'nom', 'prenoms');
+                        },
+                    ]);
+            },
+        ]);
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -990,7 +992,7 @@ class RdvService
         }
 
         $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';
-        $sortOrder = $filters['sort_order'] ?? 'desc';
+        $sortOrder = $filters['sort_order'] ?? 'asc';
         $query->orderBy($sortBy, $sortOrder);
 
 
@@ -1051,8 +1053,8 @@ class RdvService
                 'uuid_rdvs' => $rdv->uuid_rdvs,
                 'code' => $rdv->code,
                 'date_creation' => $rdv->created_at?->format('Y-m-d'),
-                'date_rdv' => $rdv->date_rdv_souhaiter?->format('Y-m-d'),
-                'heure_rdv' => $rdv->date_rdv_souhaiter?->format('H:i'),
+                'date_rdv' => $rdv->date_rdv_effective?->format('Y-m-d') ?? $rdv->date_rdv_souhaiter?->format('Y-m-d'),
+                'heure_rdv' => $rdv->date_rdv_effective?->format('H:i') ?? $rdv->date_rdv_souhaiter?->format('H:i'),
                 
                 // Client
                 'client' => [
@@ -1112,8 +1114,8 @@ class RdvService
                 'nb_rdv_client_30j' => $this->getNbRdvClient30j($rdv),
                 
                 // Dates
-                'date_rdv_formatee' => $rdv->date_rdv_souhaiter?->format('d/m/Y'),
-                'heure_rdv_formatee' => $rdv->date_rdv_souhaiter?->format('H:i'),
+                'date_rdv_formatee' => $rdv->date_rdv_effective?->format('d/m/Y') ?? $rdv->date_rdv_effective?->format('d/m/Y'),
+                'heure_rdv_formatee' => $rdv->date_rdv_effective?->format('H:i') ?? $rdv->date_rdv_effective?->format('H:i'),
                 'date_creation_formatee' => $rdv->created_at?->format('d/m/Y'),
                 
                 // Métadonnées

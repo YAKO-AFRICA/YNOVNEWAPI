@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminUserSeeder::class,
             FaqCategorySeeder::class,
             JourFerieSeeder::class,
+            MotifTraitementSeeder::class,
             TypeProduitSeeder::class,
             ProduitSeeder::class,
             CategoryTypePrestationSeeder::class,

@@ -1777,6 +1777,52 @@ class PermissionService
             ],
 
             // ============================================================
+            // MOTIFS DE TRAITEMENT
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'motif_traitements',
+                    'libelle' => 'Motifs de traitement',
+                    'description' => 'Gestion des motifs de traitement',
+                    'icone' => 'clipboard-check',
+                    'color' => '#6f42c1',
+                    'ordre' => 14,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les motifs de traitement',
+                        'description' => 'Permet de visualiser la liste et les détails des motifs de traitement'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer un motif de traitement',
+                        'description' => 'Permet de créer un motif de traitement'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier un motif de traitement',
+                        'description' => 'Permet de modifier un motif de traitement'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer un motif de traitement',
+                        'description' => 'Permet de supprimer un motif de traitement'
+                    ],
+                    [
+                        'category' => 'admin',
+                        'action' => 'toggle',
+                        'libelle' => 'Activer / désactiver un motif',
+                        'description' => 'Permet d\'activer ou de désactiver un motif de traitement'
+                    ],
+                ]
+            ],
+
+            // ============================================================
             // GROUPES DE NOTIFICATION
             // ============================================================
             [
@@ -1786,7 +1832,7 @@ class PermissionService
                     'description' => 'Gestion des groupes de notification',
                     'icone' => 'bell-fill',
                     'color' => '#fd7e14',
-                    'ordre' => 14,
+                    'ordre' => 15,
                 ],
                 'permissions' => [
                     [
