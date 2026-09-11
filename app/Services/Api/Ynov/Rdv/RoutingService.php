@@ -3,11 +3,11 @@
 namespace App\Services\Api\Ynov\Rdv;
 
 use App\Models\Api\Ynov\parameter\ActivityLog;
-// use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +16,8 @@ class RoutingService
 {
     public function __construct(
         private NotificationService $notificationService,
-        private TraitementService $traitementService
+        private TraitementService $traitementService,
+        private BordereauRdvService $bordereauRdvService
     ) {}
 
     /**
@@ -87,6 +88,8 @@ class RoutingService
                 'transmis_par' => 'system',
                 'updated_by' => 'system',
             ]);
+
+            $this->bordereauRdvService->ensureForRdv($rdv);
 
             // Log
             ActivityLog::log([

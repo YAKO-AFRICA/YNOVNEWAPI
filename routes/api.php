@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Ynov\AgenceController;
 use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
@@ -648,6 +649,14 @@ Route::prefix('v1')->middleware([
     // ============================================================
     // RENDEZ-VOUS (RDV) - CLIENT
     // ============================================================
+    Route::prefix('bordereaux')->group(function () {
+        Route::get('lots', [BordereauController::class, 'indexLots'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('details', [BordereauController::class, 'indexDetails'])
+            ->middleware('permission:rdvs.afficher');
+    });
+
     Route::prefix('rdvs')->group(function () {
         // Motifs disponibles
         Route::get('motifs', [RdvController::class, 'motifs'])

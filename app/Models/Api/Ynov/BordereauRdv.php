@@ -20,8 +20,8 @@ class BordereauRdv extends Model
     protected $fillable = [
         'uuid_bordereau_rdv',
         'reference',
-        'periode_1',
-        'periode_2',
+        'periode_1', // Date de début de la période
+        'periode_2', // Date de fin de la période
         'observation',
         'status',
         'created_by',

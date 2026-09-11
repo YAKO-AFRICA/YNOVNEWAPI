@@ -7,6 +7,7 @@ use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use App\Services\Api\Ynov\Rdv\RdvService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class TraitementService
 {
     public function __construct(
         private NotificationService $notificationService,
+        private BordereauRdvService $bordereauRdvService,
     ) {}
 
     public function traiter(Rdv $rdv, array $data, string $userUuid): array
@@ -286,6 +288,8 @@ class TraitementService
                 'transmis_par' => $userUuid,
                 'updated_by' => $userUuid,
             ]);
+
+            $this->bordereauRdvService->ensureForRdv($rdv);
 
             $this->logActivity($userUuid, 'assign_gestionnaire', $rdv, $oldValues, [
                 'gestionnaire_uuid' => $gestionnaireUuid,

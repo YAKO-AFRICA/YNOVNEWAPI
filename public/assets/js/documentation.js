@@ -15093,6 +15093,314 @@
             },
 
             // ============================================================
+            // BORDEREAUX RDV
+            // ============================================================
+            {
+                id: "bordereaux-lots-list",
+                module: "rdvs",
+                name: "[Bordereaux] Liste des lots",
+                description:
+                    "Récupère les lots de bordereau avec pagination et filtres. La période métier est calculée à partir de date_transmission et non de la date du RDV. Les lots sont regroupés par période hebdomadaire (lot 1 lundi-jeudi, lot 2 vendredi-dimanche).",
+                method: "GET",
+                path: "/bordereaux/lots",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche sur la référence du lot, la période, le code RDV ou le nom du client.",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transfere", "cloture"],
+                            description: "Filtrer par statut du lot.",
+                        },
+                        reference: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche sur la référence du bordereau.",
+                        },
+                        date: {
+                            type: "date",
+                            required: false,
+                            description: "Date à comparer avec la plage de la période du lot.",
+                        },
+                        date_debut: {
+                            type: "date",
+                            required: false,
+                            description: "Date de début de plage sur la période du lot.",
+                        },
+                        date_fin: {
+                            type: "date",
+                            required: false,
+                            description: "Date de fin de plage sur la période du lot.",
+                        },
+                        agence_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur l'agence souhaitée ou effective des RDV liés au lot.",
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur le gestionnaire associé aux RDV d'un lot.",
+                        },
+                        motif_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur le motif / type de prestation des RDV inclus dans le lot.",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre d'éléments par page.",
+                        },
+                        sort_by: {
+                            type: "string",
+                            required: false,
+                            enum: ["reference", "periode_1", "periode_2", "status", "created_at"],
+                            default: "periode_1",
+                            description: "Champ de tri principal.",
+                        },
+                        sort_order: {
+                            type: "string",
+                            required: false,
+                            enum: ["asc", "desc"],
+                            default: "desc",
+                            description: "Ordre de tri.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste paginée des lots de bordereau.",
+                        example: {
+                            success: true,
+                            message: "Lots de bordereau récupérés avec succès.",
+                            code: "BORDEAU_LOTS_LISTED",
+                            data: [
+                                {
+                                    uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                    reference: "BR-2026-S36-AB12CD34",
+                                    periode_1: "2026-09-01",
+                                    periode_2: "2026-09-04",
+                                    status: "transfere",
+                                    status_label: "Transféré",
+                                    observation: null,
+                                    details_count: 12,
+                                    created_at: "2026-09-01 09:15:00",
+                                    updated_at: "2026-09-01 09:15:00",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 1,
+                                last_page: 1,
+                                filters: {
+                                    status: "transfere",
+                                    per_page: 20,
+                                },
+                            },
+                            filters_disponibles: {
+                                status: {
+                                    en_attente: "En attente",
+                                    transfere: "Transféré",
+                                    cloture: "Clôturé",
+                                },
+                                sort_by: {
+                                    reference: "Référence",
+                                    periode_1: "Période début",
+                                    periode_2: "Période fin",
+                                    status: "Statut",
+                                    created_at: "Date de création",
+                                },
+                                sort_order: {
+                                    asc: "Croissant",
+                                    desc: "Décroissant",
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "bordereaux-details-list",
+                module: "rdvs",
+                name: "[Bordereaux] Liste des lignes de détail",
+                description:
+                    "Récupère les lignes de détail d'un bordereau. Le détail d'un lot est obtenu en filtrant sur bordereau_rdv_uuid. C'est la méthode officielle pour récupérer le contenu complet d'un lot sans créer de route dédiée de détail.",
+                method: "GET",
+                path: "/bordereaux/details",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        bordereau_rdv_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du bordereau pour récupérer toutes les lignes d'un lot donné.",
+                        },
+                        rdv_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du rendez-vous à filtrer dans les lignes de bordereau.",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transmis", "traite", "annule", "rejete", "reporte", "expire"],
+                            description: "Filtre sur le statut RDV associé à la ligne de bordereau.",
+                        },
+                        date: {
+                            type: "date",
+                            required: false,
+                            description: "Filtre par date sur la période du lot concerné.",
+                        },
+                        date_debut: {
+                            type: "date",
+                            required: false,
+                            description: "Date de début de plage sur la période du lot.",
+                        },
+                        date_fin: {
+                            type: "date",
+                            required: false,
+                            description: "Date de fin de plage sur la période du lot.",
+                        },
+                        agence_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur l'agence souhaitée ou effective du RDV lié à la ligne.",
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur le gestionnaire du RDV lié à la ligne.",
+                        },
+                        motif_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre sur le motif du RDV lié à la ligne.",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre d'éléments par page.",
+                        },
+                        sort_by: {
+                            type: "string",
+                            required: false,
+                            enum: ["status", "created_at", "rdv.date_rdv_souhaitee", "rdv.date_rdv_effective", "rdv.agence_souhaiter"],
+                            default: "created_at",
+                            description: "Champ de tri principal. Pour le statut, le tri porte sur le statut RDV associé à la ligne.",
+                        },
+                        sort_order: {
+                            type: "string",
+                            required: false,
+                            enum: ["asc", "desc"],
+                            default: "desc",
+                            description: "Ordre de tri.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    bordereau_rdv_uuid: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                    per_page: 20,
+                    sort_by: "created_at",
+                    sort_order: "desc",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Lignes du bordereau récupérées pour le lot demandé.",
+                        example: {
+                            success: true,
+                            message: "Lignes de bordereau récupérées avec succès.",
+                            code: "BORDEAU_DETAILS_LISTED",
+                            data: [
+                                {
+                                    uuid_detail_bordereau_rdv: "a3f9d9a1-17e0-4c75-a254-3210a71ba2fa",
+                                    bordereau_rdv_uuid: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                    rdv_uuid: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                    status: "transmis",
+                                    date_effet: "2026-09-01",
+                                    date_echeance: "2027-09-01",
+                                    duree_contrat: 12,
+                                    type_operation: "retrait",
+                                    observation: "Traitement validé",
+                                    bordereau: {
+                                        uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                        reference: "BR-2026-S36-AB12CD34",
+                                        periode_1: "2026-09-01",
+                                        periode_2: "2026-09-04",
+                                        status: "transfere",
+                                    },
+                                    rdv: {
+                                        uuid_rdvs: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                        code: "RDV-2026-001",
+                                        status: "transmis",
+                                        date_rdv_souhaiter: "2026-09-15 10:00:00",
+                                        date_rdv_effective: "2026-09-15 10:00:00",
+                                        client: {
+                                            uuid_user: "2a4d0bce-7e67-4e2d-9b32-99b3b8cb42d1",
+                                            email: "jdupont@example.com",
+                                            nom: "Dupont",
+                                            prenoms: "Jean",
+                                            full_name: "Dupont Jean",
+                                        },
+                                    },
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 1,
+                                last_page: 1,
+                                filters: {
+                                    bordereau_rdv_uuid: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                },
+                            },
+                            filters_disponibles: {
+                                status: {
+                                    en_attente: "En attente",
+                                    transmis: "Transmis",
+                                    traite: "Traité",
+                                    annule: "Annulé",
+                                    rejete: "Rejeté",
+                                    reporte: "Reporté",
+                                    expire: "Expiré",
+                                },
+                                sort_by: {
+                                    status: "Statut RDV",
+                                    created_at: "Date de création",
+                                    date_effet: "Date d’effet",
+                                    date_echeance: "Date d’échéance",
+                                },
+                                sort_order: {
+                                    asc: "Croissant",
+                                    desc: "Décroissant",
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
             // TRAITEMENT DES RENDEZ-VOUS
             // ============================================================
 
