@@ -493,7 +493,8 @@ class RdvController extends Controller
         $perPage = $request->getPerPage();
 
         $user = $request->user();
-        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+        // if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+        if ($user && $user->hasRole('gestionnaire_rdv')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
             $filters['status'] = 'transmis';
         }

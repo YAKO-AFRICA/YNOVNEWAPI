@@ -433,6 +433,11 @@ class BordereauRdvService
                 $indexes['type_operation'] = $index;
                 continue;
             }
+            
+            if (str_contains($normalized, 'produit') || str_contains($normalized, 'produit')) {
+                $indexes['produit'] = $index;
+                continue;
+            }
 
             if (str_contains($normalized, 'cumulrachatspartiels') || str_contains($normalized, 'rachatspartiels')) {
                 $indexes['cumul_rachats_partiels'] = $index;
@@ -582,6 +587,10 @@ class BordereauRdvService
 
     if (isset($columnIndexes['type_operation'])) {
         $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
+    }
+
+    if (isset($columnIndexes['produit'])) {
+        $data['produit'] = $this->cleanStringValue($row[$columnIndexes['produit']] ?? null);
     }
 
     // Champs numériques financiers : "-" ou vide => 0.0 (pas null, colonnes NOT NULL en base)

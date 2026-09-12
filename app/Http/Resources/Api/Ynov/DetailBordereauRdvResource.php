@@ -18,6 +18,7 @@ class DetailBordereauRdvResource extends JsonResource
             'date_echeance' => $this->date_echeance?->format('Y-m-d'),
             'duree_contrat' => $this->duree_contrat,
             'type_operation' => $this->type_operation,
+            'produit' => $this->produit,
             'cumul_rachats_partiels' => $this->cumul_rachats_partiels,
             'cumul_avances' => $this->cumul_avances,
             'provision_nette' => $this->provision_nette,

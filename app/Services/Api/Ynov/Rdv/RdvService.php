@@ -18,6 +18,7 @@ use App\Services\Api\Ynov\Rdv\RoutingService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 // use Illuminate\Validation\ValidationException;
 
@@ -983,12 +984,11 @@ class RdvService
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
-            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut'])
+                ->orWhereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
-            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin'])->orWhereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
         }
 
         $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';
@@ -1214,15 +1214,21 @@ class RdvService
     private function isBordereauDisponible(Rdv $rdv): bool
     {
         if (!$rdv->exists) {
+            Log::error('Le rendez-vous n\'existe pas');
             return false;
         }
-
-        return DetailBordereauRdv::query()
+        
+        // Rechercher une ligne DetailBordereauRdv pour ce RDV
+        $detailBordereauRdv = DetailBordereauRdv::query()
             ->where('rdv_uuid', $rdv->uuid_rdvs)
+            ->first();
+
+        $isExists = $detailBordereauRdv
             ->whereHas('bordereauRdv', function ($query) {
                 $query->where('status', 'cloture');
             })
             ->exists();
+        return $isExists;
     }
 
     /**

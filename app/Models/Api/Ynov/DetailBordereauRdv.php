@@ -23,6 +23,7 @@ class DetailBordereauRdv extends Model
         'date_echeance',
         'duree_contrat',
         'type_operation',
+        'produit',
         'cumul_rachats_partiels',
         'cumul_avances',
         'provision_nette',
