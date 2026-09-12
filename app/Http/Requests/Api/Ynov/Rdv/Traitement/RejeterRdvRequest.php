@@ -14,7 +14,8 @@ class RejeterRdvRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'motif_rejet' => ['required', 'string', 'max:500'],
+            'motif_rejets' => ['required', 'array', 'min:1'],
+            'motif_rejets.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -22,8 +23,11 @@ class RejeterRdvRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'motif_rejet.required' => 'Le motif du rejet est requis.',
-            'motif_rejet.max' => 'Le motif du rejet ne peut pas dépasser 500 caractères.',
+            'motif_rejets.required' => 'Au moins un motif de rejet est requis.',
+            'motif_rejets.array' => 'Les motifs de rejet doivent être un tableau.',
+            'motif_rejets.min' => 'Au moins un motif de rejet est requis.',
+            'motif_rejets.*.required' => 'Chaque motif de rejet est requis.',
+            'motif_rejets.*.exists' => 'Un ou plusieurs motifs de rejet sont invalides.',
             'observation.max' => 'L\'observation ne peut pas dépasser 1000 caractères.',
         ];
     }

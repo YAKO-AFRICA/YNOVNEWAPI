@@ -8681,6 +8681,74 @@
             // MOTIFS DE TRAITEMENT
             // ============================================================
             {
+                id: "rdv-motifs-traitement",
+                module: "rdvs",
+                name: "[RDV] Liste des motifs de traitement",
+                description:
+                    "Récupère la liste des motifs de traitement disponibles pour les opérations sur les rendez-vous (rejet, report, etc.). Cette route est spécifique au module RDV et facilite la sélection des motifs lors des traitements.",
+                method: "GET",
+                path: "/rdvs/traitement/get-motifs-traitement/",
+                isProtected: true,
+                // permissionsRequired: ["rdvs.traiter"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche sur le libellé du motif",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par type de motif",
+                        },
+                        module: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par module (ex: E-RDV)",
+                        },
+                        is_active: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer par statut actif/inactif",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des motifs de traitement récupérée avec succès",
+                        example: {
+                            success: true,
+                            message: "Motifs de traitement récupérés avec succès.",
+                            code: "MOTIFS_TRAITEMENT_LISTED",
+                            data: [
+                                {
+                                    uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                    libelle: "Client absent",
+                                    type: "rejet",
+                                    module: "rdv",
+                                    description: "Le client ne s'est pas présenté au rendez-vous",
+                                    is_active: true,
+                                },
+                                {
+                                    uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                    libelle: "Documents incomplets",
+                                    type: "rejet",
+                                    module: "rdv",
+                                    description: "Documents manquants pour le traitement",
+                                    is_active: true,
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+            {
                 id: "motif-traitements-list",
                 module: "motif_traitements",
                 name: "Liste des motifs de traitement",
@@ -15693,7 +15761,7 @@
                 module: "rdvs",
                 name: "[Traitement] Reporter un rendez-vous",
                 description:
-                    "Reporte un rendez-vous car le client n'est pas venu. Met à jour la date et l'agence si nécessaire.",
+                    "Reporte un rendez-vous car le client n'est pas venu. Met à jour uniquement la date, l'agence reste inchangée. Permet de sélectionner plusieurs motifs de report depuis la liste /rdvs/traitement/get-motifs-traitement/. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'report'.",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/reporter",
                 isProtected: true,
@@ -15716,26 +15784,29 @@
                             type: "date",
                             required: true,
                             after: "today",
-                            description: "Nouvelle date du rendez-vous",
+                            description: "Nouvelle date du rendez-vous (dans la même agence)",
                         },
-                        nouvelle_agence_uuid: {
-                            type: "uuid",
-                            required: false,
-                            description: "UUID de la nouvelle agence",
-                        },
-                        motif_report: {
+                        motif_reports: {
                             type: "string",
-                            required: true,
-                            max: 500,
-                            description: "Motif du report",
+                            required: false,
+                            min: 1,
+                            description: "Tableau des UUID des motifs de report (récupérés via /rdvs/traitement/get-motifs-traitement/)",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 1000,
+                            description: "Observation",
                         },
                     },
                 },
                 exampleRequest: {
                     nouvelle_date: "2026-07-10",
-                    nouvelle_agence_uuid:
-                        "550e8400-e29b-41d4-a716-446655440002",
-                    motif_report: "Client absent",
+                    motif_reports: [
+                        "uuid-motif-1",
+                        "uuid-motif-2"
+                    ],
+                    observation: "Client pas present",
                 },
                 responses: [
                     {
@@ -15753,6 +15824,23 @@
                                 status_label: "Reporté",
                                 date_rdv_souhaiter: "2026-07-10",
                                 is_present: false,
+                                motif_traitement: {
+                                    "report": [
+                                        "uuid-motif-1",
+                                        "uuid-motif-2"
+                                    ]
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                motif_reports: ["Au moins un motif de report est requis."],
                             },
                         },
                     },
@@ -15766,7 +15854,7 @@
                 id: "rdv-traitement-rejeter",
                 module: "rdvs",
                 name: "[Traitement] Rejeter un rendez-vous",
-                description: "Rejette un rendez-vous (admin).",
+                description: "Rejette un rendez-vous (admin). Permet de sélectionner plusieurs motifs de rejet depuis la liste /motif-traitements. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'rejet'.",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/rejeter",
                 isProtected: true,
@@ -15785,11 +15873,11 @@
                         },
                     },
                     body: {
-                        motif_rejet: {
-                            type: "string",
+                        motif_rejets: {
+                            type: "array",
                             required: true,
-                            max: 500,
-                            description: "Motif du rejet",
+                            min: 1,
+                            description: "Tableau des UUID des motifs de rejet (récupérés via /motif-traitements)",
                         },
                         observation: {
                             type: "string",
@@ -15800,7 +15888,10 @@
                     },
                 },
                 exampleRequest: {
-                    motif_rejet: "Demande non conforme",
+                    motif_rejets: [
+                        "uuid-motif-1",
+                        "uuid-motif-2"
+                    ],
                     observation: "Pièces justificatives manquantes",
                 },
                 responses: [
@@ -15817,6 +15908,23 @@
                                 code: "RDV-20260706-AbC12345",
                                 status: "rejete",
                                 status_label: "Rejeté",
+                                motif_traitement: {
+                                    "rejet": [
+                                        "uuid-motif-1",
+                                        "uuid-motif-2"
+                                    ]
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                motif_rejets: ["Au moins un motif de rejet est requis."],
                             },
                         },
                     },
@@ -18104,7 +18212,7 @@
                         for (const [key, value] of Object.entries(
                             endpoint.requestParams.body,
                         )) {
-                            sampleBody[key] = value.type === "string" ? "" : null;
+                            sampleBody[key] = value.type === "string" ? "" : (value.type === "array" ? [] : null);
                         }
                         defaultBody = JSON.stringify(sampleBody, null, 2);
                     }
@@ -18151,6 +18259,13 @@
             if (endpoint.id === "bordereaux-details-import") {
                 setTimeout(() => {
                     this.loadBordereauReferences(endpointId);
+                }, 100);
+            }
+
+            // Charger les motifs de traitement pour l'endpoint de rejet
+            if (endpoint.id === "rdv-traitement-rejeter") {
+                setTimeout(() => {
+                    this.loadMotifsTraitement(endpointId);
                 }, 100);
             }
 
@@ -18248,6 +18363,13 @@
                 console.error('Erreur lors du chargement des références:', error);
                 select.innerHTML = '<option value="">Erreur de chargement</option>';
             }
+        },
+
+        async loadMotifsTraitement(endpointId) {
+            // Pour l'endpoint de rejet, nous ne pouvons pas charger les motifs dynamiquement
+            // car le champ est un tableau dans le JSON body, pas un select
+            // L'utilisateur doit entrer les UUIDs manuellement dans le JSON
+            console.log('Pour sélectionner des motifs de rejet, utilisez les UUIDs de /motif-traitements');
         },
 
         async sendTryIt(endpointId) {

@@ -47,6 +47,32 @@ class BordereauRdvService
      * Liste les lignes de bordereau.
      * Si bordereau_rdv_uuid est fourni, on r�cup�re le d�tail complet du lot.
      */
+    // public function listDetails(array $filters = [], int $perPage = 20)
+    // {
+    //     $query = DetailBordereauRdv::query()
+    //         ->with([
+    //             'bordereauRdv',
+    //             'rdv.client.details',
+    //             'rdv.motif',
+    //             'rdv.gestionnaire.details',
+    //             'rdv.agenceSouhaitee',
+    //             'rdv.agenceEffective',
+    //         ]);
+
+    //     $this->applyDetailFilters($query, $filters);
+
+    //     $sortBy = in_array($filters['sort_by'] ?? null, ['status', 'rdvs.date_rdv_effective', 'rdvs.date_rdv_souhaitee', 'created_at'], true)
+    //         ? $filters['sort_by']
+    //         : 'rdvs.date_rdv_effective' ?? 'rdvs.date_rdv_souhaitee' ?? 'created_at';
+    //     $sortOrderValue = strtolower((string) ($filters['sort_order'] ?? 'asc'));
+    //     $sortOrder = in_array($sortOrderValue, ['asc', 'desc'], true)
+    //         ? $sortOrderValue
+    //         : 'asc';
+
+    //     return $query->orderBy($sortBy, $sortOrder)
+    //         ->paginate((int) ($filters['per_page'] ?? $perPage));
+    // }
+
     public function listDetails(array $filters = [], int $perPage = 20)
     {
         $query = DetailBordereauRdv::query()
@@ -61,16 +87,25 @@ class BordereauRdvService
 
         $this->applyDetailFilters($query, $filters);
 
-        $sortBy = in_array($filters['sort_by'] ?? null, ['status', 'rdv.date_rdv_effective', 'rdv.date_rdv_souhaitee', 'created_at'], true)
+        $sortBy = in_array($filters['sort_by'] ?? null, ['status', 'rdv.date_rdv_effective', 'rdv.date_rdv_souhaiter', 'created_at'], true)
             ? $filters['sort_by']
-            : 'rdv.date_rdv_effective' ?? 'rdv.date_rdv_souhaitee' ?? 'created_at';
+            : 'created_at';
         $sortOrderValue = strtolower((string) ($filters['sort_order'] ?? 'asc'));
         $sortOrder = in_array($sortOrderValue, ['asc', 'desc'], true)
             ? $sortOrderValue
             : 'asc';
 
-        return $query->orderBy($sortBy, $sortOrder)
-            ->paginate((int) ($filters['per_page'] ?? $perPage));
+        if (str_starts_with($sortBy, 'rdv.')) {
+            $column = substr($sortBy, 4); // date_rdv_effective ou date_rdv_souhaiter
+
+            $query->select('detail_bordereau_rdvs.*')
+                ->join('rdvs', 'rdvs.uuid_rdvs', '=', 'detail_bordereau_rdvs.rdv_uuid')
+                ->orderBy("rdvs.{$column}", $sortOrder);
+        } else {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        return $query->paginate((int) ($filters['per_page'] ?? $perPage));
     }
 
     private function applyLotFilters(Builder $query, array $filters): void

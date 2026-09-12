@@ -15,8 +15,9 @@ class ReporterRdvRequest extends FormRequest
     {
         return [
             'nouvelle_date' => ['required', 'date', 'after:today'],
-            'nouvelle_agence_uuid' => ['nullable', 'exists:agences,uuid_agence'],
-            'motif_report' => ['required', 'string', 'max:500'],
+            'motif_reports' => ['required', 'array', 'min:1'],
+            'motif_reports.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -26,9 +27,12 @@ class ReporterRdvRequest extends FormRequest
             'nouvelle_date.required' => 'La nouvelle date est requise.',
             'nouvelle_date.date' => 'La nouvelle date doit être une date valide.',
             'nouvelle_date.after' => 'La nouvelle date doit être dans le futur.',
-            'nouvelle_agence_uuid.exists' => 'L\'agence n\'existe pas.',
-            'motif_report.required' => 'Le motif du report est requis.',
-            'motif_report.max' => 'Le motif du report ne peut pas dépasser 500 caractères.',
+            'motif_reports.required' => 'Au moins un motif de report est requis.',
+            'motif_reports.array' => 'Les motifs de report doivent être un tableau.',
+            'motif_reports.min' => 'Au moins un motif de report est requis.',
+            'motif_reports.*.required' => 'Chaque motif de report est requis.',
+            'motif_reports.*.exists' => 'Un ou plusieurs motifs de report sont invalides.',
+            'observation.max' => 'L\'observation ne peut pas dépasser 1000 caractères.',
         ];
     }
 }

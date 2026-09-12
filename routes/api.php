@@ -717,27 +717,29 @@ Route::prefix('v1')->middleware([
     // ============================================================
     // RENDEZ-VOUS (RDV) - TRAITEMENT
     // ============================================================
-    Route::prefix('rdvs/traitement')->middleware('permission:rdvs.traiter')->group(function () {
+    Route::prefix('rdvs/traitement')->group(function () {
         // Transmettre/Assigner un RDV à un gestionnaire (passe automatiquement en transmis)
         // Route::post('{uuid_rdvs}/transmettre', [TraitementController::class, 'assignGestionnaire']);
+        
+        Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
         
         // Réassigner un RDV manuellement
-        Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner']);
+        Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner'])->middleware('permission:rdvs.retransmettre');
         
         // Traiter un RDV (effectuer le traitement)
-        Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter']);
+        Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter'])->middleware('permission:rdvs.traiter');
         
         // Reporter un RDV (client n'est pas venu)
-        Route::post('{uuid_rdvs}/reporter', [TraitementController::class, 'reporter']);
+        Route::post('{uuid_rdvs}/reporter', [TraitementController::class, 'reporter'])->middleware('permission:rdvs.reporter');
         
         // Rejeter un RDV
-        Route::post('{uuid_rdvs}/rejeter', [TraitementController::class, 'rejeter']);
+        Route::post('{uuid_rdvs}/rejeter', [TraitementController::class, 'rejeter'])->middleware('permission:rdvs.rejeter');
         
         // Annuler un RDV (admin)
-        Route::post('{uuid_rdvs}/annuler', [TraitementController::class, 'annuler']);
+        Route::post('{uuid_rdvs}/annuler', [TraitementController::class, 'annuler'])->middleware('permission:rdvs.annuler');
         
         // Ajouter une observation/commentaire
         Route::post('{uuid_rdvs}/observation', [TraitementController::class, 'addObservation']);
@@ -746,7 +748,7 @@ Route::prefix('v1')->middleware([
         Route::get('{uuid_rdvs}/historique', [TraitementController::class, 'historique']);
         
         // Marquer comme expiré
-        Route::post('{uuid_rdvs}/expirer', [TraitementController::class, 'expirer']);
+        Route::post('{uuid_rdvs}/expirer', [TraitementController::class, 'expirer'])->middleware('permission:rdvs.expirer');
     });
 
 

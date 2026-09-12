@@ -69,7 +69,7 @@ class TraitementService
             $oldValues = $rdv->toArray();
 
             // Vérifier que le RDV peut être reporté
-            if (!in_array($rdv->status, ['en_attente', 'transmis', 'reporte', 'traite', 'annule', 'rejete'])) {
+            if (!in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
                 return [
                     'success' => false,
                     'message' => 'Ce rendez-vous ne peut pas être reporté.',
@@ -78,8 +78,8 @@ class TraitementService
                 ];
             }
 
-            // Vérifier la disponibilité de la nouvelle date
-            $agenceUuid = $data['nouvelle_agence_uuid'] ?? $rdv->agence_souhaiter_uuid;
+            // Vérifier la disponibilité de la nouvelle date dans la même agence
+            $agenceUuid = $rdv->agence_souhaiter_uuid;
             $verifDate = $this->verifierDateDisponible($agenceUuid, $data['nouvelle_date']);
 
             if (!$verifDate['disponible']) {
@@ -91,14 +91,22 @@ class TraitementService
                 ];
             }
 
+            // Fusionner les motifs de report avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_reports'] ?? [];
+            
+            // Stocker les UUID des motifs dans un tableau sous la clé 'report'
+            $motifsReport = $motifsActuels['report'] ?? [];
+            $motifsReport = array_merge($motifsReport, $nouveauxMotifs);
+            $motifsReport = array_unique($motifsReport); // Éviter les doublons
+
             $rdv->update([
                 'status' => 'reporte',
-                'date_rdv_souhaiter' => Carbon::parse($data['nouvelle_date']),
                 'date_rdv_effective' => Carbon::parse($data['nouvelle_date']), // MAJ de date_rdv_effective
-                'agence_souhaiter_uuid' => $agenceUuid,
                 'agence_effective_uuid' => $agenceUuid, // MAJ de agence_effective_uuid
                 'is_present' => false, // Client n'est pas venu
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['report' => $data['motif_report']]),
+                'motif_traitement' => array_merge($motifsActuels, ['report' => $motifsReport]),
+                'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
             ]);
 
@@ -133,10 +141,19 @@ class TraitementService
                 ];
             }
 
+            // Fusionner les motifs de rejet avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_rejets'] ?? [];
+            
+            // Stocker les UUID des motifs dans un tableau sous la clé 'rejet'
+            $motifsRejet = $motifsActuels['rejet'] ?? [];
+            $motifsRejet = array_merge($motifsRejet, $nouveauxMotifs);
+            $motifsRejet = array_unique($motifsRejet); // Éviter les doublons
+
             $rdv->update([
                 'status' => 'rejete',
                 'is_permitted' => false,
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['rejet' => $data['motif_rejet']]),
+                'motif_traitement' => array_merge($motifsActuels, ['rejet' => $motifsRejet]),
                 'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
             ]);
