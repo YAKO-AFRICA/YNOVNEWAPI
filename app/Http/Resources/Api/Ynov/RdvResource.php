@@ -66,7 +66,7 @@ class RdvResource extends JsonResource
                     'full_name' => trim(($this->gestionnaire->details?->nom ?? '') . ' ' . ($this->gestionnaire->details?->prenoms ?? '')),
                 ];
             }),
-            'transmisParUser' => $this->whenLoaded('transmisParUser', function () {
+            'transmisParUser' => $this->when($this->transmis_par !== null, function () {
                 // Si transmis_par est 'system', retourner un objet système
                 if ($this->transmis_par === 'system') {
                     return [
@@ -79,15 +79,17 @@ class RdvResource extends JsonResource
                     ];
                 }
                 
-                // Sinon retourner les infos de l'utilisateur
-                return [
-                    'uuid_user' => $this->transmisParUser->uuid_user,
-                    'login' => $this->transmisParUser->login,
-                    'email' => $this->transmisParUser->email,
-                    'nom' => $this->transmisParUser->details?->nom,
-                    'prenoms' => $this->transmisParUser->details?->prenoms,
-                    'full_name' => trim(($this->transmisParUser->details?->nom ?? '') . ' ' . ($this->transmisParUser->details?->prenoms ?? '')),
-                ];
+                // Sinon retourner les infos de l'utilisateur si la relation est chargée
+                return $this->whenLoaded('transmisParUser', function () {
+                    return [
+                        'uuid_user' => $this->transmisParUser->uuid_user,
+                        'login' => $this->transmisParUser->login,
+                        'email' => $this->transmisParUser->email,
+                        'nom' => $this->transmisParUser->details?->nom,
+                        'prenoms' => $this->transmisParUser->details?->prenoms,
+                        'full_name' => trim(($this->transmisParUser->details?->nom ?? '') . ' ' . ($this->transmisParUser->details?->prenoms ?? '')),
+                    ];
+                });
             }),
 
             'agence_souhaitee' => $this->whenLoaded('agenceSouhaitee', function () {
