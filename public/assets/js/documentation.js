@@ -15399,6 +15399,140 @@
                     },
                 ],
             },
+            {
+                id: "bordereaux-details-import",
+                module: "rdvs",
+                name: "[Bordereaux] Importer les lignes de détail",
+                description:
+                    "Importe les lignes de détail d'un bordereau depuis un fichier Excel. Le fichier doit contenir une colonne 'Numero du rendez-vous' (ou 'Numero') qui correspond au code du RDV. Les données importées sont associées à un bordereau existant identifié par sa référence. Le fichier doit être au format xlsx, xls ou csv.",
+                method: "POST",
+                path: "/bordereaux/details/import",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "multipart/form-data",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        file: {
+                            type: "file",
+                            required: true,
+                            description: "Fichier Excel (xlsx, xls) ou CSV contenant les lignes de détail à importer.",
+                        },
+                        reference: {
+                            type: "string",
+                            required: true,
+                            description: "Référence du bordereau auquel associer les lignes importées.",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 500,
+                            description: "Observation optionnelle pour l'import.",
+                        },
+                    },
+                },
+                exampleRequest: "Cette endpoint utilise multipart/form-data. Envoyez le fichier avec FormData :\n\nconst formData = new FormData();\nformData.append('file', fileInput.files[0]); // Fichier .xlsx, .xls ou .csv\nformData.append('reference', 'BR-2026-S36-AB12CD34');\nformData.append('observation', 'Import manuel des détails'); // Optionnel\n\nfetch('/api/v1/bordereaux/details/import', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer {token}',\n    'Accept': 'application/json'\n    // NE PAS inclure Content-Type: multipart/form-data (le navigateur le fait automatiquement avec le boundary)\n  },\n  body: formData\n});",
+                responses: [
+                    {
+                        status: 200,
+                        description: "Import réussi",
+                        example: {
+                            success: true,
+                            message: "Import du détail de bordereau terminé avec succès.",
+                            code: "BORDEAU_DETAIL_IMPORTED",
+                            imported: 12,
+                            reference: "BR-2026-S36-AB12CD34",
+                            errors: [],
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Import réussi avec erreurs partielles",
+                        example: {
+                            success: true,
+                            message: "Import du détail de bordereau terminé avec succès.",
+                            code: "BORDEAU_DETAIL_IMPORTED",
+                            imported: 10,
+                            reference: "BR-2026-S36-AB12CD34",
+                            errors: [
+                                "RDV non trouvé pour le code: RDV-2026-999",
+                                "RDV non trouvé pour le code: RDV-2026-998",
+                            ],
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Aucune ligne importée",
+                        example: {
+                            success: true,
+                            message: "Aucune ligne de RDV n'a été importée.",
+                            code: "BORDEAU_DETAIL_IMPORTED",
+                            imported: 0,
+                            reference: "BR-2026-S36-AB12CD34",
+                            errors: [],
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                file: ["Le champ file est obligatoire."],
+                                reference: ["Le champ reference est obligatoire."],
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Référence de bordereau introuvable",
+                        example: {
+                            success: false,
+                            message: "Référence de bordereau introuvable.",
+                            code: "BORDEAU_REFERENCE_NOT_FOUND",
+                            imported: 0,
+                            errors: [],
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Fichier Excel vide",
+                        example: {
+                            success: false,
+                            message: "Le fichier Excel est vide.",
+                            code: "BORDEAU_FILE_EMPTY",
+                            imported: 0,
+                            errors: [],
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "En-tête non détecté",
+                        example: {
+                            success: false,
+                            message: "Aucune ligne d'en-tête détectée. Vérifiez le format du fichier.",
+                            code: "BORDEAU_HEADER_NOT_FOUND",
+                            imported: 0,
+                            errors: [],
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Colonne Numero du rendez-vous manquante",
+                        example: {
+                            success: false,
+                            message: "Colonne 'Numero du rendez-vous' introuvable dans le fichier.",
+                            code: "BORDEAU_NUMERO_COLUMN_MISSING",
+                            imported: 0,
+                            errors: [],
+                        },
+                    },
+                ],
+            },
 
             // ============================================================
             // TRAITEMENT DES RENDEZ-VOUS
@@ -17096,7 +17230,7 @@
             return headers;
         },
 
-        async request(method, path, data = null, extraHeaders = {}) {
+        async request(method, path, data = null, extraHeaders = {}, isMultipart = false) {
             const url = this.getBaseUrl() + path;
             const headers = this.getHeaders(extraHeaders);
             const options = {
@@ -17104,7 +17238,12 @@
                 headers: headers,
             };
 
-            if (
+            // Pour multipart/form-data, ne pas définir Content-Type manuellement
+            // et utiliser directement l'objet FormData
+            if (isMultipart && data instanceof FormData) {
+                delete headers["Content-Type"]; // Le navigateur le définira automatiquement avec le boundary
+                options.body = data;
+            } else if (
                 data &&
                 (method === "POST" || method === "PUT" || method === "PATCH")
             ) {
@@ -17178,7 +17317,13 @@
                 path += "?" + queryString;
             }
 
-            return this.request(endpoint.method, path, params.body || null);
+            return this.request(
+                endpoint.method, 
+                path, 
+                params.body || null, 
+                {}, 
+                params.isMultipart || false
+            );
         },
     };
 
@@ -17881,34 +18026,97 @@
             }
 
             let bodyField = "";
+            let hasFileUpload = false;
             if (
                 endpoint.requestParams?.body &&
                 Object.keys(endpoint.requestParams.body).length > 0
             ) {
-                let defaultBody = "{}";
-                if (endpoint.exampleRequest) {
-                    defaultBody = JSON.stringify(
-                        endpoint.exampleRequest,
-                        null,
-                        2,
-                    );
-                } else {
-                    const sampleBody = {};
-                    for (const [key, value] of Object.entries(
-                        endpoint.requestParams.body,
-                    )) {
-                        sampleBody[key] = value.type === "string" ? "" : null;
+                // Vérifier s'il y a des fichiers à uploader
+                const hasFile = Object.values(endpoint.requestParams.body).some(
+                    param => param.type === "file" || param.type === "file (image)"
+                );
+                
+                if (hasFile) {
+                    hasFileUpload = true;
+                    bodyField = `
+                        <div class="form-group">
+                            <label class="form-label">Formulaire multipart/form-data</label>
+                            <div class="multipart-form">
+                    `;
+                    
+                    for (const [key, value] of Object.entries(endpoint.requestParams.body)) {
+                        if (value.type === "file" || value.type === "file (image)") {
+                            const accept = value.mimes ? `accept=".${value.mimes.replace(',', ',.')}"` : '';
+                            bodyField += `
+                                <div class="row mb-2">
+                                    <div class="col-md-3"><label class="form-label">${key}</label></div>
+                                    <div class="col-md-9">
+                                        <input type="file" class="form-control" id="try_${endpointId}_file_${key}" 
+                                            ${accept}
+                                            ${value.required ? "required" : ""}>
+                                        <small class="text-muted">${value.description || ''}</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (key === "reference" && endpoint.id === "bordereaux-details-import") {
+                            // Sélecteur spécial pour les références de lots transférés
+                            bodyField += `
+                                <div class="row mb-2">
+                                    <div class="col-md-3"><label class="form-label">${key}</label></div>
+                                    <div class="col-md-9">
+                                        <select class="form-control" id="try_${endpointId}_body_${key}" 
+                                            ${value.required ? "required" : ""}>
+                                            <option value="">Chargement des lots transférés...</option>
+                                        </select>
+                                        <small class="text-muted">${value.description || ''}</small>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            bodyField += `
+                                <div class="row mb-2">
+                                    <div class="col-md-3"><label class="form-label">${key}</label></div>
+                                    <div class="col-md-9">
+                                        <input type="text" class="form-control" id="try_${endpointId}_body_${key}" 
+                                            placeholder="${value.description || key}"
+                                            ${value.required ? "required" : ""}>
+                                        <small class="text-muted">${value.description || ''}</small>
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }
-                    defaultBody = JSON.stringify(sampleBody, null, 2);
+                    
+                    bodyField += `
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    let defaultBody = "{}";
+                    if (endpoint.exampleRequest) {
+                        defaultBody = JSON.stringify(
+                            endpoint.exampleRequest,
+                            null,
+                            2,
+                        );
+                    } else {
+                        const sampleBody = {};
+                        for (const [key, value] of Object.entries(
+                            endpoint.requestParams.body,
+                        )) {
+                            sampleBody[key] = value.type === "string" ? "" : null;
+                        }
+                        defaultBody = JSON.stringify(sampleBody, null, 2);
+                    }
+                    bodyField = `
+                        <div class="form-group">
+                            <label class="form-label">JSON Body</label>
+                            <textarea class="form-control json-editor" id="try_${endpointId}_body" 
+                                    rows="6" spellcheck="false">${defaultBody}</textarea>
+                            <small class="text-muted">Format JSON valide requis.</small>
+                        </div>
+                    `;
                 }
-                bodyField = `
-                    <div class="form-group">
-                        <label class="form-label">JSON Body</label>
-                        <textarea class="form-control json-editor" id="try_${endpointId}_body" 
-                                rows="6" spellcheck="false">${defaultBody}</textarea>
-                        <small class="text-muted">Format JSON valide requis.</small>
-                    </div>
-                `;
             }
 
             let headersHtml = "";
@@ -17937,6 +18145,13 @@
                         Vérifiez l'environnement sélectionné avant de continuer.
                     </div>
                 `;
+            }
+
+            // Charger les références de lots transférés pour l'endpoint d'import
+            if (endpoint.id === "bordereaux-details-import") {
+                setTimeout(() => {
+                    this.loadBordereauReferences(endpointId);
+                }, 100);
             }
 
             return `
@@ -18011,6 +18226,30 @@
             this.renderContent();
         },
 
+        async loadBordereauReferences(endpointId) {
+            const select = document.getElementById(`try_${endpointId}_body_reference`);
+            if (!select) return;
+
+            try {
+                const result = await ApiClient.request("GET", "/bordereaux/lots?status=transfere&per_page=100");
+                
+                if (result.ok && result.data && result.data.data) {
+                    select.innerHTML = '<option value="">Sélectionnez une référence de lot</option>';
+                    result.data.data.forEach(lot => {
+                        const option = document.createElement('option');
+                        option.value = lot.reference;
+                        option.textContent = `${lot.reference} (${lot.periode_1} - ${lot.periode_2})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Aucun lot transféré disponible</option>';
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des références:', error);
+                select.innerHTML = '<option value="">Erreur de chargement</option>';
+            }
+        },
+
         async sendTryIt(endpointId) {
             const endpoint = API_DATA.endpoints.find(
                 (e) => e.id === endpointId,
@@ -18060,29 +18299,55 @@
             }
 
             if (endpoint.requestParams?.body) {
-                const bodyInput = document.getElementById(
-                    `try_${endpointId}_body`,
+                // Vérifier s'il y a des fichiers à uploader
+                const hasFile = Object.values(endpoint.requestParams.body).some(
+                    param => param.type === "file" || param.type === "file (image)"
                 );
-                if (bodyInput && bodyInput.value) {
-                    try {
-                        params.body = JSON.parse(bodyInput.value);
-                    } catch (e) {
-                        if (spinner) spinner.classList.remove("show");
-                        if (viewer) viewer.classList.add("show");
-                        if (meta) {
-                            meta.innerHTML = `
-                                <span class="meta-item">
-                                    <span class="label">Erreur:</span>
-                                    <span class="text-danger">JSON invalide</span>
-                                </span>
-                            `;
+                
+                if (hasFile) {
+                    // Traitement multipart/form-data
+                    const formData = new FormData();
+                    for (const [key, value] of Object.entries(endpoint.requestParams.body)) {
+                        if (value.type === "file" || value.type === "file (image)") {
+                            const fileInput = document.getElementById(`try_${endpointId}_file_${key}`);
+                            if (fileInput && fileInput.files[0]) {
+                                formData.append(key, fileInput.files[0]);
+                            }
+                        } else {
+                            const input = document.getElementById(`try_${endpointId}_body_${key}`);
+                            if (input && input.value) {
+                                formData.append(key, input.value);
+                            }
                         }
-                        if (body) {
-                            body.innerHTML = `
-                                <pre><code>${JSON.stringify({ error: "Format JSON invalide", details: e.message }, null, 2)}</code></pre>
-                            `;
+                    }
+                    params.body = formData;
+                    params.isMultipart = true;
+                } else {
+                    // Traitement JSON normal
+                    const bodyInput = document.getElementById(
+                        `try_${endpointId}_body`,
+                    );
+                    if (bodyInput && bodyInput.value) {
+                        try {
+                            params.body = JSON.parse(bodyInput.value);
+                        } catch (e) {
+                            if (spinner) spinner.classList.remove("show");
+                            if (viewer) viewer.classList.add("show");
+                            if (meta) {
+                                meta.innerHTML = `
+                                    <span class="meta-item">
+                                        <span class="label">Erreur:</span>
+                                        <span class="text-danger">JSON invalide</span>
+                                    </span>
+                                `;
+                            }
+                            if (body) {
+                                body.innerHTML = `
+                                    <pre><code>${JSON.stringify({ error: "Format JSON invalide", details: e.message }, null, 2)}</code></pre>
+                                `;
+                            }
+                            return;
                         }
-                        return;
                     }
                 }
             }

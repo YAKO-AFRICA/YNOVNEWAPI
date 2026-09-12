@@ -655,6 +655,9 @@ Route::prefix('v1')->middleware([
 
         Route::get('details', [BordereauController::class, 'indexDetails'])
             ->middleware('permission:rdvs.afficher');
+
+        Route::post('details/import', [BordereauController::class, 'importDetails'])
+                ->middleware('permission:rdvs.afficher');
     });
 
     Route::prefix('rdvs')->group(function () {

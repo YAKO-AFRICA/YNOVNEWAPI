@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
-use App\Services\Api\Ynov\BordereauService;
+use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BordereauController extends Controller
 {
     public function __construct(
-        private BordereauService $bordereauService
+        private BordereauRdvService $bordereauRdvService
     ) {}
 
     /**
@@ -37,7 +37,7 @@ class BordereauController extends Controller
             'per_page',
         ]);
 
-        $lots = $this->bordereauService->listLots($filters);
+        $lots = $this->bordereauRdvService->listLots($filters);
 
         return response()->json([
             'success' => true,
@@ -83,7 +83,7 @@ class BordereauController extends Controller
             $filters['status'] = 'transmis';
         }
 
-        $details = $this->bordereauService->listDetails($filters);
+        $details = $this->bordereauRdvService->listDetails($filters);
 
         return response()->json([
             'success' => true,
@@ -146,5 +146,26 @@ class BordereauController extends Controller
                 'desc' => 'Décroissant',
             ],
         ];
+    }
+
+
+    /**
+     * Import du détail d'un bordereau à partir d'un fichier Excel.
+     */
+    public function importDetails(Request $request): JsonResponse
+    {
+        $request->validate([
+            'reference' => ['required', 'string'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+            'observation' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $result = $this->bordereauRdvService->importDetailExcel(
+            $request->file('file'),
+            $request->input('reference'),
+            $request->input('observation')
+        );
+
+        return response()->json($result, $result['success'] ? 200 : 422);
     }
 }
