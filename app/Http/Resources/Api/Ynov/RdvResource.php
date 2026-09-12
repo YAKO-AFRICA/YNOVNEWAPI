@@ -124,7 +124,7 @@ class RdvResource extends JsonResource
                     'date_echeance' => $this->detailBordereau->date_echeance?->format('Y-m-d'),
                     'duree_contrat' => $this->detailBordereau->duree_contrat,
                     'type_operation' => $this->detailBordereau->type_operation,
-                    'produit' => $this->produit,
+                    'produit' => $this->detailBordereau->produit,
                     'status' => $this->detailBordereau->status,
                     'observation' => $this->detailBordereau->observation,
                     'cumul_rachats_partiels' => $this->detailBordereau->cumul_rachats_partiels,
