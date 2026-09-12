@@ -76,15 +76,15 @@ class BordereauRdvService
     public function listDetails(string $bordereauRdvUuid, array $filters = [], int $perPage = 20)
     {
         $query = DetailBordereauRdv::query()
-        ->where('bordereau_rdv_uuid', $bordereauRdvUuid)
-        ->with([
-            'bordereauRdv',
-            'rdv.client.details',
-            'rdv.motif',
-            'rdv.gestionnaire.details',
-            'rdv.agenceSouhaitee',
-            'rdv.agenceEffective',
-        ]);
+            ->where('bordereau_rdv_uuid', $bordereauRdvUuid)
+            ->with([
+                'bordereauRdv',
+                'rdv.client.details',
+                'rdv.motif',
+                'rdv.gestionnaire.details',
+                'rdv.agenceSouhaitee',
+                'rdv.agenceEffective',
+            ]);
 
         $this->applyDetailFilters($query, $filters);
 
@@ -132,11 +132,11 @@ class BordereauRdvService
         }
 
         if (!empty($filters['reference'])) {
-            $query->where('reference', 'like', "%{$filters['reference']}%") ;
+            $query->where('reference', 'like', "%{$filters['reference']}%");
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('periode_1', $filters['date_debut']) ;
+            $query->whereDate('periode_1', $filters['date_debut']);
         }
 
         if (!empty($filters['date_fin'])) {
@@ -244,7 +244,13 @@ class BordereauRdvService
 
         $spreadsheet = IOFactory::load($file->getRealPath());
         $sheet = $spreadsheet->getActiveSheet();
-        $rows = $sheet->toArray(null, true, true, true);
+
+        // IMPORTANT : array_values() pour repasser sur des indices 0-indexés
+        // continus. toArray(null, true, true, true) renvoie sinon un tableau
+        // indexé par les vrais numéros de ligne Excel (1, 2, 3...), ce qui
+        // cassait la boucle for ($i = $headerRowIndex + 1; $i < count($rows); $i++)
+        // dès que la ligne d'en-tête n'était pas la ligne 0.
+        $rows = array_values($sheet->toArray(null, true, true, true));
 
         if (empty($rows)) {
             return [
@@ -255,6 +261,10 @@ class BordereauRdvService
                 'errors' => [],
             ];
         }
+
+        // Log les premières lignes pour debug
+        $sampleRows = array_slice($rows, 0, min(5, count($rows)));
+
         // Recherche de l'index de la ligne d'en-tête
         $headerRowIndex = $this->findHeaderRowIndex($rows);
 
@@ -267,9 +277,9 @@ class BordereauRdvService
                 'errors' => [],
             ];
         }
+
         // Récupération de la ligne d'en-tête et des index des colonnes
         $headerRow = $rows[$headerRowIndex];
-        // Résolution des index des colonnes en fonction des noms normalisés
         $columnIndexes = $this->resolveDetailColumnIndexes($headerRow);
 
         $numeroIndex = $columnIndexes['numero'] ?? null;
@@ -285,36 +295,37 @@ class BordereauRdvService
 
         $imported = 0;
         $errors = [];
+        $totalRows = count($rows);
+        $processedRows = 0;
+        $emptyRows = 0;
+        $emptyCodeRows = 0;
 
         // Traitement des lignes de données du fichier
         for ($i = $headerRowIndex + 1; $i < count($rows); $i++) {
-            // Récupération de la ligne courante
             $row = $rows[$i];
-            // Vérification si la ligne est vide
+            $processedRows++;
+
             if ($this->isEmptyRow($row)) {
+                $emptyRows++;
                 continue;
             }
 
-            // Récupération du code du rendez-vous
             $numeroRdv = trim((string) ($row[$numeroIndex] ?? ''));
-            // Si le code est vide, on passe à la ligne suivante
             if ($numeroRdv === '') {
+                $emptyCodeRows++;
                 continue;
             }
 
-            // Recherche du RDV correspondant
             $rdv = Rdv::where('code', $numeroRdv)->first();
             if (!$rdv) {
                 $errors[] = "RDV non trouvé pour le code: {$numeroRdv}";
                 continue;
             }
 
-            // Recherche du detail de bordereau correspondant
             $detail = DetailBordereauRdv::where('rdv_uuid', $rdv->uuid_rdvs)
                 ->where('bordereau_rdv_uuid', $lot->uuid_bordereau_rdv)
                 ->first();
 
-            // Création ou mise à jour du detail de bordereau
             if (!$detail) {
                 $detail = new DetailBordereauRdv();
                 $detail->uuid_detail_bordereau_rdv = (string) Str::uuid();
@@ -323,7 +334,6 @@ class BordereauRdvService
                 $detail->status = 'en_attente';
             }
 
-            // Remplissage du detail avec les données de la ligne Excel
             $filled = $this->mapExcelRowToDetail($row, $columnIndexes, $lot, $rdv);
 
             $detail->fill($filled);
@@ -333,35 +343,63 @@ class BordereauRdvService
         }
 
         $lot->update([
-            'status' => 'cloture',
-            'observation' => trim((string) ($observation ?? 'Import du détail de bordereau terminé.')),
+            'status' => $imported > 0 ? 'cloture' : $lot->status,
+            'observation' => trim((string) ($observation ?? (
+                $imported > 0
+                ? 'Import du détail de bordereau terminé.'
+                : 'Import échoué : aucune ligne valide trouvée.'
+            ))),
             'updated_by' => $lot->created_by ?? null,
         ]);
 
         return [
-            'success' => true,
+            'success' => $imported > 0,
             'message' => $imported > 0
                 ? 'Import du détail de bordereau terminé avec succès.'
                 : 'Aucune ligne de RDV n\'a été importée.',
-            'code' => 'BORDEAU_DETAIL_IMPORTED',
+            'code' => $imported > 0 ? 'BORDEAU_DETAIL_IMPORTED' : 'BORDEAU_DETAIL_IMPORT_EMPTY',
             'imported' => $imported,
             'reference' => $lot->reference,
             'errors' => $errors,
+            'debug' => [
+                'total_rows' => $totalRows,
+                'header_row_index' => $headerRowIndex,
+                'processed_rows' => $processedRows,
+                'empty_rows' => $emptyRows,
+                'empty_code_rows' => $emptyCodeRows,
+                'numero_column_index' => $numeroIndex,
+                'column_indexes' => $columnIndexes,
+                'sample_rows' => $sampleRows,
+            ],
         ];
     }
 
     private function findHeaderRowIndex(array $rows): ?int
     {
+        $foundIndexes = [];
+
         foreach ($rows as $index => $row) {
             foreach ($row as $cell) {
                 $normalized = $this->normalizeHeader((string) $cell);
                 if (str_contains($normalized, 'numerodurendezvous') || $normalized === 'numero' || str_contains($normalized, 'numerorendezvous')) {
-                    return $index;
+                    $foundIndexes[] = $index;
+                    break;
                 }
             }
         }
 
-        return null;
+        if (!empty($foundIndexes)) {
+            return min($foundIndexes);
+        }
+
+        foreach ($rows as $index => $row) {
+            $firstCell = reset($row);
+            if ($firstCell && str_contains((string) $firstCell, ' ')) {
+                return $index;
+            }
+        }
+
+        return !empty($rows) ? 0 : null;
     }
 
     private function resolveDetailColumnIndexes(array $headerRow): array
@@ -373,137 +411,236 @@ class BordereauRdvService
 
             if ($normalized === 'numero' || str_contains($normalized, 'numerodurendezvous') || str_contains($normalized, 'numerorendezvous')) {
                 $indexes['numero'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'datedeffet') || str_contains($normalized, 'dateeffet')) {
                 $indexes['date_effet'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'dateecheance') || str_contains($normalized, 'datecheance')) {
                 $indexes['date_echeance'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'dureeducontrat') || str_contains($normalized, 'dureecontrat')) {
                 $indexes['duree_contrat'] = $index;
+                continue;
             }
 
-            if (str_contains($normalized, 'typeoperation') || str_contains($normalized, 'operations')) {
+            if (str_contains($normalized, 'typesdoperations') || str_contains($normalized, 'typeoperation') || str_contains($normalized, 'operations')) {
                 $indexes['type_operation'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'cumulrachatspartiels') || str_contains($normalized, 'rachatspartiels')) {
                 $indexes['cumul_rachats_partiels'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'cumulavances') || str_contains($normalized, 'avances')) {
                 $indexes['cumul_avances'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'provisionnette') || str_contains($normalized, 'provision')) {
                 $indexes['provision_nette'] = $index;
+                continue;
             }
 
-            if (str_contains($normalized, 'valeurrachat') || str_contains($normalized, 'rachat')) {
-                $indexes['valeur_rachat'] = $index;
-            }
-
-            if (str_contains($normalized, 'valeurmaxrachat') || str_contains($normalized, 'maxrachat')) {
+            // IMPORTANT : tester les "valeur maximale" AVANT "valeur de rachat"
+            // sinon "valeurrachat" matche en premier et écrase les deux colonnes suivantes.
+            if (str_contains($normalized, 'valeurmaximaledurachatpartiel') || str_contains($normalized, 'maxrachat')) {
                 $indexes['valeur_max_rachat'] = $index;
+                continue;
             }
 
-            if (str_contains($normalized, 'valeurmaxavance') || str_contains($normalized, 'maxavance')) {
+            if (str_contains($normalized, 'valeurmaximaledelavance') || str_contains($normalized, 'maxavance')) {
                 $indexes['valeur_max_avance'] = $index;
+                continue;
+            }
+
+            if (str_contains($normalized, 'valeurderachatducontrat') || str_contains($normalized, 'valeurrachat')) {
+                $indexes['valeur_rachat'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'montanttransformation') || str_contains($normalized, 'transformation')) {
                 $indexes['montant_transformation'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'garantiesurete') || str_contains($normalized, 'garantie')) {
                 $indexes['garantie_surete'] = $index;
+                continue;
             }
 
-            if (str_contains($normalized, 'conservationcapital') || str_contains($normalized, 'conservation')) {
+            if (str_contains($normalized, 'conservationducapital') || str_contains($normalized, 'conservation')) {
                 $indexes['conservation_capital'] = $index;
+                continue;
+            }
+
+            if ($normalized === 'ville') {
+                $indexes['ville'] = $index;
+                continue;
             }
 
             if (str_contains($normalized, 'observation') || str_contains($normalized, 'remarque')) {
                 $indexes['observation'] = $index;
+                continue;
             }
         }
 
         return $indexes;
     }
 
+    // private function mapExcelRowToDetail(array $row, array $columnIndexes, BordereauRdv $lot, Rdv $rdv): array
+    // {
+    //     $data = [];
+
+    //     if (isset($columnIndexes['date_effet'])) {
+    //         $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['date_echeance'])) {
+    //         $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['duree_contrat'])) {
+    //         $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['type_operation'])) {
+    //         $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['cumul_rachats_partiels'])) {
+    //         $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['cumul_avances'])) {
+    //         $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['provision_nette'])) {
+    //         $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['valeur_rachat'])) {
+    //         $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['valeur_max_rachat'])) {
+    //         $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['valeur_max_avance'])) {
+    //         $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['montant_transformation'])) {
+    //         $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['garantie_surete'])) {
+    //         $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['conservation_capital'])) {
+    //         $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null);
+    //     }
+
+    //     if (isset($columnIndexes['observation'])) {
+    //         $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
+    //         if ($observation !== '') {
+    //             $data['observation'] = $observation;
+    //         }
+    //     }
+
+    //     $data['status'] = 'en_attente';
+    //     $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
+
+    //     return $data;
+    // }
+
     private function mapExcelRowToDetail(array $row, array $columnIndexes, BordereauRdv $lot, Rdv $rdv): array
-    {
-        $data = [];
+{
+    $data = [];
 
-        if (isset($columnIndexes['date_effet'])) {
-            $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
-        }
-
-        if (isset($columnIndexes['date_echeance'])) {
-            $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
-        }
-
-        if (isset($columnIndexes['duree_contrat'])) {
-            $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
-        }
-
-        if (isset($columnIndexes['type_operation'])) {
-            $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
-        }
-
-        if (isset($columnIndexes['cumul_rachats_partiels'])) {
-            $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null);
-        }
-
-        if (isset($columnIndexes['cumul_avances'])) {
-            $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null);
-        }
-
-        if (isset($columnIndexes['provision_nette'])) {
-            $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null);
-        }
-
-        if (isset($columnIndexes['valeur_rachat'])) {
-            $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null);
-        }
-
-        if (isset($columnIndexes['valeur_max_rachat'])) {
-            $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null);
-        }
-
-        if (isset($columnIndexes['valeur_max_avance'])) {
-            $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null);
-        }
-
-        if (isset($columnIndexes['montant_transformation'])) {
-            $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null);
-        }
-
-        if (isset($columnIndexes['garantie_surete'])) {
-            $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null);
-        }
-
-        if (isset($columnIndexes['conservation_capital'])) {
-            $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null);
-        }
-
-        if (isset($columnIndexes['observation'])) {
-            $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
-            if ($observation !== '') {
-                $data['observation'] = $observation;
-            }
-        }
-
-        $data['status'] = 'en_attente';
-        $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
-
-        return $data;
+    if (isset($columnIndexes['date_effet'])) {
+        $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
     }
 
+    if (isset($columnIndexes['date_echeance'])) {
+        $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
+    }
+
+    if (isset($columnIndexes['duree_contrat'])) {
+        $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
+    }
+
+    if (isset($columnIndexes['type_operation'])) {
+        $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
+    }
+
+    // Champs numériques financiers : "-" ou vide => 0.0 (pas null, colonnes NOT NULL en base)
+    if (isset($columnIndexes['cumul_rachats_partiels'])) {
+        $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['cumul_avances'])) {
+        $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['provision_nette'])) {
+        $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['valeur_rachat'])) {
+        $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['valeur_max_rachat'])) {
+        $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['valeur_max_avance'])) {
+        $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['montant_transformation'])) {
+        $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['garantie_surete'])) {
+        $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['conservation_capital'])) {
+        $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null) ?? 0.0;
+    }
+
+    if (isset($columnIndexes['observation'])) {
+        $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
+        if ($observation !== '') {
+            $data['observation'] = $observation;
+        }
+    }
+
+    $data['status'] = 'en_attente';
+    $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
+
+    return $data;
+}
+
+    /**
+     * Parse une valeur numérique au format du fichier fourni par le métier :
+     * "  -     " => null
+     * "  305,885   " => 305885.0  (virgule = séparateur de milliers, pas décimal)
+     * "1 234,56" => 1234.56       (si un jour un vrai décimal apparaît après la virgule
+     *                               à 1 ou 2 chiffres, on le traite comme décimal)
+     */
     private function parseNumericValue($value): ?float
     {
         if ($value === null || $value === '') {
@@ -515,13 +652,34 @@ class BordereauRdvService
         }
 
         $clean = trim((string) $value);
-        $clean = str_replace([' ', "\u{00A0}"], '', $clean);
-        $clean = str_replace(['.', ','], ['.', ','], $clean);
+        $clean = str_replace([' ', "\u{00A0}", "\u{202F}"], '', $clean);
 
-        if (preg_match('/^-?\d+(?:[.,]\d+)?$/', $clean)) {
+        // Valeur vide ou tiret (case "pas de valeur" du fichier métier)
+        if ($clean === '' || $clean === '-' || preg_match('/^-+$/', $clean)) {
+            return null;
+        }
+
+        // Format "1.234,56" (point = milliers, virgule = décimal)
+        if (preg_match('/^-?\d{1,3}(\.\d{3})+,\d+$/', $clean)) {
             $clean = str_replace('.', '', $clean);
             $clean = str_replace(',', '.', $clean);
+            return (float) $clean;
+        }
 
+        // Format "305,885" où la partie après la virgule fait 3 chiffres exactement :
+        // dans ce fichier métier, la virgule est un séparateur de milliers, pas un
+        // séparateur décimal (ex: 305,885 = 305885, pas 305.885)
+        if (preg_match('/^-?\d{1,3}(,\d{3})+$/', $clean)) {
+            return (float) str_replace(',', '', $clean);
+        }
+
+        // Format avec virgule décimale réelle (1 ou 2 chiffres après la virgule)
+        if (preg_match('/^-?\d+,\d{1,2}$/', $clean)) {
+            return (float) str_replace(',', '.', $clean);
+        }
+
+        // Format déjà "propre" : entier ou décimal avec point
+        if (preg_match('/^-?\d+(\.\d+)?$/', $clean)) {
             return (float) $clean;
         }
 
@@ -544,11 +702,17 @@ class BordereauRdvService
             return $value;
         }
 
-        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{2,4}$/', $value)) {
+        // Format "6/1/2021" du fichier (M/D/Y, Excel export US)
+        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $value)) {
             try {
-                return Carbon::createFromFormat('d/m/Y', $value)->format('Y-m-d');
+                return Carbon::createFromFormat('n/j/Y', $value)->format('Y-m-d');
             } catch (\Throwable $e) {
-                return null;
+                // fallback d/m/Y au cas où
+                try {
+                    return Carbon::createFromFormat('d/m/Y', $value)->format('Y-m-d');
+                } catch (\Throwable $e2) {
+                    return null;
+                }
             }
         }
 
@@ -603,7 +767,7 @@ class BordereauRdvService
     /**
      * Garantit qu'un RDV transmis appartient à un bordereau de la bonne période.
      * La période est calculée à partir de date_transmission.
-    */
+     */
     public function ensureForRdv(Rdv $rdv): BordereauRdv
     {
         if (!$rdv->date_transmission) {
