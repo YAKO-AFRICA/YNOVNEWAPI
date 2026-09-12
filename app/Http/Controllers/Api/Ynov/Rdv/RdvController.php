@@ -390,6 +390,7 @@ class RdvController extends Controller
             'client.details',
             'gestionnaire.details',
             'motif',
+            'transmisParUser',
             'agenceSouhaitee',
             'agenceEffective',
             'detailBordereau',
