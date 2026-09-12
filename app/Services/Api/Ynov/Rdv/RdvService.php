@@ -1217,13 +1217,9 @@ class RdvService
             Log::error('Le rendez-vous n\'existe pas');
             return false;
         }
-        
-        // Rechercher une ligne DetailBordereauRdv pour ce RDV
-        $detailBordereauRdv = DetailBordereauRdv::query()
-            ->where('rdv_uuid', $rdv->uuid_rdvs)
-            ->first();
 
-        $isExists = $detailBordereauRdv
+        $isExists = DetailBordereauRdv::query()
+            ->where('rdv_uuid', $rdv->uuid_rdvs)
             ->whereHas('bordereauRdv', function ($query) {
                 $query->where('status', 'cloture');
             })
