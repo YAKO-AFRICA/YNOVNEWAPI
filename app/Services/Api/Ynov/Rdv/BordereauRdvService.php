@@ -136,11 +136,11 @@ class BordereauRdvService
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('periode_1', $filters['periode_1']) ;
+            $query->whereDate('periode_1', $filters['date_debut']) ;
         }
 
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('periode_2', $filters['periode_2']);
+            $query->whereDate('periode_2', $filters['date_fin']);
         }
 
         if (!empty($filters['gestionnaire_uuid'])) {

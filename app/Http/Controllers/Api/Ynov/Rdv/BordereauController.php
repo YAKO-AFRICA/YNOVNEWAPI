@@ -27,8 +27,6 @@ class BordereauController extends Controller
             'date_debut',
             'date_fin',
             'reference',
-            'periode_1',
-            'periode_2',
             'agence_uuid',
             'gestionnaire_uuid',
             'motif_uuid',
