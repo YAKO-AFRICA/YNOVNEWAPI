@@ -121,6 +121,18 @@ class Rdv extends Model
     }
 
     /**
+     * Un rendez-vous transmis par qui est un utilisateur ou système
+     */
+    public function transmisParUser()
+    {
+        // Si transmis_par est 'system', retourner null pour éviter les erreurs
+        if ($this->transmis_par === 'system') {
+            return null;
+        }
+        return $this->belongsTo(User::class, 'transmis_par', 'uuid_user');
+    }
+
+    /**
      * Un rendez-vous a au plus un détail de bordereau
      */
     public function detailBordereau()
@@ -173,7 +185,7 @@ class Rdv extends Model
      */
     public function isValidForNewRdv(): bool
     {
-        return in_array($this->status, ['rejete', 'annule', 'traite', 'termine']);
+        return in_array($this->status, ['rejete', 'annule', 'traite']);
     }
 
     /**
@@ -182,7 +194,7 @@ class Rdv extends Model
     public function confirm(): self
     {
         $this->update([
-            'status' => 'confirme',
+            'status' => 'transmis',
         ]);
         return $this;
     }
@@ -217,7 +229,7 @@ class Rdv extends Model
      */
     public function scopeActive($query)
     {
-        return $query->whereNotIn('status', ['annule', 'rejete', 'traite', 'termine']);
+        return $query->whereNotIn('status', ['annule', 'rejete', 'traite']);
     }
 
     /**
@@ -225,7 +237,7 @@ class Rdv extends Model
      */
     public function scopeConfirmed($query)
     {
-        return $query->where('status', 'confirme');
+        return $query->where('status', 'transmis');
     }
 
     /**

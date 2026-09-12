@@ -120,6 +120,8 @@ class TraitementController extends Controller
             $request->user()->uuid_user
         );
 
+        
+
         return response()->json([
             'success' => $result['success'],
             'message' => $result['message'],

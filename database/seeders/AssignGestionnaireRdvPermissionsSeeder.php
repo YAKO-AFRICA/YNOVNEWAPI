@@ -15,6 +15,7 @@ class AssignGestionnaireRdvPermissionsSeeder extends Seeder
         'rdvs.modifier',
         'rdvs.annuler',
         'rdvs.traiter',
+        'rdvs.reporter',
         'rdvs.calendrier',
 
          // ============================================================
