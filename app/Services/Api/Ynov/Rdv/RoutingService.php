@@ -291,35 +291,97 @@ class RoutingService
     /**
      * Gérer les RDV expirés automatiquement
      */
+    // public function gererRdvsExpires(): array
+    // {
+    //     $dateActuelle = now()->format('Y-m-d');
+
+    //     $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis'])
+    //         ->whereDate('date_rdv_souhaiter', '<', $dateActuelle)->orWhereDate('date_rdv_effective', '<', $dateActuelle)
+    //         ->get();
+
+    //     $results = [
+    //         'total' => $rdvs->count(),
+    //         'expires' => 0,
+    //         'rejetes' => 0,
+    //         'details' => [],
+    //         'executed_at' => now()->format('Y-m-d H:i:s')
+    //     ];
+
+    //     foreach ($rdvs as $rdv) {
+    //         // Si le RDV a expiré depuis plus de 3 jours, on le rejette
+    //         $dateRdv = ($rdv->date_rdv_effective) ? Carbon::parse($rdv->date_rdv_effective) : Carbon::parse($rdv->date_rdv_souhaiter);
+    //         $joursDepuis = $dateRdv->diffInDays(now());
+
+    //         if ($joursDepuis > 3) {
+    //             // Annuler automatiquement
+
+    //             $motifAnnulation = "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours";
+    //             $result = $this->traitementService->annuler($rdv, $motifAnnulation, 'system');
+    //             // $result = $this->traitementService->annuler($rdv, [
+    //             //     'motif_rejet' => 'Rejet automatique après 3 jours d\'expiration',
+    //             //     'observation' => 'RDV non traité et expiré depuis plus de 3 jours'
+    //             // ], 'system');
+
+    //             if ($result['success']) {
+    //                 $results['annulles']++;
+    //                 $results['details'][] = [
+    //                     'rdv_code' => $rdv->code,
+    //                     'status' => 'annule',
+    //                     'raison' => 'Expiré depuis 3 jours',
+    //                 ];
+
+    //             }
+    //         } else {
+    //             // Marquer comme expiré
+    //             $result = $this->traitementService->expirer($rdv, [
+    //                 'motif_expiration' => 'Expiration automatique',
+    //                 'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}"
+    //             ], 'system');
+
+    //             if ($result['success']) {
+    //                 $results['expires']++;
+    //                 $results['details'][] = [
+    //                     'rdv_code' => $rdv->code,
+    //                     'status' => 'expire',
+    //                     'jours_restants' => 3 - $joursDepuis,
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     return $results;
+    // }
+
     public function gererRdvsExpires(): array
     {
         $dateActuelle = now()->format('Y-m-d');
 
         $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis'])
-            ->whereDate('date_rdv_souhaiter', '<', $dateActuelle)
+            ->where(function ($q) use ($dateActuelle) {
+                $q->whereDate('date_rdv_effective', '<', $dateActuelle)
+                ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
+            })
             ->get();
 
         $results = [
             'total' => $rdvs->count(),
             'expires' => 0,
+            'annulles' => 0,
             'rejetes' => 0,
             'details' => [],
-            'executed_at' => now()->format('Y-m-d H:i:s')
+            'executed_at' => now()->format('Y-m-d H:i:s'),
         ];
 
         foreach ($rdvs as $rdv) {
-            // Si le RDV a expiré depuis plus de 3 jours, on le rejette
-            $dateRdv = ($rdv->date_rdv_effective) ? Carbon::parse($rdv->date_rdv_effective) : Carbon::parse($rdv->date_rdv_souhaiter);
+            $dateRdv = $rdv->date_rdv_effective
+                ? Carbon::parse($rdv->date_rdv_effective)
+                : Carbon::parse($rdv->date_rdv_souhaiter);
             $joursDepuis = $dateRdv->diffInDays(now());
 
             if ($joursDepuis > 3) {
-                // Annuler automatiquement
-                $motifAnnulation = "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours";
-                $result = $this->traitementService->annuler($rdv, $motifAnnulation, 'system');
-                // $result = $this->traitementService->annuler($rdv, [
-                //     'motif_rejet' => 'Rejet automatique après 3 jours d\'expiration',
-                //     'observation' => 'RDV non traité et expiré depuis plus de 3 jours'
-                // ], 'system');
+                $result = $this->traitementService->annuler($rdv, [
+                    'observation' => "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours",
+                ], 'system');
 
                 if ($result['success']) {
                     $results['annulles']++;
@@ -328,13 +390,11 @@ class RoutingService
                         'status' => 'annule',
                         'raison' => 'Expiré depuis 3 jours',
                     ];
-
                 }
             } else {
-                // Marquer comme expiré
                 $result = $this->traitementService->expirer($rdv, [
                     'motif_expiration' => 'Expiration automatique',
-                    'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}"
+                    'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
                 ], 'system');
 
                 if ($result['success']) {
@@ -357,7 +417,8 @@ class RoutingService
     public function reequilibrerCharge(string $agenceUuid, string $dateRdv): array
     {
         $rdvs = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
-            ->whereDate('date_rdv_souhaiter', $dateRdv)
+            ->whereDate('date_rdv_effective', $dateRdv)
+            ->orWhereDate('date_rdv_souhaiter', $dateRdv)
             ->where('status', 'en_attente')
             ->whereNotNull('gestionnaire_uuid')
             ->get();
@@ -375,8 +436,10 @@ class RoutingService
         $charges = [];
         foreach ($gestionnaires as $gestionnaireUuid) {
             $count = Rdv::where('gestionnaire_uuid', $gestionnaireUuid)
-                ->where('agence_souhaiter_uuid', $agenceUuid)
-                ->whereDate('date_rdv_souhaiter', $dateRdv)
+                ->where('agence_effective_uuid', $agenceUuid)
+                ->orWhere('agence_souhaiter_uuid', $agenceUuid)
+                ->whereDate('date_rdv_effective', $dateRdv)
+                ->orWhereDate('date_rdv_souhaiter', $dateRdv)
                 ->whereNotIn('status', ['annule', 'rejete', 'expire'])
                 ->count();
 

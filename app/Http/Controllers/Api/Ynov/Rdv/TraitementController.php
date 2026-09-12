@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Rdv\Traitement\AnnulerRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ExpirerRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ObservationRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\RejeterRdvRequest;
@@ -106,21 +107,15 @@ class TraitementController extends Controller
     /**
      * Annuler un RDV (admin)
      */
-    public function annuler(Request $request, string $uuid_rdvs): JsonResponse
+    public function annuler(AnnulerRdvRequest $request, string $uuid_rdvs): JsonResponse
     {
-        $request->validate([
-            'motif' => ['required', 'string', 'max:500'],
-        ]);
-
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
         $result = $this->traitementService->annuler(
             $rdv,
-            $request->motif,
+            $request->validated(),
             $request->user()->uuid_user
         );
-
-        
 
         return response()->json([
             'success' => $result['success'],

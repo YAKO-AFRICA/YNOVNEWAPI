@@ -73,17 +73,18 @@ class BordereauRdvService
     //         ->paginate((int) ($filters['per_page'] ?? $perPage));
     // }
 
-    public function listDetails(array $filters = [], int $perPage = 20)
+    public function listDetails(string $bordereauRdvUuid, array $filters = [], int $perPage = 20)
     {
         $query = DetailBordereauRdv::query()
-            ->with([
-                'bordereauRdv',
-                'rdv.client.details',
-                'rdv.motif',
-                'rdv.gestionnaire.details',
-                'rdv.agenceSouhaitee',
-                'rdv.agenceEffective',
-            ]);
+        ->where('bordereau_rdv_uuid', $bordereauRdvUuid)
+        ->with([
+            'bordereauRdv',
+            'rdv.client.details',
+            'rdv.motif',
+            'rdv.gestionnaire.details',
+            'rdv.agenceSouhaitee',
+            'rdv.agenceEffective',
+        ]);
 
         $this->applyDetailFilters($query, $filters);
 
@@ -134,43 +135,17 @@ class BordereauRdvService
             $query->where('reference', 'like', "%{$filters['reference']}%") ;
         }
 
-        if (!empty($filters['periode_1'])) {
+        if (!empty($filters['date_debut'])) {
             $query->whereDate('periode_1', $filters['periode_1']) ;
         }
 
-        if (!empty($filters['periode_2'])) {
-            $query->whereDate('periode_2', $filters['periode_2']);
-        }
-
-        if (!empty($filters['date'])) {
-            $query->whereDate('periode_1', '<=', $filters['date'])
-                ->whereDate('periode_2', '>=', $filters['date']);
-        }
-
-        if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
-        }
-
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
-        }
-
-        if (!empty($filters['agence_uuid'])) {
-            $query->whereHas('details.rdv', function ($q) use ($filters) {
-                $q->where('agence_souhaiter_uuid', $filters['agence_uuid'])
-                    ->orWhere('agence_effective_uuid', $filters['agence_uuid']);
-            });
+            $query->whereDate('periode_2', $filters['periode_2']);
         }
 
         if (!empty($filters['gestionnaire_uuid'])) {
             $query->whereHas('details.rdv', function ($q) use ($filters) {
                 $q->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
-            });
-        }
-
-        if (!empty($filters['motif_uuid'])) {
-            $query->whereHas('details.rdv', function ($q) use ($filters) {
-                $q->where('motif_rdv', $filters['motif_uuid']);
             });
         }
     }
@@ -207,28 +182,29 @@ class BordereauRdvService
         }
 
         if (!empty($filters['date'])) {
-            $query->whereHas('bordereauRdv', function ($q) use ($filters) {
-                $q->whereDate('periode_1', '<=', $filters['date'])
-                    ->whereDate('periode_2', '>=', $filters['date']);
+            $query->whereHas('rdv', function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', $filters['date']);
+                if (!isset($filters['status'])) {
+                    $q->whereIn('status', ['transmis']);
+                }
             });
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereHas('bordereauRdv', function ($q) use ($filters) {
-                $q->whereDate('periode_2', '>=', $filters['date_debut']);
+            $query->whereHas('rdv', function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
             });
         }
 
         if (!empty($filters['date_fin'])) {
-            $query->whereHas('bordereauRdv', function ($q) use ($filters) {
-                $q->whereDate('periode_1', '<=', $filters['date_fin']);
+            $query->whereHas('rdv', function ($q) use ($filters) {
+                $q->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
             });
         }
 
         if (!empty($filters['agence_uuid'])) {
             $query->whereHas('rdv', function ($q) use ($filters) {
-                $q->where('agence_souhaiter_uuid', $filters['agence_uuid'])
-                    ->orWhere('agence_effective_uuid', $filters['agence_uuid']);
+                $q->where('agence_effective_uuid', $filters['agence_uuid']);
             });
         }
 

@@ -59,8 +59,54 @@ class BordereauController extends Controller
      * Liste des lignes de détail de bordereau avec pagination et filtres.
      * En passant bordereau_rdv_uuid, on récupère le détail complet du lot.
      */
+    // public function indexDetails(Request $request): JsonResponse
+    // {
+    //     $filters = $request->only([
+    //         'search',
+    //         'status',
+    //         'date',
+    //         'date_debut',
+    //         'date_fin',
+    //         'bordereau_rdv_uuid',
+    //         'rdv_uuid',
+    //         'agence_uuid',
+    //         'gestionnaire_uuid',
+    //         'motif_uuid',
+    //         'sort_by',
+    //         'sort_order',
+    //         'per_page',
+    //     ]);
+
+    //     $user = $request->user();
+    //     if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+    //         // $filters['gestionnaire_uuid'] = $user->uuid_user;
+    //         // $filters['status'] = 'transmis';
+    //     }
+
+    //     $details = $this->bordereauRdvService->listDetails($bordereauRdvUuid,$filters);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Lignes de bordereau récupérées avec succès.',
+    //         'code' => 'BORDEAU_DETAILS_LISTED',
+    //         'data' => DetailBordereauRdvResource::collection($details),
+    //         'meta' => [
+    //             'current_page' => $details->currentPage(),
+    //             'per_page' => $details->perPage(),
+    //             'total' => $details->total(),
+    //             'last_page' => $details->lastPage(),
+    //             'filters' => $filters,
+    //         ],
+    //         'filters_disponibles' => $this->getDetailFiltersAvailable(),
+    //     ]);
+    // }
+
     public function indexDetails(Request $request): JsonResponse
     {
+        $request->validate([
+            'bordereau_rdv_uuid' => ['required', 'string', 'uuid'],
+        ]);
+
         $filters = $request->only([
             'search',
             'status',
@@ -83,7 +129,9 @@ class BordereauController extends Controller
             // $filters['status'] = 'transmis';
         }
 
-        $details = $this->bordereauRdvService->listDetails($filters);
+        $bordereauRdvUuid = $request->input('bordereau_rdv_uuid');
+
+        $details = $this->bordereauRdvService->listDetails($bordereauRdvUuid, $filters);
 
         return response()->json([
             'success' => true,

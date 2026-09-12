@@ -15168,7 +15168,7 @@
                 module: "rdvs",
                 name: "[Bordereaux] Liste des lots",
                 description:
-                    "Récupère les lots de bordereau avec pagination et filtres. La période métier est calculée à partir de date_transmission et non de la date du RDV. Les lots sont regroupés par période hebdomadaire (lot 1 lundi-jeudi, lot 2 vendredi-dimanche).",
+                    "Récupère les lots de bordereau avec pagination et filtres. La période métier est calculée à partir de date_transmission. Les lots sont regroupés par période hebdomadaire (lot 1 lundi-jeudi, lot 2 vendredi-dimanche).",
                 method: "GET",
                 path: "/bordereaux/lots",
                 isProtected: true,
@@ -15195,11 +15195,6 @@
                             required: false,
                             description: "Recherche sur la référence du bordereau.",
                         },
-                        date: {
-                            type: "date",
-                            required: false,
-                            description: "Date à comparer avec la plage de la période du lot.",
-                        },
                         date_debut: {
                             type: "date",
                             required: false,
@@ -15210,20 +15205,10 @@
                             required: false,
                             description: "Date de fin de plage sur la période du lot.",
                         },
-                        agence_uuid: {
-                            type: "uuid",
-                            required: false,
-                            description: "Filtre sur l'agence souhaitée ou effective des RDV liés au lot.",
-                        },
                         gestionnaire_uuid: {
                             type: "uuid",
                             required: false,
                             description: "Filtre sur le gestionnaire associé aux RDV d'un lot.",
-                        },
-                        motif_uuid: {
-                            type: "uuid",
-                            required: false,
-                            description: "Filtre sur le motif / type de prestation des RDV inclus dans le lot.",
                         },
                         per_page: {
                             type: "integer",
@@ -15306,7 +15291,7 @@
                 module: "rdvs",
                 name: "[Bordereaux] Liste des lignes de détail",
                 description:
-                    "Récupère les lignes de détail d'un bordereau. Le détail d'un lot est obtenu en filtrant sur bordereau_rdv_uuid. C'est la méthode officielle pour récupérer le contenu complet d'un lot sans créer de route dédiée de détail.",
+                    "Récupère les lignes de détail d'un bordereau donné. bordereau_rdv_uuid est obligatoire : cette route ne peut être utilisée qu'en contexte d'un lot précis, il n'existe pas de vue globale toutes-lignes-confondues.",
                 method: "GET",
                 path: "/bordereaux/details",
                 isProtected: true,
@@ -15319,8 +15304,8 @@
                     query: {
                         bordereau_rdv_uuid: {
                             type: "uuid",
-                            required: false,
-                            description: "UUID du bordereau pour récupérer toutes les lignes d'un lot donné.",
+                            required: true,
+                            description: "UUID du bordereau. Obligatoire — détermine le lot dont on récupère les lignes.",
                         },
                         rdv_uuid: {
                             type: "uuid",
@@ -15336,22 +15321,22 @@
                         date: {
                             type: "date",
                             required: false,
-                            description: "Filtre par date sur la période du lot concerné.",
+                            description: "Filtre par date sur la date effective du RDV associé (transmis uniquement si status non précisé).",
                         },
                         date_debut: {
                             type: "date",
                             required: false,
-                            description: "Date de début de plage sur la période du lot.",
+                            description: "Filtre sur date_rdv_effective >= date_debut, côté RDV lié.",
                         },
                         date_fin: {
                             type: "date",
                             required: false,
-                            description: "Date de fin de plage sur la période du lot.",
+                            description: "Filtre sur date_rdv_souhaiter <= date_fin, côté RDV lié.",
                         },
                         agence_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "Filtre sur l'agence souhaitée ou effective du RDV lié à la ligne.",
+                            description: "Filtre sur l'agence effective du RDV lié à la ligne.",
                         },
                         gestionnaire_uuid: {
                             type: "uuid",
@@ -15372,15 +15357,15 @@
                         sort_by: {
                             type: "string",
                             required: false,
-                            enum: ["status", "created_at", "rdv.date_rdv_souhaitee", "rdv.date_rdv_effective", "rdv.agence_souhaiter"],
+                            enum: ["status", "created_at", "rdv.date_rdv_souhaiter", "rdv.date_rdv_effective"],
                             default: "created_at",
-                            description: "Champ de tri principal. Pour le statut, le tri porte sur le statut RDV associé à la ligne.",
+                            description: "Champ de tri. Pour un tri sur rdv.*, un JOIN est effectué sur la table rdvs.",
                         },
                         sort_order: {
                             type: "string",
                             required: false,
                             enum: ["asc", "desc"],
-                            default: "desc",
+                            default: "asc",
                             description: "Ordre de tri.",
                         },
                     },
@@ -15453,15 +15438,26 @@
                                     expire: "Expiré",
                                 },
                                 sort_by: {
-                                    status: "Statut RDV",
+                                    "rdv.status": "Statut RDV",
                                     created_at: "Date de création",
-                                    date_effet: "Date d’effet",
-                                    date_echeance: "Date d’échéance",
+                                    "rdv.date_rdv_souhaiter": "Date RDV souhaitée",
+                                    "rdv.date_rdv_effective": "Date RDV effective",
                                 },
                                 sort_order: {
                                     asc: "Croissant",
                                     desc: "Décroissant",
                                 },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "bordereau_rdv_uuid manquant ou invalide.",
+                        example: {
+                            success: false,
+                            message: "The bordereau rdv uuid field is required.",
+                            errors: {
+                                bordereau_rdv_uuid: ["The bordereau rdv uuid field is required."],
                             },
                         },
                     },
@@ -15680,7 +15676,7 @@
                 module: "rdvs",
                 name: "[Traitement] Traiter un rendez-vous",
                 description:
-                    "Traite un rendez-vous. is_permitted=false = Conservation, is_permitted=true = Sortie de portefeuille.",
+                    "Traite un rendez-vous. is_permitted=false = Conservation, is_permitted=true = Sortie de portefeuille. Permet de sélectionner plusieurs motifs de traitement depuis la liste /rdvs/traitement/get-motifs-traitement/. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'traitement'.",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/traiter",
                 isProtected: true,
@@ -15710,10 +15706,11 @@
                             description:
                                 "false = Conservation, true = Sortie de portefeuille",
                         },
-                        motif_traitement: {
+                        motif_traitements: {
                             type: "array",
-                            required: false,
-                            description: "Motifs du traitement",
+                            required: true,
+                            min: 1,
+                            description: "Tableau des UUID des motifs de traitement (récupérés via /rdvs/traitement/get-motifs-traitement/)",
                         },
                         observation: {
                             type: "string",
@@ -15726,7 +15723,10 @@
                 exampleRequest: {
                     date_traitement: "2026-07-01",
                     is_permitted: false,
-                    motif_traitement: ["Conservation réussie"],
+                    motif_traitements: [
+                        "uuid-motif-1",
+                        "uuid-motif-2"
+                    ],
                     observation: "Client convaincu de rester",
                 },
                 responses: [
@@ -15746,7 +15746,24 @@
                                 status_label: "Traité",
                                 is_permitted: false,
                                 date_traitement: "2026-07-01",
+                                motif_traitement: {
+                                    "traitement": [
+                                        "uuid-motif-1",
+                                        "uuid-motif-2"
+                                    ]
+                                },
                                 observation: "Client convaincu de rester",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                motif_traitements: ["Au moins un motif de traitement est requis."],
                             },
                         },
                     },
@@ -15938,7 +15955,7 @@
                 id: "rdv-traitement-annuler",
                 module: "rdvs",
                 name: "[Traitement] Annuler un rendez-vous (Admin)",
-                description: "Annule un rendez-vous par un administrateur.",
+                description: "Annule un rendez-vous par un administrateur. Permet de sélectionner plusieurs motifs d'annulation depuis la liste /rdvs/traitement/get-motifs-traitement/. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'annulation'.",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/annuler",
                 isProtected: true,
@@ -15957,16 +15974,26 @@
                         },
                     },
                     body: {
-                        motif: {
-                            type: "string",
+                        motif_annulations: {
+                            type: "array",
                             required: true,
-                            max: 500,
-                            description: "Motif de l'annulation",
+                            min: 1,
+                            description: "Tableau des UUID des motifs d'annulation (récupérés via /rdvs/traitement/get-motifs-traitement/)",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 1000,
+                            description: "Observation",
                         },
                     },
                 },
                 exampleRequest: {
-                    motif: "Doublon avec un autre rendez-vous",
+                    motif_annulations: [
+                        "uuid-motif-1",
+                        "uuid-motif-2"
+                    ],
+                    observation: "Doublon avec un autre rendez-vous",
                 },
                 responses: [
                     {
@@ -15982,6 +16009,23 @@
                                 code: "RDV-20260706-AbC12345",
                                 status: "annule",
                                 status_label: "Annulé",
+                                motif_traitement: {
+                                    "annulation": [
+                                        "uuid-motif-1",
+                                        "uuid-motif-2"
+                                    ]
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                motif_annulations: ["Au moins un motif d'annulation est requis."],
                             },
                         },
                     },

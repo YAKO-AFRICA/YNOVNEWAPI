@@ -36,11 +36,20 @@ class TraitementService
 
             $isPermitted = $data['is_permitted'] ?? false; // false = conservation, true = sortie de portefeuille
 
+            // Fusionner les motifs de traitement avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_traitements'] ?? [];
+            
+            // Stocker les UUID des motifs dans un tableau sous la clé 'traitement'
+            $motifsTraitement = $motifsActuels['traitement'] ?? [];
+            $motifsTraitement = array_merge($motifsTraitement, $nouveauxMotifs);
+            $motifsTraitement = array_unique($motifsTraitement); // Éviter les doublons
+
             $rdv->update([
                 'status' => 'traite',
                 'date_traitement' => Carbon::parse($data['date_traitement']),
                 'is_permitted' => $isPermitted,
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], $data['motif_traitement'] ?? []),
+                'motif_traitement' => array_merge($motifsActuels, ['traitement' => $motifsTraitement]),
                 'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
             ]);
@@ -177,9 +186,9 @@ class TraitementService
     /**
      * Annuler un RDV (admin)
      */
-    public function annuler(Rdv $rdv, string $motif, string $userUuid): array
+    public function annuler(Rdv $rdv, array $data, string $userUuid): array
     {
-        return DB::transaction(function () use ($rdv, $motif, $userUuid) {
+        return DB::transaction(function () use ($rdv, $data, $userUuid) {
             $oldValues = $rdv->toArray();
 
             // Vérifier que le RDV peut être annulé
@@ -192,14 +201,23 @@ class TraitementService
                 ];
             }
 
+            // Fusionner les motifs d'annulation avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_annulations'] ?? [];
+            
+            // Stocker les UUID des motifs dans un tableau sous la clé 'annulation'
+            $motifsAnnulation = $motifsActuels['annulation'] ?? [];
+            $motifsAnnulation = array_merge($motifsAnnulation, $nouveauxMotifs);
+            $motifsAnnulation = array_unique($motifsAnnulation); // Éviter les doublons
+
             $rdv->update([
                 'status' => 'annule',
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['annulation' => $motif]),
-                'observation' => $motif,
+                'motif_traitement' => array_merge($motifsActuels, ['annulation' => $motifsAnnulation]),
+                'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
             ]);
 
-            $this->logActivity($userUuid, 'annuler', $rdv, $oldValues, ['motif' => $motif]);
+            $this->logActivity($userUuid, 'annuler', $rdv, $oldValues, $data);
             $this->sendNotification($rdv, 'annule', $userUuid);
 
             return [
