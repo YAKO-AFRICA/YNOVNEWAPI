@@ -291,66 +291,6 @@ class RoutingService
     /**
      * Gérer les RDV expirés automatiquement
      */
-    // public function gererRdvsExpires(): array
-    // {
-    //     $dateActuelle = now()->format('Y-m-d');
-
-    //     $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis'])
-    //         ->whereDate('date_rdv_souhaiter', '<', $dateActuelle)->orWhereDate('date_rdv_effective', '<', $dateActuelle)
-    //         ->get();
-
-    //     $results = [
-    //         'total' => $rdvs->count(),
-    //         'expires' => 0,
-    //         'rejetes' => 0,
-    //         'details' => [],
-    //         'executed_at' => now()->format('Y-m-d H:i:s')
-    //     ];
-
-    //     foreach ($rdvs as $rdv) {
-    //         // Si le RDV a expiré depuis plus de 3 jours, on le rejette
-    //         $dateRdv = ($rdv->date_rdv_effective) ? Carbon::parse($rdv->date_rdv_effective) : Carbon::parse($rdv->date_rdv_souhaiter);
-    //         $joursDepuis = $dateRdv->diffInDays(now());
-
-    //         if ($joursDepuis > 3) {
-    //             // Annuler automatiquement
-
-    //             $motifAnnulation = "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours";
-    //             $result = $this->traitementService->annuler($rdv, $motifAnnulation, 'system');
-    //             // $result = $this->traitementService->annuler($rdv, [
-    //             //     'motif_rejet' => 'Rejet automatique après 3 jours d\'expiration',
-    //             //     'observation' => 'RDV non traité et expiré depuis plus de 3 jours'
-    //             // ], 'system');
-
-    //             if ($result['success']) {
-    //                 $results['annulles']++;
-    //                 $results['details'][] = [
-    //                     'rdv_code' => $rdv->code,
-    //                     'status' => 'annule',
-    //                     'raison' => 'Expiré depuis 3 jours',
-    //                 ];
-
-    //             }
-    //         } else {
-    //             // Marquer comme expiré
-    //             $result = $this->traitementService->expirer($rdv, [
-    //                 'motif_expiration' => 'Expiration automatique',
-    //                 'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}"
-    //             ], 'system');
-
-    //             if ($result['success']) {
-    //                 $results['expires']++;
-    //                 $results['details'][] = [
-    //                     'rdv_code' => $rdv->code,
-    //                     'status' => 'expire',
-    //                     'jours_restants' => 3 - $joursDepuis,
-    //                 ];
-    //             }
-    //         }
-    //     }
-
-    //     return $results;
-    // }
 
     public function gererRdvsExpires(): array
     {
@@ -392,10 +332,21 @@ class RoutingService
                     ];
                 }
             } else {
-                $result = $this->traitementService->expirer($rdv, [
-                    'motif_expiration' => 'Expiration automatique',
+                // Pour l'expiration automatique, on doit contourner la validation du Request
+                // On modifie directement le RDV sans passer par le service
+                $rdv->update([
+                    'status' => 'expire',
+                    'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
                     'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
-                ], 'system');
+                    'updated_by' => 'system',
+                ]);
+
+                $results['expires']++;
+                $results['details'][] = [
+                    'rdv_code' => $rdv->code,
+                    'status' => 'expire',
+                    'jours_restants' => 3 - $joursDepuis,
+                ];
 
                 if ($result['success']) {
                     $results['expires']++;
@@ -507,11 +458,12 @@ class RoutingService
     /**
      * Réassigner manuellement un RDV à un autre gestionnaire
      */
-    public function reassignerManuellement(Rdv $rdv, string $nouveauGestionnaireUuid, string $motif, string $userUuid): array
+    public function reassignerManuellement(Rdv $rdv, array $data, string $userUuid): array
     {
-        return DB::transaction(function () use ($rdv, $nouveauGestionnaireUuid, $motif, $userUuid) {
+        return DB::transaction(function () use ($rdv, $data, $userUuid) {
             $oldGestionnaireUuid = $rdv->gestionnaire_uuid;
             $oldStatus = $rdv->status;
+            $nouveauGestionnaireUuid = $data['gestionnaire_uuid'];
 
             // Vérifier que le nouveau gestionnaire existe
             $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->first();
@@ -525,7 +477,7 @@ class RoutingService
             }
 
             // Vérifier que le gestionnaire appartient à l'agence du RDV
-            if (!$gestionnaire->belongsToAgence($rdv->agence_souhaiter_uuid)) {
+            if (!$gestionnaire->belongsToAgence($rdv->agence_effective_uuid ?? $rdv->agence_souhaiter_uuid)) {
                 return [
                     'success' => false,
                     'message' => 'Le gestionnaire n\'appartient pas à cette agence.',
@@ -534,19 +486,44 @@ class RoutingService
                 ];
             }
 
-            $rdv->update([
+            // Vérifier que ce n'est pas le même gestionnaire
+            if ($rdv->gestionnaire_uuid === $nouveauGestionnaireUuid) {
+                return [
+                    'success' => false,
+                    'message' => 'Le rendez-vous est déjà assigné à ce gestionnaire.',
+                    'code' => 'SAME_GESTIONNAIRE',
+                    'status' => 422,
+                ];
+            }
+
+            // Fusionner les motifs de réassignation avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_reassignations'] ?? [];
+
+            // Stocker les UUID des motifs dans un tableau sous la clé 'reassignation'
+            $motifsReassignation = $motifsActuels['reassignation'] ?? [];
+            $motifsReassignation = array_merge($motifsReassignation, $nouveauxMotifs);
+            $motifsReassignation = array_unique($motifsReassignation); // Éviter les doublons
+
+            // Préparer les données de mise à jour
+            $updateData = [
                 'gestionnaire_uuid' => $nouveauGestionnaireUuid,
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], [
-                    'reassignation' => [
-                        'ancien_gestionnaire' => $oldGestionnaireUuid,
-                        'nouveau_gestionnaire' => $nouveauGestionnaireUuid,
-                        'motif' => $motif,
-                        'fait_par' => $userUuid,
-                        'date' => now()->toISOString(),
-                    ]
-                ]),
+                'motif_traitement' => array_merge($motifsActuels, ['reassignation' => $motifsReassignation]),
+                'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
-            ]);
+            ];
+
+            // Mise à jour optionnelle de l'agence effective
+            if (!empty($data['agence_effective_uuid'])) {
+                $updateData['agence_effective_uuid'] = $data['agence_effective_uuid'];
+            }
+
+            // Mise à jour optionnelle de la date RDV effective
+            if (!empty($data['date_rdv_effective'])) {
+                $updateData['date_rdv_effective'] = Carbon::parse($data['date_rdv_effective']);
+            }
+
+            $rdv->update($updateData);
 
             // Si le RDV était en attente, le passer en transmis
             if ($rdv->status === 'en_attente') {
@@ -576,6 +553,13 @@ class RoutingService
             $gestionnairePrenoms = $gestionnaire->details?->prenoms ?? '';
             $gestionnaireLabel = trim($gestionnaireNom . ' ' . $gestionnairePrenoms) ?: ($gestionnaire->email ?? '');
 
+            // Client
+            $rdv->load('client');
+            $clientNom = $rdv->client->details?->nom ?? '';
+            $clientPrenoms = $rdv->client->details?->prenoms ?? '';
+            $clientLabel = trim($clientNom . ' ' . $clientPrenoms) ?: ($rdv->client->email ?? '');
+
+
             $this->notificationService->create([
                 'user_uuid' => $nouveauGestionnaireUuid,
                 'group_notif_uuid' => $this->getRdvGroupUuid(),
@@ -591,6 +575,28 @@ class RoutingService
                 'channel' => 'database',
                 'created_by' => null,
             ]);
+
+            // Notifier aussi le client
+            $agenceLabel = $rdv->agenceEffective?->libelle ?? $rdv->agenceSouhaitee?->libelle ?? '';
+            $dateRdv = $rdv->date_rdv_effective ? Carbon::parse($rdv->date_rdv_effective) : Carbon::parse($rdv->date_rdv_souhaiter);
+
+            $this->notificationService->create([
+                'user_uuid' => $rdv->client_uuid,
+                'group_notif_uuid' => $this->getRdvGroupUuid(),
+                'title' => "📋 RDV N°{$rdv->code} réassigné",
+                'body' => "Bonjour {$clientLabel}, votre rendez-vous N°{$rdv->code} a été réassigné à un autre gestionnaire. \n\n Nouveau gestionnaire : {$gestionnaireLabel} \n Lieu : {$agenceLabel} \n\n Date : " . $dateRdv->locale('fr')->translatedFormat('l d F Y'),
+                'type' => 'RENDEZ-VOUS',
+                'metadata' => [
+                    'rdv_uuid' => $rdv->uuid_rdvs,
+                    'rdv_code' => $rdv->code,
+                    'action' => 'reassignation',
+                    'ancien_gestionnaire' => $oldGestionnaireUuid,
+                    'nouveau_gestionnaire' => $nouveauGestionnaireUuid,
+                ],
+                'channel' => 'database',
+                'created_by' => null,
+            ]);
+
 
             return [
                 'success' => true,

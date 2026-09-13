@@ -13381,7 +13381,7 @@
                 module: "rdvs",
                 name: "Agences disponibles pour rendez-vous",
                 description:
-                    "Récupère la liste des agences qui reçoivent sur rendez-vous. Filtrée par ville ou recherche textuelle.",
+                    "Récupère la liste des agences qui reçoivent sur rendez-vous avec leurs gestionnaires (rôle gestionnaire_rdv). Filtrée par ville, recherche textuelle ou date pour compter les RDV transmis par gestionnaire.",
                 method: "GET",
                 path: "/rdvs/agences",
                 isProtected: true,
@@ -13403,10 +13403,16 @@
                             description:
                                 "Recherche textuelle (libellé, adresse, ville, quartier)",
                         },
+                        date: {
+                            type: "date",
+                            required: false,
+                            description: "Date pour compter les RDV transmis par gestionnaire (format YYYY-MM-DD)",
+                        },
                     },
                 },
                 exampleRequest: {
                     ville: "Abidjan",
+                    date: "2026-09-15",
                 },
                 responses: [
                     {
@@ -13496,6 +13502,26 @@
                                             rendez_vous_actif: true,
                                         },
                                     },
+                                    gestionnaires: [
+                                        {
+                                            uuid_user: "550e8400-e29b-41d4-a716-446655440010",
+                                            login: "gestionnaire1",
+                                            email: "gest1@yako.ci",
+                                            nom: "Kouassi",
+                                            prenoms: "Jean",
+                                            full_name: "Kouassi Jean",
+                                            rdv_count: 5,
+                                        },
+                                        {
+                                            uuid_user: "550e8400-e29b-41d4-a716-446655440011",
+                                            login: "gestionnaire2",
+                                            email: "gest2@yako.ci",
+                                            nom: "Yao",
+                                            prenoms: "Marie",
+                                            full_name: "Yao Marie",
+                                            rdv_count: 3,
+                                        },
+                                    ],
                                 },
                             ],
                         },
@@ -15610,7 +15636,7 @@
                 module: "rdvs",
                 name: "[Traitement] Réassigner un RDV manuellement",
                 description:
-                    "Réassigne manuellement un rendez-vous à un autre gestionnaire avec motif.",
+                    "Réassigne manuellement un rendez-vous à un autre gestionnaire avec motifs de réassignation (UUID).",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/reassigner",
                 isProtected: true,
@@ -15634,17 +15660,43 @@
                             required: true,
                             description: "UUID du nouveau gestionnaire",
                         },
-                        motif_reassignation: {
-                            type: "string",
+                        motif_reassignations: {
+                            type: "array",
                             required: true,
-                            max: 500,
-                            description: "Motif de la réassignation",
+                            min: 1,
+                            description: "Tableau des UUID des motifs de réassignation",
+                            items: {
+                                type: "uuid",
+                                description: "UUID du motif de traitement (doit exister dans la table motif_traitements)",
+                            },
+                        },
+                        agence_effective_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID de la nouvelle agence effective (optionnel)",
+                        },
+                        date_rdv_effective: {
+                            type: "date",
+                            required: false,
+                            description: "Nouvelle date du RDV effective (optionnel)",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 1000,
+                            description: "Observation",
                         },
                     },
                 },
                 exampleRequest: {
                     gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440021",
-                    motif_reassignation: "Répartition équitable de la charge",
+                    motif_reassignations: [
+                        "550e8400-e29b-41d4-a716-446655440003",
+                        "550e8400-e29b-41d4-a716-446655440004"
+                    ],
+                    agence_effective_uuid: "550e8400-e29b-41d4-a716-446655440005",
+                    date_rdv_effective: "2026-09-15",
+                    observation: "Répartition équitable de la charge et changement d'agence",
                 },
                 responses: [
                     {
@@ -16032,67 +16084,67 @@
                 ],
             },
 
-            // ============================================================
-            // 21. TRAITEMENT - AJOUTER UNE OBSERVATION
-            // ============================================================
-            {
-                id: "rdv-traitement-observation",
-                module: "rdvs",
-                name: "[Traitement] Ajouter une observation",
-                description:
-                    "Ajoute une observation/commentaire à un rendez-vous.",
-                method: "POST",
-                path: "/rdvs/traitement/{uuid_rdvs}/observation",
-                isProtected: true,
-                permissionsRequired: ["rdvs.traiter"],
-                headers: {
-                    Authorization: "Bearer {token}",
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                },
-                requestParams: {
-                    path: {
-                        uuid_rdvs: {
-                            type: "uuid",
-                            required: true,
-                            description: "UUID du rendez-vous",
-                        },
-                    },
-                    body: {
-                        observation: {
-                            type: "string",
-                            required: true,
-                            max: 1000,
-                            description: "Observation à ajouter",
-                        },
-                        type_observation: {
-                            type: "string",
-                            required: false,
-                            enum: ["note", "commentaire", "alerte", "info"],
-                            description: "Type d'observation",
-                        },
-                    },
-                },
-                exampleRequest: {
-                    observation: "Client a demandé un rappel téléphonique",
-                    type_observation: "note",
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: "Observation ajoutée avec succès",
-                        example: {
-                            success: true,
-                            message: "Observation ajoutée avec succès.",
-                            code: "OBSERVATION_AJOUTEE",
-                            data: {
-                                observation:
-                                    "Client a demandé un rappel téléphonique",
-                            },
-                        },
-                    },
-                ],
-            },
+            // // ============================================================
+            // // 21. TRAITEMENT - AJOUTER UNE OBSERVATION
+            // // ============================================================
+            // {
+            //     id: "rdv-traitement-observation",
+            //     module: "rdvs",
+            //     name: "[Traitement] Ajouter une observation",
+            //     description:
+            //         "Ajoute une observation/commentaire à un rendez-vous.",
+            //     method: "POST",
+            //     path: "/rdvs/traitement/{uuid_rdvs}/observation",
+            //     isProtected: true,
+            //     permissionsRequired: ["rdvs.traiter"],
+            //     headers: {
+            //         Authorization: "Bearer {token}",
+            //         "Content-Type": "application/json",
+            //         Accept: "application/json",
+            //     },
+            //     requestParams: {
+            //         path: {
+            //             uuid_rdvs: {
+            //                 type: "uuid",
+            //                 required: true,
+            //                 description: "UUID du rendez-vous",
+            //             },
+            //         },
+            //         body: {
+            //             observation: {
+            //                 type: "string",
+            //                 required: true,
+            //                 max: 1000,
+            //                 description: "Observation à ajouter",
+            //             },
+            //             type_observation: {
+            //                 type: "string",
+            //                 required: false,
+            //                 enum: ["note", "commentaire", "alerte", "info"],
+            //                 description: "Type d'observation",
+            //             },
+            //         },
+            //     },
+            //     exampleRequest: {
+            //         observation: "Client a demandé un rappel téléphonique",
+            //         type_observation: "note",
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: "Observation ajoutée avec succès",
+            //             example: {
+            //                 success: true,
+            //                 message: "Observation ajoutée avec succès.",
+            //                 code: "OBSERVATION_AJOUTEE",
+            //                 data: {
+            //                     observation:
+            //                         "Client a demandé un rappel téléphonique",
+            //                 },
+            //             },
+            //         },
+            //     ],
+            // },
 
             // ============================================================
             // 22. TRAITEMENT - HISTORIQUE DES TRAITEMENTS
@@ -16207,11 +16259,15 @@
                         },
                     },
                     body: {
-                        motif_expiration: {
-                            type: "string",
+                        motif_expirations: {
+                            type: "array",
                             required: true,
-                            max: 500,
-                            description: "Motif de l'expiration",
+                            min: 1,
+                            description: "Tableau des UUID des motifs d'expiration",
+                            items: {
+                                type: "uuid",
+                                description: "UUID du motif de traitement (doit exister dans la table motif_traitements)",
+                            },
                         },
                         observation: {
                             type: "string",
@@ -16222,7 +16278,10 @@
                     },
                 },
                 exampleRequest: {
-                    motif_expiration: "Expiration automatique",
+                    motif_expirations: [
+                        "550e8400-e29b-41d4-a716-446655440000",
+                        "550e8400-e29b-41d4-a716-446655440001",
+                    ],
                     observation: "RDV non traité à la date prévue",
                 },
                 responses: [

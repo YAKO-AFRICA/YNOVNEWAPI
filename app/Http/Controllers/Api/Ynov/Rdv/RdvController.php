@@ -80,7 +80,7 @@ class RdvController extends Controller
      */
     public function agences(Request $request): JsonResponse
     {
-        $filters = $request->only(['ville', 'search']);
+        $filters = $request->only(['ville', 'search', 'date']);
         $agences = $this->rdvService->getAgencesDisponibles($filters);
         if (empty($agences)) {
             return response()->json([

@@ -98,13 +98,11 @@ class RoutingController extends Controller
      */
     public function reassigner(ReassignerGestionnaireRequest $request, string $uuid_rdvs): JsonResponse
     {
-
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
         $result = $this->routingService->reassignerManuellement(
             $rdv,
-            $request->gestionnaire_uuid,
-            $request->motif_reassignation,
+            $request->validated(),
             $request->user()->uuid_user
         );
 

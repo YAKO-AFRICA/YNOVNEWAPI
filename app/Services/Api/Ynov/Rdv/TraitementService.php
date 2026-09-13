@@ -233,36 +233,36 @@ class TraitementService
     /**
      * Ajouter une observation/commentaire
      */
-    public function addObservation(Rdv $rdv, array $data, string $userUuid): array
-    {
-        return DB::transaction(function () use ($rdv, $data, $userUuid) {
-            $oldValues = $rdv->toArray();
+    // public function addObservation(Rdv $rdv, array $data, string $userUuid): array
+    // {
+    //     return DB::transaction(function () use ($rdv, $data, $userUuid) {
+    //         $oldValues = $rdv->toArray();
 
-            $observationActuelle = $rdv->observation ?? '';
-            $nouvelleObservation = $data['observation'];
+    //         $observationActuelle = $rdv->observation ?? '';
+    //         $nouvelleObservation = $data['observation'];
             
-            if (!empty($observationActuelle)) {
-                $nouvelleObservation = $observationActuelle . "\n\n[" . now()->format('d/m/Y H:i') . "] " . $nouvelleObservation;
-            }
+    //         if (!empty($observationActuelle)) {
+    //             $nouvelleObservation = $observationActuelle . "\n\n[" . now()->format('d/m/Y H:i') . "] " . $nouvelleObservation;
+    //         }
 
-            $rdv->update([
-                'observation' => $nouvelleObservation,
-                'updated_by' => $userUuid,
-            ]);
+    //         $rdv->update([
+    //             'observation' => $nouvelleObservation,
+    //             'updated_by' => $userUuid,
+    //         ]);
 
-            $this->logActivity($userUuid, 'add_observation', $rdv, $oldValues, $data);
+    //         $this->logActivity($userUuid, 'add_observation', $rdv, $oldValues, $data);
 
-            return [
-                'success' => true,
-                'message' => 'Observation ajoutée avec succès.',
-                'code' => 'OBSERVATION_AJOUTEE',
-                'status' => 200,
-                'data' => [
-                    'observation' => $rdv->observation,
-                ],
-            ];
-        });
-    }
+    //         return [
+    //             'success' => true,
+    //             'message' => 'Observation ajoutée avec succès.',
+    //             'code' => 'OBSERVATION_AJOUTEE',
+    //             'status' => 200,
+    //             'data' => [
+    //                 'observation' => $rdv->observation,
+    //             ],
+    //         ];
+    //     });
+    // }
 
     /**
      * Historique des traitements d'un RDV
@@ -359,9 +359,18 @@ class TraitementService
                 ];
             }
 
+            // Fusionner les motifs d'expiration avec les motifs existants
+            $motifsActuels = $rdv->motif_traitement ?? [];
+            $nouveauxMotifs = $data['motif_expirations'] ?? [];
+
+            // Stocker les UUID des motifs dans un tableau sous la clé 'expiration'
+            $motifsExpiration = $motifsActuels['expiration'] ?? [];
+            $motifsExpiration = array_merge($motifsExpiration, $nouveauxMotifs);
+            $motifsExpiration = array_unique($motifsExpiration); // Éviter les doublons
+
             $rdv->update([
                 'status' => 'expire',
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => $data['motif_expiration'] ?? 'Expiration automatique']),
+                'motif_traitement' => array_merge($motifsActuels, ['expiration' => $motifsExpiration]),
                 'observation' => $data['observation'] ?? $rdv->observation,
                 'updated_by' => $userUuid,
             ]);

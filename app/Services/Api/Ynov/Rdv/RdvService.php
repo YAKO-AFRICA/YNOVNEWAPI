@@ -102,7 +102,9 @@ class RdvService
             });
         }
 
-        return $query->orderBy('libelle')->get()->map(function ($agence) {
+        $dateFiltre = $filters['date'] ?? null;
+
+        return $query->orderBy('libelle')->get()->map(function ($agence) use ($dateFiltre) {
             $horairesRdv = $agence->horaires->filter(function ($horaire) {
                 return $horaire->rendez_vous_actif && !$horaire->ferme;
             });
@@ -133,6 +135,34 @@ class RdvService
                         'heure_fermeture' => $horaire->heure_fermeture,
                         'ferme' => $horaire->ferme,
                         'rendez_vous_actif' => $horaire->rendez_vous_actif,
+                    ];
+                }),
+                // les gestionnaires qui reçoivent les rendez-vous associés à l'agence (uniquement rôle gestionnaire_rdv)
+                'gestionnaires' => $agence->users->filter(function ($gestionnaire) {
+                    return $gestionnaire && method_exists($gestionnaire, 'hasRole') && $gestionnaire->hasRole('gestionnaire_rdv');
+                })->map(function ($gestionnaire) use ($dateFiltre, $agence) {
+                    // Compter les RDV transmis pour ce gestionnaire à la date spécifiée
+                    $rdvCount = 0;
+                    if ($dateFiltre) {
+                        $rdvCount = Rdv::where('gestionnaire_uuid', $gestionnaire->uuid_user)
+                            ->where(function ($q) use ($agence) {
+                                $q->where('agence_effective_uuid', $agence->uuid_agence);
+                            })
+                            ->where('status', 'transmis')
+                            ->where(function ($q) use ($dateFiltre) {
+                                $q->whereDate('date_rdv_effective', $dateFiltre);
+                            })
+                            ->count();
+                    }
+
+                    return [
+                        'uuid_user' => $gestionnaire->uuid_user,
+                        'login' => $gestionnaire->login,
+                        'email' => $gestionnaire->email,
+                        'nom' => $gestionnaire->details?->nom,
+                        'prenoms' => $gestionnaire->details?->prenoms,
+                        'full_name' => trim(($gestionnaire->details?->nom ?? '') . ' ' . ($gestionnaire->details?->prenoms ?? '')),
+                        'rdv_count' => $rdvCount,
                     ];
                 }),
             ];
@@ -179,7 +209,8 @@ class RdvService
             })
             ->toArray();
 
-        $periodesCloturees = BordereauRdv::where(function ($query) use ($dateDebut, $dateFin) {
+            // Récupérer les périodes de bordereaux clôturés pour ce mois
+        $periodesCloturees = BordereauRdv::where('status', 'transfere')->where(function ($query) use ($dateDebut, $dateFin) {
                 $query->whereBetween('periode_1', [$dateDebut, $dateFin])
                       ->orWhereBetween('periode_2', [$dateDebut, $dateFin])
                       ->orWhere(function ($q) use ($dateDebut, $dateFin) {
@@ -220,8 +251,8 @@ class RdvService
 
             $nbRdv = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
                 // verifier aussi sur date_rdv_effective
-                ->whereDate('date_rdv_souhaiter', $dateStr)
-                ->orWhereDate('date_rdv_effective', $dateStr)
+                ->whereDate('date_rdv_effective', $dateStr)
+                // ->whereDate('date_rdv_souhaiter', $dateStr)
                 ->whereNotIn('status', ['annule', 'rejete', 'traite'])
                 ->count();
 
@@ -750,16 +781,6 @@ class RdvService
 
     public function getClientsArrives(array $filters = [], int $perPage = 15, bool $asArray = false)
     {
-        // $query = Rdv::query()
-        //     ->where('is_present', true)
-        //     ->with([
-        //         'client.details',
-        //         'motif',
-        //         'agenceSouhaitee',
-        //         'agenceEffective',
-        //         'gestionnaire.details',
-        //     ]);
-
         $query = Rdv::query()
         ->select([
             'uuid_rdvs',

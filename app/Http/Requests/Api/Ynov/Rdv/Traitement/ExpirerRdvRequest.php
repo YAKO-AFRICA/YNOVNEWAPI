@@ -14,7 +14,8 @@ class ExpirerRdvRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'motif_expiration' => ['required', 'string', 'max:500'],
+            'motif_expirations' => ['required', 'array', 'min:1'],
+            'motif_expirations.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -22,8 +23,11 @@ class ExpirerRdvRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'motif_expiration.required' => 'Le motif d\'expiration est requis.',
-            'motif_expiration.max' => 'Le motif d\'expiration ne peut pas dépasser 500 caractères.',
+            'motif_expirations.required' => 'Au moins un motif d\'expiration est requis.',
+            'motif_expirations.array' => 'Les motifs d\'expiration doivent être un tableau.',
+            'motif_expirations.min' => 'Au moins un motif d\'expiration est requis.',
+            'motif_expirations.*.required' => 'Chaque motif d\'expiration est requis.',
+            'motif_expirations.*.exists' => 'Un ou plusieurs motifs d\'expiration sont invalides.',
             'observation.max' => 'L\'observation ne peut pas dépasser 1000 caractères.',
         ];
     }

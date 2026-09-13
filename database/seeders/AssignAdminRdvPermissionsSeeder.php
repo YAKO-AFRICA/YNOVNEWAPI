@@ -40,6 +40,7 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
         'rdvs.traiter',
         'rdvs.rejeter',
         'rdvs.reporter',
+        'rdvs.retransmettre',
         'rdvs.expirer',
         'rdvs.export',
         'rdvs.gerer_notifications',

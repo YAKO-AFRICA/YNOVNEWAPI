@@ -128,23 +128,23 @@ class TraitementController extends Controller
     /**
      * Ajouter une observation/commentaire
      */
-    public function addObservation(ObservationRequest $request, string $uuid_rdvs): JsonResponse
-    {
-        $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+    // public function addObservation(ObservationRequest $request, string $uuid_rdvs): JsonResponse
+    // {
+    //     $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
-        $result = $this->traitementService->addObservation(
-            $rdv,
-            $request->validated(),
-            $request->user()->uuid_user
-        );
+    //     $result = $this->traitementService->addObservation(
+    //         $rdv,
+    //         $request->validated(),
+    //         $request->user()->uuid_user
+    //     );
 
-        return response()->json([
-            'success' => $result['success'],
-            'message' => $result['message'],
-            'code' => $result['code'],
-            'data' => $result['data'] ?? null,
-        ], $result['status'] ?? 200);
-    }
+    //     return response()->json([
+    //         'success' => $result['success'],
+    //         'message' => $result['message'],
+    //         'code' => $result['code'],
+    //         'data' => $result['data'] ?? null,
+    //     ], $result['status'] ?? 200);
+    // }
 
     /**
      * Historique des traitements d'un RDV

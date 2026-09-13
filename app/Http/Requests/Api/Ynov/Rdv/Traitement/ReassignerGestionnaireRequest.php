@@ -15,7 +15,11 @@ class ReassignerGestionnaireRequest extends FormRequest
     {
         return [
             'gestionnaire_uuid' => ['required', 'exists:users,uuid_user'],
-            'motif_reassignation' => ['required', 'string', 'max:500'],
+            'motif_reassignations' => ['required', 'array', 'min:1'],
+            'motif_reassignations.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'agence_effective_uuid' => ['nullable', 'exists:agences,uuid_agence'],
+            'date_rdv_effective' => ['nullable', 'date'],
+            'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -24,8 +28,14 @@ class ReassignerGestionnaireRequest extends FormRequest
         return [
             'gestionnaire_uuid.required' => 'Le nouveau gestionnaire est requis.',
             'gestionnaire_uuid.exists' => 'Le nouveau gestionnaire n\'existe pas.',
-            'motif_reassignation.required' => 'Le motif de réassignation est requis.',
-            'motif_reassignation.max' => 'Le motif de réassignation ne peut pas dépasser 500 caractères.',
+            'motif_reassignations.required' => 'Au moins un motif de réassignation est requis.',
+            'motif_reassignations.array' => 'Les motifs de réassignation doivent être un tableau.',
+            'motif_reassignations.min' => 'Au moins un motif de réassignation est requis.',
+            'motif_reassignations.*.required' => 'Chaque motif de réassignation est requis.',
+            'motif_reassignations.*.exists' => 'Un ou plusieurs motifs de réassignation sont invalides.',
+            'agence_effective_uuid.exists' => 'L\'agence spécifiée n\'existe pas.',
+            'date_rdv_effective.date' => 'La date du RDV doit être une date valide.',
+            'observation.max' => 'L\'observation ne peut pas dépasser 1000 caractères.',
         ];
     }
 }
