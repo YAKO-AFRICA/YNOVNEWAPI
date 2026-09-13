@@ -15574,6 +15574,92 @@
                     },
                 ],
             },
+            // ============================================================
+            // 30. TRANSMETTRE RDV PAR EMAIL
+            // ============================================================
+            {
+                id: "rdv-transmettre-email",
+                module: "rdvs",
+                name: "[Bordereaux] Transmettre bordereau de base des RDV par email",
+                description:
+                    "Permet à un admin_prestation de transmettre par email un fichier Excel de RDV transmis à un gestionnaire_prestation sélectionné. Le sujet et le message sont automatiques. L'envoi se fait par email et database.",
+                method: "POST",
+                path: "/bordereaux/transmettre-email-gest-prestation",
+                isProtected: true,
+                permissionsRequired: ["rdvs.transmettre_bordereau_gest_prestation"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "multipart/form-data",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du gestionnaire_prestation destinataire",
+                        },
+                        fichier: {
+                            type: "file",
+                            required: true,
+                            description: "Fichier Excel (xlsx ou xls) contenant les RDV transmis",
+                            mimes: "xlsx,xls",
+                            maxSize: "10MB",
+                        },
+                        copie_cc: {
+                            type: "array",
+                            required: false,
+                            description: "Liste des adresses email en copie (optionnel)",
+                            items: {
+                                type: "email",
+                            },
+                        },
+                    },
+                },
+                exampleRequest: {
+                    gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440010",
+                    fichier: "rdv_transmis.xlsx",
+                    copie_cc: ["admin@yako.ci", "superviseur@yako.ci"],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Email transmis avec succès",
+                        example: {
+                            success: true,
+                            message: "Email transmis avec succès.",
+                            code: "EMAIL_TRANSMIS",
+                            data: {
+                                notification_uuid: "550e8400-e29b-41d4-a716-446655440100",
+                                gestionnaire_email: "gestionnaire@yako.ci",
+                                fichier_nom: "rdv_transmis.xlsx",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Gestionnaire non trouvé",
+                        example: {
+                            success: false,
+                            message: "Gestionnaire non trouvé.",
+                            code: "GESTIONNAIRE_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation",
+                            code: "VALIDATION_ERROR",
+                            errors: {
+                                gestionnaire_uuid: ["Le gestionnaire est requis."],
+                                fichier: ["Le fichier doit être au format Excel (xlsx ou xls)."],
+                            },
+                        },
+                    },
+                ],
+            },
             {
                 id: "bordereaux-details-import",
                 module: "rdvs",
@@ -15583,7 +15669,7 @@
                 method: "POST",
                 path: "/bordereaux/details/import",
                 isProtected: true,
-                permissionsRequired: ["rdvs.afficher"],
+                permissionsRequired: ["rdvs.import_bordereau_final"],
                 headers: {
                     Authorization: "Bearer {token}",
                     "Content-Type": "multipart/form-data",
@@ -16751,8 +16837,9 @@
                 ],
             },
 
+
             // ============================================================
-            // 29. DASHBOARD - STATISTIQUES GLOBALES
+            // 31. DASHBOARD - STATISTIQUES GLOBALES
             // ============================================================
             {
                 id: "rdv-dashboard-stats",

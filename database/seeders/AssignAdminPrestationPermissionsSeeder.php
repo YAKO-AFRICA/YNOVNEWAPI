@@ -37,6 +37,10 @@ class AssignAdminPrestationPermissionsSeeder extends Seeder
         'prestations.supprimer',
         'prestations.annuler',
         'prestations.export',
+
+        'rdvs.afficher',
+        'rdvs.transmettre_bordereau_gest_prestation',
+        'rdvs.import_bordereau_final'
     ];
 
     public function run(): void

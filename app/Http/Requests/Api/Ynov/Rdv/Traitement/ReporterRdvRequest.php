@@ -16,7 +16,7 @@ class ReporterRdvRequest extends FormRequest
         return [
             'nouvelle_date' => ['required', 'date', 'after:today'],
             'motif_reports' => ['required', 'array', 'min:1'],
-            'motif_reports.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_reports.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
              'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }

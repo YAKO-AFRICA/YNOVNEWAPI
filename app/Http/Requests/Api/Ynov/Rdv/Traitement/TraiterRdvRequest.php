@@ -17,7 +17,7 @@ class TraiterRdvRequest extends FormRequest
             'date_traitement' => ['required', 'date'],
             'is_permitted' => ['required', 'boolean'], // false = conservation, true = sortie de portefeuille
             'motif_traitements' => ['required', 'array', 'min:1'],
-            'motif_traitements.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_traitements.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }

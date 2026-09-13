@@ -15,7 +15,7 @@ class ExpirerRdvRequest extends FormRequest
     {
         return [
             'motif_expirations' => ['required', 'array', 'min:1'],
-            'motif_expirations.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_expirations.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }

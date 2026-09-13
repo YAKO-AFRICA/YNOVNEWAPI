@@ -657,7 +657,11 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:rdvs.afficher');
 
         Route::post('details/import', [BordereauController::class, 'importDetails'])
-                ->middleware('permission:rdvs.afficher');
+                ->middleware('permission:rdvs.import_bordereau_final');
+
+        // Transmettre des RDV par email avec fichier Excel
+        Route::post('transmettre-email-gest-prestation', [BordereauController::class, 'transmettreParEmail'])
+            ->middleware('permission:rdvs.transmettre_bordereau_gest_prestation');
     });
 
     Route::prefix('rdvs')->group(function () {

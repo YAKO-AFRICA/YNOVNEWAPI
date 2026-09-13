@@ -16,7 +16,7 @@ class ReassignerGestionnaireRequest extends FormRequest
         return [
             'gestionnaire_uuid' => ['required', 'exists:users,uuid_user'],
             'motif_reassignations' => ['required', 'array', 'min:1'],
-            'motif_reassignations.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_reassignations.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
             'agence_effective_uuid' => ['nullable', 'exists:agences,uuid_agence'],
             'date_rdv_effective' => ['nullable', 'date'],
             'observation' => ['nullable', 'string', 'max:1000'],

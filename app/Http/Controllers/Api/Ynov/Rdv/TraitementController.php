@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\AnnulerRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ExpirerRdvRequest;
-use App\Http\Requests\Api\Ynov\Rdv\Traitement\ObservationRequest;
+// use App\Http\Requests\Api\Ynov\Rdv\Traitement\ObservationRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\RejeterRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ReporterRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\TraiterRdvRequest;

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Rdv\TransmettreRdvParEmailRequest;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
+use App\Services\Api\Ynov\NotificationService;
 use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,8 +14,10 @@ use Illuminate\Http\Request;
 class BordereauController extends Controller
 {
     public function __construct(
-        private BordereauRdvService $bordereauRdvService
+        private BordereauRdvService $bordereauRdvService,
+        private NotificationService $notificationService
     ) {}
+
 
     /**
      * Liste des lots de bordereau avec pagination et filtres.
@@ -194,6 +198,27 @@ class BordereauController extends Controller
         ];
     }
 
+    /**
+     * Transmettre un fichier Excel de RDV par email
+     */
+    public function transmettreParEmail(TransmettreRdvParEmailRequest $request): JsonResponse
+    {
+        $data = [
+            'gestionnaire_uuid' => $request->gestionnaire_uuid,
+            'fichier' => $request->file('fichier'),
+            'copie_cc' => $request->copie_cc ?? [],
+            'envoye_par' => $request->user()->uuid_user,
+        ];
+
+        $result = $this->notificationService->sendEmailWithAttachment($data);
+
+        return response()->json([
+            'success' => $result['success'],
+            'message' => $result['message'],
+            'code' => $result['code'],
+            'data' => $result['data'] ?? null,
+        ], $result['status'] ?? 200);
+    }
 
     /**
      * Import du détail d'un bordereau à partir d'un fichier Excel.

@@ -1196,6 +1196,22 @@ class PermissionService
                         'description' => 'Permet de marquer un rendez-vous comme expiré',
                     ],
 
+                    [
+                        'category' => 'traitement',
+                        'action' => 'transmettre_bordereau_gest_prestation',
+                        'libelle' => 'Transmettre un bordereau de base de gestion de prestations pour calculer la PM',
+                        'description' => 'Permet de transmettre un bordereau de gestion de prestations',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'import_bordereau_final',
+                        'libelle' => 'Importer un bordereau final (bordereau avec PM calculée) pour le traitement des rendez-vous',
+                        'description' => 'Permet d\'importer un bordereau final pour le traitement des rendez-vous',
+                    ],
+
+
+
+
                   
                     [
                         'category' => 'gestionnaire',
@@ -1216,6 +1232,7 @@ class PermissionService
                         'libelle' => 'Rééquilibrer la charge',
                         'description' => 'Permet de rééquilibrer la charge des gestionnaires',
                     ],
+
 
                     // ============================================================
                     // PRESENCE - Signalement client

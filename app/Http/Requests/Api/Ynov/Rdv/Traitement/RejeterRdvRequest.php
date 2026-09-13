@@ -15,7 +15,7 @@ class RejeterRdvRequest extends FormRequest
     {
         return [
             'motif_rejets' => ['required', 'array', 'min:1'],
-            'motif_rejets.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_rejets.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }

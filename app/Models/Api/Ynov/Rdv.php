@@ -105,7 +105,9 @@ class Rdv extends Model
     {
         $result = [];
         
-        foreach (($this->motif_traitement ?? []) as $type => $values) {
+        $motifs = $this->getMotifsTraitement();
+        
+        foreach ($motifs as $type => $values) {
             if (!is_array($values)) {
                 continue;
             }
@@ -207,7 +209,28 @@ class Rdv extends Model
      */
     public function getMotifsTraitement(): array
     {
-        return $this->motif_traitement ?? [];
+        $motifs = $this->motif_traitement ?? [];
+        
+        // Si motif_traitement est une chaîne (JSON mal formé), essayer de la décoder
+        if (is_string($motifs)) {
+            try {
+                $decoded = json_decode($motifs, true);
+                if (is_array($decoded)) {
+                    $motifs = $decoded;
+                } else {
+                    $motifs = [];
+                }
+            } catch (\Exception $e) {
+                $motifs = [];
+            }
+        }
+        
+        // S'assurer que c'est un tableau
+        if (!is_array($motifs)) {
+            $motifs = [];
+        }
+        
+        return $motifs;
     }
 
     /**
@@ -217,7 +240,36 @@ class Rdv extends Model
      */
     public function getMotifsByType(string $type): array
     {
-        return $this->motif_traitement[$type] ?? [];
+        $motifs = $this->motif_traitement ?? [];
+        
+        // Si motif_traitement est une chaîne (JSON mal formé), essayer de la décoder
+        if (is_string($motifs)) {
+            try {
+                $decoded = json_decode($motifs, true);
+                if (is_array($decoded)) {
+                    $motifs = $decoded;
+                } else {
+                    $motifs = [];
+                }
+            } catch (\Exception $e) {
+                $motifs = [];
+            }
+        }
+        
+        // S'assurer que c'est un tableau
+        if (!is_array($motifs)) {
+            $motifs = [];
+        }
+        
+        // Récupérer les motifs du type spécifique
+        $typeMotifs = $motifs[$type] ?? [];
+        
+        // S'assurer que c'est un tableau
+        if (!is_array($typeMotifs)) {
+            $typeMotifs = [];
+        }
+        
+        return $typeMotifs;
     }
 
     /**

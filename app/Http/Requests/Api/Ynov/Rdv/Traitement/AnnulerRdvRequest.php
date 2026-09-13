@@ -15,7 +15,7 @@ class AnnulerRdvRequest extends FormRequest
     {
         return [
             'motif_annulations' => ['required', 'array', 'min:1'],
-            'motif_annulations.*' => ['required', 'string', 'exists:motif_traitements,uuid'],
+            'motif_annulations.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
