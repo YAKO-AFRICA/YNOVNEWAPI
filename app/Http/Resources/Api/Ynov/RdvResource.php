@@ -32,7 +32,24 @@ class RdvResource extends JsonResource
             'is_permitted' => (bool) $this->is_permitted,
             'is_present' => (bool) $this->is_present,
             'observation' => $this->observation,
-            'motif_traitement' => $this->motif_traitement,
+            'motif_traitement' => $this->getMotifsTraitement(),
+            'motifs_par_type' => [
+                'traitement' => $this->getMotifsByType('traitement'),
+                'report' => $this->getMotifsByType('report'),
+                'rejet' => $this->getMotifsByType('rejet'),
+                'annulation' => $this->getMotifsByType('annulation'),
+                'expiration' => $this->getMotifsByType('expiration'),
+                'reassignation' => $this->getMotifsByType('reassignation'),
+            ],
+            'motifs_traitement_details' => $this->when(fn () => !empty($this->motif_traitement), fn () => $this->getMotifsTraitementDetails()),
+            'has_motifs' => [
+                'traitement' => $this->hasMotifsType('traitement'),
+                'report' => $this->hasMotifsType('report'),
+                'rejet' => $this->hasMotifsType('rejet'),
+                'annulation' => $this->hasMotifsType('annulation'),
+                'expiration' => $this->hasMotifsType('expiration'),
+                'reassignation' => $this->hasMotifsType('reassignation'),
+            ],
 
             'client' => $this->whenLoaded('client', function () {
                 return [

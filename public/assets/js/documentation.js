@@ -13855,7 +13855,7 @@
                 module: "rdvs",
                 name: "Mes rendez-vous",
                 description:
-                    "Récupère la liste paginée des rendez-vous du client connecté avec filtres (statut, contrat, recherche).",
+                    "Récupère la liste paginée des rendez-vous du client connecté avec filtres (statut, contrat, recherche, motifs).",
                 method: "GET",
                 path: "/rdvs",
                 isProtected: true,
@@ -13876,13 +13876,12 @@
                             required: false,
                             enum: [
                                 "en_attente",
-                                "confirme",
+                                "transmis",
+                                "traite",
                                 "annule",
                                 "rejete",
-                                "traite",
-                                "present",
-                                "absent",
                                 "reporte",
+                                "expire",
                             ],
                             description: "Filtrer par statut",
                         },
@@ -13897,10 +13896,31 @@
                             description:
                                 "Recherche textuelle (code, référence contrat)",
                         },
+                        motif_type: {
+                            type: "string",
+                            required: false,
+                            enum: ["traitement", "report", "rejet", "annulation", "expiration", "reassignation"],
+                            description: "Filtrer par type de motif de traitement",
+                        },
+                        has_motifs: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer par présence de motifs (true = avec motifs, false = sans motifs)",
+                        },
+                        automatic_only: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer uniquement les traitements automatiques (système)",
+                        },
+                        manual_only: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer uniquement les traitements manuels (sans automatique)",
+                        },
                     },
                 },
                 exampleRequest: {
-                    status: "confirme",
+                    status: "transmis",
                     per_page: 10,
                 },
                 responses: [
@@ -13916,47 +13936,76 @@
                                     uuid_rdvs:
                                         "550e8400-e29b-41d4-a716-446655440010",
                                     code: "RDV-20260706-AbC12345",
-                                    motif: {
-                                        uuid_type_prestation:
-                                            "550e8400-e29b-41d4-a716-446655440001",
-                                        libelle: "Décès",
+                                    status: "transmis",
+                                    status_label: "Transmis",
+                                    motif_rdv: "550e8400-e29b-41d4-a716-446655440001",
+                                    motif_rdv_label: "Décès",
+                                    id_contrat: 12345,
+                                    demandeur: "client",
+                                    date_rdv_souhaiter: "2026-07-06 10:30:00",
+                                    date_rdv_effective: "2026-07-06 10:30:00",
+                                    date_transmission: "2026-07-01 09:00:00",
+                                    transmis_par: "550e8400-e29b-41d4-a716-446655440005",
+                                    is_permitted: true,
+                                    is_present: false,
+                                    observation: "RDV confirmé",
+                                    motif_traitement: {
+                                        traitement: ["550e8400-e29b-41d4-a716-446655440020"],
                                     },
-                                    date_rdv: "2026-07-06",
+                                    motifs_par_type: {
+                                        traitement: ["550e8400-e29b-41d4-a716-446655440020"],
+                                        report: [],
+                                        rejet: [],
+                                        annulation: [],
+                                        expiration: [],
+                                        reassignation: [],
+                                    },
+                                    motifs_traitement_details: {
+                                        traitement: [
+                                            {
+                                                uuid_motif_traitements: "550e8400-e29b-41d4-a716-446655440020",
+                                                libelle: "Sortie de portefeuille",
+                                                type: ["sortie"],
+                                                status: "actif",
+                                                module: ["rdvs"],
+                                                is_automatic: false,
+                                            },
+                                        ],
+                                    },
+                                    has_motifs: {
+                                        traitement: true,
+                                        report: false,
+                                        rejet: false,
+                                        annulation: false,
+                                        expiration: false,
+                                        reassignation: false,
+                                    },
                                     agence_souhaitee: {
                                         uuid_agence:
                                             "550e8400-e29b-41d4-a716-446655440001",
                                         libelle: "YAKO Plateau",
                                         ville: "Abidjan",
                                     },
-                                    status: "confirme",
-                                    status_label: "Confirmé",
-                                    created_at: "2026-07-01T10:30:00.000000Z",
-                                },
-                                {
-                                    uuid_rdvs:
-                                        "550e8400-e29b-41d4-a716-446655440011",
-                                    code: "RDV-20260628-XyZ78910",
-                                    motif: {
-                                        uuid_type_prestation:
-                                            "550e8400-e29b-41d4-a716-446655440004",
-                                        libelle: "Paiement",
-                                    },
-                                    date_rdv: "2026-06-28",
-                                    agence_souhaitee: {
+                                    agence_effective: {
                                         uuid_agence:
-                                            "550e8400-e29b-41d4-a716-446655440002",
-                                        libelle: "YAKO Cocody",
+                                            "550e8400-e29b-41d4-a716-446655440001",
+                                        libelle: "YAKO Plateau",
                                         ville: "Abidjan",
                                     },
-                                    status: "termine",
-                                    status_label: "Terminé",
-                                    created_at: "2026-06-20T14:00:00.000000Z",
+                                    gestionnaire: {
+                                        uuid_user: "550e8400-e29b-41d4-a716-446655440010",
+                                        login: "gestionnaire1",
+                                        email: "gest1@yako.ci",
+                                        full_name: "Kouassi Jean",
+                                    },
+                                    created_at: "2026-07-01T10:30:00.000000Z",
+                                    updated_at: "2026-07-01T10:30:00.000000Z",
                                 },
                             ],
                             meta: {
                                 current_page: 1,
                                 per_page: 20,
-                                total: 2,
+                                total: 1,
                                 last_page: 1,
                             },
                         },
@@ -14216,7 +14265,7 @@
                 module: "rdvs",
                 name: "Détails d'un rendez-vous",
                 description:
-                    "Récupère les détails complets d'un rendez-vous (client, motif, agences, gestionnaire). Le client ne peut voir que ses propres rendez-vous.",
+                    "Récupère les détails complets d'un rendez-vous (client, motif, agences, gestionnaire, motifs de traitement). Le client ne peut voir que ses propres rendez-vous.",
                 method: "GET",
                 path: "/rdvs/{uuid_rdvs}",
                 isProtected: true,
@@ -14245,6 +14294,50 @@
                                 uuid_rdvs:
                                     "550e8400-e29b-41d4-a716-446655440010",
                                 code: "RDV-20260706-AbC12345",
+                                status: "transmis",
+                                status_label: "Transmis",
+                                motif_rdv: "550e8400-e29b-41d4-a716-446655440001",
+                                motif_rdv_label: "Décès",
+                                id_contrat: 12345,
+                                demandeur: "client",
+                                date_rdv_souhaiter: "2026-07-06 10:30:00",
+                                date_rdv_effective: "2026-07-06 10:30:00",
+                                date_transmission: "2026-07-01 09:00:00",
+                                transmis_par: "550e8400-e29b-41d4-a716-446655440005",
+                                is_permitted: true,
+                                is_present: false,
+                                observation: "RDV confirmé",
+                                motif_traitement: {
+                                    traitement: ["550e8400-e29b-41d4-a716-446655440020"],
+                                },
+                                motifs_par_type: {
+                                    traitement: ["550e8400-e29b-41d4-a716-446655440020"],
+                                    report: [],
+                                    rejet: [],
+                                    annulation: [],
+                                    expiration: [],
+                                    reassignation: [],
+                                },
+                                motifs_traitement_details: {
+                                    traitement: [
+                                        {
+                                            uuid_motif_traitements: "550e8400-e29b-41d4-a716-446655440020",
+                                            libelle: "Sortie de portefeuille",
+                                            type: ["sortie"],
+                                            status: "actif",
+                                            module: ["rdvs"],
+                                            is_automatic: false,
+                                        },
+                                    ],
+                                },
+                                has_motifs: {
+                                    traitement: true,
+                                    report: false,
+                                    rejet: false,
+                                    annulation: false,
+                                    expiration: false,
+                                    reassignation: false,
+                                },
                                 client: {
                                     uuid_user:
                                         "550e8400-e29b-41d4-a716-446655440000",
@@ -14256,20 +14349,6 @@
                                         full_name: "Jean Dupont",
                                     },
                                 },
-                                id_contrat: 12345,
-                                contrat_reference: "YAK-2021-004821",
-                                motif: {
-                                    uuid_type_prestation:
-                                        "550e8400-e29b-41d4-a716-446655440001",
-                                    code: "DECES",
-                                    libelle: "Décès",
-                                    description: "Déclaration de décès",
-                                },
-                                demandeur: "Souscripteur",
-                                date_rdv: "2026-07-06",
-                                date_rdv_souhaiter:
-                                    "2026-07-01T10:30:00.000000Z",
-                                date_rdv_effective: null,
                                 agence_souhaitee: {
                                     uuid_agence:
                                         "550e8400-e29b-41d4-a716-446655440001",
@@ -14278,12 +14357,18 @@
                                     ville: "Abidjan",
                                     telephone: "+2252720304050",
                                 },
-                                agence_effective: null,
-                                gestionnaire: null,
-                                status: "confirme",
-                                status_label: "Confirmé",
-                                // is_permitted: true,
-                                observation: null,
+                                agence_effective: {
+                                    uuid_agence:
+                                        "550e8400-e29b-41d4-a716-446655440001",
+                                    libelle: "YAKO Plateau",
+                                    ville: "Abidjan",
+                                },
+                                gestionnaire: {
+                                    uuid_user: "550e8400-e29b-41d4-a716-446655440010",
+                                    login: "gestionnaire1",
+                                    email: "gest1@yako.ci",
+                                    full_name: "Kouassi Jean",
+                                },
                                 created_at: "2026-07-01T10:30:00.000000Z",
                                 updated_at: "2026-07-01T10:30:00.000000Z",
                             },

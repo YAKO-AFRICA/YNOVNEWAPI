@@ -545,9 +545,8 @@ class RdvService
     public function getRdvClient(string $clientUuid, array $filters = [], int $perPage = 20)
     {
         $query = Rdv::forClient($clientUuid)
-            ->with(['motif', 'agenceSouhaitee'])
+            ->with(['motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire'])
             ->orderBy('created_at', 'desc');
-            // ->orderBy('date_rdv_souhaiter', 'desc');
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -561,6 +560,33 @@ class RdvService
             $query->search($filters['search']);
         }
 
+        // Filtrer par type de motif si spécifié
+        if (isset($filters['motif_type'])) {
+            $motifType = $filters['motif_type'];
+            $query->whereJsonContains('motif_traitement', [$motifType]);
+        }
+
+        // Filtrer par présence de motifs (non vide)
+        if (isset($filters['has_motifs']) && $filters['has_motifs']) {
+            $query->whereNotNull('motif_traitement')->where('motif_traitement', '!=', '[]');
+        }
+
+        // Filtrer par absence de motifs
+        if (isset($filters['has_motifs']) && !$filters['has_motifs']) {
+            $query->whereNull('motif_traitement')->orWhere('motif_traitement', '[]');
+        }
+
+        // Filtrer par motifs automatiques uniquement
+        if (isset($filters['automatic_only']) && $filters['automatic_only']) {
+            $query->whereJsonContains('motif_traitement', 'automatique');
+        }
+
+        // Filtrer par motifs manuels uniquement (sans automatique)
+        if (isset($filters['manual_only']) && $filters['manual_only']) {
+            $query->whereJsonLength('motif_traitement', '>', 0)
+                  ->whereJsonDoesntContain('motif_traitement', 'automatique');
+        }
+
         return $query->paginate($perPage);
     }
 
@@ -569,17 +595,16 @@ class RdvService
      */
     public function getRdvAgence(string $agenceUuid, array $filters = [], int $perPage = 20)
     {
-        $query = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
-            ->orWhere('agence_effective_uuid', $agenceUuid)
-            ->with(['client', 'motif'])
-            ->orderBy('date_rdv_souhaiter', 'asc');
+        $query = Rdv::where('agence_effective_uuid', $agenceUuid)
+            ->with(['client', 'motif', 'gestionnaire', 'agenceEffective'])
+            ->orderBy('created_at', 'desc');
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         if (isset($filters['date'])) {
-            $query->whereDate('date_rdv_souhaiter', $filters['date']);
+            $query->whereDate('date_rdv_effective', $filters['date']);
         }
 
         if (isset($filters['gestionnaire_uuid'])) {
@@ -588,6 +613,17 @@ class RdvService
 
         if (isset($filters['is_present'])) {
             $query->where('is_present', $filters['is_present']);
+        }
+
+        // Filtrer par type de motif si spécifié
+        if (isset($filters['motif_type'])) {
+            $motifType = $filters['motif_type'];
+            $query->whereJsonContains('motif_traitement', [$motifType]);
+        }
+
+        // Filtrer par présence de motifs
+        if (isset($filters['has_motifs']) && $filters['has_motifs']) {
+            $query->whereNotNull('motif_traitement')->where('motif_traitement', '!=', '[]');
         }
 
         return $query->paginate($perPage);
@@ -1011,6 +1047,28 @@ class RdvService
         if (!empty($filters['date_fin'])) {
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
             $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
+        }
+
+        // Filtrer par type de motif si spécifié
+        if (!empty($filters['motif_type'])) {
+            $motifType = $filters['motif_type'];
+            $query->whereJsonContains('motif_traitement', [$motifType]);
+        }
+
+        // Filtrer par présence de motifs
+        if (isset($filters['has_motifs']) && $filters['has_motifs']) {
+            $query->whereNotNull('motif_traitement')->where('motif_traitement', '!=', '[]');
+        }
+
+        // Filtrer par motifs automatiques uniquement
+        if (isset($filters['automatic_only']) && $filters['automatic_only']) {
+            $query->whereJsonContains('motif_traitement', 'automatique');
+        }
+
+        // Filtrer par motifs manuels uniquement (sans automatique)
+        if (isset($filters['manual_only']) && $filters['manual_only']) {
+            $query->whereJsonLength('motif_traitement', '>', 0)
+                  ->whereJsonDoesntContain('motif_traitement', 'automatique');
         }
 
         $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';

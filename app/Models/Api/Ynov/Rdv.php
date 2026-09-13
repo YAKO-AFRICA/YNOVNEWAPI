@@ -3,6 +3,7 @@
 namespace App\Models\Api\Ynov;
 
 use App\Models\Api\Ynov\parameter\Agence;
+use App\Models\Api\Ynov\parameter\MotifTraitement;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -97,6 +98,66 @@ class Rdv extends Model
     }
 
     /**
+     * Récupérer les motifs de traitement détaillés (avec les objets MotifTraitement)
+     * Gère à la fois les UUIDs et les motifs automatiques (strings)
+     */
+    public function getMotifsTraitementDetails(): array
+    {
+        $result = [];
+        
+        foreach (($this->motif_traitement ?? []) as $type => $values) {
+            if (!is_array($values)) {
+                continue;
+            }
+
+            $motifsDetails = [];
+            foreach ($values as $value) {
+                // Si c'est un UUID valide, rechercher dans la base
+                if ($this->isValidUuid($value)) {
+                    $motif = MotifTraitement::where('uuid_motif_traitements', $value)
+                        ->where('status', 'actif')
+                        ->first();
+                    
+                    if ($motif) {
+                        $motifsDetails[] = [
+                            'uuid_motif_traitements' => $motif->uuid_motif_traitements,
+                            'libelle' => $motif->libelle,
+                            'type' => $motif->type,
+                            'status' => $motif->status,
+                            'module' => $motif->module,
+                            'is_automatic' => false,
+                        ];
+                    }
+                } else {
+                    // Si c'est une string (motif automatique), créer un objet temporaire
+                    $motifsDetails[] = [
+                        'uuid_motif_traitements' => null,
+                        'libelle' => $value,
+                        'type' => [$type],
+                        'status' => 'actif',
+                        'module' => ['rdvs'],
+                        'is_automatic' => true,
+                    ];
+                }
+            }
+
+            if (!empty($motifsDetails)) {
+                $result[$type] = $motifsDetails;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Vérifier si une chaîne est un UUID valide
+     */
+    private function isValidUuid(string $value): bool
+    {
+        return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value) === 1;
+    }
+
+    /**
      * Relation avec l'agence souhaitée
      */
     public function agenceSouhaitee()
@@ -138,6 +199,50 @@ class Rdv extends Model
     public function detailBordereau()
     {
         return $this->hasOne(DetailBordereauRdv::class, 'rdv_uuid', 'uuid_rdvs');
+    }
+
+    /**
+     * Récupérer les motifs de traitement du RDV
+     * @return array Les motifs de traitement organisés par type
+     */
+    public function getMotifsTraitement(): array
+    {
+        return $this->motif_traitement ?? [];
+    }
+
+    /**
+     * Récupérer les motifs de traitement d'un type spécifique
+     * @param string $type Type de motif (traitement, report, rejet, annulation, expiration, reassignation)
+     * @return array Les UUID des motifs du type spécifié
+     */
+    public function getMotifsByType(string $type): array
+    {
+        return $this->motif_traitement[$type] ?? [];
+    }
+
+    /**
+     * Vérifier si le RDV a des motifs de traitement d'un type spécifique
+     * @param string $type Type de motif à vérifier
+     * @return bool
+     */
+    public function hasMotifsType(string $type): bool
+    {
+        return !empty($this->motif_traitement[$type] ?? []);
+    }
+
+    /**
+     * Récupérer tous les UUID de motifs de traitement (tous types confondus)
+     * @return array
+     */
+    public function getAllMotifUuids(): array
+    {
+        $allMotifs = [];
+        foreach (($this->motif_traitement ?? []) as $type => $uuids) {
+            if (is_array($uuids)) {
+                $allMotifs = array_merge($allMotifs, $uuids);
+            }
+        }
+        return array_unique($allMotifs);
     }
 
     /**
