@@ -15660,6 +15660,56 @@
                     },
                 ],
             },
+            // ============================================================
+            // 31. GESTIONNAIRES PRESTATION
+            // ============================================================
+            {
+                id: "gestionnaires-prestation",
+                module: "rdvs",
+                name: "[Bordereaux] Liste des gestionnaires prestation",
+                description:
+                    "Récupère la liste de tous les gestionnaires avec le rôle gestionnaire_prestation. Inclut leurs informations personnelles et les agences auxquelles ils sont rattachés.",
+                method: "GET",
+                path: "/bordereaux/gestionnaires-prestation",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {},
+                exampleRequest: {},
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des gestionnaires prestation",
+                        example: {
+                            success: true,
+                            message: "Gestionnaires prestation récupérés avec succès.",
+                            code: "GESTIONNAIERS_PRESTATION_LISTED",
+                            data: [
+                                {
+                                    uuid_user: "550e8400-e29b-41d4-a716-446655440010",
+                                    login: "gestionnaire.prestation",
+                                    email: "gestionnaire@yako.ci",
+                                    nom: "KOUASSI",
+                                    prenoms: "Jean-Pierre",
+                                    full_name: "KOUASSI Jean-Pierre",
+                                    mobile: "0544970711",
+                                    agences: [
+                                        {
+                                            uuid_agence: "550e8400-e29b-41d4-a716-446655440001",
+                                            code: "AG001",
+                                            libelle: "YAKO AFRICA ASSURANCES VIE",
+                                            ville: "Abidjan",
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
             {
                 id: "bordereaux-details-import",
                 module: "rdvs",

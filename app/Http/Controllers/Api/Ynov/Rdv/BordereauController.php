@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Ynov\Rdv\TransmettreRdvParEmailRequest;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\PrestationService;
 use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class BordereauController extends Controller
 {
     public function __construct(
         private BordereauRdvService $bordereauRdvService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private PrestationService $prestationService
     ) {}
 
 
@@ -238,5 +240,20 @@ class BordereauController extends Controller
         );
 
         return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    /**
+     * Récupérer tous les gestionnaires avec le rôle gestionnaire_prestation
+     */
+    public function getGestionnairesPrestation(): JsonResponse
+    {
+        $gestionnaires = $this->prestationService->getGestionnairesPrestation();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gestionnaires prestation récupérés avec succès.',
+            'code' => 'GESTIONNAIERS_PRESTATION_LISTED',
+            'data' => $gestionnaires,
+        ]);
     }
 }

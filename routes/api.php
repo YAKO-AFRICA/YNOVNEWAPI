@@ -662,6 +662,10 @@ Route::prefix('v1')->middleware([
         // Transmettre des RDV par email avec fichier Excel
         Route::post('transmettre-email-gest-prestation', [BordereauController::class, 'transmettreParEmail'])
             ->middleware('permission:rdvs.transmettre_bordereau_gest_prestation');
+
+        // Récupérer les gestionnaires prestation
+        Route::get('gestionnaires-prestation', [BordereauController::class, 'getGestionnairesPrestation'])
+            ->middleware('permission:rdvs.afficher');
     });
 
     Route::prefix('rdvs')->group(function () {

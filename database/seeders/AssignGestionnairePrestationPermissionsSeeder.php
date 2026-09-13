@@ -10,9 +10,9 @@ use Illuminate\Support\Str;
 class AssignGestionnairePrestationPermissionsSeeder extends Seeder
 {
     private const PERMISSIONS = [
-        'prestations.afficher',
-        'prestations.creer',
-        'prestations.modifier',
+        // 'prestations.afficher',
+        // 'prestations.creer',
+        // 'prestations.modifier',
 
          // ============================================================
         // AUTHENTIFICATION - Sécurité de base

@@ -8,6 +8,7 @@ use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
 use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -477,5 +478,39 @@ class PrestationService
             'associations_total' => ProduitPrestation::count(),
             'associations_active' => ProduitPrestation::active()->count(),
         ];
+    }
+
+    /**
+     * Récupérer tous les gestionnaires avec le rôle gestionnaire_prestation
+     */
+    public function getGestionnairesPrestation(): array
+    {
+        $gestionnaires = User::whereHas('role', function ($query) {
+            $query->where('code', 'gestionnaire_prestation');
+        })
+        ->with(['details', 'agences'])
+        ->where('status', 'actif')
+        ->get()
+        ->map(function ($gestionnaire) {
+            return [
+                'uuid_user' => $gestionnaire->uuid_user,
+                'login' => $gestionnaire->login,
+                'email' => $gestionnaire->email,
+                'nom' => $gestionnaire->details?->nom,
+                'prenoms' => $gestionnaire->details?->prenoms,
+                'full_name' => trim(($gestionnaire->details?->nom ?? '') . ' ' . ($gestionnaire->details?->prenoms ?? '')),
+                'mobile' => $gestionnaire->details?->mobile_1 ?? $gestionnaire->details?->mobile_2 ?? null,
+                'agences' => $gestionnaire->agences->map(function ($agence) {
+                    return [
+                        'uuid_agence' => $agence->uuid_agence,
+                        'code' => $agence->code,
+                        'libelle' => $agence->libelle,
+                        'ville' => $agence->ville,
+                    ];
+                }),
+            ];
+        });
+
+        return $gestionnaires->toArray();
     }
 }
