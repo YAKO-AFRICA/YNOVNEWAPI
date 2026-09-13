@@ -773,6 +773,8 @@ class BordereauRdvService
 
         return true;
     }
+
+
     /**
      * Garantit qu'un RDV transmis appartient à un bordereau de la bonne période.
      * La période est calculée à partir de date_transmission.
@@ -846,14 +848,28 @@ class BordereauRdvService
     }
 
     // Synchronisation du statut du lot en fonction de la période et de la date actuelle
+    // protected function computeLotStatus(Carbon $periode1, Carbon $periode2): string
+    // {
+    //     $today = now()->startOfDay();
+
+    //     if ($today->between(
+    //         $periode1->copy()->startOfDay(),
+    //         $periode2->copy()->endOfDay()
+    //     )) {
+    //         return 'transfere';
+    //     }
+
+    //     return 'en_attente';
+    // }
+
+    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
     protected function computeLotStatus(Carbon $periode1, Carbon $periode2): string
     {
         $today = now()->startOfDay();
 
-        if ($today->between(
-            $periode1->copy()->startOfDay(),
-            $periode2->copy()->endOfDay()
-        )) {
+        // Le lot reste en_attente tant que la période n'est pas terminée.
+        // Il ne passe transfere qu'une fois la date de fin de période dépassée.
+        if ($today->greaterThan($periode2->copy()->endOfDay())) {
             return 'transfere';
         }
 
@@ -862,13 +878,27 @@ class BordereauRdvService
 
 
     // Synchronisation du statut du lot en fonction de la période et de la date actuelle
+    // protected function syncLotStatus(BordereauRdv $lot): void
+    // {
+    //     $periode1 = Carbon::parse($lot->periode_1)->startOfDay();
+    //     $periode2 = Carbon::parse($lot->periode_2)->endOfDay();
+    //     $today = now()->startOfDay();
+
+    //     if ($lot->status === 'en_attente' && $today->between($periode1, $periode2)) {
+    //         $lot->update([
+    //             'status' => 'transfere',
+    //             'updated_by' => $lot->created_by ?? null,
+    //         ]);
+    //     }
+    // }
+
+    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
     protected function syncLotStatus(BordereauRdv $lot): void
     {
-        $periode1 = Carbon::parse($lot->periode_1)->startOfDay();
         $periode2 = Carbon::parse($lot->periode_2)->endOfDay();
         $today = now()->startOfDay();
 
-        if ($lot->status === 'en_attente' && $today->between($periode1, $periode2)) {
+        if ($lot->status === 'en_attente' && $today->greaterThan($periode2)) {
             $lot->update([
                 'status' => 'transfere',
                 'updated_by' => $lot->created_by ?? null,

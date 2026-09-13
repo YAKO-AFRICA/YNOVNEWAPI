@@ -320,7 +320,7 @@ class RoutingService
 
             if ($joursDepuis > 3) {
                 $result = $this->traitementService->annuler($rdv, [
-                    'observation' => "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours",
+                    'annulation' => "Annulation automatique : RDV non traité et expiré depuis plus de 3 jours",
                 ], 'system');
 
                 if ($result['success']) {
@@ -522,6 +522,11 @@ class RoutingService
             if (!empty($data['date_rdv_effective'])) {
                 $updateData['date_rdv_effective'] = Carbon::parse($data['date_rdv_effective']);
             }
+
+            $rdv->detailBordereau->update([
+                'status' => 'en_attente',
+                'updated_by' => $userUuid,
+            ]);
 
             $rdv->update($updateData);
 
