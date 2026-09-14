@@ -273,28 +273,28 @@ class RdvController extends Controller
         }
 
         // Transformer les RDV pour inclure les motifs de traitement
-        // $rdvs->getCollection()->transform(function ($rdv) {
-        //     $rdvArray = $rdv->toArray();
-        //     $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
-        //     $rdvArray['motifs_par_type'] = [
-        //         'traitement' => $rdv->getMotifsByType('traitement'),
-        //         'report' => $rdv->getMotifsByType('report'),
-        //         'rejet' => $rdv->getMotifsByType('rejet'),
-        //         'annulation' => $rdv->getMotifsByType('annulation'),
-        //         'expiration' => $rdv->getMotifsByType('expiration'),
-        //         'reassignation' => $rdv->getMotifsByType('reassignation'),
-        //     ];
-        //     $rdvArray['motifs_traitement_details'] = !empty($rdv->motif_traitement) ? $rdv->getMotifsTraitementDetails() : [];
-        //     $rdvArray['has_motifs'] = [
-        //         'traitement' => $rdv->hasMotifsType('traitement'),
-        //         'report' => $rdv->hasMotifsType('report'),
-        //         'rejet' => $rdv->hasMotifsType('rejet'),
-        //         'annulation' => $rdv->hasMotifsType('annulation'),
-        //         'expiration' => $rdv->hasMotifsType('expiration'),
-        //         'reassignation' => $rdv->hasMotifsType('reassignation'),
-        //     ];
-        //     return $rdvArray;
-        // });
+        $rdv->getCollection()->transform(function ($rdv) {
+            $rdvArray = $rdv->toArray();
+            $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
+            $rdvArray['motifs_par_type'] = [
+                'traitement' => $rdv->getMotifsByType('traitement'),
+                'report' => $rdv->getMotifsByType('report'),
+                'rejet' => $rdv->getMotifsByType('rejet'),
+                'annulation' => $rdv->getMotifsByType('annulation'),
+                'expiration' => $rdv->getMotifsByType('expiration'),
+                'reassignation' => $rdv->getMotifsByType('reassignation'),
+            ];
+            $rdvArray['motifs_traitement_details'] = !empty($rdv->motif_traitement) ? $rdv->getMotifsTraitementDetails() : [];
+            $rdvArray['has_motifs'] = [
+                'traitement' => $rdv->hasMotifsType('traitement'),
+                'report' => $rdv->hasMotifsType('report'),
+                'rejet' => $rdv->hasMotifsType('rejet'),
+                'annulation' => $rdv->hasMotifsType('annulation'),
+                'expiration' => $rdv->hasMotifsType('expiration'),
+                'reassignation' => $rdv->hasMotifsType('reassignation'),
+            ];
+            return $rdvArray;
+        });
 
         return response()->json([
             'success' => true,
