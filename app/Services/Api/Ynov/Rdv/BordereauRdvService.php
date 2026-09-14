@@ -43,36 +43,6 @@ class BordereauRdvService
             ->paginate((int) ($filters['per_page'] ?? $perPage));
     }
 
-    /**
-     * Liste les lignes de bordereau.
-     * Si bordereau_rdv_uuid est fourni, on r�cup�re le d�tail complet du lot.
-     */
-    // public function listDetails(array $filters = [], int $perPage = 20)
-    // {
-    //     $query = DetailBordereauRdv::query()
-    //         ->with([
-    //             'bordereauRdv',
-    //             'rdv.client.details',
-    //             'rdv.motif',
-    //             'rdv.gestionnaire.details',
-    //             'rdv.agenceSouhaitee',
-    //             'rdv.agenceEffective',
-    //         ]);
-
-    //     $this->applyDetailFilters($query, $filters);
-
-    //     $sortBy = in_array($filters['sort_by'] ?? null, ['status', 'rdvs.date_rdv_effective', 'rdvs.date_rdv_souhaitee', 'created_at'], true)
-    //         ? $filters['sort_by']
-    //         : 'rdvs.date_rdv_effective' ?? 'rdvs.date_rdv_souhaitee' ?? 'created_at';
-    //     $sortOrderValue = strtolower((string) ($filters['sort_order'] ?? 'asc'));
-    //     $sortOrder = in_array($sortOrderValue, ['asc', 'desc'], true)
-    //         ? $sortOrderValue
-    //         : 'asc';
-
-    //     return $query->orderBy($sortBy, $sortOrder)
-    //         ->paginate((int) ($filters['per_page'] ?? $perPage));
-    // }
-
     public function listDetails(string $bordereauRdvUuid, array $filters = [], int $perPage = 20)
     {
         $query = DetailBordereauRdv::query()
@@ -331,7 +301,7 @@ class BordereauRdvService
                 $detail->uuid_detail_bordereau_rdv = (string) Str::uuid();
                 $detail->bordereau_rdv_uuid = $lot->uuid_bordereau_rdv;
                 $detail->rdv_uuid = $rdv->uuid_rdvs;
-                $detail->status = 'en_attente';
+                $detail->status = 'traite';
             }
 
             $filled = $this->mapExcelRowToDetail($row, $columnIndexes, $lot, $rdv);
@@ -500,148 +470,79 @@ class BordereauRdvService
         return $indexes;
     }
 
-    // private function mapExcelRowToDetail(array $row, array $columnIndexes, BordereauRdv $lot, Rdv $rdv): array
-    // {
-    //     $data = [];
-
-    //     if (isset($columnIndexes['date_effet'])) {
-    //         $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['date_echeance'])) {
-    //         $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['duree_contrat'])) {
-    //         $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['type_operation'])) {
-    //         $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['cumul_rachats_partiels'])) {
-    //         $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['cumul_avances'])) {
-    //         $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['provision_nette'])) {
-    //         $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['valeur_rachat'])) {
-    //         $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['valeur_max_rachat'])) {
-    //         $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['valeur_max_avance'])) {
-    //         $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['montant_transformation'])) {
-    //         $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['garantie_surete'])) {
-    //         $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['conservation_capital'])) {
-    //         $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null);
-    //     }
-
-    //     if (isset($columnIndexes['observation'])) {
-    //         $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
-    //         if ($observation !== '') {
-    //             $data['observation'] = $observation;
-    //         }
-    //     }
-
-    //     $data['status'] = 'en_attente';
-    //     $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
-
-    //     return $data;
-    // }
-
     private function mapExcelRowToDetail(array $row, array $columnIndexes, BordereauRdv $lot, Rdv $rdv): array
-{
-    $data = [];
+    {
+        $data = [];
 
-    if (isset($columnIndexes['date_effet'])) {
-        $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
-    }
-
-    if (isset($columnIndexes['date_echeance'])) {
-        $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
-    }
-
-    if (isset($columnIndexes['duree_contrat'])) {
-        $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
-    }
-
-    if (isset($columnIndexes['type_operation'])) {
-        $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
-    }
-
-    if (isset($columnIndexes['produit'])) {
-        $data['produit'] = $this->cleanStringValue($row[$columnIndexes['produit']] ?? null);
-    }
-
-    // Champs numériques financiers : "-" ou vide => 0.0 (pas null, colonnes NOT NULL en base)
-    if (isset($columnIndexes['cumul_rachats_partiels'])) {
-        $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['cumul_avances'])) {
-        $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['provision_nette'])) {
-        $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['valeur_rachat'])) {
-        $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['valeur_max_rachat'])) {
-        $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['valeur_max_avance'])) {
-        $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['montant_transformation'])) {
-        $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['garantie_surete'])) {
-        $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['conservation_capital'])) {
-        $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null) ?? 0.0;
-    }
-
-    if (isset($columnIndexes['observation'])) {
-        $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
-        if ($observation !== '') {
-            $data['observation'] = $observation;
+        if (isset($columnIndexes['date_effet'])) {
+            $data['date_effet'] = $this->parseDateValue($row[$columnIndexes['date_effet']] ?? null);
         }
+
+        if (isset($columnIndexes['date_echeance'])) {
+            $data['date_echeance'] = $this->parseDateValue($row[$columnIndexes['date_echeance']] ?? null);
+        }
+
+        if (isset($columnIndexes['duree_contrat'])) {
+            $data['duree_contrat'] = $this->cleanStringValue($row[$columnIndexes['duree_contrat']] ?? null);
+        }
+
+        if (isset($columnIndexes['type_operation'])) {
+            $data['type_operation'] = $this->cleanStringValue($row[$columnIndexes['type_operation']] ?? null);
+        }
+
+        if (isset($columnIndexes['produit'])) {
+            $data['produit'] = $this->cleanStringValue($row[$columnIndexes['produit']] ?? null);
+        }
+
+        // Champs numériques financiers : "-" ou vide => 0.0 (pas null, colonnes NOT NULL en base)
+        if (isset($columnIndexes['cumul_rachats_partiels'])) {
+            $data['cumul_rachats_partiels'] = $this->parseNumericValue($row[$columnIndexes['cumul_rachats_partiels']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['cumul_avances'])) {
+            $data['cumul_avances'] = $this->parseNumericValue($row[$columnIndexes['cumul_avances']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['provision_nette'])) {
+            $data['provision_nette'] = $this->parseNumericValue($row[$columnIndexes['provision_nette']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['valeur_rachat'])) {
+            $data['valeur_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_rachat']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['valeur_max_rachat'])) {
+            $data['valeur_max_rachat'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_rachat']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['valeur_max_avance'])) {
+            $data['valeur_max_avance'] = $this->parseNumericValue($row[$columnIndexes['valeur_max_avance']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['montant_transformation'])) {
+            $data['montant_transformation'] = $this->parseNumericValue($row[$columnIndexes['montant_transformation']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['garantie_surete'])) {
+            $data['garantie_surete'] = $this->parseNumericValue($row[$columnIndexes['garantie_surete']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['conservation_capital'])) {
+            $data['conservation_capital'] = $this->parseNumericValue($row[$columnIndexes['conservation_capital']] ?? null) ?? 0.0;
+        }
+
+        if (isset($columnIndexes['observation'])) {
+            $observation = $this->cleanStringValue($row[$columnIndexes['observation']] ?? null);
+            if ($observation !== '') {
+                $data['observation'] = $observation;
+            }
+        }
+
+        $data['status'] = 'en_attente';
+        $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
+
+        return $data;
     }
-
-    $data['status'] = 'en_attente';
-    $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
-
-    return $data;
-}
 
     /**
      * Parse une valeur numérique au format du fichier fourni par le métier :
@@ -847,20 +748,6 @@ class BordereauRdvService
         return [$lot1End->copy()->addDay()->startOfDay(), $endOfWeek];
     }
 
-    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
-    // protected function computeLotStatus(Carbon $periode1, Carbon $periode2): string
-    // {
-    //     $today = now()->startOfDay();
-
-    //     if ($today->between(
-    //         $periode1->copy()->startOfDay(),
-    //         $periode2->copy()->endOfDay()
-    //     )) {
-    //         return 'transfere';
-    //     }
-
-    //     return 'en_attente';
-    // }
 
     // Synchronisation du statut du lot en fonction de la période et de la date actuelle
     protected function computeLotStatus(Carbon $periode1, Carbon $periode2): string
@@ -875,22 +762,6 @@ class BordereauRdvService
 
         return 'en_attente';
     }
-
-
-    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
-    // protected function syncLotStatus(BordereauRdv $lot): void
-    // {
-    //     $periode1 = Carbon::parse($lot->periode_1)->startOfDay();
-    //     $periode2 = Carbon::parse($lot->periode_2)->endOfDay();
-    //     $today = now()->startOfDay();
-
-    //     if ($lot->status === 'en_attente' && $today->between($periode1, $periode2)) {
-    //         $lot->update([
-    //             'status' => 'transfere',
-    //             'updated_by' => $lot->created_by ?? null,
-    //         ]);
-    //     }
-    // }
 
     // Synchronisation du statut du lot en fonction de la période et de la date actuelle
     protected function syncLotStatus(BordereauRdv $lot): void

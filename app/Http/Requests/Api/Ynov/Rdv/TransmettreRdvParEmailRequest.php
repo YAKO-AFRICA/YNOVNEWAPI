@@ -20,6 +20,8 @@ class TransmettreRdvParEmailRequest extends FormRequest
             'fichier' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'], // Max 10MB
             'copie_cc' => ['nullable', 'array'],
             'copie_cc.*' => ['email'],
+            'rdv_uuids' => ['nullable', 'array'],
+            'rdv_uuids.*' => ['exists:rdvs,uuid_rdvs'],
         ];
     }
 
@@ -33,6 +35,7 @@ class TransmettreRdvParEmailRequest extends FormRequest
             'fichier.mimes' => 'Le fichier doit être au format Excel (xlsx ou xls).',
             'fichier.max' => 'Le fichier ne peut pas dépasser 10MB.',
             'copie_cc.*.email' => 'Les adresses en copie doivent être valides.',
+            'rdv_uuids.*.exists' => 'Un ou plusieurs RDV n\'existent pas.',
         ];
     }
 

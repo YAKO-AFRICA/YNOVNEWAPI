@@ -296,7 +296,7 @@ class RoutingService
     {
         $dateActuelle = now()->format('Y-m-d');
 
-        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis'])
+        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte'])
             ->where(function ($q) use ($dateActuelle) {
                 $q->whereDate('date_rdv_effective', '<', $dateActuelle)
                 ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
@@ -525,7 +525,7 @@ class RoutingService
 
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
-                    'status' => 'en_attente',
+                    'status' => $rdv->detailBordereau->status,
                     'updated_by' => $userUuid,
                 ]);
             }

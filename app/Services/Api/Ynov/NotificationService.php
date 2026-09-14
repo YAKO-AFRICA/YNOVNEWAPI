@@ -6,6 +6,7 @@ use App\Mail\TransmettreRdvMail;
 use App\Models\Api\Ynov\parameter\Notification;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\DetailBordereauRdv;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -256,6 +257,23 @@ class NotificationService
             $fichierExtension = $fichier->getClientOriginalExtension();
             $fichierPath = $fichier->storeAs('temp', uniqid() . '.' . $fichierExtension, 'local');
 
+            // Mettre à jour les détails de bordereau si des rdv_uuids sont fournis
+            $rdvUuids = $data['rdv_uuids'] ?? [];
+            $detailsUpdates = 0;
+            
+            if (!empty($rdvUuids)) {
+                foreach ($rdvUuids as $rdvUuid) {
+                    $detail = DetailBordereauRdv::where('rdv_uuid', $rdvUuid)->first();
+                    if ($detail) {
+                        $detail->update([
+                            'status' => 'soumis',
+                            'soumis_a_gestionnaire_prestation_uuid' => $data['gestionnaire_uuid'],
+                        ]);
+                        $detailsUpdates++;
+                    }
+                }
+            }
+
             try {
                 // Envoyer l'email au gestionnaire principal
                 Mail::to($gestionnaire->email)
@@ -280,6 +298,8 @@ class NotificationService
                         'fichier_taille' => $fichier->getSize(),
                         'envoye_par' => $data['envoye_par'] ?? null,
                         'copie_cc' => $data['copie_cc'] ?? [],
+                        'rdv_uuids' => $rdvUuids,
+                        'details_mis_a_jour' => $detailsUpdates,
                     ],
                     'created_by' => $data['envoye_par'] ?? null,
                 ]);
@@ -321,6 +341,8 @@ class NotificationService
                         'sujet' => $sujet,
                         'fichier_nom' => $fichierNom,
                         'copie_cc' => $data['copie_cc'] ?? [],
+                        'rdv_uuids' => $rdvUuids,
+                        'details_mis_a_jour' => $detailsUpdates,
                     ],
                 ]);
 
@@ -333,6 +355,7 @@ class NotificationService
                         'notification_uuid' => $notification->uuid_notification,
                         'gestionnaire_email' => $gestionnaire->email,
                         'fichier_nom' => $fichierNom,
+                        'details_mis_a_jour' => $detailsUpdates,
                     ],
                 ];
             } finally {

@@ -15614,6 +15614,14 @@
                                 type: "email",
                             },
                         },
+                        rdv_uuids: {
+                            type: "array",
+                            required: false,
+                            description: "Liste des UUID des RDV transmis pour mettre à jour les détails de bordereau (optionnel)",
+                            items: {
+                                type: "uuid",
+                            },
+                        },
                     },
                 },
                 excelColumns: {
@@ -15692,6 +15700,10 @@
                     gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440010",
                     fichier: "rdv_transmis.xlsx",
                     copie_cc: ["admin@yako.ci", "superviseur@yako.ci"],
+                    rdv_uuids: [
+                        "da79f619-885b-4621-a7e7-d07948ba5077",
+                        "b7f9e123-994a-5632-b8f8-e18049cd6888",
+                    ],
                 },
                 responses: [
                     {
@@ -15705,6 +15717,7 @@
                                 notification_uuid: "550e8400-e29b-41d4-a716-446655440100",
                                 gestionnaire_email: "gestionnaire@yako.ci",
                                 fichier_nom: "rdv_transmis.xlsx",
+                                details_mis_a_jour: 2,
                             },
                         },
                     },
@@ -15727,6 +15740,7 @@
                             errors: {
                                 gestionnaire_uuid: ["Le gestionnaire est requis."],
                                 fichier: ["Le fichier doit être au format Excel (xlsx ou xls)."],
+                                rdv_uuids: ["Un ou plusieurs RDV n'existent pas."],
                             },
                         },
                     },

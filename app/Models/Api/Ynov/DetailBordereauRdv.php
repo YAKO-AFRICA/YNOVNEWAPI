@@ -34,7 +34,8 @@ class DetailBordereauRdv extends Model
         'garantie_surete',
         'conservation_capital',
         'observation',
-        'status',
+        'soumis_a_gestionnaire_prestation_uuid',
+        'status', // en attente, soumis, traite
         'created_by',
     ];
 
@@ -74,4 +75,11 @@ class DetailBordereauRdv extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'uuid_user');
     }
+
+    public function soumisAgestionnairePrestation(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'soumis_a_gestionnaire_prestation_uuid', 'uuid_user');
+    }
+
+
 }

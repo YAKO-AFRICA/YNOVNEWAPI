@@ -30,8 +30,8 @@ class BordereauRdvResource extends JsonResource
                     'status' => $detail->status,
                     'status_label' => match ($detail->status) {
                         'en_attente' => 'En attente',
-                        'transfere' => 'Transféré',
-                        'cloture' => 'Clôturé',
+                        'soumis' => 'Soumis',
+                        'traite' => 'Traité',
                         default => $detail->status,
                     },
                 ]

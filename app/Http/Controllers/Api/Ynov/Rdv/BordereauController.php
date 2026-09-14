@@ -232,6 +232,7 @@ class BordereauController extends Controller
             'gestionnaire_uuid' => $request->gestionnaire_uuid,
             'fichier' => $request->file('fichier'),
             'copie_cc' => $request->copie_cc ?? [],
+            'rdv_uuids' => $request->rdv_uuids ?? [],
             'envoye_par' => $request->user()->uuid_user,
         ];
 

@@ -143,6 +143,12 @@ class RdvResource extends JsonResource
                     'type_operation' => $this->detailBordereau->type_operation,
                     'produit' => $this->detailBordereau->produit,
                     'status' => $this->detailBordereau->status,
+                    'status_label' => match ($this->detailBordereau->status) {
+                        'en_attente' => 'En attente',
+                        'soumis' => 'Soumis',
+                        'traite' => 'Traité',
+                        default => $this->detailBordereau->status,
+                    },
                     'observation' => $this->detailBordereau->observation,
                     'cumul_rachats_partiels' => $this->detailBordereau->cumul_rachats_partiels,
                     'cumul_avances' => $this->detailBordereau->cumul_avances,
@@ -161,6 +167,12 @@ class RdvResource extends JsonResource
                             'periode_1' => $this->detailBordereau->bordereauRdv->periode_1?->format('Y-m-d'),
                             'periode_2' => $this->detailBordereau->bordereauRdv->periode_2?->format('Y-m-d'),
                             'status' => $this->detailBordereau->bordereauRdv->status,
+                            'status_label' => match ($this->detailBordereau->bordereauRdv->status) {
+                                'en_attente' => 'En attente',
+                                'transfere' => 'Transféré',
+                                'cloture' => 'Clôturé',
+                                default => $this->detailBordereau->bordereauRdv->status,
+                            },
                             'observation' => $this->detailBordereau->bordereauRdv->observation,
                         ];
                     }),

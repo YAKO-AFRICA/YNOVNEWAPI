@@ -25,7 +25,7 @@ class TraitementService
             $oldValues = $rdv->toArray();
 
             // Vérifier que le RDV peut être traité
-            if ($rdv->status !== 'transmis') {
+            if ($rdv->status !== 'transmis' || $rdv->status !== 'reporte') {
                 return [
                     'success' => false,
                     'message' => 'Ce rendez-vous ne peut pas être traité dans son état actuel.',
@@ -48,7 +48,7 @@ class TraitementService
             // mettre à jour le statut du detailBordereauRDV
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
-                    'status' => 'traite',
+                    'status' => $rdv->detailBordereau->status,
                     'updated_by' => $userUuid,
                 ]);
             }
@@ -89,7 +89,7 @@ class TraitementService
             if (!in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ce rendez-vous ne peut pas être reporté.',
+                    'message' => 'Ce rendez-vous ne peut pas être reporté. Car il est actuellement ' . $rdv->status . '.',
                     'code' => 'RDV_NON_REPORTABLE',
                     'status' => 422,
                 ];
@@ -119,7 +119,7 @@ class TraitementService
 
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
-                    'status' => 'en_attente',
+                    'status' => $rdv->detailBordereau->status,
                     'updated_by' => $userUuid,
                 ]);
             }
@@ -159,7 +159,7 @@ class TraitementService
             if (in_array($rdv->status, ['annule', 'rejete', 'traite'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ce rendez-vous ne peut pas être rejeté.',
+                    'message' => 'Ce rendez-vous ne peut pas être rejeté. Car il est actuellement ' . $rdv->status . '.',
                     'code' => 'RDV_NON_REJETABLE',
                     'status' => 422,
                 ];
@@ -177,7 +177,7 @@ class TraitementService
             // Vérifier si detailBordereau existe avant de le mettre à jour
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
-                    'status' => 'traite',
+                    'status' => $rdv->detailBordereau->status,
                     'updated_by' => $userUuid,
                 ]);
             }
@@ -218,7 +218,7 @@ class TraitementService
             if (in_array($rdv->status, ['annule', 'rejete', 'traite'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ce rendez-vous ne peut pas être annulé.',
+                    'message' => 'Ce rendez-vous ne peut pas être annulé. Car il est actuellement ' . $rdv->status . '.',
                     'code' => 'RDV_NON_ANNULABLE',
                     'status' => 422,
                 ];
@@ -236,7 +236,7 @@ class TraitementService
             // Vérifier si detailBordereau existe avant de le mettre à jour
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
-                    'status' => 'traite',
+                    'status' => $rdv->detailBordereau->status,
                     'updated_by' => $userUuid,
                 ]);
             }
@@ -384,7 +384,7 @@ class TraitementService
             if (in_array($rdv->status, ['annule', 'rejete', 'traite', 'expire'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ce rendez-vous ne peut pas être marqué comme expiré.',
+                    'message' => 'Ce rendez-vous ne peut pas être marqué comme expiré. Car il est actuellement ' . $rdv->status . '.',
                     'code' => 'RDV_NON_EXPIRABLE',
                     'status' => 422,
                 ];

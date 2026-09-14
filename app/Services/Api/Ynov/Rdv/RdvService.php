@@ -253,7 +253,7 @@ class RdvService
                 // verifier aussi sur date_rdv_effective
                 ->whereDate('date_rdv_effective', $dateStr)
                 // ->whereDate('date_rdv_souhaiter', $dateStr)
-                ->whereNotIn('status', ['annule', 'rejete', 'traite'])
+                ->whereNotIn('status', ['annule', 'rejete', 'traite', 'expire'])
                 ->count();
 
             $capaciteMax = $horaire->capacite_rendez_vous ?? 0;
@@ -514,7 +514,7 @@ class RdvService
         $capaciteMax = $horaire->capacite_rendez_vous ?? 0;
         $nbRdv = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
             ->whereDate('date_rdv_souhaiter', $dateStr)
-            ->whereNotIn('status', ['annule', 'rejete', 'termine'])
+            ->whereNotIn('status', ['annule', 'rejete', 'traite', 'expire'])
             ->count();
 
         $placesRestantes = $capaciteMax - $nbRdv;
@@ -1301,6 +1301,7 @@ class RdvService
 
         $isExists = DetailBordereauRdv::query()
             ->where('rdv_uuid', $rdv->uuid_rdvs)
+            ->where('status', 'traite')
             ->whereHas('bordereauRdv', function ($query) {
                 $query->where('status', 'cloture');
             })
