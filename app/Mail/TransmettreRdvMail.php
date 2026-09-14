@@ -17,15 +17,15 @@ class TransmettreRdvMail extends Mailable
     public $fichierPath;
     public $fichierNom;
     public $sujet;
-    public $message;
+    public $messageContent;
 
-    public function __construct(string $gestionnaireEmail, string $fichierPath, string $fichierNom, string $sujet, string $message)
+    public function __construct(string $gestionnaireEmail, string $fichierPath, string $fichierNom, string $sujet, string $messageContent)
     {
         $this->gestionnaireEmail = $gestionnaireEmail;
         $this->fichierPath = $fichierPath;
         $this->fichierNom = $fichierNom;
         $this->sujet = $sujet;
-        $this->message = $message;
+        $this->messageContent = $messageContent;
     }
 
     public function envelope(): Envelope
