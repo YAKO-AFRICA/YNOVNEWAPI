@@ -542,7 +542,7 @@ class RdvService
     /**
      * Récupérer les rendez-vous d'un client
      */
-    public function getRdvClient(string $clientUuid, array $filters = [], int $perPage = 20)
+    public function getRdvClient(string $clientUuid, array $filters = [], int $perPage = 10)
     {
         $query = Rdv::forClient($clientUuid)
             ->with(['motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire'])

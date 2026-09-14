@@ -63,7 +63,7 @@ class TraitementService
             ]);
 
             $this->logActivity($userUuid, 'traiter', $rdv, $oldValues, $data);
-            $this->sendNotification($rdv, 'traite', $userUuid);
+            $this->sendNotification($rdv, 'traiter', $userUuid);
 
             return [
                 'success' => true,
@@ -135,7 +135,7 @@ class TraitementService
             ]);
 
             $this->logActivity($userUuid, 'reporter', $rdv, $oldValues, $data);
-            $this->sendNotification($rdv, 'reporte', $userUuid);
+            $this->sendNotification($rdv, 'reporter', $userUuid);
 
             return [
                 'success' => true,
@@ -193,7 +193,7 @@ class TraitementService
             // Logger l'activité seulement si ce n'est pas 'system'
             if ($userUuid !== 'system') {
                 $this->logActivity($userUuid, 'rejeter', $rdv, $oldValues, $data);
-                $this->sendNotification($rdv, 'rejete', $userUuid);
+                $this->sendNotification($rdv, 'rejeter', $userUuid);
             }
 
             return [
@@ -249,7 +249,7 @@ class TraitementService
             ]);
 
             $this->logActivity($userUuid, 'annuler', $rdv, $oldValues, $data);
-            $this->sendNotification($rdv, 'annule', $userUuid);
+            $this->sendNotification($rdv, 'annuler', $userUuid);
 
             return [
                 'success' => true,
