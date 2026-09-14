@@ -22,6 +22,10 @@ class DashboardService
             $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
         }
 
+        if (isset($filters['date'])) {
+            $query->whereDate('created_at', $filters['date']);
+        }
+    
         // Filtre par date
         if (isset($filters['date_debut'])) {
             $query->whereDate('created_at', '>=', $filters['date_debut']);
@@ -68,6 +72,9 @@ class DashboardService
             $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
         }
 
+        if (isset($filters['date'])) {
+            $query->whereDate('created_at', $filters['date']);
+        }
         if (isset($filters['date_debut'])) {
             $query->whereDate('created_at', '>=', $filters['date_debut']);
         }
@@ -137,6 +144,10 @@ class DashboardService
             $query->where('rdvs.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
 
+         if (isset($filters['date'])) {
+            $query->whereDate('rdvs.created_at', $filters['date']);
+        }
+
         if (isset($filters['date_debut'])) {
             $query->whereDate('rdvs.created_at', '>=', $filters['date_debut']);
         }
@@ -180,6 +191,10 @@ class DashboardService
 
         if (isset($filters['agence_uuid'])) {
             $query->where('rdvs.agence_effective_uuid', $filters['agence_uuid'])->orWhere('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
+        }
+
+        if (isset($filters['date'])) {
+            $query->whereDate('rdvs.created_at', $filters['date']);
         }
 
         if (isset($filters['date_debut'])) {
@@ -304,6 +319,10 @@ class DashboardService
             )
             ->groupBy('agences.uuid_agence', 'agences.libelle', 'agences.code', 'agences.ville');
 
+        if (isset($filters['date'])) {
+            $query->whereDate('rdvs.created_at', $filters['date']);
+        }
+
         if (isset($filters['date_debut'])) {
             $query->whereDate('rdvs.created_at', '>=', $filters['date_debut']);
         }
@@ -323,11 +342,6 @@ class DashboardService
                     'total' => $item->total,
                     'traites' => $item->traites,
                     'en_attente' => $item->en_attente,
-                    'transmis' => $item->transmis,
-                    'annule' => $item->annule,
-                    'rejete' => $item->rejete,
-                    'reporte' => $item->reporte,
-                    'expire' => $item->expire,
                     'taux_traitement' => $item->total > 0 ? round(($item->traites / $item->total) * 100, 2) : 0,
                 ];
             })
@@ -347,6 +361,10 @@ class DashboardService
 
         $dateDebut = $filters['date_debut'] ?? now()->subDays(30);
         $dateFin = $filters['date_fin'] ?? now();
+
+        if (isset($filters['date'])) {
+            $query->whereDate('created_at', $filters['date']);
+        }
 
         $query->whereDate('created_at', '>=', $dateDebut)
             ->whereDate('created_at', '<=', $dateFin);
