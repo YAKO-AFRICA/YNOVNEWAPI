@@ -35,14 +35,14 @@ class DetailBordereauRdvResource extends JsonResource
             'garantie_surete' => $this->garantie_surete,
             'conservation_capital' => $this->conservation_capital,
             'observation' => $this->observation,
-            'soumis_a' => $this->soumis_a,
+            'soumis_a' => $this->soumis_a_gestionnaire_prestation_uuid,
             'soumisAgestionnairePrestation' => $this->whenLoaded('soumisAgestionnairePrestation', function () {
                 return [
-                    'uuid_user' => $this->AgestionnairePrestation->uuid_user,
-                    'email' => $this->AgestionnairePrestation->email,
-                    'nom' => $this->AgestionnairePrestation->details?->nom,
-                    'prenoms' => $this->AgestionnairePrestation->details?->prenoms,
-                    'full_name' => trim(($this->AgestionnairePrestation->details?->nom ?? '') . ' ' . ($this->AgestionnairePrestation->details?->prenoms ?? '')),
+                    'uuid_user' => $this->soumisAgestionnairePrestation->uuid_user,
+                    'email' => $this->soumisAgestionnairePrestation->email,
+                    'nom' => $this->soumisAgestionnairePrestation->details?->nom,
+                    'prenoms' => $this->soumisAgestionnairePrestation->details?->prenoms,
+                    'full_name' => trim(($this->soumisAgestionnairePrestation->details?->nom ?? '') . ' ' . ($this->soumisAgestionnairePrestation->details?->prenoms ?? '')),
                 ];
             }),
             'bordereau' => $this->whenLoaded('bordereauRdv', fn () => new BordereauRdvResource($this->bordereauRdv)),
