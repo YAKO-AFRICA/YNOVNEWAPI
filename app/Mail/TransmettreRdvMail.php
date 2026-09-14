@@ -43,12 +43,6 @@ class TransmettreRdvMail extends Mailable
         );
     }
 
-    public function build()
-    {
-        $this->subject($this->sujet);
-        return parent::build();
-    }
-
     public function attachments(): array
     {
         return [
