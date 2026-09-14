@@ -14,6 +14,12 @@ class DetailBordereauRdvResource extends JsonResource
             'bordereau_rdv_uuid' => $this->bordereau_rdv_uuid,
             'rdv_uuid' => $this->rdv_uuid,
             'status' => $this->status,
+            'status_label' => match ($this->status) {
+                'en_attente' => 'En attente',
+                'soumis' => 'Soumis',
+                'traite' => 'Traité',
+                default => $this->status,
+            },
             'date_effet' => $this->date_effet?->format('Y-m-d'),
             'date_echeance' => $this->date_echeance?->format('Y-m-d'),
             'duree_contrat' => $this->duree_contrat,
