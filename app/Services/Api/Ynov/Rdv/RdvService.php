@@ -1035,9 +1035,9 @@ class RdvService
 
         if (!empty($filters['date'])) {
             $query->whereDate('date_rdv_effective', $filters['date']);
-            if (!isset($filters['status'])) {
-                $query->whereIn('status', ['transmis']);
-            }
+            // if (!isset($filters['status'])) {
+            //     $query->whereIn('status', ['transmis']);
+            // }
         }
 
         if (!empty($filters['date_debut'])) {

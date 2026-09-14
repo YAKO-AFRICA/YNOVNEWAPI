@@ -523,10 +523,12 @@ class RoutingService
                 $updateData['date_rdv_effective'] = Carbon::parse($data['date_rdv_effective']);
             }
 
-            $rdv->detailBordereau->update([
-                'status' => 'en_attente',
-                'updated_by' => $userUuid,
-            ]);
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'en_attente',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update($updateData);
 

@@ -46,10 +46,12 @@ class TraitementService
             $motifsTraitement = array_unique($motifsTraitement); // Éviter les doublons
 
             // mettre à jour le statut du detailBordereauRDV
-            $rdv->detailBordereau->update([
-                'status' => 'traite',
-                'updated_by' => $userUuid,
-            ]);
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'traite',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update([
                 'status' => 'traite',
@@ -115,10 +117,12 @@ class TraitementService
             $motifsReport = array_merge($motifsReport, $nouveauxMotifs);
             $motifsReport = array_unique($motifsReport); // Éviter les doublons
 
-            $rdv->detailBordereau->update([
-                'status' => 'en_attente',
-                'updated_by' => $userUuid,
-            ]);
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'en_attente',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update([
                 'status' => 'reporte',
@@ -170,10 +174,13 @@ class TraitementService
             $motifsRejet = array_merge($motifsRejet, $nouveauxMotifs);
             $motifsRejet = array_unique($motifsRejet); // Éviter les doublons
 
-            $rdv->detailBordereau->update([
-                'status' => 'traite',
-                'updated_by' => $userUuid,
-            ]);
+            // Vérifier si detailBordereau existe avant de le mettre à jour
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'traite',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update([
                 'status' => 'rejete',
@@ -226,10 +233,13 @@ class TraitementService
             $motifsAnnulation = array_merge($motifsAnnulation, $nouveauxMotifs);
             $motifsAnnulation = array_unique($motifsAnnulation); // Éviter les doublons
 
-            $rdv->detailBordereau->update([
-                'status' => 'traite',
-                'updated_by' => $userUuid,
-            ]);
+            // Vérifier si detailBordereau existe avant de le mettre à jour
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'traite',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update([
                 'status' => 'annule',
@@ -389,10 +399,12 @@ class TraitementService
             $motifsExpiration = array_merge($motifsExpiration, $nouveauxMotifs);
             $motifsExpiration = array_unique($motifsExpiration); // Éviter les doublons
 
-            $rdv->detailBordereau->update([
-                'status' => 'en_attente',
-                'updated_by' => $userUuid,
-            ]);
+            if ($rdv->detailBordereau) {
+                $rdv->detailBordereau->update([
+                    'status' => 'en_attente',
+                    'updated_by' => $userUuid,
+                ]);
+            }
 
             $rdv->update([
                 'status' => 'expire',
