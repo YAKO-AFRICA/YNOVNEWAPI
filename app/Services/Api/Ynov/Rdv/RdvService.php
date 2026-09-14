@@ -1042,11 +1042,11 @@ class RdvService
 
         if (!empty($filters['date_debut'])) {
             $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
-            $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
+            // $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
-            $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
+            // $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
         }
 
         // Filtrer par type de motif si spécifié
