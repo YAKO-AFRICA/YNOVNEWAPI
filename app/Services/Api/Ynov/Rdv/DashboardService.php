@@ -6,7 +6,6 @@ namespace App\Services\Api\Ynov\Rdv;
 use App\Models\Api\Ynov\Rdv;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class DashboardService
 {
@@ -232,13 +231,13 @@ class DashboardService
     {
         $query = Rdv::query()
             // ->whereNotNull('gestionnaire_uuid')
-            ->whereIn('status', ['transmis'])
+            // ->whereIn('status', ['transmis', 'reporte'])
             ->where('is_present', true)
             ->with(['client.details', 'motif', 'agenceEffective', 'agenceSouhaitee'])
             ->orderBy('present_at', 'asc');
 
-        Log::debug('Récupération de la file d\'attente avec les filtres : ' . json_encode($filters) . ' et limite : ' . $limit);
-        Log::debug('Requête SQL générée : ' . $query->toSql());
+        // Log::debug('Récupération de la file d\'attente avec les filtres : ' . json_encode($filters) . ' et limite : ' . $limit);
+        // Log::debug('Requête SQL générée : ' . $query->toSql());
 
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_effective_uuid', $filters['agence_uuid']);

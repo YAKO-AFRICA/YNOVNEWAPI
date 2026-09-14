@@ -883,9 +883,10 @@ class RdvService
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
-        } else {
-            $query->whereIn('status', ['transmis']);
-        }
+        } 
+        // else {
+        //     $query->whereIn('status', ['transmis']);
+        // }
 
         if (isset($filters['is_present'])) {
             $query->where('is_present', (bool) $filters['is_present']);
@@ -907,9 +908,9 @@ class RdvService
 
         if (!empty($filters['date'])) {
             $query->whereDate('date_rdv_effective', $filters['date']);
-            if (!isset($filters['status'])) {
-                $query->whereIn('status', ['transmis']);
-            }
+            // if (!isset($filters['status'])) {
+            //     $query->whereIn('status', ['transmis']);
+            // }
         }
 
         if (!empty($filters['date_debut'])) {
