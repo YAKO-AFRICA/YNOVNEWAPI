@@ -54,6 +54,8 @@ class BordereauRdvService
                 'rdv.gestionnaire.details',
                 'rdv.agenceSouhaitee',
                 'rdv.agenceEffective',
+                'soumisAgestionnairePrestation',
+
             ]);
 
         $this->applyDetailFilters($query, $filters);

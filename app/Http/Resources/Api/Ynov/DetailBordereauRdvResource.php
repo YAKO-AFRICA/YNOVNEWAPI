@@ -33,7 +33,6 @@ class DetailBordereauRdvResource extends JsonResource
             'soumisAgestionnairePrestation' => $this->whenLoaded('soumisAgestionnairePrestation', function () {
                 return [
                     'uuid_user' => $this->AgestionnairePrestation->uuid_user,
-                    'login' => $this->AgestionnairePrestation->login,
                     'email' => $this->AgestionnairePrestation->email,
                     'nom' => $this->AgestionnairePrestation->details?->nom,
                     'prenoms' => $this->AgestionnairePrestation->details?->prenoms,
