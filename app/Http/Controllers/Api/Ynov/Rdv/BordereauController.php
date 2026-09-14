@@ -202,6 +202,29 @@ class BordereauController extends Controller
 
     /**
      * Transmettre un fichier Excel de RDV par email
+     * 
+     * Permet à un admin_prestation de transmettre par email un fichier Excel de RDV transmis 
+     * à un gestionnaire_prestation sélectionné. Le sujet et le message sont automatiques.
+     * L'envoi se fait par email et database.
+     * 
+     * COLONNES DU FICHIER EXCEL:
+     * 
+     * | Colonne | Description | Source de données |
+     * |---------|-------------|-------------------|
+     * | Id | Identifiant du RDV (même valeur que code du rdv) | rdvs.code |
+     * | Nom & prénom(s) | Nom complet du client | client.details.nom + client.details.prenoms |
+     * | Téléphone | Numéro de téléphone du client | client.details.mobile_1 ou mobile_2 |
+     * | email | Email du client | client.email |
+     * | Date RDV effective | Date effective du rendez-vous | rdvs.date_rdv_effective |
+     * | Date du rdv | Date souhaitée du rendez-vous | rdvs.date_rdv_souhaiter |
+     * | code du rdv | Code unique du RDV (même valeur que Id) | rdvs.code |
+     * | Motif | Motif du rendez-vous | motif.libelle |
+     * | police | Numéro de contrat du client | rdvs.id_contrat |
+     * | Nom du gestionnaire | Nom du gestionnaire assigné | gestionnaire.details.nom + gestionnaire.details.prenoms |
+     * | ville du rdv | Ville de l'agence effective | agence_effective.ville |
+     * 
+     * @param TransmettreRdvParEmailRequest $request
+     * @return JsonResponse
      */
     public function transmettreParEmail(TransmettreRdvParEmailRequest $request): JsonResponse
     {

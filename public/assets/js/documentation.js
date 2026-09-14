@@ -15616,6 +15616,78 @@
                         },
                     },
                 },
+                excelColumns: {
+                    title: "Colonnes requises dans le fichier Excel",
+                    description: "Le fichier Excel doit contenir les colonnes suivantes dans l'ordre indiqué:",
+                    columns: [
+                        {
+                            header: "Id",
+                            description: "Identifiant du RDV (même valeur que code du rdv)",
+                            source: "rdvs.code",
+                            required: true,
+                        },
+                        {
+                            header: "Nom & prénom(s)",
+                            description: "Nom complet du client",
+                            source: "client.details.nom + client.details.prenoms",
+                            required: true,
+                        },
+                        {
+                            header: "Téléphone",
+                            description: "Numéro de téléphone du client",
+                            source: "client.details.mobile_1 ou mobile_2",
+                            required: true,
+                        },
+                        {
+                            header: "email",
+                            description: "Email du client",
+                            source: "client.email",
+                            required: true,
+                        },
+                        {
+                            header: "Date RDV effective",
+                            description: "Date effective du rendez-vous",
+                            source: "rdvs.date_rdv_effective",
+                            required: true,
+                        },
+                        {
+                            header: "Date du rdv",
+                            description: "Date souhaitée du rendez-vous",
+                            source: "rdvs.date_rdv_souhaiter",
+                            required: true,
+                        },
+                        {
+                            header: "code du rdv",
+                            description: "Code unique du RDV (même valeur que Id)",
+                            source: "rdvs.code",
+                            required: true,
+                        },
+                        {
+                            header: "Motif",
+                            description: "Motif du rendez-vous",
+                            source: "motif.libelle",
+                            required: true,
+                        },
+                        {
+                            header: "police",
+                            description: "Numéro de contrat du client",
+                            source: "rdvs.id_contrat",
+                            required: true,
+                        },
+                        {
+                            header: "Nom du gestionnaire",
+                            description: "Nom du gestionnaire assigné",
+                            source: "gestionnaire.details.nom + gestionnaire.details.prenoms",
+                            required: true,
+                        },
+                        {
+                            header: "ville du rdv",
+                            description: "Ville de l'agence effective",
+                            source: "agenceEffective.libelle",
+                            required: true,
+                        },
+                    ],
+                },
                 exampleRequest: {
                     gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440010",
                     fichier: "rdv_transmis.xlsx",
@@ -18093,6 +18165,45 @@
             let bodyParamsHtml = "";
             let exampleRequestHtml = "";
             let invalidExampleHtml = "";
+            let excelColumnsHtml = "";
+            
+            // Afficher les colonnes Excel si disponibles
+            if (endpoint.excelColumns && endpoint.excelColumns.columns && endpoint.excelColumns.columns.length > 0) {
+                const columns = endpoint.excelColumns.columns;
+                excelColumnsHtml = `
+                    <div class="section-title"><i class="fas fa-table text-success"></i> ${endpoint.excelColumns.title || "Colonnes du fichier Excel"}</div>
+                    <div class="description mb-3">
+                        <p>${endpoint.excelColumns.description || "Le fichier Excel doit contenir les colonnes suivantes:"}</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Colonne</th>
+                                    <th>Description</th>
+                                    <th>Source de données</th>
+                                    <th>Requis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${columns.map(col => `
+                                    <tr>
+                                        <td><code style="font-weight: 600;">${col.header}</code></td>
+                                        <td>${col.description}</td>
+                                        <td><code style="font-size: 0.85rem;">${col.source}</code></td>
+                                        <td>
+                                            ${col.required 
+                                                ? '<span class="required-badge">Obligatoire</span>' 
+                                                : '<span class="optional-badge">Optionnel</span>'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
             if (
                 endpoint.requestParams?.body &&
                 Object.keys(endpoint.requestParams.body).length > 0
@@ -18325,6 +18436,8 @@
                             `
                                     : ""
                             }
+
+                            ${excelColumnsHtml}
 
                             ${
                                 bodyParamsHtml

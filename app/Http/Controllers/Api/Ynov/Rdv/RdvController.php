@@ -214,9 +214,78 @@ class RdvController extends Controller
             $perPage
         );
 
-        // Transformer les RDV pour inclure les motifs de traitement
+        // Transformer les RDV pour inclure les motifs de traitement et limiter les relations
         $rdvs->getCollection()->transform(function ($rdv) {
             $rdvArray = $rdv->toArray();
+            
+            // Client - champs limités
+            $rdvArray['client'] = [
+                'uuid_user' => $rdv->client->uuid_user,
+                'numero_client' => $rdv->client->details?->numero_client,
+                'login' => $rdv->client->login,
+                'email' => $rdv->client->email,
+                'nom' => $rdv->client->details?->nom,
+                'prenoms' => $rdv->client->details?->prenoms,
+                'date_naissance' => $rdv->client->details?->date_naissance?->format('Y-m-d'),
+                'lieu_naissance' => $rdv->client->details?->lieu_naissance,
+                'full_name' => trim(($rdv->client->details?->nom ?? '') . ' ' . ($rdv->client->details?->prenoms ?? '')),
+                'phone' => $rdv->client->details?->mobile_1 ?? $rdv->client->details?->mobile_2 ?? null,
+                'lieu_residence' => $rdv->client->details?->lieu_residence,
+                'adresse' => $rdv->client->details?->adresse_complete,
+                'genre' => $rdv->client->details?->genre,
+                'civilite' => $rdv->client->details?->civilite,
+                'nationalite' => $rdv->client->details?->nationalite,
+                'status' => $rdv->client->status,
+                'user_type' => $rdv->client->user_type,
+            ];
+
+            // Gestionnaire - champs limités
+            if ($rdv->gestionnaire) {
+                $rdvArray['gestionnaire'] = [
+                    'uuid_user' => $rdv->gestionnaire->uuid_user,
+                    'login' => $rdv->gestionnaire->login,
+                    'email' => $rdv->gestionnaire->email,
+                    'nom' => $rdv->gestionnaire->details?->nom,
+                    'prenoms' => $rdv->gestionnaire->details?->prenoms,
+                    'full_name' => trim(($rdv->gestionnaire->details?->nom ?? '') . ' ' . ($rdv->gestionnaire->details?->prenoms ?? '')),
+                ];
+            }
+
+            // Agence souhaitée - champs limités
+            if ($rdv->agenceSouhaitee) {
+                $rdvArray['agence_souhaitee'] = [
+                    'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
+                    'libelle' => $rdv->agenceSouhaitee->libelle,
+                    'code' => $rdv->agenceSouhaitee->code,
+                    'ville' => $rdv->agenceSouhaitee->ville,
+                    'adresse' => $rdv->agenceSouhaitee->adresse,
+                ];
+            }
+
+            // Agence effective - champs limités
+            if ($rdv->agenceEffective) {
+                $rdvArray['agence_effective'] = [
+                    'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+                    'libelle' => $rdv->agenceEffective->libelle,
+                    'code' => $rdv->agenceEffective->code,
+                    'ville' => $rdv->agenceEffective->ville,
+                    'adresse' => $rdv->agenceEffective->adresse,
+                ];
+            }
+
+            // Motif - champs limités
+            if ($rdv->motif) {
+                $rdvArray['motif'] = [
+                    'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+                    'code' => $rdv->motif->code,
+                    'libelle' => $rdv->motif->libelle,
+                    'description' => $rdv->motif->description,
+                    'category_uuid' => $rdv->motif->category_uuid,
+                    'delai_traitement' => $rdv->motif->delai_traitement,
+                ];
+            }
+
+            // Motifs de traitement
             $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
             $rdvArray['motifs_par_type'] = [
                 'traitement' => $rdv->getMotifsByType('traitement'),
@@ -272,35 +341,93 @@ class RdvController extends Controller
             }
         }
 
-        // Transformer les RDV pour inclure les motifs de traitement
-        $rdv->getCollection()->transform(function ($rdv) {
-            $rdvArray = $rdv->toArray();
-            $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
-            $rdvArray['motifs_par_type'] = [
-                'traitement' => $rdv->getMotifsByType('traitement'),
-                'report' => $rdv->getMotifsByType('report'),
-                'rejet' => $rdv->getMotifsByType('rejet'),
-                'annulation' => $rdv->getMotifsByType('annulation'),
-                'expiration' => $rdv->getMotifsByType('expiration'),
-                'reassignation' => $rdv->getMotifsByType('reassignation'),
-            ];
-            $rdvArray['motifs_traitement_details'] = !empty($rdv->motif_traitement) ? $rdv->getMotifsTraitementDetails() : [];
-            $rdvArray['has_motifs'] = [
-                'traitement' => $rdv->hasMotifsType('traitement'),
-                'report' => $rdv->hasMotifsType('report'),
-                'rejet' => $rdv->hasMotifsType('rejet'),
-                'annulation' => $rdv->hasMotifsType('annulation'),
-                'expiration' => $rdv->hasMotifsType('expiration'),
-                'reassignation' => $rdv->hasMotifsType('reassignation'),
-            ];
-            return $rdvArray;
-        });
+        // Transformer le RDV pour inclure les motifs de traitement et limiter les relations
+        $rdvArray = $rdv->toArray();
+        
+        // Client - champs limités
+        $rdvArray['client'] = [
+            'uuid_user' => $rdv->client->uuid_user,
+            'numero_client' => $rdv->client->details?->numero_client,
+            'login' => $rdv->client->login,
+            'email' => $rdv->client->email,
+            'nom' => $rdv->client->details?->nom,
+            'prenoms' => $rdv->client->details?->prenoms,
+            'date_naissance' => $rdv->client->details?->date_naissance?->format('Y-m-d'),
+            'lieu_naissance' => $rdv->client->details?->lieu_naissance,
+            'full_name' => trim(($rdv->client->details?->nom ?? '') . ' ' . ($rdv->client->details?->prenoms ?? '')),
+            'phone' => $rdv->client->details?->mobile_1 ?? $rdv->client->details?->mobile_2 ?? null,
+            'lieu_residence' => $rdv->client->details?->lieu_residence,
+            'adresse' => $rdv->client->details?->adresse_complete,
+            'genre' => $rdv->client->details?->genre,
+            'civilite' => $rdv->client->details?->civilite,
+            'nationalite' => $rdv->client->details?->nationalite,
+            'status' => $rdv->client->status,
+            'user_type' => $rdv->client->user_type,
+        ];
+
+        // Gestionnaire - champs limités
+        $rdvArray['gestionnaire'] = [
+            'uuid_user' => $rdv->gestionnaire->uuid_user,
+            'login' => $rdv->gestionnaire->login,
+            'email' => $rdv->gestionnaire->email,
+            'nom' => $rdv->gestionnaire->details?->nom,
+            'prenoms' => $rdv->gestionnaire->details?->prenoms,
+            'full_name' => trim(($rdv->gestionnaire->details?->nom ?? '') . ' ' . ($rdv->gestionnaire->details?->prenoms ?? '')),
+        ];
+
+        // Agence souhaitée - champs limités
+        $rdvArray['agence_souhaitee'] = [
+            'uuid_agence' => $rdv->agenceSouhaitee->uuid_agence,
+            'libelle' => $rdv->agenceSouhaitee->libelle,
+            'code' => $rdv->agenceSouhaitee->code,
+            'ville' => $rdv->agenceSouhaitee->ville,
+            'adresse' => $rdv->agenceSouhaitee->adresse,
+        ];
+
+        // Agence effective - champs limités
+        $rdvArray['agence_effective'] = [
+            'uuid_agence' => $rdv->agenceEffective->uuid_agence,
+            'libelle' => $rdv->agenceEffective->libelle,
+            'code' => $rdv->agenceEffective->code,
+            'ville' => $rdv->agenceEffective->ville,
+            'adresse' => $rdv->agenceEffective->adresse,
+        ];
+
+        // Motif - champs limités
+        $rdvArray['motif'] = [
+            'uuid_type_prestation' => $rdv->motif->uuid_type_prestation,
+            'code' => $rdv->motif->code,
+            'libelle' => $rdv->motif->libelle,
+            'description' => $rdv->motif->description,
+            'category_uuid' => $rdv->motif->category_uuid,
+            'delai_traitement' => $rdv->motif->delai_traitement,
+        ];
+
+        // Motifs de traitement
+        $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
+        $rdvArray['motifs_par_type'] = [
+            'traitement' => $rdv->getMotifsByType('traitement'),
+            'report' => $rdv->getMotifsByType('report'),
+            'rejet' => $rdv->getMotifsByType('rejet'),
+            'annulation' => $rdv->getMotifsByType('annulation'),
+            'expiration' => $rdv->getMotifsByType('expiration'),
+            'reassignation' => $rdv->getMotifsByType('reassignation'),
+        ];
+        $rdvArray['motifs_traitement_details'] = !empty($rdv->motif_traitement) ? $rdv->getMotifsTraitementDetails() : [];
+        $rdvArray['has_motifs'] = [
+            'traitement' => $rdv->hasMotifsType('traitement'),
+            'report' => $rdv->hasMotifsType('report'),
+            'rejet' => $rdv->hasMotifsType('rejet'),
+            'annulation' => $rdv->hasMotifsType('annulation'),
+            'expiration' => $rdv->hasMotifsType('expiration'),
+            'reassignation' => $rdv->hasMotifsType('reassignation'),
+        ];
 
         return response()->json([
             'success' => true,
             'message' => 'Détails du rendez-vous.',
             'code' => 'RDV_FOUND',
-            'data' => $rdv,
+            'data' => $rdvArray,
         ]);
     }
 
