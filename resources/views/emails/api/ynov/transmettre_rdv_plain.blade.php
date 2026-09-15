@@ -1,6 +1,6 @@
 {{ $sujet }}
 
-{{ $messageContent }}
+{!! $messageContent !!}
 
 INFORMATIONS
 ============

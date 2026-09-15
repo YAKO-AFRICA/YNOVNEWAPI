@@ -8,7 +8,7 @@
                     {{ $sujet }}
                 </h1>
                 <p style="margin:0 0 24px 0; font-size:15px; color:#334155; line-height:1.6;">
-                    {{ nl2br($messageContent) }}
+                    {!! $messageContent !!}
                 </p>
             </td>
         </tr>
