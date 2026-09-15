@@ -315,6 +315,20 @@ class ProduitGarantieSeeder extends Seeder
         ['code_produit' => 'PVRPRE', 'code_produit_garantie' => 'EPGPLUS', 'libelle' => 'Epargne plus', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Epargne', 'age_min' => 12, 'age_max' => 106, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 99, 'duree_contrat_min' => 5, 'duree_contrat_max' => 99, 'branche' => 'COURTAGE'],
         ['code_produit' => 'PVRPRE', 'code_produit_garantie' => 'PTYS', 'libelle' => 'Protectys', 'est_obligatoire' => 1, 'nature_garantie' => 'Complementaire Obligatoire', 'type' => 'Deces', 'age_min' => 12, 'age_max' => 106, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 99, 'duree_contrat_min' => 5, 'duree_contrat_max' => 99, 'branche' => 'COURTAGE'],
         ['code_produit' => 'PVRPRE', 'code_produit_garantie' => 'PERSIT', 'libelle' => 'Persistance', 'est_obligatoire' => 1, 'nature_garantie' => 'Complementaire Obligatoire', 'type' => 'Bonus', 'age_min' => 12, 'age_max' => 106, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 99, 'duree_contrat_min' => 5, 'duree_contrat_max' => 99, 'branche' => 'COURTAGE'],
+        
+        // YKP_2024
+        ['code_produit' => 'YKP_2024', 'code_produit_garantie' => 'SUR_CENT', 'libelle' => 'SURETE 100% GAGNANT', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Deces', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
+
+        ['code_produit' => 'YKP_2024', 'code_produit_garantie' => 'REMB_100%', 'libelle' => 'REMBOURSEMENT 100% GAGNANT', 'est_obligatoire' => 1, 'nature_garantie' => 'Complementaire Obligatoire', 'type' => 'KVIE', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
+
+        // INV_2020
+        ['code_produit' => 'INV_2020', 'code_produit_garantie' => 'INVEST+', 'libelle' => 'Invest+', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Epargne', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
+
+        ['code_produit' => 'INV_2020', 'code_produit_garantie' => 'SDIG', 'libelle' => 'Services Digitaux', 'est_obligatoire' => 1, 'nature_garantie' => 'Complementaire Obligatoire', 'type' => '', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
+
+        ['code_produit' => 'INV_2020', 'code_produit_garantie' => 'SURETE', 'libelle' => 'Surêté', 'est_obligatoire' => 0, 'nature_garantie' => 'Complementaire facultatif', 'type' => 'KVIE', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
+
+        ['code_produit' => 'INV_2020', 'code_produit_garantie' => 'Exceptionnel', 'libelle' => 'Versement Exceptionnel', 'est_obligatoire' => 0, 'nature_garantie' => 'Complementaire facultatif', 'type' => 'Epargne', 'age_min' => 0, 'age_max' => 0, 'duree_cotisation_min' => 0, 'duree_cotisation_max' => 0, 'duree_contrat_min' => 0, 'duree_contrat_max' => 0, 'branche' => 'IND'],
     ];
 
     public function run(): void

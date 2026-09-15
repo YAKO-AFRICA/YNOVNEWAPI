@@ -12993,94 +12993,94 @@
                 ],
             },
 
-            {
-                id: "rdvs-produit-garanties-list",
-                module: "rdvs",
-                name: "[Traitement] Liste des garanties d'un produit",
-                description: "Récupère la liste des garanties associées à un produit pour le traitement des RDV avec possibilité de filtrage et pagination.",
-                method: "GET",
-                path: "/rdvs/traitement/produits/{uuid_produit}/garanties",
-                isProtected: true,
-                headers: {
-                    Authorization: "Bearer {token}",
-                    Accept: "application/json",
-                },
-                requestParams: {
-                    path: {
-                        uuid_produit: {
-                            type: "uuid",
-                            required: true,
-                            description: "UUID du produit",
-                        },
-                    },
-                    query: {
-                        per_page: {
-                            type: "integer",
-                            required: false,
-                            default: 15,
-                            description: "Nombre d'éléments par page",
-                        },
-                        branche: {
-                            type: "string",
-                            required: false,
-                            description: "Filtrer par code branche (IND, COURTAGE, COL, BANKASS, BANKASS1 etc.)",
-                        },
-                        type: {
-                            type: "string",
-                            required: false,
-                            description: "Filtrer par type (Principal, Complémentaire, Optionnel)",
-                        },
-                        libelle: {
-                            type: "string",
-                            required: false,
-                            description: "Filtrer par libellé (recherche partielle)",
-                        },
-                        est_obligatoire: {
-                            type: "boolean",
-                            required: false,
-                            description: "Filtrer par obligation (true/false)",
-                        },
-                    },
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: "Liste des garanties",
-                        example: {
-                            success: true,
-                            message: "Liste des garanties du produit.",
-                            code: "GARANTIES_LISTED",
-                            data: [
-                                {
-                                    uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
-                                    produit_uuid: "550e8400-e29b-41d4-a716-446655440001",
-                                    code_produit: "PERF_IND",
-                                    code_produit_garantie: "DECES",
-                                    libelle: "Décès",
-                                    est_obligatoire: true,
-                                    nature_garantie: "Capital décès",
-                                    type: "principal",
-                                    age_min: 18,
-                                    age_max: 70,
-                                    duree_cotisation_min: 5,
-                                    duree_cotisation_max: 10,
-                                    duree_contrat_min: 10,
-                                    duree_contrat_max: 30,
-                                    branche: "VIE",
-                                    description: "Garantie principale en cas de décès",
-                                    created_at: "2025-01-15T10:00:00.000000Z",
-                                },
-                            ],
-                            meta: {
-                                current_page: 1,
-                                per_page: 15,
-                                total: 25,
-                                last_page: 2,
-                            },
-                        },
-                    },
-                ],
-            },
+            // {
+            //     id: "rdvs-produit-garanties-list",
+            //     module: "rdvs",
+            //     name: "[Traitement] Liste des garanties d'un produit",
+            //     description: "Récupère la liste des garanties associées à un produit pour le traitement des RDV avec possibilité de filtrage et pagination.",
+            //     method: "GET",
+            //     path: "/rdvs/traitement/produits/{uuid_produit}/garanties",
+            //     isProtected: true,
+            //     headers: {
+            //         Authorization: "Bearer {token}",
+            //         Accept: "application/json",
+            //     },
+            //     requestParams: {
+            //         path: {
+            //             uuid_produit: {
+            //                 type: "uuid",
+            //                 required: true,
+            //                 description: "UUID du produit",
+            //             },
+            //         },
+            //         query: {
+            //             per_page: {
+            //                 type: "integer",
+            //                 required: false,
+            //                 default: 15,
+            //                 description: "Nombre d'éléments par page",
+            //             },
+            //             branche: {
+            //                 type: "string",
+            //                 required: false,
+            //                 description: "Filtrer par code branche (IND, COURTAGE, COL, BANKASS, BANKASS1 etc.)",
+            //             },
+            //             type: {
+            //                 type: "string",
+            //                 required: false,
+            //                 description: "Filtrer par type (Principal, Complémentaire, Optionnel)",
+            //             },
+            //             libelle: {
+            //                 type: "string",
+            //                 required: false,
+            //                 description: "Filtrer par libellé (recherche partielle)",
+            //             },
+            //             est_obligatoire: {
+            //                 type: "boolean",
+            //                 required: false,
+            //                 description: "Filtrer par obligation (true/false)",
+            //             },
+            //         },
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: "Liste des garanties",
+            //             example: {
+            //                 success: true,
+            //                 message: "Liste des garanties du produit.",
+            //                 code: "GARANTIES_LISTED",
+            //                 data: [
+            //                     {
+            //                         uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
+            //                         produit_uuid: "550e8400-e29b-41d4-a716-446655440001",
+            //                         code_produit: "PERF_IND",
+            //                         code_produit_garantie: "DECES",
+            //                         libelle: "Décès",
+            //                         est_obligatoire: true,
+            //                         nature_garantie: "Capital décès",
+            //                         type: "principal",
+            //                         age_min: 18,
+            //                         age_max: 70,
+            //                         duree_cotisation_min: 5,
+            //                         duree_cotisation_max: 10,
+            //                         duree_contrat_min: 10,
+            //                         duree_contrat_max: 30,
+            //                         branche: "VIE",
+            //                         description: "Garantie principale en cas de décès",
+            //                         created_at: "2025-01-15T10:00:00.000000Z",
+            //                     },
+            //                 ],
+            //                 meta: {
+            //                     current_page: 1,
+            //                     per_page: 15,
+            //                     total: 25,
+            //                     last_page: 2,
+            //                 },
+            //             },
+            //         },
+            //     ],
+            // },
 
             {
                 id: "produit-garanties-create",
@@ -16709,6 +16709,99 @@
             // ============================================================
             // TRAITEMENT DES RENDEZ-VOUS
             // ============================================================
+            {
+                id: "rdv-produits-transformation",
+                module: "rdvs",
+                name: "[Traitement] Produits de transformation d'un RDV",
+                description:
+                    "Récupère les produits de transformation disponibles pour un rendez-vous. Le résultat contient le produit, la formule et les garanties associées. Seules les formules actives INV_2020_V2, YKP_2024 et LFFUN_V44 sont retournées.",
+                method: "GET",
+                path: "/rdvs/traitement/{uuid_rdvs}/produits-transformation",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_rdvs: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du rendez-vous concerné.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Produits de transformation récupérés avec succès.",
+                        example: {
+                            success: true,
+                            message: "Produits de transformation récupérés avec succès.",
+                            code: "PRODUITS_TRANSFORMATION_LISTED",
+                            data: [
+                                {
+                                    rdv_uuid: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                    rdv_code: "RDV-2026-001",
+                                    produit: {
+                                        uuid_produit: "8a7f5b2c-7a1a-4e10-bb2e-123456789abc",
+                                        code: "INV",
+                                        libelle: "Produit investissement",
+                                        description: "Produit de transformation",
+                                        statut: "actif",
+                                        type_produit: {
+                                            uuid_type_produit: "5f1b9d7e-9e22-4e2c-8f11-123456789abc",
+                                            code: "INVESTISSEMENT",
+                                            libelle: "Investissement",
+                                        },
+                                    },
+                                    formule: {
+                                        uuid_produit_formule: "2b4c6d8e-1234-4abc-9def-123456789abc",
+                                        code_produit_formule: "INV_2020_V2",
+                                        code_produit: "INV",
+                                        libelle: "Formule investissement 2020 V2",
+                                        est_actif: true,
+                                        date_debut: "2026-01-01",
+                                        date_fin: null,
+                                    },
+                                    garanties: [
+                                        {
+                                            uuid_produit_garantie: "7c8d9e0f-1234-4abc-9def-123456789abc",
+                                            code_produit_garantie: "GAR_VIE",
+                                            libelle: "Garantie vie",
+                                            est_obligatoire: true,
+                                            nature_garantie: "Principale",
+                                            type: "Vie",
+                                            age_min: 18,
+                                            age_max: 65,
+                                            duree_cotisation_min: 12,
+                                            duree_cotisation_max: 240,
+                                            duree_contrat_min: 12,
+                                            duree_contrat_max: 240,
+                                            branche: "INV",
+                                            description: "Garantie principale du produit.",
+                                        },
+                                    ],
+                                },
+                            ],
+                            meta: {
+                                total: 1,
+                                codes_formules: ["INV_2020_V2", "YKP_2024", "LFFUN_V44"],
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Rendez-vous introuvable.",
+                        example: {
+                            success: false,
+                            message: "No query results for model [App\\Models\\Api\\Ynov\\Rdv].",
+                            code: "MODEL_NOT_FOUND",
+                        },
+                    },
+                ],
+            },
 
             // ============================================================
             // 16. TRAITEMENT - RÉASSIGNER UN GESTIONNAIRE

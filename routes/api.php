@@ -745,7 +745,7 @@ Route::prefix('v1')->middleware([
         Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
         // Recuperer les produits de tranformation pour un RDV
-        // Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
+        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
 
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);

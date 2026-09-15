@@ -10,6 +10,7 @@ use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\JourFerie;
 use App\Models\Api\Ynov\parameter\Produit;
+use App\Models\Api\Ynov\parameter\ProduitFormule;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
@@ -24,6 +25,11 @@ use Illuminate\Support\Str;
 
 class RdvService
 {
+    private const CODES_FORMULES_TRANSFORMATION = [
+        'INV_2020_V2',
+        'YKP_2024_v1',
+        'LFFUN_V44',
+    ];
 
     public function __construct(
         private NotificationService $notificationService,
@@ -77,6 +83,76 @@ class RdvService
                 ] : null,
             ];
         })->toArray();
+    }
+
+    /**
+     * Récupérer les produits, formules et garanties disponibles pour une
+     * transformation liée à un rendez-vous.
+     */
+    public function getProduitsTransformation(Rdv $rdv): array
+    {
+        return ProduitFormule::query()
+            ->whereIn('code_produit_formule', self::CODES_FORMULES_TRANSFORMATION)
+            ->where('est_actif', true)
+            ->whereHas('produit', function ($query) {
+                $query->where('statut', 'actif');
+            })
+            ->with([
+                'produit.typeProduit',
+                'produit.garanties',
+            ])
+            ->orderByRaw(
+                'FIELD(code_produit_formule, ' . implode(', ', array_fill(0, count(self::CODES_FORMULES_TRANSFORMATION), '?')) . ')',
+                self::CODES_FORMULES_TRANSFORMATION
+            )
+            ->get()
+            ->map(function (ProduitFormule $formule) use ($rdv): array {
+                $produit = $formule->produit;
+
+                return [
+                    'rdv_uuid' => $rdv->uuid_rdvs,
+                    'rdv_code' => $rdv->code,
+                    'produit' => $produit ? [
+                        'uuid_produit' => $produit->uuid_produit,
+                        'code' => $produit->code,
+                        'libelle' => $produit->libelle,
+                        'description' => $produit->description,
+                        'statut' => $produit->statut,
+                        'type_produit' => $produit->typeProduit ? [
+                            'uuid_type_produit' => $produit->typeProduit->uuid_type_produit,
+                            'code' => $produit->typeProduit->code,
+                            'libelle' => $produit->typeProduit->libelle,
+                        ] : null,
+                    ] : null,
+                    'formule' => [
+                        'uuid_produit_formule' => $formule->uuid_produit_formule,
+                        'code_produit_formule' => $formule->code_produit_formule,
+                        'code_produit' => $formule->code_produit,
+                        'libelle' => $formule->libelle,
+                        'est_actif' => (bool) $formule->est_actif,
+                        'date_debut' => $formule->date_debut?->format('Y-m-d'),
+                        'date_fin' => $formule->date_fin?->format('Y-m-d'),
+                    ],
+                    'garanties' => $produit?->garanties->map(fn ($garantie) => [
+                        'uuid_produit_garantie' => $garantie->uuid_produit_garantie,
+                        'code_produit_garantie' => $garantie->code_produit_garantie,
+                        'libelle' => $garantie->libelle,
+                        'est_obligatoire' => (bool) $garantie->est_obligatoire,
+                        'nature_garantie' => $garantie->nature_garantie,
+                        'type' => $garantie->type,
+                        'age_min' => $garantie->age_min,
+                        'age_max' => $garantie->age_max,
+                        'duree_cotisation_min' => $garantie->duree_cotisation_min,
+                        'duree_cotisation_max' => $garantie->duree_cotisation_max,
+                        'duree_contrat_min' => $garantie->duree_contrat_min,
+                        'duree_contrat_max' => $garantie->duree_contrat_max,
+                        'branche' => $garantie->branche,
+                        'description' => $garantie->description,
+                    ])->values()->all() ?? [],
+                ];
+            })
+            ->values()
+            ->all();
     }
     
     /**

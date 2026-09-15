@@ -81,6 +81,26 @@ class RdvController extends Controller
         ]);
     }
 
+    /**
+     * Récupérer les produits de transformation disponibles pour un RDV.
+     */
+    public function getProduitsTransformation(string $uuid_rdvs): JsonResponse
+    {
+        $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+        $produits = $this->rdvService->getProduitsTransformation($rdv);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produits de transformation récupérés avec succès.',
+            'code' => 'PRODUITS_TRANSFORMATION_LISTED',
+            'data' => $produits,
+            'meta' => [
+                'total' => count($produits),
+                'codes_formules' => ['INV_2020_V2', 'YKP_2024', 'LFFUN_V44'],
+            ],
+        ]);
+    }
+
 
     /**
      * Récupérer les agences disponibles
