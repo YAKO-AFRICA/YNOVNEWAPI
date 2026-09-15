@@ -603,6 +603,19 @@ Route::prefix('v1')->middleware([
         
         Route::delete('prestations/{uuid_association}', [ProduitController::class, 'removePrestation'])
             ->middleware('permission:produits.modifier');
+        
+        // Garanties du produit
+        Route::get('{uuid_produit}/garanties', [ProduitController::class, 'getGaranties'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::post('{uuid_produit}/garanties', [ProduitController::class, 'storeGarantie'])
+            ->middleware('permission:produits.creer');
+        
+        Route::put('garanties/{uuid_produit_garantie}', [ProduitController::class, 'updateGarantie'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('garanties/{uuid_produit_garantie}', [ProduitController::class, 'destroyGarantie'])
+            ->middleware('permission:produits.supprimer');
     });
 
     // ============================================================
@@ -610,8 +623,8 @@ Route::prefix('v1')->middleware([
     // ============================================================
     Route::prefix('prestations')->group(function () {
         // Catégories
-        Route::get('categories', [PrestationController::class, 'categories'])
-            ->middleware('permission:prestations.afficher');
+        Route::get('categories', [PrestationController::class, 'categories']);
+            // ->middleware('permission:prestations.afficher');
         
         Route::post('categories', [PrestationController::class, 'storeCategory'])
             ->middleware('permission:prestations.creer');
@@ -731,6 +744,9 @@ Route::prefix('v1')->middleware([
         
         Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
+        // Recuperer les produits de tranformation pour un RDV
+        // Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
+
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
         
@@ -757,6 +773,9 @@ Route::prefix('v1')->middleware([
         
         // Marquer comme expiré
         Route::post('{uuid_rdvs}/expirer', [TraitementController::class, 'expirer'])->middleware('permission:rdvs.expirer');
+
+        // Liste des garanties d'un produit (pour le traitement des RDV)
+        Route::get('produits/{uuid_produit}/garanties', [ProduitController::class, 'getGaranties']);
     });
 
 

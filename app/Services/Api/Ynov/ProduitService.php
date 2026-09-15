@@ -216,6 +216,9 @@ class ProduitService
                 'formules' => function ($q) {
                     $q->orderBy('libelle');
                 },
+                'garanties' => function ($q) {
+                    $q->orderBy('libelle');
+                },
                 'typePrestations' => function ($q) {
                     $q->wherePivot('status', 'actif')
                         ->with('category')

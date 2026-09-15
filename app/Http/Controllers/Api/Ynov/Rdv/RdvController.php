@@ -31,10 +31,12 @@ class RdvController extends Controller
     public function motifs(MotifsRequest $request): JsonResponse
     {
         $impact = $request->getImpact();
+        $categoryUuid = $request->input('category_uuid');
 
         $motifs = $this->rdvService->getMotifsForContrat(
             $request->code_produit,
-            $impact
+            $impact,
+            $categoryUuid
         );
 
         if (empty($motifs)) {
@@ -46,9 +48,10 @@ class RdvController extends Controller
                 'meta' => [
                     'total' => 0,
                     'filter_impact' => $impact,
-                    'filter_impact_label' => $impact !== null 
+                    'filter_impact_label' => $impact !== null
                         ? ($impact === '1' ? 'Sortie portefeuille' : 'Non sortie portefeuille')
                         : 'Tous',
+                    'filter_category_uuid' => $categoryUuid,
                 ],
             ]);
         }
@@ -57,6 +60,9 @@ class RdvController extends Controller
         if ($impact !== null) {
             $impactLabel = $impact === '1' ? 'sortie portefeuille' : 'non sortie portefeuille';
             $message = "Motifs disponibles avec impact {$impactLabel}.";
+        }
+        if ($categoryUuid !== null) {
+            $message .= " Filtrés par catégorie.";
         }
 
         return response()->json([
@@ -67,9 +73,10 @@ class RdvController extends Controller
             'meta' => [
                 'total' => count($motifs),
                 'filter_impact' => $impact,
-                'filter_impact_label' => $impact !== null 
+                'filter_impact_label' => $impact !== null
                     ? ($impact === '1' ? 'Sortie portefeuille' : 'Non sortie portefeuille')
                     : 'Tous',
+                'filter_category_uuid' => $categoryUuid,
             ],
         ]);
     }

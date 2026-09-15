@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Ynov;
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\ProduitFormule;
+use App\Models\Api\Ynov\parameter\ProduitGarantie;
 use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Services\Api\Ynov\ProduitService;
@@ -67,12 +68,53 @@ class ProduitController extends Controller
                 'vie_entiere' => ['nullable', 'boolean'],
                 'code_produit_court' => ['nullable', 'string', 'max:5'],
                 'code_marque' => ['nullable', 'string', 'max:20'],
+                'garanties' => ['nullable', 'array'],
+                'garanties.*.code_produit_garantie' => ['required', 'string', 'max:25'],
+                'garanties.*.libelle' => ['required', 'string', 'max:100'],
+                'garanties.*.est_obligatoire' => ['boolean'],
+                'garanties.*.nature_garantie' => ['nullable', 'string', 'max:100'],
+                'garanties.*.type' => ['nullable', 'string', 'max:100'],
+                'garanties.*.age_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.age_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_cotisation_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_cotisation_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_contrat_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_contrat_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.branche' => ['nullable', 'string', 'max:10'],
+                'garanties.*.description' => ['nullable', 'string'],
             ]);
 
             $produit = $this->produitService->createProduit(
                 $validated,
                 $request->user()->uuid_user
             );
+
+            // Créer les garanties si fournies
+            if (!empty($validated['garanties'])) {
+                foreach ($validated['garanties'] as $garantieData) {
+                    ProduitGarantie::create([
+                        'produit_uuid' => $produit->uuid_produit,
+                        'code_produit' => $produit->code,
+                        'code_produit_garantie' => $garantieData['code_produit_garantie'],
+                        'libelle' => $garantieData['libelle'],
+                        'est_obligatoire' => $garantieData['est_obligatoire'] ?? false,
+                        'nature_garantie' => $garantieData['nature_garantie'] ?? null,
+                        'type' => $garantieData['type'] ?? null,
+                        'age_min' => $garantieData['age_min'] ?? null,
+                        'age_max' => $garantieData['age_max'] ?? null,
+                        'duree_cotisation_min' => $garantieData['duree_cotisation_min'] ?? null,
+                        'duree_cotisation_max' => $garantieData['duree_cotisation_max'] ?? null,
+                        'duree_contrat_min' => $garantieData['duree_contrat_min'] ?? null,
+                        'duree_contrat_max' => $garantieData['duree_contrat_max'] ?? null,
+                        'branche' => $garantieData['branche'] ?? null,
+                        'description' => $garantieData['description'] ?? null,
+                        'created_by' => $request->user()->uuid_user,
+                    ]);
+                }
+            }
+
+            // Recharger le produit avec les garanties
+            $produit->load('garanties');
 
             return response()->json([
                 'success' => true,
@@ -127,6 +169,20 @@ class ProduitController extends Controller
                 'vie_entiere' => ['nullable', 'boolean'],
                 'code_produit_court' => ['nullable', 'string', 'max:5'],
                 'code_marque' => ['nullable', 'string', 'max:20'],
+                'garanties' => ['nullable', 'array'],
+                'garanties.*.code_produit_garantie' => ['required', 'string', 'max:25'],
+                'garanties.*.libelle' => ['required', 'string', 'max:100'],
+                'garanties.*.est_obligatoire' => ['boolean'],
+                'garanties.*.nature_garantie' => ['nullable', 'string', 'max:100'],
+                'garanties.*.type' => ['nullable', 'string', 'max:100'],
+                'garanties.*.age_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.age_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_cotisation_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_cotisation_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_contrat_min' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.duree_contrat_max' => ['nullable', 'integer', 'min:0'],
+                'garanties.*.branche' => ['nullable', 'string', 'max:10'],
+                'garanties.*.description' => ['nullable', 'string'],
             ]);
 
             $updated = $this->produitService->updateProduit(
@@ -134,6 +190,37 @@ class ProduitController extends Controller
                 $validated,
                 $request->user()->uuid_user
             );
+
+            // Mettre à jour les garanties si fournies
+            if (isset($validated['garanties'])) {
+                // Supprimer les garanties existantes
+                $produit->garanties()->delete();
+                
+                // Créer les nouvelles garanties
+                foreach ($validated['garanties'] as $garantieData) {
+                    ProduitGarantie::create([
+                        'produit_uuid' => $produit->uuid_produit,
+                        'code_produit' => $produit->code,
+                        'code_produit_garantie' => $garantieData['code_produit_garantie'],
+                        'libelle' => $garantieData['libelle'],
+                        'est_obligatoire' => $garantieData['est_obligatoire'] ?? false,
+                        'nature_garantie' => $garantieData['nature_garantie'] ?? null,
+                        'type' => $garantieData['type'] ?? null,
+                        'age_min' => $garantieData['age_min'] ?? null,
+                        'age_max' => $garantieData['age_max'] ?? null,
+                        'duree_cotisation_min' => $garantieData['duree_cotisation_min'] ?? null,
+                        'duree_cotisation_max' => $garantieData['duree_cotisation_max'] ?? null,
+                        'duree_contrat_min' => $garantieData['duree_contrat_min'] ?? null,
+                        'duree_contrat_max' => $garantieData['duree_contrat_max'] ?? null,
+                        'branche' => $garantieData['branche'] ?? null,
+                        'description' => $garantieData['description'] ?? null,
+                        'updated_by' => $request->user()->uuid_user,
+                    ]);
+                }
+            }
+
+            // Recharger le produit avec les garanties
+            $updated->load('garanties');
 
             return response()->json([
                 'success' => true,
@@ -446,6 +533,181 @@ class ProduitController extends Controller
             'message' => 'Statistiques des produits.',
             'code' => 'PRODUIT_STATS',
             'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Liste des garanties d'un produit
+     */
+    public function getGaranties(string $uuid_produit, Request $request): JsonResponse
+    {
+        $produit = Produit::where('uuid_produit', $uuid_produit)->firstOrFail();
+
+        $query = $produit->garanties();
+
+        // Filtres
+        if ($request->has('branche')) {
+            $query->where('branche', $request->branche);
+        }
+
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->has('libelle')) {
+            $query->where('libelle', 'like', '%' . $request->libelle . '%');
+        }
+
+        if ($request->has('est_obligatoire')) {
+            $query->where('est_obligatoire', filter_var($request->est_obligatoire, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        // Pagination
+        $perPage = $request->integer('per_page', 15);
+        $garanties = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Liste des garanties du produit.',
+            'code' => 'GARANTIES_LISTED',
+            'data' => $garanties->items(),
+            'meta' => [
+                'current_page' => $garanties->currentPage(),
+                'per_page' => $garanties->perPage(),
+                'total' => $garanties->total(),
+                'last_page' => $garanties->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Créer une garantie pour un produit
+     */
+    public function storeGarantie(Request $request, string $uuid_produit): JsonResponse
+    {
+        try {
+            $request->validate([
+                'code_produit_garantie' => ['required', 'string', 'max:25'],
+                'libelle' => ['required', 'string', 'max:100'],
+                'est_obligatoire' => ['boolean'],
+                'nature_garantie' => ['nullable', 'string', 'max:100'],
+                'type' => ['nullable', 'string', 'max:100'],
+                'age_min' => ['nullable', 'integer', 'min:0'],
+                'age_max' => ['nullable', 'integer', 'min:0'],
+                'duree_cotisation_min' => ['nullable', 'integer', 'min:0'],
+                'duree_cotisation_max' => ['nullable', 'integer', 'min:0'],
+                'duree_contrat_min' => ['nullable', 'integer', 'min:0'],
+                'duree_contrat_max' => ['nullable', 'integer', 'min:0'],
+                'branche' => ['nullable', 'string', 'max:10'],
+                'description' => ['nullable', 'string'],
+            ]);
+
+            $produit = Produit::where('uuid_produit', $uuid_produit)->firstOrFail();
+
+            $garantie = ProduitGarantie::create([
+                'produit_uuid' => $produit->uuid_produit,
+                'code_produit' => $produit->code,
+                'code_produit_garantie' => $request->code_produit_garantie,
+                'libelle' => $request->libelle,
+                'est_obligatoire' => $request->est_obligatoire ?? false,
+                'nature_garantie' => $request->nature_garantie,
+                'type' => $request->type,
+                'age_min' => $request->age_min,
+                'age_max' => $request->age_max,
+                'duree_cotisation_min' => $request->duree_cotisation_min,
+                'duree_cotisation_max' => $request->duree_cotisation_max,
+                'duree_contrat_min' => $request->duree_contrat_min,
+                'duree_contrat_max' => $request->duree_contrat_max,
+                'branche' => $request->branche,
+                'description' => $request->description,
+                'created_by' => $request->user()->uuid_user,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Garantie créée avec succès.',
+                'code' => 'GARANTIE_CREATED',
+                'data' => $garantie,
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Mettre à jour une garantie
+     */
+    public function updateGarantie(Request $request, string $uuid_produit_garantie): JsonResponse
+    {
+        try {
+            $request->validate([
+                'code_produit_garantie' => ['nullable', 'string', 'max:25'],
+                'libelle' => ['nullable', 'string', 'max:100'],
+                'est_obligatoire' => ['boolean'],
+                'nature_garantie' => ['nullable', 'string', 'max:100'],
+                'type' => ['nullable', 'string', 'max:100'],
+                'age_min' => ['nullable', 'integer', 'min:0'],
+                'age_max' => ['nullable', 'integer', 'min:0'],
+                'duree_cotisation_min' => ['nullable', 'integer', 'min:0'],
+                'duree_cotisation_max' => ['nullable', 'integer', 'min:0'],
+                'duree_contrat_min' => ['nullable', 'integer', 'min:0'],
+                'duree_contrat_max' => ['nullable', 'integer', 'min:0'],
+                'branche' => ['nullable', 'string', 'max:10'],
+                'description' => ['nullable', 'string'],
+            ]);
+
+            $garantie = ProduitGarantie::where('uuid_produit_garantie', $uuid_produit_garantie)->firstOrFail();
+
+            $garantie->update([
+                'code_produit_garantie' => $request->code_produit_garantie ?? $garantie->code_produit_garantie,
+                'libelle' => $request->libelle ?? $garantie->libelle,
+                'est_obligatoire' => $request->est_obligatoire ?? $garantie->est_obligatoire,
+                'nature_garantie' => $request->nature_garantie ?? $garantie->nature_garantie,
+                'type' => $request->type ?? $garantie->type,
+                'age_min' => $request->age_min ?? $garantie->age_min,
+                'age_max' => $request->age_max ?? $garantie->age_max,
+                'duree_cotisation_min' => $request->duree_cotisation_min ?? $garantie->duree_cotisation_min,
+                'duree_cotisation_max' => $request->duree_cotisation_max ?? $garantie->duree_cotisation_max,
+                'duree_contrat_min' => $request->duree_contrat_min ?? $garantie->duree_contrat_min,
+                'duree_contrat_max' => $request->duree_contrat_max ?? $garantie->duree_contrat_max,
+                'branche' => $request->branche ?? $garantie->branche,
+                'description' => $request->description ?? $garantie->description,
+                'updated_by' => $request->user()->uuid_user,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Garantie mise à jour avec succès.',
+                'code' => 'GARANTIE_UPDATED',
+                'data' => $garantie->fresh(),
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Supprimer une garantie
+     */
+    public function destroyGarantie(string $uuid_produit_garantie): JsonResponse
+    {
+        $garantie = ProduitGarantie::where('uuid_produit_garantie', $uuid_produit_garantie)->firstOrFail();
+        $garantie->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Garantie supprimée avec succès.',
+            'code' => 'GARANTIE_DELETED',
         ]);
     }
 }

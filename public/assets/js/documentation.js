@@ -11887,6 +11887,18 @@
                                         },
                                     },
                                 ],
+                                garanties: [
+                                    {
+                                        uuid_produit_garantie: "...",
+                                        code_produit_garantie: "DECES",
+                                        libelle: "Décès",
+                                        est_obligatoire: true,
+                                        nature_garantie: "Capital décès",
+                                        type: "principal",
+                                        age_min: 18,
+                                        age_max: 70,
+                                    },
+                                ],
                             },
                         },
                     },
@@ -11988,6 +12000,93 @@
                             max: 20,
                             description: "Code marque",
                         },
+                        garanties: {
+                            type: "array",
+                            required: false,
+                            description: "Tableau des garanties à créer avec le produit",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    code_produit_garantie: {
+                                        type: "string",
+                                        required: true,
+                                        max: 25,
+                                        description: "Code de la garantie",
+                                    },
+                                    libelle: {
+                                        type: "string",
+                                        required: true,
+                                        max: 100,
+                                        description: "Libellé de la garantie",
+                                    },
+                                    est_obligatoire: {
+                                        type: "boolean",
+                                        required: false,
+                                        default: false,
+                                        description: "Indicateur si la garantie est obligatoire",
+                                    },
+                                    nature_garantie: {
+                                        type: "string",
+                                        required: false,
+                                        max: 100,
+                                        description: "Nature de la garantie",
+                                    },
+                                    type: {
+                                        type: "string",
+                                        required: false,
+                                        max: 100,
+                                        description: "Type de garantie",
+                                    },
+                                    age_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Âge minimum",
+                                    },
+                                    age_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Âge maximum",
+                                    },
+                                    duree_cotisation_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de cotisation minimum",
+                                    },
+                                    duree_cotisation_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de cotisation maximum",
+                                    },
+                                    duree_contrat_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de contrat minimum",
+                                    },
+                                    duree_contrat_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de contrat maximum",
+                                    },
+                                    branche: {
+                                        type: "string",
+                                        required: false,
+                                        max: 10,
+                                        description: "Code de la branche",
+                                    },
+                                    description: {
+                                        type: "string",
+                                        required: false,
+                                        description: "Description de la garantie",
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
                 exampleRequest: {
@@ -12000,6 +12099,30 @@
                     age_maxi_adh: 70,
                     capital: 1000000,
                     vie_entiere: false,
+                    garanties: [
+                        {
+                            code_produit_garantie: "DECES",
+                            libelle: "Décès",
+                            est_obligatoire: true,
+                            nature_garantie: "Capital décès",
+                            type: "principal",
+                            age_min: 18,
+                            age_max: 70,
+                            duree_cotisation_min: 5,
+                            duree_cotisation_max: 10,
+                            duree_contrat_min: 10,
+                            duree_contrat_max: 30,
+                            branche: "VIE",
+                            description: "Garantie principale en cas de décès",
+                        },
+                        {
+                            code_produit_garantie: "INVALIDITE",
+                            libelle: "Invalidité",
+                            est_obligatoire: false,
+                            nature_garantie: "Rente",
+                            type: "complementaire",
+                        },
+                    ],
                 },
                 responses: [
                     {
@@ -12038,7 +12161,169 @@
                         },
                     },
                     body: {
-                        /* Mêmes champs que la création, tous optionnels */
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            max: 128,
+                            description: "Libellé du produit",
+                        },
+                        code: {
+                            type: "string",
+                            required: false,
+                            max: 25,
+                            description: "Code unique",
+                        },
+                        code_branche: {
+                            type: "string",
+                            required: false,
+                            max: 25,
+                            description: "Code de la branche",
+                        },
+                        code_produit_nature: {
+                            type: "string",
+                            required: false,
+                            max: 25,
+                            description: "Nature du produit",
+                        },
+                        description: {
+                            type: "string",
+                            required: false,
+                            description: "Description",
+                        },
+                        statut: {
+                            type: "string",
+                            required: false,
+                            enum: ["actif", "inactif"],
+                            description: "Statut",
+                        },
+                        type_produit_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du type de produit",
+                        },
+                        age_mini_adh: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            max: 127,
+                            description: "Âge minimum d'adhésion",
+                        },
+                        age_maxi_adh: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            max: 127,
+                            description: "Âge maximum d'adhésion",
+                        },
+                        capital: {
+                            type: "integer",
+                            required: false,
+                            description: "Capital souscrit",
+                        },
+                        vie_entiere: {
+                            type: "boolean",
+                            required: false,
+                            description: "Vie entière",
+                        },
+                        code_produit_court: {
+                            type: "string",
+                            required: false,
+                            max: 5,
+                            description: "Code court",
+                        },
+                        code_marque: {
+                            type: "string",
+                            required: false,
+                            max: 20,
+                            description: "Code marque",
+                        },
+                        garanties: {
+                            type: "array",
+                            required: false,
+                            description: "Tableau des garanties à mettre à jour (remplace les existantes)",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    code_produit_garantie: {
+                                        type: "string",
+                                        required: true,
+                                        max: 25,
+                                        description: "Code de la garantie",
+                                    },
+                                    libelle: {
+                                        type: "string",
+                                        required: true,
+                                        max: 100,
+                                        description: "Libellé de la garantie",
+                                    },
+                                    est_obligatoire: {
+                                        type: "boolean",
+                                        required: false,
+                                        default: false,
+                                        description: "Indicateur si la garantie est obligatoire",
+                                    },
+                                    nature_garantie: {
+                                        type: "string",
+                                        required: false,
+                                        max: 100,
+                                        description: "Nature de la garantie",
+                                    },
+                                    type: {
+                                        type: "string",
+                                        required: false,
+                                        max: 100,
+                                        description: "Type de garantie",
+                                    },
+                                    age_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Âge minimum",
+                                    },
+                                    age_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Âge maximum",
+                                    },
+                                    duree_cotisation_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de cotisation minimum",
+                                    },
+                                    duree_cotisation_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de cotisation maximum",
+                                    },
+                                    duree_contrat_min: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de contrat minimum",
+                                    },
+                                    duree_contrat_max: {
+                                        type: "integer",
+                                        required: false,
+                                        min: 0,
+                                        description: "Durée de contrat maximum",
+                                    },
+                                    branche: {
+                                        type: "string",
+                                        required: false,
+                                        max: 10,
+                                        description: "Code de la branche",
+                                    },
+                                    description: {
+                                        type: "string",
+                                        required: false,
+                                        description: "Description de la garantie",
+                                    },
+                                },
+                            },
+                        },
                     },
                 },
                 responses: [
@@ -12618,6 +12903,489 @@
                 ],
             },
 
+            {
+                id: "produit-garanties-list",
+                module: "produits",
+                name: "Liste des garanties d'un produit",
+                description: "Récupère la liste des garanties associées à un produit avec possibilité de filtrage et pagination.",
+                method: "GET",
+                path: "/produits/{uuid_produit}/garanties",
+                isProtected: true,
+                permissionsRequired: ["produits.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_produit: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du produit",
+                        },
+                    },
+                    query: {
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 15,
+                            description: "Nombre d'éléments par page",
+                        },
+                        branche: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par code branche (IND, COURTAGE, COL, BANKASS, BANKASS1 etc.)",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par type (Principal, Complémentaire, Optionnel)",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par libellé (recherche partielle)",
+                        },
+                        est_obligatoire: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer par obligation (true/false)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des garanties",
+                        example: {
+                            success: true,
+                            message: "Liste des garanties du produit.",
+                            code: "GARANTIES_LISTED",
+                            data: [
+                                {
+                                    uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
+                                    produit_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                    code_produit: "PERF_IND",
+                                    code_produit_garantie: "DECES",
+                                    libelle: "Décès",
+                                    est_obligatoire: true,
+                                    nature_garantie: "Capital décès",
+                                    type: "principal",
+                                    age_min: 18,
+                                    age_max: 70,
+                                    duree_cotisation_min: 5,
+                                    duree_cotisation_max: 10,
+                                    duree_contrat_min: 10,
+                                    duree_contrat_max: 30,
+                                    branche: "VIE",
+                                    description: "Garantie principale en cas de décès",
+                                    created_at: "2025-01-15T10:00:00.000000Z",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 15,
+                                total: 25,
+                                last_page: 2,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "rdvs-produit-garanties-list",
+                module: "rdvs",
+                name: "[Traitement] Liste des garanties d'un produit",
+                description: "Récupère la liste des garanties associées à un produit pour le traitement des RDV avec possibilité de filtrage et pagination.",
+                method: "GET",
+                path: "/rdvs/traitement/produits/{uuid_produit}/garanties",
+                isProtected: true,
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_produit: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du produit",
+                        },
+                    },
+                    query: {
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 15,
+                            description: "Nombre d'éléments par page",
+                        },
+                        branche: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par code branche (IND, COURTAGE, COL, BANKASS, BANKASS1 etc.)",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par type (Principal, Complémentaire, Optionnel)",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par libellé (recherche partielle)",
+                        },
+                        est_obligatoire: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer par obligation (true/false)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des garanties",
+                        example: {
+                            success: true,
+                            message: "Liste des garanties du produit.",
+                            code: "GARANTIES_LISTED",
+                            data: [
+                                {
+                                    uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
+                                    produit_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                    code_produit: "PERF_IND",
+                                    code_produit_garantie: "DECES",
+                                    libelle: "Décès",
+                                    est_obligatoire: true,
+                                    nature_garantie: "Capital décès",
+                                    type: "principal",
+                                    age_min: 18,
+                                    age_max: 70,
+                                    duree_cotisation_min: 5,
+                                    duree_cotisation_max: 10,
+                                    duree_contrat_min: 10,
+                                    duree_contrat_max: 30,
+                                    branche: "VIE",
+                                    description: "Garantie principale en cas de décès",
+                                    created_at: "2025-01-15T10:00:00.000000Z",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 15,
+                                total: 25,
+                                last_page: 2,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "produit-garanties-create",
+                module: "produits",
+                name: "Créer une garantie pour un produit",
+                description: "Crée une nouvelle garantie associée à un produit.",
+                method: "POST",
+                path: "/produits/{uuid_produit}/garanties",
+                isProtected: true,
+                permissionsRequired: ["produits.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_produit: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du produit",
+                        },
+                    },
+                    body: {
+                        code_produit_garantie: {
+                            type: "string",
+                            required: true,
+                            max: 25,
+                            description: "Code de la garantie",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: true,
+                            max: 100,
+                            description: "Libellé de la garantie",
+                        },
+                        est_obligatoire: {
+                            type: "boolean",
+                            required: false,
+                            default: false,
+                            description: "Indicateur si la garantie est obligatoire",
+                        },
+                        nature_garantie: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Nature de la garantie",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Type de garantie",
+                        },
+                        age_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Âge minimum",
+                        },
+                        age_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Âge maximum",
+                        },
+                        duree_cotisation_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de cotisation minimum",
+                        },
+                        duree_cotisation_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de cotisation maximum",
+                        },
+                        duree_contrat_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de contrat minimum",
+                        },
+                        duree_contrat_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de contrat maximum",
+                        },
+                        branche: {
+                            type: "string",
+                            required: false,
+                            max: 10,
+                            description: "Code de la branche",
+                        },
+                        description: {
+                            type: "string",
+                            required: false,
+                            description: "Description de la garantie",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    code_produit_garantie: "DECES",
+                    libelle: "Décès",
+                    est_obligatoire: true,
+                    nature_garantie: "Capital décès",
+                    type: "principal",
+                    age_min: 18,
+                    age_max: 70,
+                    duree_cotisation_min: 5,
+                    duree_cotisation_max: 10,
+                    duree_contrat_min: 10,
+                    duree_contrat_max: 30,
+                    branche: "VIE",
+                    description: "Garantie principale en cas de décès",
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Garantie créée",
+                        example: {
+                            success: true,
+                            message: "Garantie créée avec succès.",
+                            code: "GARANTIE_CREATED",
+                            data: {
+                                uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
+                                produit_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                code_produit: "PERF_IND",
+                                code_produit_garantie: "DECES",
+                                libelle: "Décès",
+                                est_obligatoire: true,
+                                nature_garantie: "Capital décès",
+                                type: "principal",
+                                age_min: 18,
+                                age_max: 70,
+                                duree_cotisation_min: 5,
+                                duree_cotisation_max: 10,
+                                duree_contrat_min: 10,
+                                duree_contrat_max: 30,
+                                branche: "VIE",
+                                description: "Garantie principale en cas de décès",
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "produit-garanties-update",
+                module: "produits",
+                name: "Mettre à jour une garantie",
+                description: "Met à jour une garantie existante d'un produit.",
+                method: "PUT",
+                path: "/produits/garanties/{uuid_produit_garantie}",
+                isProtected: true,
+                permissionsRequired: ["produits.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_produit_garantie: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la garantie",
+                        },
+                    },
+                    body: {
+                        code_produit_garantie: {
+                            type: "string",
+                            required: false,
+                            max: 25,
+                            description: "Code de la garantie",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Libellé de la garantie",
+                        },
+                        est_obligatoire: {
+                            type: "boolean",
+                            required: false,
+                            description: "Indicateur si la garantie est obligatoire",
+                        },
+                        nature_garantie: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Nature de la garantie",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Type de garantie",
+                        },
+                        age_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Âge minimum",
+                        },
+                        age_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Âge maximum",
+                        },
+                        duree_cotisation_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de cotisation minimum",
+                        },
+                        duree_cotisation_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de cotisation maximum",
+                        },
+                        duree_contrat_min: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de contrat minimum",
+                        },
+                        duree_contrat_max: {
+                            type: "integer",
+                            required: false,
+                            min: 0,
+                            description: "Durée de contrat maximum",
+                        },
+                        branche: {
+                            type: "string",
+                            required: false,
+                            max: 10,
+                            description: "Code de la branche",
+                        },
+                        description: {
+                            type: "string",
+                            required: false,
+                            description: "Description de la garantie",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Garantie mise à jour",
+                        example: {
+                            success: true,
+                            message: "Garantie mise à jour avec succès.",
+                            code: "GARANTIE_UPDATED",
+                            data: {
+                                uuid_produit_garantie: "550e8400-e29b-41d4-a716-446655440100",
+                                libelle: "Décès (mis à jour)",
+                                est_obligatoire: false,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "produit-garanties-delete",
+                module: "produits",
+                name: "Supprimer une garantie",
+                description: "Supprime une garantie d'un produit (soft delete).",
+                method: "DELETE",
+                path: "/produits/garanties/{uuid_produit_garantie}",
+                isProtected: true,
+                isDestructive: true,
+                permissionsRequired: ["produits.supprimer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_produit_garantie: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la garantie",
+                        },
+                    },
+                    body: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Garantie supprimée",
+                        example: {
+                            success: true,
+                            message: "Garantie supprimée avec succès.",
+                            code: "GARANTIE_DELETED",
+                        },
+                    },
+                ],
+            },
+
             // ============================================================
             // CATÉGORIES DE PRESTATIONS
             // ============================================================
@@ -12630,7 +13398,7 @@
                 method: "GET",
                 path: "/prestations/categories",
                 isProtected: true,
-                permissionsRequired: ["produits.afficher"],
+                // permissionsRequired: ["produits.afficher"],
                 headers: {
                     Authorization: "Bearer {token}",
                     Accept: "application/json",
@@ -13272,11 +14040,18 @@
                             description:
                                 "Filtrer par impact : 1 = Sortie portefeuille, 0 = Non sortie portefeuille. Omettre pour tous.",
                         },
+                        category_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description:
+                                "Filtrer par UUID de la catégorie. Omettre pour toutes les catégories.",
+                        },
                     },
                 },
                 exampleRequest: {
                     code_produit: "PERFORMA_IND",
                     impact: "1", // Seulement les motifs avec sortie portefeuille
+                    category_uuid: "550e8400-e29b-41d4-a716-446655440002",
                 },
                 exampleRequestWithoutFilter: {
                     code_produit: "PERFORMA_IND", // Tous les motifs
@@ -16027,6 +16802,7 @@
                     },
                 ],
             },
+
             // ============================================================
             // 17. TRAITEMENT - TRAITER UN RENDEZ-VOUS
             // ============================================================

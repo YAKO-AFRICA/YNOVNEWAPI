@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             MotifTraitementSeeder::class,
             TypeProduitSeeder::class,
             ProduitSeeder::class,
+            ProduitGarantieSeeder::class,
             CategoryTypePrestationSeeder::class,
         ]);
     }

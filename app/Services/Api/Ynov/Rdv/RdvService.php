@@ -37,7 +37,7 @@ class RdvService
      * @param string|null $impact Filtrer par impact (1: sortie portefeuille, 0: non sortie, null: tous)
      * @return array
      */
-    public function getMotifsForContrat(string $codeProduit, ?string $impact = null): array
+    public function getMotifsForContrat(string $codeProduit, ?string $impact = null, ?string $categoryUuid = null): array
     {
         $produit = Produit::where('code', $codeProduit)->first();
         if (!$produit) {
@@ -54,6 +54,11 @@ class RdvService
         // Filtrer par impact si spécifié
         if ($impact !== null && in_array($impact, ['0', '1'])) {
             $query->where('type_prestations.impact', $impact);
+        }
+
+        // Filtrer par catégorie si spécifié
+        if ($categoryUuid !== null) {
+            $query->where('type_prestations.category_uuid', $categoryUuid);
         }
 
         $prestations = $query->get();
