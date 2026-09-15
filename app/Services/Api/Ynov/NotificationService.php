@@ -249,7 +249,17 @@ class NotificationService
 
             // Sujet et message automatiques
             $sujet = "Transmission de RDV pour traitement";
-            $message = "Bonjour,\n\nVous trouverez ci-joint le fichier Excel contenant les RDV transmis pour traitement.\n\nVeuillez procéder au traitement dans les meilleurs délais.\n\nCordialement,\nL'équipe YNOV.";
+            
+            // Construire le nom du destinataire avec fallbacks
+            $nomDestinataire = '';
+            if ($gestionnaire->details) {
+                $nomDestinataire = trim(($gestionnaire->details->prenoms ?? '') . ' ' . ($gestionnaire->details->nom ?? ''));
+            }
+            if (empty($nomDestinataire)) {
+                $nomDestinataire = $gestionnaire->login ?? '';
+            }
+            
+            $message = "Bonjour {$nomDestinataire},<br><br>Vous trouverez ci-joint le fichier Excel contenant les RDV transmis pour traitement.<br><br>Veuillez procéder au traitement dans les meilleurs délais.<br><br>Cordialement,<br>L'équipe YNOV.";
 
             // Stocker le fichier temporairement
             $fichier = $data['fichier'];
