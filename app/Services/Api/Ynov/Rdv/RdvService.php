@@ -545,7 +545,7 @@ class RdvService
     public function getRdvClient(string $clientUuid, array $filters = [], int $perPage = 10)
     {
         $query = Rdv::forClient($clientUuid)
-            ->with(['motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire'])
+            ->with(['motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
             ->orderBy('created_at', 'desc');
 
         if (isset($filters['status'])) {
@@ -989,6 +989,7 @@ class RdvService
                 'agenceSouhaitee',
                 'agenceEffective',
                 'gestionnaire.details',
+                'contrat',
             ]);
 
         if (!empty($filters['search'])) {
@@ -1171,6 +1172,16 @@ class RdvService
                         'ville' => $rdv->agenceEffective->ville,
                     ] : null,
                 ],
+                
+                // Contrat
+                'contrat' => $rdv->contrat ? [
+                    'contrat_id' => $rdv->contrat->contrat_id,
+                    'client_number' => $rdv->contrat->client_number,
+                    'code_produit' => $rdv->contrat->code_produit,
+                    'libelle_produit' => $rdv->contrat->libelle_produit,
+                    'code_produit_formule' => $rdv->contrat->code_produit_formule,
+                    'libelle_produit_formule' => $rdv->contrat->libelle_produit_formule,
+                ] : null,
                 
                 // Gestionnaire
                 'gestionnaire' => $rdv->gestionnaire ? [

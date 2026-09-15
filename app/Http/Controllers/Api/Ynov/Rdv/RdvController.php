@@ -239,6 +239,18 @@ class RdvController extends Controller
                 'user_type' => $rdv->client->user_type,
             ];
 
+            // Contrat - champs limités
+            if ($rdv->contrat) {
+                $rdvArray['contrat'] = [
+                    'contrat_id' => $rdv->contrat->contrat_id,
+                    'client_number' => $rdv->contrat->client_number,
+                    'code_produit' => $rdv->contrat->code_produit,
+                    'libelle_produit' => $rdv->contrat->libelle_produit,
+                    'code_produit_formule' => $rdv->contrat->code_produit_formule,
+                    'libelle_produit_formule' => $rdv->contrat->libelle_produit_formule,
+                ];
+            }
+
             // Gestionnaire - champs limités
             if ($rdv->gestionnaire) {
                 $rdvArray['gestionnaire'] = [
@@ -327,7 +339,7 @@ class RdvController extends Controller
     public function show(string $uuid_rdvs): JsonResponse
     {
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)
-            ->with(['client', 'motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire'])
+            ->with(['client', 'motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
             ->firstOrFail();
 
         if ($rdv->client_uuid !== request()->user()->uuid_user) {
@@ -364,6 +376,18 @@ class RdvController extends Controller
             'status' => $rdv->client->status,
             'user_type' => $rdv->client->user_type,
         ];
+
+        // Contrat - champs limités
+        if ($rdv->contrat) {
+            $rdvArray['contrat'] = [
+                'contrat_id' => $rdv->contrat->contrat_id,
+                'client_number' => $rdv->contrat->client_number,
+                'code_produit' => $rdv->contrat->code_produit,
+                'libelle_produit' => $rdv->contrat->libelle_produit,
+                'code_produit_formule' => $rdv->contrat->code_produit_formule,
+                'libelle_produit_formule' => $rdv->contrat->libelle_produit_formule,
+            ];
+        }
 
         // Gestionnaire - champs limités
         $rdvArray['gestionnaire'] = [
@@ -570,6 +594,7 @@ class RdvController extends Controller
             'agenceEffective',
             'detailBordereau',
             'detailBordereau.bordereauRdv',
+            'contrat',
         ])->where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
 
         return response()->json([

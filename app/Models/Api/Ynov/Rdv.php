@@ -6,6 +6,7 @@ use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\MotifTraitement;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\UserContrat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -87,6 +88,11 @@ class Rdv extends Model
     public function client()
     {
         return $this->belongsTo(User::class, 'client_uuid', 'uuid_user');
+    }
+
+    public function contrat()
+    {
+        return $this->belongsTo(UserContrat::class, 'id_contrat', 'contrat_id');
     }
 
     /**

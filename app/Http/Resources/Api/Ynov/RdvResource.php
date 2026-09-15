@@ -129,6 +129,17 @@ class RdvResource extends JsonResource
                 ];
             }),
 
+            'contrat' => $this->whenLoaded('contrat', function () {
+                return [
+                    'contrat_id' => $this->contrat->contrat_id,
+                    'client_number' => $this->contrat->client_number,
+                    'code_produit' => $this->contrat->code_produit,
+                    'libelle_produit' => $this->contrat->libelle_produit,
+                    'code_produit_formule' => $this->contrat->code_produit_formule,
+                    'libelle_produit_formule' => $this->contrat->libelle_produit_formule,
+                ];
+            }),
+
             'detail_bordereau' => $this->whenLoaded('detailBordereau', function () {
                 if (!$this->detailBordereau) {
                     return null;
