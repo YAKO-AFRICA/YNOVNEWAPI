@@ -431,7 +431,8 @@ class PrestationService
     public function getCategoriesWithTypes(array $filters = [], int $perPage = 20)
     {
         $query = CategoryTypePrestation::with(['typePrestations' => function ($q) {
-            $q->where('status', 'actif')->orderBy('libelle');
+            $q->where('status', 'actif')->orderBy('libelle', 'DESC');
+            // $q->where('status', 'actif')->orderBy('libelle');
         }]);
 
         if (isset($filters['status'])) {
