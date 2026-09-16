@@ -5,6 +5,7 @@ namespace App\Services\Api\Ynov\Rdv;
 use App\Models\Api\Ynov\BordereauRdv;
 use App\Models\Api\Ynov\DetailBordereauRdv;
 use App\Models\Api\Ynov\Rdv;
+use App\Models\Api\Ynov\parameter\JourFerie;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
@@ -679,31 +680,27 @@ class BordereauRdvService
 
 
     /**
-     * Garantit qu'un RDV transmis appartient à un bordereau de la bonne période.
-     * La période est calculée à partir de date_transmission.
+     * Garantit qu'un RDV transmis appartient au lot de sa date effective.
      */
     public function ensureForRdv(Rdv $rdv): BordereauRdv
     {
-        if (!$rdv->date_transmission) {
-            $rdv->update([
-                'date_transmission' => now(),
-            ]);
+        if (!$rdv->date_rdv_effective) {
+            $rdv->update(['date_rdv_effective' => $rdv->date_rdv_souhaiter]);
         }
 
-        $dateTransmission = Carbon::parse($rdv->date_transmission);
-        [$periode1, $periode2] = $this->resolvePeriodFromTransmission($dateTransmission);
+        $dateEffective = Carbon::parse($rdv->date_rdv_effective)->startOfDay();
 
-        return DB::transaction(function () use ($rdv, $periode1, $periode2) {
-            $lot = BordereauRdv::whereDate('periode_1', $periode1->toDateString())
-                ->whereDate('periode_2', $periode2->toDateString())
+        return DB::transaction(function () use ($rdv, $dateEffective) {
+            $lot = BordereauRdv::whereDate('periode_1', $dateEffective->toDateString())
+                ->whereDate('periode_2', $dateEffective->toDateString())
                 ->first();
 
             if (!$lot) {
                 $lot = BordereauRdv::create([
-                    'reference' => $this->generateReference($periode1, $periode2),
-                    'periode_1' => $periode1->toDateString(),
-                    'periode_2' => $periode2->toDateString(),
-                    'status' => $this->computeLotStatus($periode1, $periode2),
+                    'reference' => $this->generateReference($dateEffective),
+                    'periode_1' => $dateEffective->toDateString(),
+                    'periode_2' => $dateEffective->toDateString(),
+                    'status' => $this->computeLotStatus($dateEffective),
                     'observation' => null,
                     'created_by' => $rdv->created_by ?? null,
                     'updated_by' => $rdv->updated_by ?? null,
@@ -731,47 +728,53 @@ class BordereauRdvService
     }
 
     /**
-     * Calcule la période métier à partir de date_transmission.
-     * Règle : semaine lundi->dimanche, lot1 lundi->jeudi, lot2 vendredi->dimanche.
+     * Retourne la période journalière du lot correspondant à la date effective.
      *
      * @return array{0: Carbon, 1: Carbon}
      */
     public function resolvePeriodFromTransmission(Carbon $date): array
     {
-        //
-        $startOfWeek = $date->copy()->startOfWeek(Carbon::MONDAY);
-        $endOfWeek = $date->copy()->endOfWeek(Carbon::SUNDAY);
-        $lot1End = $startOfWeek->copy()->addDays(3);
+        $date = $date->copy()->startOfDay();
 
-        if ($date->lte($lot1End)) {
-            return [$startOfWeek, $lot1End];
-        }
-
-        return [$lot1End->copy()->addDay()->startOfDay(), $endOfWeek];
+        return [$date, $date->copy()];
     }
 
-
-    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
-    protected function computeLotStatus(Carbon $periode1, Carbon $periode2): string
+    /**
+     * Calcule la date limite de transfert à trois jours ouvrés avant le RDV.
+     */
+    public function calculateTransferDate(Carbon $dateEffective): Carbon
     {
-        $today = now()->startOfDay();
+        $dateLimite = $dateEffective->copy()->startOfDay();
+        $joursOuvres = 0;
 
-        // Le lot reste en_attente tant que la période n'est pas terminée.
-        // Il ne passe transfere qu'une fois la date de fin de période dépassée.
-        if ($today->greaterThan($periode2->copy()->endOfDay())) {
-            return 'transfere';
+        while ($joursOuvres < 3) {
+            $dateLimite->subDay();
+
+            if ($dateLimite->isWeekend() || JourFerie::isFerie($dateLimite)) {
+                continue;
+            }
+
+            $joursOuvres++;
         }
 
-        return 'en_attente';
+        return $dateLimite;
     }
 
-    // Synchronisation du statut du lot en fonction de la période et de la date actuelle
+    protected function computeLotStatus(Carbon $dateEffective): string
+    {
+        return now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))
+            ? 'transfere'
+            : 'en_attente';
+    }
+
     protected function syncLotStatus(BordereauRdv $lot): void
     {
-        $periode2 = Carbon::parse($lot->periode_2)->endOfDay();
-        $today = now()->startOfDay();
+        if ($lot->status !== 'en_attente') {
+            return;
+        }
 
-        if ($lot->status === 'en_attente' && $today->greaterThan($periode2)) {
+        $dateEffective = Carbon::parse($lot->periode_1);
+        if (now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))) {
             $lot->update([
                 'status' => 'transfere',
                 'updated_by' => $lot->created_by ?? null,
@@ -780,18 +783,14 @@ class BordereauRdvService
     }
 
     /**
-     * Génère une référence unique pour le bordereau.
-     * Format : BR-YYYY-SWW-XXXXXXXX
+     * Génère une référence unique pour le bordereau journalier.
+     * Format : BR-YYYYMMDD-XXXXXXXX
      */
-    protected function generateReference(Carbon $periode1, Carbon $periode2): string
+    protected function generateReference(Carbon $dateEffective): string
     {
-        $year = $periode1->year;
-        $week = $periode1->weekOfYear;
-
         return sprintf(
-            'BR-%s-S%02d-%s',
-            $year,
-            $week,
+            'BR-%s-%s',
+            $dateEffective->format('Ymd'),
             strtoupper(substr(md5(uniqid((string) microtime(true), true)), 0, 8))
         );
     }

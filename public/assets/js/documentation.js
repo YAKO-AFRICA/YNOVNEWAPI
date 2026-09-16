@@ -16054,7 +16054,7 @@
                 module: "rdvs",
                 name: "[Bordereaux] Liste des lots",
                 description:
-                    "Récupère les lots de bordereau avec pagination et filtres. La période métier est calculée à partir de date_transmission. Les lots sont regroupés par période hebdomadaire (lot 1 lundi-jeudi, lot 2 vendredi-dimanche).",
+                    "Récupère les lots de bordereau avec pagination et filtres. Un lot correspond à une date effective de rendez-vous : tous les RDV transmis pour une même date_rdv_effective sont regroupés dans le même bordereau journalier. La date de transfert est calculée à J-3 jours ouvrés avant cette date effective (week-end et jours fériés exclus).",
                 method: "GET",
                 path: "/bordereaux/lots",
                 isProtected: true,
@@ -16084,12 +16084,12 @@
                         date_debut: {
                             type: "date",
                             required: false,
-                            description: "Date de début de plage sur la période du lot.",
+                            description: "Date de début de plage sur la période du lot, basée sur la date effective du RDV (periode_1/periode_2 du lot).",
                         },
                         date_fin: {
                             type: "date",
                             required: false,
-                            description: "Date de fin de plage sur la période du lot.",
+                            description: "Date de fin de plage sur la période du lot, basée sur la date effective du RDV (periode_1/periode_2 du lot).",
                         },
                         gestionnaire_uuid: {
                             type: "uuid",
@@ -16177,7 +16177,7 @@
                 module: "rdvs",
                 name: "[Bordereaux] Liste des lignes de détail",
                 description:
-                    "Récupère les lignes de détail d'un bordereau donné. bordereau_rdv_uuid est obligatoire : cette route ne peut être utilisée qu'en contexte d'un lot précis, il n'existe pas de vue globale toutes-lignes-confondues.",
+                    "Récupère les lignes de détail d'un bordereau donné. bordereau_rdv_uuid est obligatoire : cette route ne peut être utilisée qu'en contexte d'un lot précis. Les lots sont créés par date effective du RDV, donc un bordereau correspond à un jour métier donné et contient tous les RDV transmis pour cette même date_rdv_effective.",
                 method: "GET",
                 path: "/bordereaux/details",
                 isProtected: true,
@@ -16207,7 +16207,7 @@
                         date: {
                             type: "date",
                             required: false,
-                            description: "Filtre par date sur la date effective du RDV associé (transmis uniquement si status non précisé).",
+                            description: "Filtre par date sur la date effective du RDV associé. Le regroupement du lot suit la même date_rdv_effective.",
                         },
                         date_debut: {
                             type: "date",
@@ -16217,7 +16217,7 @@
                         date_fin: {
                             type: "date",
                             required: false,
-                            description: "Filtre sur date_rdv_souhaiter <= date_fin, côté RDV lié.",
+                            description: "Filtre sur date_rdv_effective <= date_fin, côté RDV lié.",
                         },
                         agence_uuid: {
                             type: "uuid",

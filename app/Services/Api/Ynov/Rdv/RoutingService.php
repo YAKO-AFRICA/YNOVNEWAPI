@@ -195,11 +195,6 @@ class RoutingService
             $query->where('agences.uuid_agence', $agenceUuid)
                 ->where('user_agences.is_active', true);
         })->where('status', 'actif')->get();
-            // ->whereHas('role', function ($query) {
-            //     $query->whereHas('permissions', function ($q) {
-            //         $q->where('code', 'rdvs.traiter');
-            //     });
-            // })
             
 
             $users = $users->filter(function ($user) {
@@ -294,12 +289,12 @@ class RoutingService
 
     public function gererRdvsExpires(): array
     {
-        $dateActuelle = now()->format('Y-m-d');
+        $dateActuelle = now()->startOfDay();
 
         $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte'])
             ->where(function ($q) use ($dateActuelle) {
                 $q->whereDate('date_rdv_effective', '<', $dateActuelle)
-                ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
+                    ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
             })
             ->get();
 
@@ -316,7 +311,8 @@ class RoutingService
             $dateRdv = $rdv->date_rdv_effective
                 ? Carbon::parse($rdv->date_rdv_effective)
                 : Carbon::parse($rdv->date_rdv_souhaiter);
-            $joursDepuis = $dateRdv->diffInDays(now());
+
+            $joursDepuis = $dateRdv->copy()->startOfDay()->diffInDays($dateActuelle);
 
             if ($joursDepuis > 3) {
                 $result = $this->traitementService->annuler($rdv, [
@@ -328,35 +324,31 @@ class RoutingService
                     $results['details'][] = [
                         'rdv_code' => $rdv->code,
                         'status' => 'annule',
-                        'raison' => 'Expiré depuis 3 jours',
+                        'raison' => 'Expiré depuis plus de 3 jours',
                     ];
-                }
-            } else {
-                // Pour l'expiration automatique, on doit contourner la validation du Request
-                // On modifie directement le RDV sans passer par le service
-                $rdv->update([
-                    'status' => 'expire',
-                    'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
-                    'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
-                    'updated_by' => 'system',
-                ]);
-
-                $results['expires']++;
-                $results['details'][] = [
-                    'rdv_code' => $rdv->code,
-                    'status' => 'expire',
-                    'jours_restants' => 3 - $joursDepuis,
-                ];
-
-                if ($result['success']) {
-                    $results['expires']++;
+                } else {
                     $results['details'][] = [
                         'rdv_code' => $rdv->code,
-                        'status' => 'expire',
-                        'jours_restants' => 3 - $joursDepuis,
+                        'status' => 'echec_annulation',
+                        'raison' => $result['message'] ?? 'Erreur inconnue lors de l\'annulation automatique',
                     ];
                 }
+                continue;
             }
+
+            $rdv->update([
+                'status' => 'expire',
+                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
+                'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
+                'updated_by' => 'system',
+            ]);
+
+            $results['expires']++;
+            $results['details'][] = [
+                'rdv_code' => $rdv->code,
+                'status' => 'expire',
+                'jours_restants' => max(0, 3 - $joursDepuis),
+            ];
         }
 
         return $results;

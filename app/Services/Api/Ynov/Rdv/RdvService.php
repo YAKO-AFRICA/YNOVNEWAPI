@@ -15,6 +15,7 @@ use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use App\Services\Api\Ynov\Rdv\RoutingService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -33,7 +34,8 @@ class RdvService
 
     public function __construct(
         private NotificationService $notificationService,
-        private RoutingService $routingService
+        private RoutingService $routingService,
+        private BordereauRdvService $bordereauRdvService
     ) {}
 
    /**
@@ -290,17 +292,6 @@ class RdvService
             })
             ->toArray();
 
-            // Récupérer les périodes de bordereaux clôturés pour ce mois
-        $periodesCloturees = BordereauRdv::where('status', 'transfere')->where(function ($query) use ($dateDebut, $dateFin) {
-                $query->whereBetween('periode_1', [$dateDebut, $dateFin])
-                      ->orWhereBetween('periode_2', [$dateDebut, $dateFin])
-                      ->orWhere(function ($q) use ($dateDebut, $dateFin) {
-                          $q->where('periode_1', '<=', $dateDebut)
-                            ->where('periode_2', '>=', $dateFin);
-                      });
-            })
-            ->get();
-
         $period = CarbonPeriod::create($dateDebut, $dateFin);
         $datesDisponibles = [];
 
@@ -322,17 +313,18 @@ class RdvService
                 continue;
             }
 
-            $estCloturee = $periodesCloturees->contains(function ($bordereau) use ($date) {
-                return $date->between($bordereau->periode_1, $bordereau->periode_2);
-            });
-
-            if ($estCloturee) {
+            if (BordereauRdv::isDateCloturee($date)) {
                 continue;
             }
 
             $nbRdv = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
-                // verifier aussi sur date_rdv_effective
-                ->whereDate('date_rdv_effective', $dateStr)
+                ->where(function ($query) use ($dateStr) {
+                    $query->whereDate('date_rdv_effective', $dateStr)
+                        ->orWhere(function ($query) use ($dateStr) {
+                            $query->whereNull('date_rdv_effective')
+                                ->whereDate('date_rdv_souhaiter', $dateStr);
+                        });
+                })
                 // ->whereDate('date_rdv_souhaiter', $dateStr)
                 ->whereNotIn('status', ['annule', 'rejete', 'traite', 'expire'])
                 ->count();
@@ -391,6 +383,39 @@ class RdvService
                 'success' => false,
                 'code' => 'AGENCE_NON_DISPONIBLE',
                 'message' => 'Cette agence ne reçoit pas sur rendez-vous ce jour.',
+            ];
+        }
+
+        $date = Carbon::parse($dateRdv)->startOfDay();
+        if ($date->isPast() && !$date->isToday()) {
+            $errors[] = [
+                'success' => false,
+                'code' => 'DATE_DANS_LE_PASSE',
+                'message' => 'La date du rendez-vous est déjà passée.',
+            ];
+        }
+
+        if ($date->isWeekend()) {
+            $errors[] = [
+                'success' => false,
+                'code' => 'DATE_WEEKEND',
+                'message' => 'Les rendez-vous ne sont pas disponibles le week-end.',
+            ];
+        }
+
+        if (JourFerie::isFerie($date)) {
+            $errors[] = [
+                'success' => false,
+                'code' => 'DATE_FERIE',
+                'message' => 'Cette date est un jour férié.',
+            ];
+        }
+
+        if (BordereauRdv::isDateCloturee($date)) {
+            $errors[] = [
+                'success' => false,
+                'code' => 'DATE_CLOTUREE',
+                'message' => 'La date du rendez-vous est déjà transférée et n’est plus disponible.',
             ];
         }
 
@@ -594,7 +619,13 @@ class RdvService
 
         $capaciteMax = $horaire->capacite_rendez_vous ?? 0;
         $nbRdv = Rdv::where('agence_souhaiter_uuid', $agenceUuid)
-            ->whereDate('date_rdv_souhaiter', $dateStr)
+            ->where(function ($query) use ($dateStr) {
+                $query->whereDate('date_rdv_effective', $dateStr)
+                    ->orWhere(function ($query) use ($dateStr) {
+                        $query->whereNull('date_rdv_effective')
+                            ->whereDate('date_rdv_souhaiter', $dateStr);
+                    });
+            })
             ->whereNotIn('status', ['annule', 'rejete', 'traite', 'expire'])
             ->count();
 
