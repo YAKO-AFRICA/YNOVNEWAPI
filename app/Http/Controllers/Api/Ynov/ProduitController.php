@@ -11,7 +11,7 @@ use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Services\Api\Ynov\ProduitService;
 use App\Services\Api\Ynov\ProduitFormuleService;
-use App\Services\Api\Ynov\PrestationService;
+use App\Services\Api\Ynov\Prestation\PrestationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;

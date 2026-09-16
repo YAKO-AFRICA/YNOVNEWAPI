@@ -13387,6 +13387,506 @@
             },
 
             // ============================================================
+            // PRESTATIONS
+            // ============================================================
+            {
+                id: "prestations-list",
+                module: "prestations",
+                name: "Liste des prestations",
+                description:
+                    "Liste paginée des prestations avec filtres par statut, client, type, gestionnaire et partenaire.",
+                method: "GET",
+                path: "/prestations",
+                isProtected: true,
+                permissionsRequired: ["prestations.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: [
+                                "inacheve",
+                                "en_attente",
+                                "transmis",
+                                "accepte",
+                                "rejete",
+                                "annule",
+                            ],
+                            description: "Filtrer par statut",
+                        },
+                        client_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du client",
+                        },
+                        type_prestation_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du type de prestation",
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du gestionnaire",
+                        },
+                        partner_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du partenaire",
+                        },
+                        is_migrated: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer les prestations migrées",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche textuelle",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre par page",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des prestations",
+                        example: {
+                            success: true,
+                            message: "Liste des prestations.",
+                            code: "PRESTATIONS_LISTED",
+                            data: {
+                                current_page: 1,
+                                data: [
+                                    {
+                                        uuid_prestation: "...",
+                                        client_uuid: "...",
+                                        code: "PREST-001",
+                                        id_contrat: "CTR-001",
+                                        type_prestation_uuid: "...",
+                                        rdv_uuid: "...",
+                                        notes: "Note interne",
+                                        montant: 150000,
+                                        mode_paiement: "cash",
+                                        status: "en_attente",
+                                        status_label: "En attente",
+                                        is_migrated: false,
+                                        motif_traitement: ["delai"],
+                                        observation: "À traiter",
+                                        client: {
+                                            uuid_user: "...",
+                                            email: "client@test.com",
+                                            full_name: "Doe John",
+                                        },
+                                        type_prestation: {
+                                            uuid_type_prestation: "...",
+                                            libelle: "Visa",
+                                        },
+                                        gestionnaire: {
+                                            uuid_user: "...",
+                                            full_name: "Smith Alice",
+                                        },
+                                        partner: {
+                                            uuid_partner: "...",
+                                            designation: "Partner A",
+                                        },
+                                        rdv: {
+                                            uuid_rdvs: "...",
+                                            status: "planifie",
+                                            motif_rdv: "Consultation",
+                                        },
+                                    },
+                                ],
+                                total: 1,
+                                per_page: 20,
+                                last_page: 1,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-create",
+                module: "prestations",
+                name: "Créer une prestation",
+                description:
+                    "Crée une nouvelle prestation. Le service génère automatiquement un UUID, un code (PREST-...), un statut par défaut (en_attente) et le gestionnaire si absent.",
+                method: "POST",
+                path: "/prestations",
+                isProtected: true,
+                permissionsRequired: ["prestations.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        client_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du client",
+                        },
+                        id_contrat: {
+                            type: "string",
+                            required: false,
+                            description: "Identifiant du contrat",
+                        },
+                        type_prestation_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du type de prestation",
+                        },
+                        rdv_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du rendez-vous",
+                        },
+                        notes: {
+                            type: "string",
+                            required: false,
+                            description: "Notes internes",
+                        },
+                        montant: {
+                            type: "number",
+                            required: false,
+                            description: "Montant de la prestation",
+                        },
+                        mode_paiement: {
+                            type: "string",
+                            required: false,
+                            description: "Mode de paiement",
+                        },
+                        operateur_mobile: {
+                            type: "string",
+                            required: false,
+                            description: "Opérateur mobile",
+                        },
+                        tel_paiement_1: {
+                            type: "string",
+                            required: false,
+                            description: "Téléphone de paiement 1",
+                        },
+                        tel_paiement_2: {
+                            type: "string",
+                            required: false,
+                            description: "Téléphone de paiement 2",
+                        },
+                        code_banque: {
+                            type: "string",
+                            required: false,
+                            description: "Code banque",
+                        },
+                        code_guichet: {
+                            type: "string",
+                            required: false,
+                            description: "Code guichet",
+                        },
+                        numero_compte: {
+                            type: "string",
+                            required: false,
+                            description: "Numéro de compte",
+                        },
+                        cle_rib: {
+                            type: "string",
+                            required: false,
+                            description: "Clé RIB",
+                        },
+                        ville_declaration: {
+                            type: "string",
+                            required: false,
+                            description: "Ville de déclaration",
+                        },
+                        partner_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du partenaire",
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du gestionnaire. Par défaut, le créateur est utilisé.",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: [
+                                "inacheve",
+                                "en_attente",
+                                "transmis",
+                                "accepte",
+                                "rejete",
+                                "annule",
+                            ],
+                            description: "Statut de la prestation. Par défaut: en_attente",
+                        },
+                        motif_traitement: {
+                            type: "array",
+                            required: false,
+                            description: "Motifs de traitement",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            description: "Observation",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    client_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                    id_contrat: "CTR-001",
+                    type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    rdv_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                    montant: 150000,
+                    mode_paiement: "cash",
+                    status: "en_attente",
+                    observation: "À traiter",
+                    motif_traitement: ["delai"],
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Prestation créée, avec UUID, code et statut auto-générés",
+                        example: {
+                            success: true,
+                            message: "Prestation créée avec succès.",
+                            code: "PRESTATION_CREATED",
+                            data: {
+                                uuid_prestation: "550e8400-e29b-41d4-a716-446655440010",
+                                code: "PREST-20260916-0001",
+                                client_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                status: "en_attente",
+                                gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440020",
+                                status_label: "En attente",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Les données envoyées sont invalides.",
+                            errors: {
+                                client_uuid: ["Le client sélectionné est introuvable."],
+                                type_prestation_uuid: [
+                                    "Le type de prestation sélectionné est introuvable.",
+                                ],
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-show",
+                module: "prestations",
+                name: "Détails d'une prestation",
+                description: "Récupère les détails d'une prestation donnée.",
+                method: "GET",
+                path: "/prestations/{uuid_prestation}",
+                isProtected: true,
+                permissionsRequired: ["prestations.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_prestation: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la prestation",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Détails de la prestation",
+                        example: {
+                            success: true,
+                            message: "Détails de la prestation.",
+                            code: "PRESTATION_FOUND",
+                            data: {
+                                uuid_prestation: "...",
+                                client_uuid: "...",
+                                type_prestation_uuid: "...",
+                                montant: 150000,
+                                status: "transmis",
+                                status_label: "Transmise",
+                                client: {
+                                    uuid_user: "...",
+                                    full_name: "Doe John",
+                                },
+                                type_prestation: {
+                                    uuid_type_prestation: "...",
+                                    libelle: "Visa",
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-update",
+                module: "prestations",
+                name: "Modifier une prestation",
+                description: "Met à jour une prestation existante.",
+                method: "PUT",
+                path: "/prestations/{uuid_prestation}",
+                isProtected: true,
+                permissionsRequired: ["prestations.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_prestation: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la prestation",
+                        },
+                    },
+                    body: {
+                        montant: {
+                            type: "number",
+                            required: false,
+                            description: "Nouveau montant",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: [
+                                "inacheve",
+                                "en_attente",
+                                "transmis",
+                                "accepte",
+                                "rejete",
+                                "annule",
+                            ],
+                            description: "Nouveau statut",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            description: "Observation",
+                        },
+                        motif_traitement: {
+                            type: "array",
+                            required: false,
+                            description: "Motifs de traitement",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestation mise à jour",
+                        example: {
+                            success: true,
+                            message: "Prestation mise à jour avec succès.",
+                            code: "PRESTATION_UPDATED",
+                            data: {
+                                uuid_prestation: "...",
+                                status: "accepte",
+                                status_label: "Acceptée",
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-delete",
+                module: "prestations",
+                name: "Supprimer une prestation",
+                description: "Supprime une prestation existante.",
+                method: "DELETE",
+                path: "/prestations/{uuid_prestation}",
+                isProtected: true,
+                isDestructive: true,
+                permissionsRequired: ["prestations.supprimer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_prestation: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la prestation",
+                        },
+                    },
+                    body: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestation supprimée",
+                        example: {
+                            success: true,
+                            message: "Prestation supprimée avec succès.",
+                            code: "PRESTATION_DELETED",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-stats-prestations",
+                module: "prestations",
+                name: "Statistiques des prestations",
+                description:
+                    "Récupère les statistiques globales de la gestion des prestations.",
+                method: "GET",
+                path: "/prestations/stats-prestations",
+                isProtected: true,
+                permissionsRequired: ["prestations.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Statistiques des prestations",
+                        example: {
+                            success: true,
+                            message: "Statistiques des prestations.",
+                            code: "PRESTATIONS_STATS",
+                            data: {
+                                total: 125,
+                                by_status: {
+                                    inacheve: 15,
+                                    en_attente: 28,
+                                    transmis: 44,
+                                    accepte: 23,
+                                    rejete: 10,
+                                    annule: 5,
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
             // CATÉGORIES DE PRESTATIONS
             // ============================================================
             {
@@ -16904,7 +17404,7 @@
                 module: "rdvs",
                 name: "[Traitement] Traiter un rendez-vous",
                 description:
-                    "Traite un rendez-vous. is_permitted=false = Conservation, is_permitted=true = Sortie de portefeuille. Permet de sélectionner plusieurs motifs de traitement depuis la liste /rdvs/traitement/get-motifs-traitement/. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'traitement'.",
+                    "Traite un rendez-vous. is_permitted=false = Conservation, is_permitted=true = Sortie de portefeuille. Permet de sélectionner plusieurs motifs de traitement depuis la liste /rdvs/traitement/get-motifs-traitement/. Les UUID des motifs sont stockés dans la colonne motif_traitement sous la clé 'traitement' et crée automatiquement une prestation associée. Le payload attendu correspond à la validation TraiterRdvRequest : client_uuid, id_contrat, type_prestation_uuid, rdv_uuid, montant, is_permitted, motif_traitements, observation. La prestation créée reçoit un UUID auto, un code PREST-..., un statut inacheve par défaut",
                 method: "POST",
                 path: "/rdvs/traitement/{uuid_rdvs}/traiter",
                 isProtected: true,
@@ -16923,10 +17423,30 @@
                         },
                     },
                     body: {
-                        date_traitement: {
-                            type: "date",
+                        client_uuid: {
+                            type: "uuid",
                             required: true,
-                            description: "Date de traitement",
+                            description: "UUID du client pour la prestation",
+                        },
+                        id_contrat: {
+                            type: "string",
+                            required: true,
+                            description: "Identifiant du contrat",
+                        },
+                        type_prestation_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du type de prestation / motif du RDV",
+                        },
+                        rdv_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du rendez-vous lié à la prestation",
+                        },
+                        montant: {
+                            type: "number",
+                            required: true,
+                            description: "Montant de la prestation",
                         },
                         is_permitted: {
                             type: "boolean",
@@ -16949,7 +17469,11 @@
                     },
                 },
                 exampleRequest: {
-                    date_traitement: "2026-07-01",
+                    client_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                    id_contrat: "CTR-001",
+                    type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    rdv_uuid: "550e8400-e29b-41d4-a716-446655440010",
+                    montant: 150000,
                     is_permitted: false,
                     motif_traitements: [
                         "uuid-motif-1",
@@ -16960,11 +17484,11 @@
                 responses: [
                     {
                         status: 200,
-                        description: "Rendez-vous traité avec succès",
+                        description: "Rendez-vous traité avec succès et prestation créée automatiquement",
                         example: {
                             success: true,
                             message:
-                                "Rendez-vous traité (conservation) avec succès.",
+                                "Rendez-vous traité, demande de X enregistré avec succès.",
                             code: "RDV_TRAITE",
                             data: {
                                 uuid_rdvs:
@@ -16981,6 +17505,16 @@
                                     ]
                                 },
                                 observation: "Client convaincu de rester",
+                                // prestation: {
+                                //     uuid_prestation: "550e8400-e29b-41d4-a716-446655440030",
+                                //     code: "PREST-20260916-0001",
+                                //     client_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                //     type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                //     rdv_uuid: "550e8400-e29b-41d4-a716-446655440010",
+                                //     montant: 150000,
+                                //     status: "en_attente",
+                                //     created_by: "550e8400-e29b-41d4-a716-446655440020",
+                                // },
                             },
                         },
                     },

@@ -1,12 +1,16 @@
 <?php
-// app/Http/Controllers/Api/Ynov/PrestationController.php
+// app/Http/Controllers/Api/Ynov/Prestation/PrestationController.php
 
-namespace App\Http\Controllers\Api\Ynov;
+namespace App\Http\Controllers\Api\Ynov\Prestation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Prestation\StorePrestationRequest;
+use App\Http\Requests\Api\Ynov\Prestation\UpdatePrestationRequest;
+use App\Http\Resources\Api\Ynov\PrestationResource;
+use App\Models\Api\Ynov\Prestation;
 use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
-use App\Services\Api\Ynov\PrestationService;
+use App\Services\Api\Ynov\Prestation\PrestationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -318,7 +322,130 @@ class PrestationController extends Controller
     }
 
     /**
+     * Liste des prestations
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $filters = $request->only([
+            'search',
+            'status',
+            'client_uuid',
+            'type_prestation_uuid',
+            'gestionnaire_uuid',
+            'partner_uuid',
+            'is_migrated',
+        ]);
+
+        $perPage = $request->integer('per_page', 20);
+        $prestations = $this->prestationService->getPrestations($filters, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Liste des prestations.',
+            'code' => 'PRESTATIONS_LISTED',
+            'data' => PrestationResource::collection($prestations),
+            'meta' => [
+                'current_page' => $prestations->currentPage(),
+                'per_page' => $prestations->perPage(),
+                'total' => $prestations->total(),
+                'last_page' => $prestations->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Créer une prestation
+     */
+    public function store(StorePrestationRequest $request): JsonResponse
+    {
+        $prestation = $this->prestationService->createPrestation(
+            $request->validated(),
+            $request->user()->uuid_user
+        );
+
+        if (!$prestation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création de la prestation.',
+                'code' => 'PRESTATION_CREATION_ERROR',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prestation créée avec succès.',
+            'code' => 'PRESTATION_CREATED',
+            'data' => new PrestationResource($prestation),
+        ], 201);
+    }
+
+    /**
+     * Détails d'une prestation
+     */
+    public function show(string $uuid_prestation): JsonResponse
+    {
+        $prestation = $this->prestationService->findPrestation($uuid_prestation);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Détails de la prestation.',
+            'code' => 'PRESTATION_FOUND',
+            'data' => new PrestationResource($prestation),
+        ]);
+    }
+
+    /**
+     * Mettre à jour une prestation
+     */
+    public function update(UpdatePrestationRequest $request, string $uuid_prestation): JsonResponse
+    {
+        $prestation = $this->prestationService->findPrestation($uuid_prestation);
+        $updated = $this->prestationService->updatePrestation(
+            $prestation,
+            $request->validated(),
+            $request->user()->uuid_user
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prestation mise à jour.',
+            'code' => 'PRESTATION_UPDATED',
+            'data' => new PrestationResource($updated),
+        ]);
+    }
+
+    /**
+     * Supprimer une prestation
+     */
+    public function destroy(Request $request, string $uuid_prestation): JsonResponse
+    {
+        $prestation = $this->prestationService->findPrestation($uuid_prestation);
+        $this->prestationService->deletePrestation($prestation, $request->user()->uuid_user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prestation supprimée.',
+            'code' => 'PRESTATION_DELETED',
+        ]);
+    }
+
+    /**
      * Statistiques des prestations
+     */
+    public function prestationStats(): JsonResponse
+    {
+        $stats = $this->prestationService->getPrestationStats();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Statistiques des prestations.',
+            'code' => 'PRESTATION_STATS',
+            'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Statistiques des prestations (type / catégorie / association)
      */
     public function stats(): JsonResponse
     {

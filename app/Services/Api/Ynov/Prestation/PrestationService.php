@@ -1,8 +1,9 @@
 <?php
-// app/Services/Api/Ynov/PrestationService.php
+// app/Services/Api/Ynov/Prestation/PrestationService.php
 
-namespace App\Services\Api\Ynov;
+namespace App\Services\Api\Ynov\Prestation;
 
+use App\Models\Api\Ynov\Prestation;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
@@ -241,46 +242,6 @@ class PrestationService
         ]);
     }
 
-    // /**
-    //  * Associer une prestation à un produit
-    //  */
-    // public function assignPrestation(Produit $produit, TypePrestation $typePrestation, array $data, string $creatorUuid): ProduitPrestation
-    // {
-    //     return DB::transaction(function () use ($produit, $typePrestation, $data, $creatorUuid) {
-    //         // Vérifier si l'association existe déjà
-    //         $existing = ProduitPrestation::where('produit_uuid', $produit->uuid_produit)
-    //             ->where('type_prestation_uuid', $typePrestation->uuid_type_prestation)
-    //             ->first();
-
-    //         if ($existing) {
-    //             throw new \RuntimeException('Cette prestation est déjà associée à ce produit.');
-    //         }
-
-    //         $association = ProduitPrestation::create([
-    //             'uuid_product_prestation' => (string) Str::uuid(),
-    //             'produit_uuid' => $produit->uuid_produit,
-    //             'produit_type' => $data['produit_type'] ?? null,
-    //             'type_prestation_uuid' => $typePrestation->uuid_type_prestation,
-    //             'status' => $data['status'] ?? 'actif',
-    //             'created_by' => $creatorUuid,
-    //         ]);
-
-    //         ActivityLog::log([
-    //             'user_uuid' => $creatorUuid,
-    //             'action' => 'assign',
-    //             'action_type' => 'crud',
-    //             'module' => 'produit_prestations',
-    //             'description' => "Association de la prestation {$typePrestation->libelle} au produit {$produit->libelle}",
-    //             'resource_type' => 'produit_prestation',
-    //             'resource_id' => $association->uuid_product_prestation,
-    //             'new_values' => $association->toArray(),
-    //             'level' => 'info',
-    //         ]);
-
-    //         return $association;
-    //     });
-    // }
-
     /**
      * Associer une ou plusieurs prestations à un produit
      */
@@ -482,6 +443,174 @@ class PrestationService
     }
 
     /**
+     * Liste des prestations
+     */
+    public function getPrestations(array $filters = [], int $perPage = 20)
+    {
+        $query = Prestation::with([
+            'client',
+            'typePrestation.category',
+            'rdv',
+            'gestionnaire',
+            'partner',
+        ]);
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['client_uuid'])) {
+            $query->where('client_uuid', $filters['client_uuid']);
+        }
+
+        if (isset($filters['type_prestation_uuid'])) {
+            $query->where('type_prestation_uuid', $filters['type_prestation_uuid']);
+        }
+
+        if (isset($filters['gestionnaire_uuid'])) {
+            $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
+        }
+
+        if (isset($filters['partner_uuid'])) {
+            $query->where('partner_uuid', $filters['partner_uuid']);
+        }
+
+        if (isset($filters['is_migrated'])) {
+            $query->where('is_migrated', (bool) $filters['is_migrated']);
+        }
+
+        if (isset($filters['search'])) {
+            $query->search($filters['search']);
+        }
+
+        return $query->orderByDesc('created_at')->paginate($perPage);
+    }
+
+    /**
+     * Trouver une prestation par UUID
+     */
+    public function findPrestation(string $uuid): Prestation
+    {
+        return Prestation::with([
+            'client',
+            'typePrestation.category',
+            'rdv',
+            'gestionnaire',
+            'partner',
+        ])->where('uuid_prestation', $uuid)->firstOrFail();
+    }
+
+    /**
+     * Créer une prestation
+     */
+    public function createPrestation(array $data, string $creatorUuid): Prestation
+    {
+        return DB::transaction(function () use ($data, $creatorUuid) {
+            // $payload = array_merge([
+            //     'uuid_prestation' => (string) Str::uuid(),
+            //     'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
+            //     'status' => $data['status'] ?? 'en_attente',
+            //     'created_by' => $creatorUuid,
+            // ], $data);
+
+            $prestation = Prestation::create([
+                'uuid_prestation' => (string) Str::uuid(),
+                'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
+                'client_uuid' => $data['client_uuid'] ?? $creatorUuid,
+                'type_prestation_uuid' => $data['type_prestation_uuid'],
+                'id_contrat' => $data['id_contrat'],
+                'rdv_uuid' => $data['rdv_uuid'] ?? null,
+                'montant' => (float) $data['montant'] ?? 0,
+                'mode_paiement' => $data['mode_paiement'] ?? null,
+                'operateur_mobile' => $data['operateur_mobile'] ?? null,
+                'tel_paiement_1' => $data['tel_paiement_1'] ?? null,
+                'tel_paiement_2' => $data['tel_paiement_2'] ?? null,
+                'code_banque' => $data['code_banque'] ?? null,
+                'code_guichet' => $data['code_guichet'] ?? null,
+                'numero_compte' => $data['numero_compte'] ?? null,
+                'cle_rib' => $data['cle_rib'] ?? null,
+                'ville_declaration' => $data['ville_declaration'] ?? null,
+                'partner_uuid' => $data['partner_uuid'] ?? null,
+                'status' => $data['status'] ?? 'en_attente',
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $creatorUuid,
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $creatorUuid,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'prestations',
+                'description' => "Création de la prestation {$prestation->code} pour le client {$prestation->client_uuid}",
+                'resource_type' => 'prestation',
+                'resource_id' => $prestation->uuid_prestation,
+                'new_values' => $prestation->toArray(),
+                'level' => 'info',
+            ]);
+
+            return $prestation->fresh()->load([
+                'client',
+                'typePrestation.category',
+                'rdv',
+                'gestionnaire',
+                'partner',
+            ]);
+        });
+    }
+
+    /**
+     * Mettre à jour une prestation
+     */
+    public function updatePrestation(Prestation $prestation, array $data, string $updaterUuid): Prestation
+    {
+        return DB::transaction(function () use ($prestation, $data, $updaterUuid) {
+            $prestation->update(array_merge($data, [
+                'updated_by' => $updaterUuid,
+            ]));
+
+            return $prestation->fresh()->load([
+                'client',
+                'typePrestation.category',
+                'rdv',
+                'gestionnaire',
+                'partner',
+            ]);
+        });
+    }
+
+    /**
+     * Supprimer une prestation
+     */
+    public function deletePrestation(Prestation $prestation, string $deleterUuid): void
+    {
+        DB::transaction(function () use ($prestation, $deleterUuid) {
+            $prestation->update([
+                'deleted_by' => $deleterUuid,
+            ]);
+
+            $prestation->delete();
+        });
+    }
+
+    /**
+     * Statistiques des prestations
+     */
+    public function getPrestationStats(): array
+    {
+        return [
+            'total' => Prestation::count(),
+            'inacheve' => Prestation::where('status', 'inacheve')->count(),
+            'en_attente' => Prestation::where('status', 'en_attente')->count(),
+            'transmis' => Prestation::where('status', 'transmis')->count(),
+            'accepte' => Prestation::where('status', 'accepte')->count(),
+            'rejete' => Prestation::where('status', 'rejete')->count(),
+            'annule' => Prestation::where('status', 'annule')->count(),
+            'migrated' => Prestation::where('is_migrated', true)->count(),
+            'not_migrated' => Prestation::where('is_migrated', false)->count(),
+        ];
+    }
+
+    /**
      * Récupérer tous les gestionnaires avec le rôle gestionnaire_prestation
      */
     public function getGestionnairesPrestation(): array
@@ -514,4 +643,5 @@ class PrestationService
 
         return $gestionnaires->toArray();
     }
+
 }

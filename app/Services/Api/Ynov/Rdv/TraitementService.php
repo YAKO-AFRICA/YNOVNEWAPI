@@ -7,6 +7,7 @@ use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Prestation\PrestationService;
 use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use App\Services\Api\Ynov\Rdv\RdvService;
 use Carbon\Carbon;
@@ -17,6 +18,7 @@ class TraitementService
     public function __construct(
         private NotificationService $notificationService,
         private BordereauRdvService $bordereauRdvService,
+         private PrestationService $prestationService
     ) {}
 
     public function traiter(Rdv $rdv, array $data, string $userUuid): array
@@ -45,6 +47,23 @@ class TraitementService
             $motifsTraitement = array_merge($motifsTraitement, $nouveauxMotifs);
             $motifsTraitement = array_unique($motifsTraitement); // Éviter les doublons
 
+            $data['status'] = 'inacheve'; // valeur par defaut inacheve pour la prestation si le status n'est pas fourni
+
+
+            $prestation = $this->prestationService->createPrestation(
+                $data,
+                $userUuid
+            );
+
+            if (!$prestation) {
+                return [
+                    'success' => false,
+                    'message' => 'Erreur lors de la création de la prestation.',
+                    'code' => 'PRESTATION_CREATION_ERROR',
+                    'status' => 500,
+                ];
+            }
+
             // mettre à jour le statut du detailBordereauRDV
             if ($rdv->detailBordereau) {
                 $rdv->detailBordereau->update([
@@ -55,7 +74,7 @@ class TraitementService
 
             $rdv->update([
                 'status' => 'traite',
-                'date_traitement' => Carbon::parse($data['date_traitement']),
+                'date_traitement' => Carbon::now(),
                 'is_permitted' => $isPermitted,
                 'motif_traitement' => array_merge($motifsActuels, ['traitement' => $motifsTraitement]),
                 'observation' => $data['observation'] ?? $rdv->observation,
@@ -72,7 +91,7 @@ class TraitementService
                     : "Rendez-vous traité, demande de {$rdv->motif->libelle} enregistré avec succès.",
                 'code' => 'RDV_TRAITE',
                 'status' => 200,
-                'data' => $rdv->fresh()->load(['client', 'gestionnaire']),
+                'data' => $rdv->fresh()->load(['client', 'gestionnaire', 'prestation']),
             ];
         });
     }

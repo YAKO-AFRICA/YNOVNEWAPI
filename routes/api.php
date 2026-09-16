@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\Ynov\AgenceController;
 use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
-use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
@@ -22,9 +21,10 @@ use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
-use App\Http\Controllers\Api\Ynov\PrestationController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
 use App\Http\Controllers\Api\Ynov\Rdv\CalendrierController;
 use App\Http\Controllers\Api\Ynov\Rdv\DashboardController;
 use App\Http\Controllers\Api\Ynov\Rdv\RdvController;
@@ -302,7 +302,7 @@ Route::prefix('v1')->middleware([
     });
 
     //================================================================
-    // NOUVEAU : Routes de questions de sécurité (authentifiées)
+    // Routes de questions de sécurité (authentifiées)
     // ================================================================
     Route::prefix('security')->group(function () {
         // Route::get('questions', [SecurityQuestionController::class, 'getAvailableQuestions']);
@@ -311,7 +311,7 @@ Route::prefix('v1')->middleware([
     });
 
     // ================================================================
-    // NOUVEAU : Routes admin des questions de sécurité
+    // Routes admin des questions de sécurité
     // ================================================================
     Route::prefix('admin/security')->middleware('permission:security_questions.gerer')->group(function () {
         Route::post('questions', [SecurityQuestionController::class, 'createQuestion']);
@@ -622,6 +622,25 @@ Route::prefix('v1')->middleware([
     // PRESTATIONS
     // ============================================================
     Route::prefix('prestations')->group(function () {
+        // Prestations CRUD
+        Route::get('', [PrestationController::class, 'index'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::post('', [PrestationController::class, 'store'])
+            ->middleware('permission:prestations.creer');
+
+        Route::get('{uuid_prestation}', [PrestationController::class, 'show'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::put('{uuid_prestation}', [PrestationController::class, 'update'])
+            ->middleware('permission:prestations.modifier');
+
+        Route::delete('{uuid_prestation}', [PrestationController::class, 'destroy'])
+            ->middleware('permission:prestations.supprimer');
+
+        Route::get('stats-prestations', [PrestationController::class, 'prestationStats'])
+            ->middleware('permission:prestations.afficher');
+
         // Catégories
         Route::get('categories', [PrestationController::class, 'categories']);
             // ->middleware('permission:prestations.afficher');

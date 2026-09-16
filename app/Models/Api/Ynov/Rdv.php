@@ -6,6 +6,7 @@ use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\MotifTraitement;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\Prestation;
 use App\Models\Api\Ynov\UserContrat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -155,6 +156,11 @@ class Rdv extends Model
         }
 
         return $result;
+    }
+
+    public function prestation()
+    {
+        return $this->belongsTo(Prestation::class, 'uuid_rdvs', 'rdv_uuid');
     }
 
     /**

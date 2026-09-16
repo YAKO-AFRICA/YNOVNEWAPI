@@ -7,7 +7,7 @@ use App\Http\Requests\Api\Ynov\Rdv\TransmettreRdvParEmailRequest;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
 use App\Services\Api\Ynov\NotificationService;
-use App\Services\Api\Ynov\PrestationService;
+use App\Services\Api\Ynov\Prestation\PrestationService;
 use App\Services\Api\Ynov\Rdv\BordereauRdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

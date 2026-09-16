@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\AnnulerRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ExpirerRdvRequest;
-// use App\Http\Requests\Api\Ynov\Rdv\Traitement\ObservationRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\RejeterRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ReporterRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\TraiterRdvRequest;
@@ -18,6 +17,7 @@ class TraitementController extends Controller
 {
     public function __construct(
         private TraitementService $traitementService,
+        
     ) {}
 
     /**
@@ -53,6 +53,14 @@ class TraitementController extends Controller
             $request->validated(),
             $request->user()->uuid_user
         );
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'code' => $result['code'],
+            ], $result['status'] ?? 400);
+        }
 
         return response()->json([
             'success' => $result['success'],
