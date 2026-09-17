@@ -51,7 +51,7 @@ class RdvResource extends JsonResource
                             : null,
                     ] : null,
                 ];
-            }),
+            }) ?? null,
             'demandeur' => $this->demandeur,
             'date_rdv_souhaiter' => $this->date_rdv_souhaiter?->format('Y-m-d H:i:s'),
             'date_rdv_effective' => $this->date_rdv_effective?->format('Y-m-d H:i:s'),
