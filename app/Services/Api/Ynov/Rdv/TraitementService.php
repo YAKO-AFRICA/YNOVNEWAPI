@@ -27,10 +27,10 @@ class TraitementService
             $oldValues = $rdv->toArray();
 
             // Vérifier que le RDV peut être traité
-            if ($rdv->status != 'transmis' || $rdv->status != 'reporte') {
+            if (!in_array($rdv->status, ['transmis', 'reporte'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ce rendez-vous ne peut pas être traité dans son état actuel.',
+                    'message' => 'Ce rendez-vous ne peut pas être traité. Car il est actuellement ' . $rdv->status . '.',
                     'code' => 'RDV_NON_TRAITABLE',
                     'status' => 422,
                 ];

@@ -12,6 +12,7 @@ use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\Rdv\TraitementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TraitementController extends Controller
 {
@@ -47,6 +48,8 @@ class TraitementController extends Controller
     public function traiter(TraiterRdvRequest $request, string $uuid_rdvs): JsonResponse
     {
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+
+        Log::info('TraitementController@traiter: RDV trouvé', ['uuid_rdvs' => $uuid_rdvs, 'rdv' => $rdv]);
 
         $result = $this->traitementService->traiter(
             $rdv,
