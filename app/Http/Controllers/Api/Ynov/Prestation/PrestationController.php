@@ -35,6 +35,21 @@ class PrestationController extends Controller
 
         $categories = $this->prestationService->getCategoriesWithTypes($filters, $perPage);
 
+        if ($categories->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucune catégorie trouvée.',
+                'code' => 'CATEGORIES_EMPTY',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 1,
+                ]
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Liste des catégories de prestations.',
@@ -93,6 +108,15 @@ class PrestationController extends Controller
                 $q->where('status', 'actif')->orderBy('libelle');
             }])
             ->firstOrFail();
+
+        if (!$category) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun details de catégorie trouvée.',
+                'code' => 'CATEGORIES_EMPTY',
+                'data' => $category,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -188,6 +212,21 @@ class PrestationController extends Controller
         $perPage = $request->integer('per_page', 20);
         $types = $query->orderBy('libelle')->paginate($perPage);
 
+        if ($types->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun type de prestation trouvé.',
+                'code' => 'TYPES_EMPTY',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 1,
+                ]
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Liste des types de prestations.',
@@ -249,6 +288,15 @@ class PrestationController extends Controller
                 $q->where('statut', 'actif')->orderBy('libelle');
             }])
             ->firstOrFail();
+
+        if (!$type) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun details de type de prestation trouvée.',
+                'code' => 'TYPE_PRESTATION_EMPTY',
+                'data' => $type,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -339,6 +387,21 @@ class PrestationController extends Controller
         $perPage = $request->integer('per_page', 20);
         $prestations = $this->prestationService->getPrestations($filters, $perPage);
 
+        if ($prestations->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucune prestation trouvée.',
+                'code' => 'PRESTATIONS_EMPTY',
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 1,
+                ]
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Liste des prestations.',
@@ -386,6 +449,14 @@ class PrestationController extends Controller
     {
         $prestation = $this->prestationService->findPrestation($uuid_prestation);
 
+        if (!$prestation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Prestation non trouvée.',
+                'code' => 'PRESTATION_NOT_FOUND',
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Détails de la prestation.',
@@ -406,6 +477,14 @@ class PrestationController extends Controller
             $request->user()->uuid_user
         );
 
+        if (!$updated) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la prestation.',
+                'code' => 'PRESTATION_UPDATE_ERROR',
+            ], 500);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Prestation mise à jour.',
@@ -420,7 +499,15 @@ class PrestationController extends Controller
     public function destroy(Request $request, string $uuid_prestation): JsonResponse
     {
         $prestation = $this->prestationService->findPrestation($uuid_prestation);
+        if (!$prestation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Prestation non trouvée.',
+                'code' => 'PRESTATION_NOT_FOUND',
+            ], 404);
+        }
         $this->prestationService->deletePrestation($prestation, $request->user()->uuid_user);
+
 
         return response()->json([
             'success' => true,
