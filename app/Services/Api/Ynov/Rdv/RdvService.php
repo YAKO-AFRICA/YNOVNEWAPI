@@ -1348,9 +1348,8 @@ class RdvService
      */
     private function calculateDelais(Rdv $rdv): array
     {
-        $now = now();
-        $dateRdv = $rdv->date_rdv_souhaiter;
-        
+        $dateRdv = $rdv->date_rdv_effective ?? $rdv->date_rdv_souhaiter;
+
         if (!$dateRdv) {
             return [
                 'jours' => 0,
@@ -1360,8 +1359,12 @@ class RdvService
             ];
         }
 
-        $diffDays = $now->diffInDays($dateRdv, false);
-        
+        $dateRdv = $dateRdv instanceof \Carbon\Carbon ? $dateRdv : \Illuminate\Support\Carbon::parse($dateRdv);
+
+        $today = now()->startOfDay();
+        $dateRdvStart = $dateRdv->copy()->startOfDay();
+        $diffDays = $today->diffInDays($dateRdvStart, false);
+
         if ($diffDays > 0) {
             return [
                 'jours' => $diffDays,
@@ -1369,22 +1372,25 @@ class RdvService
                 'classe' => 'text-success',
                 'est_retard' => false,
             ];
-        } elseif ($diffDays == 0) {
+        }
+
+        if ($diffDays === 0) {
             return [
                 'jours' => 0,
                 'label' => 'Aujourd\'hui',
                 'classe' => 'text-warning',
                 'est_retard' => false,
             ];
-        } else {
-            $retard = abs($diffDays);
-            return [
-                'jours' => -$retard,
-                'label' => $retard . ' jour' . ($retard > 1 ? 's' : '') . ' de retard',
-                'classe' => 'text-danger',
-                'est_retard' => true,
-            ];
         }
+
+        $retard = abs($diffDays);
+
+        return [
+            'jours' => -$retard,
+            'label' => $retard . ' jour' . ($retard > 1 ? 's' : '') . ' de retard',
+            'classe' => 'text-danger',
+            'est_retard' => true,
+        ];
     }
 
     /**
