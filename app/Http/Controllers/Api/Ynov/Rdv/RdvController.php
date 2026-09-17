@@ -339,6 +339,7 @@ class RdvController extends Controller
                         'code' => $rdv->prestation->typePrestation->code,
                         'libelle' => $rdv->prestation->typePrestation->libelle,
                         'impact' => $rdv->prestation->typePrestation->impact,
+                        'impact_label' => $rdv->prestation->typePrestation->getImpactLabel(),
                     ] : null,
                 ];
             }
@@ -488,6 +489,7 @@ class RdvController extends Controller
                     'code' => $rdv->prestation->typePrestation->code,
                     'libelle' => $rdv->prestation->typePrestation->libelle,
                     'impact' => $rdv->prestation->typePrestation->impact,
+                    'impact_label' => $rdv->prestation->typePrestation->getImpactLabel(),
                 ] : null,
             ];
         }
@@ -662,6 +664,14 @@ class RdvController extends Controller
             'detailBordereau.bordereauRdv',
             'contrat',
         ])->where('uuid_rdvs', $uuid_rdvs)->firstOrFail();
+
+        if (!$rdv) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rendez-vous introuvable.',
+                'code' => 'RDV_NOT_FOUND',
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,

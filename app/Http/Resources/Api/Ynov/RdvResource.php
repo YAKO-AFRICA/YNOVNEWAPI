@@ -28,36 +28,28 @@ class RdvResource extends JsonResource
                     return null;
                 }
 
+                $typePrestation = $this->prestation->relationLoaded('typePrestation')
+                    ? $this->prestation->typePrestation
+                    : $this->prestation->typePrestation()->first();
+
                 return [
                     'uuid_prestation' => $this->prestation->uuid_prestation,
                     'code' => $this->prestation->code,
                     'status' => $this->prestation->status,
-                    // 'status_label' => $this->prestation->status ? match ($this->prestation->status) {
-                    //     'inacheve' => 'Inachevée',
-                    //     'en_attente' => 'En attente',
-                    //     'transmis' => 'Transmise',
-                    //     'accepte' => 'Acceptée',
-                    //     'rejete' => 'Rejetée',
-                    //     'annule' => 'Annulée',
-                    //     default => $this->prestation->status,
-                    // } : null,
                     'status_label' => $this->prestation->getPrestationStatusLabel(),
                     'montant' => $this->prestation->montant,
                     'mode_paiement' => $this->prestation->mode_paiement,
                     'notes' => $this->prestation->notes,
                     'observation' => $this->prestation->observation,
-                    'type_prestation' => $this->whenLoaded('prestation.typePrestation', function () {
-                        if (!$this->prestation?->typePrestation) {
-                            return null;
-                        }
-
-                        return [
-                            'uuid_type_prestation' => $this->prestation->typePrestation->uuid_type_prestation,
-                            'code' => $this->prestation->typePrestation->code,
-                            'libelle' => $this->prestation->typePrestation->libelle,
-                            'impact' => $this->prestation->typePrestation->impact,
-                        ];
-                    }),
+                    'type_prestation' => $typePrestation ? [
+                        'uuid_type_prestation' => $typePrestation->uuid_type_prestation,
+                        'code' => $typePrestation->code,
+                        'libelle' => $typePrestation->libelle,
+                        'impact' => $typePrestation->impact,
+                        'impact_label' => method_exists($typePrestation, 'getImpactLabel')
+                            ? $typePrestation->getImpactLabel()
+                            : null,
+                    ] : null,
                 ];
             }),
             'demandeur' => $this->demandeur,

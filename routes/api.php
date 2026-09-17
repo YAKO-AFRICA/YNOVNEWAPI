@@ -732,12 +732,12 @@ Route::prefix('v1')->middleware([
         Route::get('calendrier/stats', [CalendrierController::class, 'stats'])
             ->middleware('permission:rdvs.calendrier');
 
-        // Détails d'un rendez-vous connecté (client)
-        Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
-
         // Détails d'un rendez-vous connecté (admin ou gestionnaire)
         Route::get('{uuid_rdvs}/detail-rdv', [RdvController::class, 'showDetailAdmin'])
             ->middleware('permission:rdvs.afficher');
+
+        // Détails d'un rendez-vous connecté (client)
+        Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
 
         // Créer un rendez-vous
         Route::post('/', [RdvController::class, 'store'])

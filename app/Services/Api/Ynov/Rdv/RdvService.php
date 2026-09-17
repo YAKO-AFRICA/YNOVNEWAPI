@@ -1284,6 +1284,7 @@ class RdvService
                         'libelle' => $rdv->prestation->typePrestation->libelle,
                         'code' => $rdv->prestation->typePrestation->code,
                         'impact' => $rdv->prestation->typePrestation->impact,
+                        'impact_label' => $rdv->prestation->typePrestation->getImpactLabel(),
                     ] : null,
                 ] : null,
                 
