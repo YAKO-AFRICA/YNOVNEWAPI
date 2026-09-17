@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
 use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauDashboardController;
 use App\Http\Controllers\Api\Ynov\Rdv\CalendrierController;
 use App\Http\Controllers\Api\Ynov\Rdv\DashboardController;
 use App\Http\Controllers\Api\Ynov\Rdv\RdvController;
@@ -681,6 +682,16 @@ Route::prefix('v1')->middleware([
     // RENDEZ-VOUS (RDV) - CLIENT
     // ============================================================
     Route::prefix('bordereaux')->group(function () {
+        // Dashboard bordereau (API-only)
+        Route::get('dashboard', [BordereauDashboardController::class, 'dashboard'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/stats', [BordereauDashboardController::class, 'stats'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/lots', [BordereauDashboardController::class, 'index'])
+            ->middleware('permission:rdvs.afficher');
+
         Route::get('lots', [BordereauController::class, 'indexLots'])
             ->middleware('permission:rdvs.afficher');
 
@@ -696,6 +707,9 @@ Route::prefix('v1')->middleware([
 
         // Récupérer les gestionnaires prestation
         Route::get('gestionnaires-prestation', [BordereauController::class, 'getGestionnairesPrestation'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/{uuid_bordereau}', [BordereauDashboardController::class, 'show'])
             ->middleware('permission:rdvs.afficher');
     });
 

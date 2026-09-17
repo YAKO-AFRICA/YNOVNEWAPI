@@ -16598,6 +16598,362 @@
             // BORDEREAUX RDV
             // ============================================================
             {
+                id: "bordereaux-dashboard-overview",
+                module: "rdvs",
+                name: "[Bordereaux] Dashboard global",
+                description:
+                    "Récupère le résumé du dashboard bordereau : statistiques globales et lots récents associés aux bordereaux RDV. Requiert la permission rdvs.afficher.",
+                method: "GET",
+                path: "/bordereaux/dashboard",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transfere", "cloture"],
+                            description: "Filtre global par statut du bordereau.",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche sur la référence, la période ou le statut du bordereau.",
+                        },
+                        date_debut: {
+                            type: "date",
+                            required: false,
+                            description: "Date de début utilisée pour filtrer les lots selon la période du bordereau.",
+                        },
+                        date_fin: {
+                            type: "date",
+                            required: false,
+                            description: "Date de fin utilisée pour filtrer les lots selon la période du bordereau.",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 10,
+                            description: "Nombre de lots récents à retourner dans le dashboard.",
+                        },
+                        sort_by: {
+                            type: "string",
+                            required: false,
+                            enum: ["reference", "periode_1", "periode_2", "status", "created_at"],
+                            default: "periode_1",
+                            description: "Champ de tri principal.",
+                        },
+                        sort_order: {
+                            type: "string",
+                            required: false,
+                            enum: ["asc", "desc"],
+                            default: "desc",
+                            description: "Ordre de tri.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Résumé du dashboard bordereau récupéré avec succès.",
+                        example: {
+                            success: true,
+                            message: "Dashboard bordereau récupéré avec succès.",
+                            code: "BORDEAU_DASHBOARD",
+                            data: {
+                                overview: {
+                                    total_lots: 125,
+                                    lots_en_attente: 18,
+                                    lots_transfere: 82,
+                                    lots_cloture: 25,
+                                    total_details: 480,
+                                    details_en_attente: 60,
+                                    details_soumis: 220,
+                                    details_traite: 200,
+                                    taux_traitement_details: 41.67,
+                                    stats_par_statut: {
+                                        en_attente: 18,
+                                        transfere: 82,
+                                        cloture: 25,
+                                    },
+                                },
+                                recent_lots: [
+                                    {
+                                        uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                        reference: "BR-2026-S36-AB12CD34",
+                                        periode_1: "2026-09-01",
+                                        periode_2: "2026-09-04",
+                                        status: "transfere",
+                                        details_count: 12,
+                                        created_at: "2026-09-01 09:15:00",
+                                        updated_at: "2026-09-01 09:15:00",
+                                    },
+                                ],
+                            },
+                            meta: {
+                                current_page: 1,
+                                per_page: 10,
+                                total: 125,
+                                last_page: 13,
+                                filters: {
+                                    status: "transfere",
+                                    per_page: 10,
+                                },
+                                generated_at: "2026-09-17 09:30:00",
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "bordereaux-dashboard-stats",
+                module: "rdvs",
+                name: "[Bordereaux] Statistiques dashboard",
+                description:
+                    "Récupère uniquement les métriques globales du dashboard bordereau sans les lots récents. Utile pour les widgets ou KPI.",
+                method: "GET",
+                path: "/bordereaux/dashboard/stats",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transfere", "cloture"],
+                            description: "Filtre sur le statut du bordereau pour le calcul des indicateurs.",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche globale sur la période ou la référence du bordereau.",
+                        },
+                        date_debut: {
+                            type: "date",
+                            required: false,
+                            description: "Date de début du filtre.",
+                        },
+                        date_fin: {
+                            type: "date",
+                            required: false,
+                            description: "Date de fin du filtre.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Statistiques bordereau récupérées avec succès.",
+                        example: {
+                            success: true,
+                            message: "Statistiques bordereau récupérées avec succès.",
+                            code: "BORDEAU_DASHBOARD_STATS",
+                            data: {
+                                total_lots: 125,
+                                lots_en_attente: 18,
+                                lots_transfere: 82,
+                                lots_cloture: 25,
+                                total_details: 480,
+                                details_en_attente: 60,
+                                details_soumis: 220,
+                                details_traite: 200,
+                                taux_traitement_details: 41.67,
+                                stats_par_statut: {
+                                    en_attente: 18,
+                                    transfere: 82,
+                                    cloture: 25,
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "bordereaux-dashboard-lots",
+                module: "rdvs",
+                name: "[Bordereaux] Liste des lots du dashboard",
+                description:
+                    "Retourne la liste paginée des lots de bordereau avec filtres et tri, en vue de l’écran de dashboard ou d’un tableau de bord administratif.",
+                method: "GET",
+                path: "/bordereaux/dashboard/lots",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transfere", "cloture"],
+                            description: "Filtrer par statut du lot.",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche sur la référence, la période ou le statut du lot.",
+                        },
+                        date_debut: {
+                            type: "date",
+                            required: false,
+                            description: "Date de début de la plage de recherche.",
+                        },
+                        date_fin: {
+                            type: "date",
+                            required: false,
+                            description: "Date de fin de la plage de recherche.",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 15,
+                            description: "Nombre de résultats par page.",
+                        },
+                        sort_by: {
+                            type: "string",
+                            required: false,
+                            enum: ["reference", "periode_1", "periode_2", "status", "created_at"],
+                            default: "periode_1",
+                            description: "Champ du tri.",
+                        },
+                        sort_order: {
+                            type: "string",
+                            required: false,
+                            enum: ["asc", "desc"],
+                            default: "desc",
+                            description: "Direction du tri.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste paginée des lots de bordereau pour le dashboard.",
+                        example: {
+                            success: true,
+                            message: "Lots de bordereau récupérés avec succès.",
+                            code: "BORDEAU_LOTS_LISTED",
+                            data: [
+                                {
+                                    uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                    reference: "BR-2026-S36-AB12CD34",
+                                    periode_1: "2026-09-01",
+                                    periode_2: "2026-09-04",
+                                    status: "transfere",
+                                    details_count: 12,
+                                    created_at: "2026-09-01 09:15:00",
+                                    updated_at: "2026-09-01 09:15:00",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 15,
+                                total: 125,
+                                last_page: 9,
+                                filters: {
+                                    status: "transfere",
+                                    per_page: 15,
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "bordereaux-dashboard-detail",
+                module: "rdvs",
+                name: "[Bordereaux] Détail d'un lot du dashboard",
+                description:
+                    "Retourne le détail complet d’un bordereau, avec ses lignes associées et les informations clés de chaque détail, pour un affichage détaillé du tableau de bord.",
+                method: "GET",
+                path: "/bordereaux/dashboard/{uuid_bordereau}",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_bordereau: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du bordereau RDV dont on veut le détail.",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Détail du lot de bordereau récupéré avec succès.",
+                        example: {
+                            success: true,
+                            message: "Détail du bordereau récupéré avec succès.",
+                            code: "BORDEAU_DETAIL",
+                            data: {
+                                uuid_bordereau_rdv: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                reference: "BR-2026-S36-AB12CD34",
+                                periode_1: "2026-09-01",
+                                periode_2: "2026-09-04",
+                                status: "transfere",
+                                status_label: "Transféré",
+                                observation: null,
+                                details_count: 1,
+                                details: [
+                                    {
+                                        uuid_detail_bordereau_rdv: "a3f9d9a1-17e0-4c75-a254-3210a71ba2fa",
+                                        rdv_uuid: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                        status: "traite",
+                                        status_label: "Traité",
+                                        date_effet: "2026-09-01",
+                                        date_echeance: "2027-09-01",
+                                        duree_contrat: 12,
+                                        type_operation: "retrait",
+                                        produit: "Produit A",
+                                        cumul_rachats_partiels: 0,
+                                        cumul_avances: 0,
+                                        provision_nette: 2500000,
+                                        valeur_rachat: 1200000,
+                                        valeur_max_rachat: 1500000,
+                                        valeur_max_avance: 0,
+                                        montant_transformation: 0,
+                                        garantie_surete: 0,
+                                        conservation_capital: 0,
+                                        observation: "Traitement validé",
+                                        soumis_a_gestionnaire_prestation_uuid: "2a4d0bce-7e67-4e2d-9b32-99b3b8cb42d1",
+                                        created_at: "2026-09-01 09:15:00",
+                                        updated_at: "2026-09-01 09:20:00",
+                                    },
+                                ],
+                                created_at: "2026-09-01 09:15:00",
+                                updated_at: "2026-09-01 09:20:00",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Bordereau introuvable.",
+                        example: {
+                            success: false,
+                            message: "Bordereau introuvable.",
+                            code: "BORDEAU_NOT_FOUND",
+                            data: null,
+                        },
+                    },
+                ],
+            },
+            
+            {
                 id: "bordereaux-lots-list",
                 module: "rdvs",
                 name: "[Bordereaux] Liste des lots",

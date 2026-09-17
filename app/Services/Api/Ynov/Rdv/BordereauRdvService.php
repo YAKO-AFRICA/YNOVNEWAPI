@@ -194,8 +194,6 @@ class BordereauRdvService
         }
     }
 
-
-
     /**
      * Importe le détail d'un bordereau à partir d'un fichier Excel.
      * Le fichier doit contenir une colonne "Numero du rendez-vous" (ou "Numero")
