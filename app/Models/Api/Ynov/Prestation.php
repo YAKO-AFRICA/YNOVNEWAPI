@@ -69,6 +69,19 @@ class Prestation extends Model
         });
     }
 
+     public function getPrestationStatusLabel(): ?string
+    {
+        return $this->status ? match ($this->status) {
+                'inacheve' => 'Inachevée',
+                'en_attente' => 'En attente',
+                'transmis' => 'Transmise',
+                'accepte' => 'Acceptée',
+                'rejete' => 'Rejetée',
+                'annule' => 'Annulée',
+                default => $this->status,
+            }
+            : null;
+    }
     public function client()
     {
         return $this->belongsTo(User::class, 'client_uuid', 'uuid_user');

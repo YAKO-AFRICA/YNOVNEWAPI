@@ -23,6 +23,43 @@ class RdvResource extends JsonResource
             'motif_rdv' => $this->motif_rdv,
             'id_contrat' => $this->id_contrat,
             'motif_rdv_label' => $this->whenLoaded('motif', fn () => optional($this->motif)->libelle),
+            'prestation' => $this->whenLoaded('prestation', function () {
+                if (!$this->prestation) {
+                    return null;
+                }
+
+                return [
+                    'uuid_prestation' => $this->prestation->uuid_prestation,
+                    'code' => $this->prestation->code,
+                    'status' => $this->prestation->status,
+                    // 'status_label' => $this->prestation->status ? match ($this->prestation->status) {
+                    //     'inacheve' => 'Inachevée',
+                    //     'en_attente' => 'En attente',
+                    //     'transmis' => 'Transmise',
+                    //     'accepte' => 'Acceptée',
+                    //     'rejete' => 'Rejetée',
+                    //     'annule' => 'Annulée',
+                    //     default => $this->prestation->status,
+                    // } : null,
+                    'status_label' => $this->prestation->getPrestationStatusLabel(),
+                    'montant' => $this->prestation->montant,
+                    'mode_paiement' => $this->prestation->mode_paiement,
+                    'notes' => $this->prestation->notes,
+                    'observation' => $this->prestation->observation,
+                    'type_prestation' => $this->whenLoaded('prestation.typePrestation', function () {
+                        if (!$this->prestation?->typePrestation) {
+                            return null;
+                        }
+
+                        return [
+                            'uuid_type_prestation' => $this->prestation->typePrestation->uuid_type_prestation,
+                            'code' => $this->prestation->typePrestation->code,
+                            'libelle' => $this->prestation->typePrestation->libelle,
+                            'impact' => $this->prestation->typePrestation->impact,
+                        ];
+                    }),
+                ];
+            }),
             'demandeur' => $this->demandeur,
             'date_rdv_souhaiter' => $this->date_rdv_souhaiter?->format('Y-m-d H:i:s'),
             'date_rdv_effective' => $this->date_rdv_effective?->format('Y-m-d H:i:s'),

@@ -324,6 +324,25 @@ class RdvController extends Controller
                 ];
             }
 
+            if ($rdv->prestation) {
+                $rdvArray['prestation'] = [
+                    'uuid_prestation' => $rdv->prestation->uuid_prestation,
+                    'code' => $rdv->prestation->code,
+                    'status' => $rdv->prestation->status,
+                    'status_label' => $rdv->prestation->getPrestationStatusLabel(),
+                    'montant' => $rdv->prestation->montant,
+                    'mode_paiement' => $rdv->prestation->mode_paiement,
+                    'notes' => $rdv->prestation->notes,
+                    'observation' => $rdv->prestation->observation,
+                    'type_prestation' => $rdv->prestation->typePrestation ? [
+                        'uuid_type_prestation' => $rdv->prestation->typePrestation->uuid_type_prestation,
+                        'code' => $rdv->prestation->typePrestation->code,
+                        'libelle' => $rdv->prestation->typePrestation->libelle,
+                        'impact' => $rdv->prestation->typePrestation->impact,
+                    ] : null,
+                ];
+            }
+
             // Motifs de traitement
             $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
             $rdvArray['motifs_par_type'] = [
@@ -366,7 +385,7 @@ class RdvController extends Controller
     public function show(string $uuid_rdvs): JsonResponse
     {
         $rdv = Rdv::where('uuid_rdvs', $uuid_rdvs)
-            ->with(['client', 'motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
+            ->with(['client', 'motif', 'prestation.typePrestation', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
             ->firstOrFail();
 
         if ($rdv->client_uuid !== request()->user()->uuid_user) {
@@ -453,6 +472,25 @@ class RdvController extends Controller
             'category_uuid' => $rdv->motif->category_uuid,
             'delai_traitement' => $rdv->motif->delai_traitement,
         ];
+
+        if ($rdv->prestation) {
+            $rdvArray['prestation'] = [
+                'uuid_prestation' => $rdv->prestation->uuid_prestation,
+                'code' => $rdv->prestation->code,
+                'status' => $rdv->prestation->status,
+                'status_label' => $rdv->prestation->getPrestationStatusLabel(),
+                'montant' => $rdv->prestation->montant,
+                'mode_paiement' => $rdv->prestation->mode_paiement,
+                'notes' => $rdv->prestation->notes,
+                'observation' => $rdv->prestation->observation,
+                'type_prestation' => $rdv->prestation->typePrestation ? [
+                    'uuid_type_prestation' => $rdv->prestation->typePrestation->uuid_type_prestation,
+                    'code' => $rdv->prestation->typePrestation->code,
+                    'libelle' => $rdv->prestation->typePrestation->libelle,
+                    'impact' => $rdv->prestation->typePrestation->impact,
+                ] : null,
+            ];
+        }
 
         // Motifs de traitement
         $rdvArray['motif_traitement'] = $rdv->getMotifsTraitement();
@@ -616,6 +654,7 @@ class RdvController extends Controller
             'client.details',
             'gestionnaire.details',
             'motif',
+            'prestation.typePrestation',
             'transmisParUser',
             'agenceSouhaitee',
             'agenceEffective',

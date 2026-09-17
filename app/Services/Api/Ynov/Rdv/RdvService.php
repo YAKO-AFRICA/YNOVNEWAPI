@@ -657,7 +657,7 @@ class RdvService
     public function getRdvClient(string $clientUuid, array $filters = [], int $perPage = 10)
     {
         $query = Rdv::forClient($clientUuid)
-            ->with(['motif', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
+            ->with(['motif', 'prestation.typePrestation', 'agenceSouhaitee', 'agenceEffective', 'gestionnaire', 'contrat'])
             ->orderBy('created_at', 'desc');
 
         if (isset($filters['status'])) {
@@ -708,7 +708,7 @@ class RdvService
     public function getRdvAgence(string $agenceUuid, array $filters = [], int $perPage = 20)
     {
         $query = Rdv::where('agence_effective_uuid', $agenceUuid)
-            ->with(['client', 'motif', 'gestionnaire', 'agenceEffective'])
+            ->with(['client', 'motif', 'prestation.typePrestation', 'gestionnaire', 'agenceEffective'])
             ->orderBy('created_at', 'desc');
 
         if (isset($filters['status'])) {
@@ -1098,6 +1098,7 @@ class RdvService
             ->with([
                 'client.details',
                 'motif',
+                'prestation.typePrestation',
                 'agenceSouhaitee',
                 'agenceEffective',
                 'gestionnaire.details',
@@ -1268,6 +1269,23 @@ class RdvService
                     'impact' => $rdv->motif?->impact,
                     'impact_label' => $rdv->motif?->getImpactLabel(),
                 ],
+
+                'prestation' => $rdv->prestation ? [
+                    'uuid_prestation' => $rdv->prestation->uuid_prestation,
+                    'code' => $rdv->prestation->code,
+                    'status' => $rdv->prestation->status,
+                    'status_label' => $rdv->prestation->getPrestationStatusLabel(),
+                    'montant' => $rdv->prestation->montant,
+                    'mode_paiement' => $rdv->prestation->mode_paiement,
+                    'notes' => $rdv->prestation->notes,
+                    'observation' => $rdv->prestation->observation,
+                    'type_prestation' => $rdv->prestation->typePrestation ? [
+                        'uuid_type_prestation' => $rdv->prestation->typePrestation->uuid_type_prestation,
+                        'libelle' => $rdv->prestation->typePrestation->libelle,
+                        'code' => $rdv->prestation->typePrestation->code,
+                        'impact' => $rdv->prestation->typePrestation->impact,
+                    ] : null,
+                ] : null,
                 
                 // Agence
                 'agence' => [

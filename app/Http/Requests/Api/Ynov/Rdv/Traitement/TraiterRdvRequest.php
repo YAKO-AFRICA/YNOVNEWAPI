@@ -22,6 +22,7 @@ class TraiterRdvRequest extends FormRequest
             'rdv_uuid' => ['required', 'exists:rdvs,uuid_rdvs'], // uuid du rdv
             'montant' => ['required', 'numeric', 'min:0'], // montant de la prestation
 
+            'motif_rdv_uuid' => ['required', 'exists:type_prestations,uuid_type_prestation'], // uuid motif du rdv
             'is_permitted' => ['required', 'boolean'], // false = conservation, true = sortie de portefeuille
             'motif_traitements' => ['required', 'array', 'min:1'],
             'motif_traitements.*' => ['required', 'string', 'exists:motif_traitements,uuid_motif_traitements'],

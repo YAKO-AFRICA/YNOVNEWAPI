@@ -160,7 +160,7 @@ class Rdv extends Model
 
     public function prestation()
     {
-        return $this->belongsTo(Prestation::class, 'uuid_rdvs', 'rdv_uuid');
+        return $this->hasOne(Prestation::class, 'rdv_uuid', 'uuid_rdvs');
     }
 
     /**

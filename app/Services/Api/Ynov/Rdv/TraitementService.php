@@ -74,6 +74,7 @@ class TraitementService
 
             $rdv->update([
                 'status' => 'traite',
+                'motif_rdv' => $data['motif_rdv_uuid'] ?? $rdv->motif_rdv,
                 'date_traitement' => Carbon::now(),
                 'is_permitted' => $isPermitted,
                 'motif_traitement' => array_merge($motifsActuels, ['traitement' => $motifsTraitement]),
@@ -84,14 +85,17 @@ class TraitementService
             $this->logActivity($userUuid, 'traiter', $rdv, $oldValues, $data);
             $this->sendNotification($rdv, 'traiter', $userUuid);
 
+            $rdv = $rdv->fresh();
+            $prestationLibelle = $rdv->prestation->typePrestation->libelle;
+            $rdvMotifLibelle = $rdv->motif->libelle;
             return [
                 'success' => true,
                 'message' => $isPermitted 
-                    ? "Rendez-vous traité, permission pour {$rdv->motif->libelle} enregistré avec succès."
-                    : "Rendez-vous traité, demande de {$rdv->motif->libelle} enregistré avec succès.",
+                    ? "Rendez-vous traité, permission pour {$rdvMotifLibelle} enregistré avec succès."
+                    : "Rendez-vous traité, demande de {$prestationLibelle} enregistré avec succès.",
                 'code' => 'RDV_TRAITE',
                 'status' => 200,
-                'data' => $rdv->fresh()->load(['client', 'gestionnaire', 'prestation']),
+                'data' => $rdv->load(['client', 'gestionnaire', 'prestation']),
             ];
         });
     }
