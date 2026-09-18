@@ -908,6 +908,34 @@ class PermissionService
                 ]
             ],
 
+            // // ============================================================
+            // // SIGNATURE ÉLECTRONIQUE
+            // // ============================================================
+            // [
+            //     'module' => [
+            //         'code' => 'signature',
+            //         'libelle' => 'Signature électronique',
+            //         'description' => 'Gestion de la signature électronique',
+            //         'icone' => 'pen-fancy',
+            //         'color' => '#9b59b6',
+            //         'ordre' => 17,
+            //     ],
+            //     'permissions' => [
+            //         [
+            //             'category' => 'crud',
+            //             'action' => 'envoyer',
+            //             'libelle' => 'Envoyer les liens de signature',
+            //             'description' => 'Permet d\'envoyer les liens de signature par Email, SMS ou WhatsApp'
+            //         ],
+            //         [
+            //             'category' => 'crud',
+            //             'action' => 'afficher',
+            //             'libelle' => 'Afficher les demandes de signature',
+            //             'description' => 'Permet de visualiser les demandes de signature'
+            //         ],
+            //     ]
+            // ],
+
             // ============================================================
             // ESPACE CLIENT
             // ============================================================

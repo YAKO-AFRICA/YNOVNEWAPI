@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
 use App\Http\Controllers\Api\Ynov\SessionController;
+use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
@@ -123,6 +124,45 @@ Route::prefix('v1')->group(function () {
 
         // Webhook
         Route::post('webhook', [PaymentController::class, 'webhook']);
+    });
+
+    // ============================================================
+    // ============================================================
+    // SIGNATURE ÉLECTRONIQUE - Widget
+    // ============================================================
+    // Widget JS embarquable consolidé (version unique avec documentation complète)
+    Route::prefix('signature')->group(function () {
+        // Widget JS embarquable - Version consolidée et documentée
+        Route::get('signature-widget.js', function () {
+            return response()->file(public_path('assets/js/signature-widget.js'), [
+                'Content-Type' => 'application/javascript',
+                'Cache-Control' => 'public, max-age=3600',
+            ]);
+        });
+
+        // Générer un lien de signature avec token Sanctum
+        Route::post('generate-link', [SignatureController::class, 'generateLink']);
+
+        // Générer un lien de signature pour gestionnaire (envoi au client)
+        Route::post('generate-manager-link', [SignatureController::class, 'generateManagerLink']);
+
+        // Servir la page du widget avec token (route web pour affichage direct)
+        Route::get('widget/{token}', [SignatureController::class, 'serveWidget']);
+
+        // Webhook pour recevoir la signature depuis le widget
+        Route::post('webhook', [SignatureController::class, 'receiveSignature']);
+
+        // Envoi du lien de signature par Email
+        Route::post('send-email', [SignatureController::class, 'sendByEmail']);
+
+        // Envoi du lien de signature par SMS (Infobip)
+        Route::post('send-sms', [SignatureController::class, 'sendBySms']);
+
+        // Envoi du lien de signature par WhatsApp (Infobip)
+        Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
+
+        // Vérifier le statut d'un token
+        Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);
     });
 
     Route::prefix('/rdvs/auto')->group(function () {
@@ -913,5 +953,19 @@ Route::prefix('v1')->middleware([
         Route::get('contrat-details/{contrat_id}', [CustomerController::class, 'getContratDetails']);
         Route::get('contrats-factures/', [CustomerController::class, 'getContratsFactures']);
         Route::get('contrat-etat-cotisation/{contrat_id}', [CustomerController::class, 'getContratEtatCotisation']);
+    });
+
+    // ============================================================
+    // SIGNATURE ÉLECTRONIQUE - Administration
+    // ============================================================
+    Route::prefix('signature')->group(function () {
+        // Envoyer le lien de signature par Email
+        Route::post('send-email', [SignatureController::class, 'sendByEmail']);
+
+        // Envoyer le lien de signature par SMS
+        Route::post('send-sms', [SignatureController::class, 'sendBySms']);
+
+        // Envoyer le lien de signature par WhatsApp
+        Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
     });
 });

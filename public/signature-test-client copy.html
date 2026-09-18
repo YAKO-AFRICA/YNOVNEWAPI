@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface de Test - Widget Signature Électronique</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #075429;
+            --secondary-color: #F7A400;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #075429 0%, #0a6b35 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #075429 0%, #0a6b35 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .test-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .test-section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .status-badge {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        
+        .status-pending { background: #ffc107; color: #000; }
+        .status-success { background: #28a745; color: white; }
+        .status-error { background: #dc3545; color: white; }
+        
+        .widget-container {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            min-height: 400px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        
+        .log-container {
+            background: #1c1c1e;
+            color: #d7d7db;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #075429;
+            padding-left: 10px;
+        }
+        
+        .log-entry.success { border-left-color: #075429; }
+        .log-entry.error { border-left-color: #dc3545; }
+        .log-entry.info { border-left-color: #F7A400; }
+        
+        .config-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .toggle-btn {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .api-response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .method-badge {
+            background: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .method-get { background: #28a745; }
+        .method-post { background: #007bff; }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="bi bi-pen-fill"></i> Interface de Test - Widget Signature</h1>
+                <p class="mb-0">Test complet du widget de signature électronique</p>
+            </div>
+            
+            <!-- Configuration Panel -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-gear"></i> Configuration</h3>
+                <div class="config-panel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">URL de l'API Backend</label>
+                                <input type="text" class="form-control" id="apiUrl" value="http://127.0.0.1:8000/api/v1/signature" placeholder="http://localhost:8000/api/v1/signature">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">URL du Document</label>
+                                <input type="text" class="form-control" id="documentUrl" value="https://web.yakoafricassur.com/storage/prestations/etatPrestations/Prestation_PREST-WYP39.pdf" placeholder="https://example.com/document.pdf">
+                                <small class="text-muted mt-1 d-block">Utilisez le proxy pour contourner CORS si nécessaire</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Webhook URL (pour réception signature)</label>
+                                <input type="text" class="form-control" id="webhookUrl" value="https://httpbin.org/post" placeholder="https://votre-app.com/api/webhook">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">API Key (secret partagé)</label>
+                                <input type="text" class="form-control" id="apiKey" value="demo-api-key-12345" placeholder="your-secret-api-key">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Success Redirect URL (optionnel)</label>
+                                <input type="text" class="form-control" id="successRedirectUrl" placeholder="https://votre-app.com/success">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cancel Redirect URL (optionnel)</label>
+                                <input type="text" class="form-control" id="cancelRedirectUrl" placeholder="https://votre-app.com/cancel">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Expiration (secondes)</label>
+                                <input type="number" class="form-control" id="expiresIn" value="3600" min="60" max="86400">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control" id="documentDescription" value="Document de test" placeholder="Description du document">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Polling Auto</label>
+                                <select class="form-select" id="enableAutoPolling">
+                                    <option value="false">Désactivé</option>
+                                    <option value="true">Activé (scénario grand écran)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="generateSignatureLink()">
+                                <i class="bi bi-link-45deg"></i> Générer Lien
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 1: Génération de lien -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-1-circle"></i> Génération de Lien de Signature</h3>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="linkGenerationStatus" class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Cliquez sur "Générer Lien" pour créer un lien de signature
+                        </div>
+                        <div id="linkGenerationResult" class="api-response" style="display: none;">
+                            <h5><i class="bi bi-check-circle"></i> Lien généré avec succès</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Token</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="generatedToken" readonly>
+                                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('generatedToken')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Widget URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="widgetUrl" readonly>
+                                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('widgetUrl')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Expiration</label>
+                                <input type="text" class="form-control" id="expiresAt" readonly>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success" onclick="openWidgetUrl()">
+                                    <i class="bi bi-box-arrow-up-right"></i> Ouvrir Widget
+                                </button>
+                                <button class="btn btn-primary" onclick="testPolling()">
+                                    <i class="bi bi-arrow-repeat"></i> Tester Polling
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle"></i> Info
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">
+                                    Cette section génère un lien de signature avec token Sanctum.
+                                    Le lien peut être utilisé pour afficher le widget ou envoyé par email/SMS.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 2: Widget Direct -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-2-circle"></i> Widget Direct (Intégration)</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-display"></i> Mode d'affichage
+                            </div>
+                            <div class="card-body">
+                                <div class="btn-group-vertical w-100" role="group">
+                                    <button type="button" class="btn btn-outline-primary toggle-btn active" id="btnAutoMode" onclick="setWidgetMode('auto')">
+                                        <i class="bi bi-magic"></i> Automatique
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary toggle-btn" id="btnDesktopMode" onclick="setWidgetMode('desktop')">
+                                        <i class="bi bi-display"></i> Desktop (QR)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary toggle-btn" id="btnMobileMode" onclick="setWidgetMode('mobile')">
+                                        <i class="bi bi-phone"></i> Mobile (Signature)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-gear"></i> Options
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="useGeneratedLink" checked>
+                                    <label class="form-check-label" for="useGeneratedLink">
+                                        Utiliser lien généré
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="useProxy" checked>
+                                    <label class="form-check-label" for="useProxy">
+                                        Utiliser le proxy (contourne CORS)
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="enablePolling">
+                                    <label class="form-check-label" for="enablePolling">
+                                        Activer polling auto
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="showLogs" checked>
+                                    <label class="form-check-label" for="showLogs">
+                                        Afficher logs
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="widget-container" id="widgetContainer">
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-pen" style="font-size: 48px;"></i>
+                                <p class="mt-3">Le widget s'affichera ici</p>
+                                <button class="btn btn-primary" onclick="initializeWidget()">
+                                    <i class="bi bi-play-circle"></i> Initialiser Widget
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 3: Polling -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-3-circle"></i> Test Polling (Vérification statut)</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-arrow-repeat"></i> Configuration Polling
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Token</label>
+                                    <input type="text" class="form-control" id="pollingToken" placeholder="Token à vérifier">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Intervalle (ms)</label>
+                                    <input type="number" class="form-control" id="pollingInterval" value="5000" min="1000">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Max tentatives</label>
+                                    <input type="number" class="form-control" id="maxPollingAttempts" value="60" min="1">
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary" onclick="startPolling()">
+                                        <i class="bi bi-play"></i> Démarrer
+                                    </button>
+                                    <button class="btn btn-danger" onclick="stopPolling()">
+                                        <i class="bi bi-stop"></i> Arrêter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-activity"></i> Statut Polling
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary" id="pollingStatus">Inactif</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Tentatives: <span id="pollingAttempts">0</span>/<span id="maxAttemptsDisplay">60</span></small>
+                                </div>
+                                <div class="mb-2">
+                                    <small>Dernière vérification: <span id="lastPollCheck">-</span></small>
+                                </div>
+                                <div id="pollingResult" class="mt-3" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-check-circle"></i> Signature terminée !
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 4: Scénario Gestionnaire -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-person-workspace"></i> Scénario Gestionnaire (Envoi au client)</h3>
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="bi bi-info-circle"></i> Info
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text small">
+                            Ce scénario permet à un gestionnaire de générer un lien de signature et de l'envoyer au client par Email, SMS ou WhatsApp.
+                        </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Email du client</label>
+                            <input type="email" class="form-control" id="clientEmail" placeholder="client@example.com">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone du client</label>
+                            <input type="text" class="form-control" id="clientPhone" placeholder="+33612345678">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Nom du client</label>
+                            <input type="text" class="form-control" id="clientName" placeholder="Jean Dupont">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Méthode d'envoi</label>
+                            <select class="form-select" id="sendMethod">
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="whatsapp">WhatsApp</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="generateManagerLink()">
+                        <i class="bi bi-send"></i> Générer et Envoyer Lien
+                    </button>
+                </div>
+                <div id="managerLinkResult" class="api-response" style="display: none; margin-top: 15px;">
+                    <h5><i class="bi bi-check-circle"></i> Lien envoyé avec succès</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Envoyé via</label>
+                        <input type="text" class="form-control" id="sentVia" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Envoyé à</label>
+                        <input type="text" class="form-control" id="sentTo" readonly>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 5: Logs -->
+            <div class="test-section">
+                <h3 class="section-title"><i class="bi bi-terminal"></i> Logs</h3>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">Journal des opérations</small>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">
+                        <i class="bi bi-trash"></i> Effacer
+                    </button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry info">
+                        <span class="text-muted">[Système]</span> Interface de test initialisée
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Widget JS -->
+    <script src="http://127.0.0.1:8000/api/v1/signature/signature-widget.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variables globales
+        let currentWidget = null;
+        let currentWidgetMode = 'auto';
+        let pollingInterval = null;
+        let pollingAttempts = 0;
+        let generatedLinkData = null;
+        
+        // Logger
+        function log(message, type = 'info') {
+            if (!document.getElementById('showLogs').checked) return;
+            
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<span class="text-muted">[${timestamp}]</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            log('Logs effacés', 'info');
+        }
+        
+        // Copier dans le presse-papier
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            log('Copié dans le presse-papier', 'success');
+        }
+        
+        // Générer un lien de signature
+        async function generateSignatureLink() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            let documentUrl = document.getElementById('documentUrl').value;
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const successRedirectUrl = document.getElementById('successRedirectUrl').value;
+            const cancelRedirectUrl = document.getElementById('cancelRedirectUrl').value;
+            const expiresIn = document.getElementById('expiresIn').value;
+            const documentDescription = document.getElementById('documentDescription').value;
+            
+            // Appliquer le proxy si coché
+            if (document.getElementById('useProxy').checked) {
+                const proxyUrl = window.location.origin + '/signature/proxy-document?url=' + encodeURIComponent(documentUrl);
+                documentUrl = proxyUrl;
+                log('Utilisation du proxy pour la génération du lien', 'info');
+            }
+            
+            log('Génération du lien de signature...', 'info');
+            
+            const statusDiv = document.getElementById('linkGenerationStatus');
+            statusDiv.className = 'alert alert-warning';
+            statusDiv.innerHTML = '<i class="bi bi-hourglass-split"></i> Génération en cours...';
+            
+            try {
+                const response = await fetch(`${apiUrl}/generate-link`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        document_url: documentUrl,
+                        document_description: documentDescription,
+                        webhook_url: webhookUrl,
+                        api_key: apiKey,
+                        success_redirect_url: successRedirectUrl || null,
+                        cancel_redirect_url: cancelRedirectUrl || null,
+                        enable_auto_polling: document.getElementById('enableAutoPolling').value === 'true',
+                        expires_in: parseInt(expiresIn)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    generatedLinkData = data.data;
+                    
+                    document.getElementById('generatedToken').value = data.data.token;
+                    document.getElementById('widgetUrl').value = data.data.widget_url;
+                    document.getElementById('expiresAt').value = data.data.expires_at;
+                    document.getElementById('pollingToken').value = data.data.token;
+                    
+                    document.getElementById('linkGenerationStatus').style.display = 'none';
+                    document.getElementById('linkGenerationResult').style.display = 'block';
+                    
+                    log(`Lien généré avec succès: ${data.data.widget_url}`, 'success');
+                    log(`Token: ${data.data.token.substring(0, 20)}...`, 'info');
+                    log(`Expiration: ${data.data.expires_at}`, 'info');
+                } else {
+                    throw new Error(data.message || 'Erreur de génération');
+                }
+            } catch (error) {
+                statusDiv.className = 'alert alert-danger';
+                statusDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Erreur: ${error.message}`;
+                log(`Erreur de génération: ${error.message}`, 'error');
+            }
+        }
+        
+        // Ouvrir l'URL du widget
+        function openWidgetUrl() {
+            if (!generatedLinkData) {
+                log('Aucun lien généré', 'error');
+                return;
+            }
+            window.open(generatedLinkData.widget_url, '_blank');
+            log('Ouverture du widget dans un nouvel onglet', 'info');
+        }
+        
+        // Définir le mode du widget
+        function setWidgetMode(mode) {
+            currentWidgetMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn${mode.charAt(0).toUpperCase() + mode.slice(1)}Mode`).classList.add('active');
+            
+            log(`Mode widget changé: ${mode}`, 'info');
+            
+            // Reinitialize widget if exists
+            if (currentWidget) {
+                initializeWidget();
+            }
+        }
+        
+        // Initialiser le widget
+        function initializeWidget() {
+            const container = document.getElementById('widgetContainer');
+            let documentUrl = document.getElementById('documentUrl').value;
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const successRedirectUrl = document.getElementById('successRedirectUrl').value;
+            const cancelRedirectUrl = document.getElementById('cancelRedirectUrl').value;
+            const documentDescription = document.getElementById('documentDescription').value;
+            
+            // Utiliser le proxy si l'option est cochée
+            if (document.getElementById('useProxy').checked) {
+                const proxyUrl = window.location.origin + '/signature/proxy-document?url=' + encodeURIComponent(documentUrl);
+                documentUrl = proxyUrl;
+                log('Utilisation du proxy pour: ' + documentUrl, 'info');
+            }
+            
+            // Détruire le widget existant
+            if (currentWidget) {
+                currentWidget.destroy();
+                currentWidget = null;
+            }
+            
+            // Vider le conteneur
+            container.innerHTML = '';
+            
+            // Créer un nouveau conteneur
+            const widgetContainer = document.createElement('div');
+            widgetContainer.id = 'signature-widget-test';
+            container.appendChild(widgetContainer);
+            
+            // Configuration du widget
+            const config = {
+                container: widgetContainer,
+                documentUrl: documentUrl,
+                documentDescription: documentDescription,
+                webhookUrl: webhookUrl,
+                apiKey: apiKey,
+                successRedirectUrl: successRedirectUrl || null,
+                cancelRedirectUrl: cancelRedirectUrl || null,
+                useProxy: document.getElementById('useProxy').checked,
+                onSigned: function(data) {
+                    log('Signature envoyée avec succès !', 'success');
+                    log('Réponse webhook: ' + JSON.stringify(data), 'info');
+                    
+                    if (document.getElementById('enablePolling').checked && generatedLinkData) {
+                        stopPolling();
+                    }
+                },
+                onError: function(error) {
+                    log('Erreur du widget: ' + error.message, 'error');
+                }
+            };
+            
+            // Ajouter signingLink si lien généré
+            if (document.getElementById('useGeneratedLink').checked && generatedLinkData) {
+                config.signingLink = generatedLinkData.widget_url;
+            }
+            
+            // Forcer le mode si nécessaire
+            if (currentWidgetMode !== 'auto') {
+                config.forceMode = currentWidgetMode;
+            }
+            
+            try {
+                currentWidget = new SignatureWidget(config);
+                log('Widget initialisé en mode: ' + (currentWidgetMode === 'auto' ? 'automatique' : currentWidgetMode), 'success');
+            } catch (error) {
+                log('Erreur d\'initialisation: ' + error.message, 'error');
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> Erreur d'initialisation: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Démarrer le polling
+        function startPolling() {
+            const token = document.getElementById('pollingToken').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+            const interval = parseInt(document.getElementById('pollingInterval').value);
+            const maxAttempts = parseInt(document.getElementById('maxPollingAttempts').value);
+            
+            if (!token) {
+                log('Token requis pour le polling', 'error');
+                return;
+            }
+            
+            if (pollingInterval) {
+                stopPolling();
+            }
+            
+            pollingAttempts = 0;
+            document.getElementById('maxAttemptsDisplay').textContent = maxAttempts;
+            document.getElementById('pollingStatus').className = 'badge bg-primary';
+            document.getElementById('pollingStatus').textContent = 'Actif';
+            
+            log(`Démarrage du polling (intervalle: ${interval}ms, max: ${maxAttempts})`, 'info');
+            
+            pollingInterval = setInterval(async () => {
+                pollingAttempts++;
+                document.getElementById('pollingAttempts').textContent = pollingAttempts;
+                document.getElementById('lastPollCheck').textContent = new Date().toLocaleTimeString();
+                
+                if (pollingAttempts > maxAttempts) {
+                    stopPolling();
+                    log('Polling arrêté: nombre maximum de tentatives atteint', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${apiUrl}/token/${token}/status`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.data) {
+                        log(`Statut token: is_used=${data.data.is_used}, expired=${data.data.expired}`, 'info');
+                        
+                        if (data.data.is_used) {
+                            stopPolling();
+                            document.getElementById('pollingResult').style.display = 'block';
+                            log('Signature terminée détectée par polling !', 'success');
+                            log(`Date de signature: ${data.data.signed_at}`, 'info');
+                        }
+                        
+                        if (data.data.expired) {
+                            stopPolling();
+                            log('Token expiré', 'error');
+                        }
+                    }
+                } catch (error) {
+                    log(`Erreur polling: ${error.message}`, 'error');
+                }
+            }, interval);
+        }
+        
+        // Arrêter le polling
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                document.getElementById('pollingStatus').className = 'badge bg-secondary';
+                document.getElementById('pollingStatus').textContent = 'Inactif';
+                log('Polling arrêté', 'info');
+            }
+        }
+        
+        // Test rapide du polling avec le token généré
+        function testPolling() {
+            if (!generatedLinkData) {
+                log('Générez d\'abord un lien', 'error');
+                return;
+            }
+            document.getElementById('pollingToken').value = generatedLinkData.token;
+            startPolling();
+        }
+        
+        // Générer un lien pour gestionnaire (envoi au client)
+        async function generateManagerLink() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const documentUrl = document.getElementById('documentUrl').value;
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const clientEmail = document.getElementById('clientEmail').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const clientName = document.getElementById('clientName').value;
+            const sendMethod = document.getElementById('sendMethod').value;
+            const documentDescription = document.getElementById('documentDescription').value;
+            
+            if (!clientEmail) {
+                log('Email du client requis', 'error');
+                return;
+            }
+            
+            if ((sendMethod === 'sms' || sendMethod === 'whatsapp') && !clientPhone) {
+                log('Téléphone requis pour SMS/WhatsApp', 'error');
+                return;
+            }
+            
+            log(`Génération du lien gestionnaire (${sendMethod})...`, 'info');
+            
+            try {
+                const response = await fetch(`${apiUrl}/generate-manager-link`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        document_url: documentUrl,
+                        document_description: documentDescription,
+                        client_email: clientEmail,
+                        client_phone: clientPhone || null,
+                        client_name: clientName || null,
+                        send_method: sendMethod,
+                        webhook_url: webhookUrl,
+                        api_key: apiKey,
+                        expires_in: 7200 // 2 heures pour scénario gestionnaire
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('sentVia').value = data.data.sent_via;
+                    document.getElementById('sentTo').value = data.data.sent_to;
+                    document.getElementById('managerLinkResult').style.display = 'block';
+                    
+                    log(`Lien généré et envoyé par ${sendMethod}`, 'success');
+                    log(`Envoyé à: ${data.data.sent_to}`, 'info');
+                    log(`Client: ${data.data.client_name || 'Non spécifié'}`, 'info');
+                } else {
+                    throw new Error(data.message || 'Erreur de génération');
+                }
+            } catch (error) {
+                log(`Erreur de génération gestionnaire: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Interface de test prête', 'success');
+            log('Couleurs YAKOA AFRICASSUR appliquées', 'info');
+        });
+    </script>
+</body>
+</html>

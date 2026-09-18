@@ -16,6 +16,13 @@ return [
 
     'info_bip_api_key' => env('INFOBIP_API_KEY'),
 
+    'infobip' => [
+        'api_key' => env('INFOBIP_API_KEY'),
+        'base_url' => env('INFOBIP_BASE_URL', 'https://api.infobip.com'),
+        'sms_from' => env('INFOBIP_SMS_FROM', 'InfoSMS'),
+        'whatsapp_from' => env('INFOBIP_WHATSAPP_FROM'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
