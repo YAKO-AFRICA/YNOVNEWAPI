@@ -663,6 +663,15 @@ Route::prefix('v1')->middleware([
     // PRESTATIONS
     // ============================================================
     Route::prefix('prestations')->group(function () {
+
+        // Rrecupérer les motifs de prestations pour un produit avec le montant maximum de prestation
+        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount'])
+            ->middleware('permission:prestations.creer');
+
+        // vérifier si un motif de prestations necessite une prise de rendez-vous
+        Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
+            ->middleware('permission:prestations.creer');
+        
         // Prestations CRUD
         Route::get('', [PrestationController::class, 'index'])
             ->middleware('permission:prestations.afficher');

@@ -49,20 +49,27 @@ class TraitementService
 
             $data['status'] = 'inacheve'; // valeur par defaut inacheve pour la prestation si le status n'est pas fourni
 
-
-            $prestation = $this->prestationService->createPrestation(
-                $data,
-                $userUuid
-            );
-
-            if (!$prestation) {
-                return [
-                    'success' => false,
-                    'message' => 'Erreur lors de la création de la prestation.',
-                    'code' => 'PRESTATION_CREATION_ERROR',
-                    'status' => 500,
-                ];
+            $prestationLibelle = '';
+            $prestation = null;
+            if ((int) $data['montant'] > 0) {
+                
+                $prestation = $this->prestationService->createPrestation(
+                    $data,
+                    $userUuid
+                );
+    
+                if (!$prestation) {
+                    return [
+                        'success' => false,
+                        'message' => 'Erreur lors de la création de la prestation.',
+                        'code' => 'PRESTATION_CREATION_ERROR',
+                        'status' => 500,
+                    ];
+                }
+    
+                $prestationLibelle = $rdv->prestation->typePrestation->libelle;
             }
+
 
             // mettre à jour le statut du detailBordereauRDV
             if ($rdv->detailBordereau) {
@@ -86,13 +93,15 @@ class TraitementService
             $this->sendNotification($rdv, 'traiter', $userUuid);
 
             $rdv = $rdv->fresh();
-            $prestationLibelle = $rdv->prestation->typePrestation->libelle;
             $rdvMotifLibelle = $rdv->motif->libelle;
             return [
                 'success' => true,
-                'message' => $isPermitted 
-                    ? "Rendez-vous traité, permission pour {$rdvMotifLibelle} enregistré avec succès."
-                    : "Rendez-vous traité, demande de {$prestationLibelle} enregistré avec succès.",
+                'message' => $isPermitted
+                            ? "Rendez-vous traité, permission pour {$rdvMotifLibelle} enregistrée avec succès."
+                            : ($prestation !== null
+                                ? "Rendez-vous traité, demande de {$prestationLibelle} enregistrée avec succès."
+                                : "Rendez-vous traité avec succès."
+                            ),
                 'code' => 'RDV_TRAITE',
                 'status' => 200,
                 'data' => $rdv->load(['client', 'gestionnaire', 'prestation']),

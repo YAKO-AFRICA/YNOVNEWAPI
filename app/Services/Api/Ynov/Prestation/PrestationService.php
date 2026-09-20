@@ -506,12 +506,6 @@ class PrestationService
     public function createPrestation(array $data, string $creatorUuid): Prestation
     {
         return DB::transaction(function () use ($data, $creatorUuid) {
-            // $payload = array_merge([
-            //     'uuid_prestation' => (string) Str::uuid(),
-            //     'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
-            //     'status' => $data['status'] ?? 'en_attente',
-            //     'created_by' => $creatorUuid,
-            // ], $data);
 
             $prestation = Prestation::create([
                 'uuid_prestation' => (string) Str::uuid(),
@@ -642,6 +636,137 @@ class PrestationService
         });
 
         return $gestionnaires->toArray();
+    }
+
+    /**
+     * Calculer le montant maximum disponible pour une prestation (15% du cumul des cotisations à terme)
+     */
+    public function calculateMaximumAmount(int $idContrat): array
+    {
+        $encaissementService = new \App\Services\EncaissementBisService();
+        $contratData = $encaissementService->getContrat($idContrat);
+
+        if (!$contratData['success']) {
+            return [
+                'success' => false,
+                'code' => $contratData['code'] ?? 'CONTRACT_ERROR',
+                'message' => $contratData['message'] ?? 'Erreur lors de la récupération du contrat',
+                'montant_max' => 0,
+            ];
+        }
+
+        $details = $contratData['data']['details'][0] ?? null;
+        if (!$details) {
+            return [
+                'success' => false,
+                'code' => 'CONTRACT_DETAILS_ERROR',
+                'message' => 'Détails du contrat non disponibles',
+                'montant_max' => 0,
+            ];
+        }
+
+        $montantMax = $details['ContisationQuinzePourcent'] ?? 0;
+
+        return [
+            'success' => true,
+            'code' => 'MAX_AMOUNT_CALCULATED',
+            'message' => 'Montant maximum calculé avec succès',
+            'montant_max' => (float) $montantMax,
+            'details' => [
+                'cumul_cotisation_terme' => $details['CumulCotisationTerme'] ?? 0,
+                'duree_cotisation_mois' => $details['DureeCotisationMois'] ?? 0,
+                'prime' => $details['TotalPrime'] ?? 0,
+                'periodicite' => $details['periodicite'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Récupérer les motifs de prestations pour un produit avec le montant maximum
+     */
+    public function getMotifsWithMaxAmount(string $codeProduit, int $idContrat, ?string $categoryUuid = null): array
+    {
+        $produit = Produit::where('code', $codeProduit)->first();
+        if (!$produit) {
+            return [
+                'success' => false,
+                'code' => 'PRODUCT_NOT_FOUND',
+                'message' => 'Produit non trouvé',
+                'motifs' => [],
+                'montant_max' => 0,
+            ];
+        }
+
+        // Calculer le montant maximum
+        $maxAmountData = $this->calculateMaximumAmount($idContrat);
+
+        // Construire la requête pour les motifs
+        $query = $produit->typePrestations()
+            ->wherePivot('status', 'actif')
+            ->where('type_prestations.status', 'actif')
+            ->with('category')
+            ->orderBy('type_prestations.libelle');
+
+        // Filtrer par catégorie si spécifié
+        if ($categoryUuid !== null) {
+            $query->where('type_prestations.category_uuid', $categoryUuid);
+        }
+
+        $prestations = $query->get();
+
+        return [
+            'success' => true,
+            'code' => 'MOTIFS_WITH_MAX_AMOUNT',
+            'message' => 'Motifs récupérés avec montant maximum',
+            'motifs' => $prestations->map(function ($prestation) {
+                return [
+                    'uuid_type_prestation' => $prestation->uuid_type_prestation,
+                    'code' => $prestation->code,
+                    'libelle' => $prestation->libelle,
+                    'description' => $prestation->description,
+                    'impact' => $prestation->impact,
+                    'impact_label' => $prestation->getImpactLabel(),
+                    'category' => $prestation->category ? [
+                        'uuid' => $prestation->category->uuid_category_type_prestations,
+                        'libelle' => $prestation->category->libelle,
+                    ] : null,
+                ];
+            })->toArray(),
+            'montant_max' => $maxAmountData['montant_max'] ?? 0,
+            'details_montant' => $maxAmountData['details'] ?? [],
+        ];
+    }
+
+    /**
+     * Vérifier si un motif de prestation nécessite une prise de rendez-vous
+     */
+    public function checkMotifRequiresAppointment(string $typePrestationUuid): array
+    {
+        $typePrestation = TypePrestation::where('uuid_type_prestation', $typePrestationUuid)
+            ->where('status', 'actif')
+            ->first();
+
+        if (!$typePrestation) {
+            return [
+                'success' => false,
+                'code' => 'MOTIF_NOT_FOUND',
+                'message' => 'Motif de prestation non trouvé',
+                'requires_appointment' => false,
+            ];
+        }
+
+        $requiresAppointment = $typePrestation->impact === TypePrestation::IMPACT_SORTIE_PORTEFEUILLE;
+
+        return [
+            'success' => true,
+            'code' => 'MOTIF_CHECKED',
+            'message' => $requiresAppointment 
+                ? 'Ce motif nécessite une prise de rendez-vous' 
+                : 'Ce motif ne nécessite pas de prise de rendez-vous',
+            'requires_appointment' => $requiresAppointment,
+            'impact' => $typePrestation->impact,
+            'impact_label' => $typePrestation->getImpactLabel(),
+        ];
     }
 
 }

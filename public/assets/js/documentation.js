@@ -13390,6 +13390,188 @@
             // PRESTATIONS
             // ============================================================
             {
+                id: "prestations-motifs",
+                module: "prestations",
+                name: "Motifs de prestations avec montant maximum",
+                description:
+                    "Récupère tous les motifs de prestations pour un produit via son code, avec le montant maximum disponible (15% du cumul des cotisations à terme). Utilisé lors de la création d'une demande de prestation.",
+                method: "GET",
+                path: "/prestations/motifs",
+                isProtected: true,
+                permissionsRequired: ["prestations.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        code_produit: {
+                            type: "string",
+                            required: true,
+                            description: "Code du produit",
+                        },
+                        id_contrat: {
+                            type: "integer",
+                            required: true,
+                            description: "Identifiant du contrat",
+                        },
+                        category_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID de la catégorie (optionnel pour filtrer)",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    code_produit: "YAK_2020",
+                    id_contrat: 12345,
+                    category_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motifs récupérés avec montant maximum",
+                        example: {
+                            success: true,
+                            code: "MOTIFS_WITH_MAX_AMOUNT",
+                            message: "Motifs récupérés avec montant maximum",
+                            motifs: [
+                                {
+                                    uuid_type_prestation: "550e8400-e29b-41d4-a716-446655440002",
+                                    code: "RACHAT_PARTIEL",
+                                    libelle: "Rachat partiel",
+                                    description: "Rachat partiel du capital",
+                                    impact: "0",
+                                    impact_label: "Non sortie portefeuille",
+                                    category: {
+                                        uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                        libelle: "Disponibilité",
+                                    },
+                                },
+                                {
+                                    uuid_type_prestation: "550e8400-e29b-41d4-a716-446655440003",
+                                    code: "RACHAT_TOTAL",
+                                    libelle: "Rachat total",
+                                    description: "Rachat total du capital",
+                                    impact: "1",
+                                    impact_label: "Sortie portefeuille",
+                                    category: {
+                                        uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                        libelle: "Disponibilité",
+                                    },
+                                },
+                            ],
+                            montant_max: 1500000,
+                            details_montant: {
+                                cumul_cotisation_terme: 10000000,
+                                duree_cotisation_mois: 60,
+                                prime: 50000,
+                                periodicite: "M",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                code_produit: ["Le code produit est requis."],
+                                id_contrat: ["L'identifiant du contrat est requis."],
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Produit non trouvé",
+                        example: {
+                            success: false,
+                            code: "PRODUCT_NOT_FOUND",
+                            message: "Produit non trouvé",
+                            motifs: [],
+                            montant_max: 0,
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "prestations-check-motif-appointment",
+                module: "prestations",
+                name: "Vérifier si un motif nécessite une prise de rendez-vous",
+                description:
+                    "Vérifie si un motif de prestation nécessite une prise de rendez-vous. Si impact = 1 (sortie portefeuille), un rendez-vous est requis. Utilisé pour déterminer si l'utilisateur doit prendre rendez-vous lors de la création d'une prestation.",
+                method: "POST",
+                path: "/prestations/check-motif-appointment",
+                isProtected: true,
+                permissionsRequired: ["prestations.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        type_prestation_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du type de prestation",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Motif nécessite un rendez-vous",
+                        example: {
+                            success: true,
+                            code: "MOTIF_CHECKED",
+                            message: "Ce motif nécessite une prise de rendez-vous",
+                            requires_appointment: true,
+                            impact: "1",
+                            impact_label: "Sortie portefeuille",
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Motif ne nécessite pas de rendez-vous",
+                        example: {
+                            success: true,
+                            code: "MOTIF_CHECKED",
+                            message: "Ce motif ne nécessite pas de prise de rendez-vous",
+                            requires_appointment: false,
+                            impact: "0",
+                            impact_label: "Non sortie portefeuille",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                type_prestation_uuid: ["L'UUID du type de prestation est requis."],
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Motif non trouvé",
+                        example: {
+                            success: false,
+                            code: "MOTIF_NOT_FOUND",
+                            message: "Motif de prestation non trouvé",
+                            requires_appointment: false,
+                        },
+                    },
+                ],
+            },
+            {
                 id: "prestations-list",
                 module: "prestations",
                 name: "Liste des prestations",
