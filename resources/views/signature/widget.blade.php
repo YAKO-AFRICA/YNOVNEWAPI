@@ -124,26 +124,40 @@
                 apiUrl: window.location.origin + '/api/v1/signature',  // URL de l'API pour polling (avec origine complète)
                 useProxy: true,  // Utiliser le proxy dans le widget
                 onSigned: function(data) {
+                    console.log('=== onSigned appelé ===');
                     console.log('Signature envoyée avec succès', data);
+                    console.log('currentUrl:', currentUrl);
+                    
                     // Marquer le token comme utilisé en appelant l'endpoint backend
                     // Extraire le token depuis l'URL (format: /signature/widget/{token})
                     const urlParts = currentUrl.split('/signature/widget/');
                     const token = urlParts.length > 1 ? urlParts[1] : currentUrl.split('/').pop();
                     console.log('Token extrait:', token);
+                    console.log('URL mark-token-used:', window.location.origin + '/api/v1/signature/mark-token-used');
                     
-                    fetch(window.location.origin + '/api/v1/signature/mark-token-used', {
+                    const markUrl = window.location.origin + '/api/v1/signature/mark-token-used';
+                    const payload = { token: token };
+                    console.log('Payload:', payload);
+                    
+                    fetch(markUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Api-Key': '{{ $api_key ?? '' }}'
                         },
-                        body: JSON.stringify({ token: token })
+                        body: JSON.stringify(payload)
                     })
-                    .then(res => res.json())
+                    .then(res => {
+                        console.log('Réponse mark-token-used status:', res.status);
+                        return res.json();
+                    })
                     .then(result => {
                         console.log('Token marqué:', result);
                     })
-                    .catch(err => console.error('Erreur marquage token:', err));
+                    .catch(err => {
+                        console.error('Erreur marquage token:', err);
+                        console.error('Erreur details:', err.message);
+                    });
                     
                     // La redirection est gérée automatiquement si successRedirectUrl est fourni
                 },
