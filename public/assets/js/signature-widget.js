@@ -550,7 +550,7 @@
         // Erreur d'envoi
         submitBtn.disabled = false;
         status.className = 'sw-status err';
-        status.textContent = 'La signature n’a pas pu être transmise. Réessayez.';
+        status.textContent = 'Erreur: ' + err.message;
         self._error(err);
       });
     });
