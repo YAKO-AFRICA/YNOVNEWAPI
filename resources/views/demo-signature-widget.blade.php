@@ -464,7 +464,7 @@ export default function SignatureWidgetClient({ token, widgetUrl }) {
             <div class="separator">• Ni le document ni la signature ne sont stockés côté Laravel.</div>
             <div class="separator">• Le secret partagé (<code>api_key</code>) ne quitte jamais le serveur.</div>
             <div class="separator">• Le widget authentifie ses appels via le <code>token</code> lui-même : imprévisible, à usage unique, expirant.</div>
-            <div class="separator">• <code>generate-link</code> et l'envoi par SMS/Email/WhatsApp exigent une authentification côté app hôte.</div>
+            <div class="separator">• La génération du lien et le flux de signature exigent une authentification côté app hôte.</div>
         </div>
 
         <div class="info-box">

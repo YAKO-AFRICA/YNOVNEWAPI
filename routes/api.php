@@ -149,33 +149,6 @@ Route::prefix('v1')->group(function () {
     // SIGNATURE ÉLECTRONIQUE - Widget dans api.php
     // ============================================================
     // Widget JS embarquable consolidé (version unique avec documentation complète)
-    // Route::prefix('signature')->group(function () {
-    //     // Widget JS embarquable - Version consolidée et documentée
-    //     Route::get('signature-widget.js', function () {
-    //         return response()->file(public_path('assets/js/signature-widget.js'), [
-    //             'Content-Type' => 'application/javascript',
-    //             'Cache-Control' => 'public, max-age=3600',
-    //         ]);
-    //     });
-
-    //     // Générer un lien de signature avec token Sanctum
-    //     Route::post('generate-link', [SignatureController::class, 'generateLink']);
-
-    //     // Servir la page du widget avec token (route web pour affichage direct)
-    //     Route::get('widget/{token}', [SignatureController::class, 'serveWidget']);
-
-    //     // Webhook pour recevoir la signature depuis le widget
-    //     Route::post('webhook', [SignatureController::class, 'receiveSignature']);
-
-    //     // Marquer le token comme utilisé via redirection (pour mobile)
-    //     Route::get('mark-token-used/{token}', [SignatureController::class, 'markTokenUsedRedirect']);
-
-    //     // Marquer le token comme utilisé (pour scénario où le widget envoie directement au webhook de l'app hôte)
-    //     Route::post('mark-token-used', [SignatureController::class, 'markTokenUsed']);
-
-    //     // Vérifier le statut d'un token
-    //     Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);
-    // });
 
     Route::prefix('signature')->group(function () {
  

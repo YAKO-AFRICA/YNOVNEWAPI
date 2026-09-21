@@ -170,6 +170,10 @@
                 label: "Widget Jeko Payment",
                 icon: "fa-credit-card",
             },
+            signature_widget: {
+                label: "Widget Signature",
+                icon: "fa-pen-fancy",
+            },
             errors: {
                 label: "Codes HTTP & Erreurs",
                 icon: "fa-bug",
@@ -19246,6 +19250,108 @@
                     },
                 ],
             },
+
+            // ============================================================
+            // WIDGET SIGNATURE - INTÉGRATION
+            // ============================================================
+            {
+                id: "signature-widget-intro",
+                module: "signature_widget",
+                name: "Widget Signature Électronique",
+                description:
+                    "Le widget de signature électronique est un composant JavaScript autonome, embarquable dans n'importe quelle application hôte. Il détecte automatiquement le mode mobile/desktop, affiche un QR code sur desktop, ouvre le widget sur mobile au scan, et poste la signature au backend Laravel qui la relaie vers votre webhook avec authentification grâce au token unique.",
+                method: "GET",
+                path: "/api/v1/signature/signature-widget.js",
+                isProtected: false,
+                isHome: false,
+                hasWidgetInfo: true,
+                widgetInfo: {
+                    features: [
+                        "Détection automatique du mode mobile/desktop",
+                        "QR code automatique sur grand écran",
+                        "Ouverture du widget sur mobile au scan du QR",
+                        "Signature manuscrite directe sur écran tactile",
+                        "Transmission via webhook vers l'application hôte",
+                        "Token unique et expirant par demande",
+                        "Aucune dépendance de build / embarquable par copier-coller",
+                        "Polling automatique du statut de signature",
+                    ],
+                    paymentTypes: [
+                        {
+                            code: "desktop",
+                            label: "Desktop",
+                            description: "Affiche le QR code pour ouvrir la signature sur mobile",
+                            icon: "fa-desktop",
+                        },
+                        {
+                            code: "mobile",
+                            label: "Mobile",
+                            description: "Signature directe sur écran tactile",
+                            icon: "fa-mobile-screen-button",
+                        },
+                    ],
+                    docsLink: "/signature/demo",
+                    widgetJs: "/api/v1/signature/signature-widget.js",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Script du widget de signature",
+                        example: {
+                            title: "Widget Signature Électronique",
+                            description: "Intégration front-end et démonstration",
+                            version: "1.0.0",
+                            modes: ["desktop", "mobile"],
+                            workflow: [
+                                "mobile/desktop detection",
+                                "QR code on desktop",
+                                "mobile signing",
+                                "webhook + polling",
+                            ],
+                            documentation: "/signature/demo",
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
+            // WIDGET SIGNATURE - PAGE DE DÉMONSTRATION
+            // ============================================================
+            {
+                id: "signature-widget-demo",
+                module: "signature_widget",
+                name: "Démonstration du Widget Signature",
+                description:
+                    "Page de démonstration interactive du widget de signature avec le flux complet : génération du token, QR code desktop, signature mobile et verification par webhook/polling.",
+                method: "GET",
+                path: "/signature/demo",
+                isProtected: false,
+                isHome: false,
+                isWidgetDemo: true,
+                responses: [
+                    {
+                        status: 200,
+                        description: "Page de démonstration du widget de signature",
+                        example: {
+                            title: "Widget Signature Électronique - Démonstration",
+                            description:
+                                "Testez le flux complet de génération, QR code desktop, signature mobile et webhook.",
+                            scenarios: [
+                                {
+                                    type: "desktop",
+                                    label: "Grand écran",
+                                    description: "Affiche un QR code pour signer depuis le mobile",
+                                },
+                                {
+                                    type: "mobile",
+                                    label: "Petit écran",
+                                    description: "Signature directe sur l'écran tactile",
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
         ],
 
         // ================================================================
@@ -20286,9 +20392,17 @@
             // WIDGET JEKO - RENDU SPÉCIFIQUE
             // ============================================================
             let widgetDemoHtml = "";
-            if (endpoint.isWidgetDemo || endpoint.id === "jeko-widget-demo") {
-                // Rediriger vers la page de démonstration
-                window.location.href = "/api/v1/demo-jeko-widget";
+            const widgetDemoRedirects = {
+                "jeko-widget-demo": "/api/v1/demo-jeko-widget",
+                "signature-widget-demo": "/signature/demo",
+            };
+
+            if (
+                endpoint.isWidgetDemo ||
+                Object.prototype.hasOwnProperty.call(widgetDemoRedirects, endpoint.id)
+            ) {
+                const targetUrl = widgetDemoRedirects[endpoint.id] || "/api/v1/demo-jeko-widget";
+                window.location.href = targetUrl;
                 return;
             }
 
