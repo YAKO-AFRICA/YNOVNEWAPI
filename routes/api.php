@@ -1010,8 +1010,4 @@ Route::prefix('v1')->middleware([
         Route::get('get-trashed-documents', [DocumentController::class, 'getTrashedDocuments']);
 
     });
-
-    
-
-
 });
