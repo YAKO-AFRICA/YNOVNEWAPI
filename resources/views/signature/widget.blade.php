@@ -126,7 +126,11 @@
                 onSigned: function(data) {
                     console.log('Signature envoyée avec succès', data);
                     // Marquer le token comme utilisé en appelant l'endpoint backend
-                    const token = currentUrl.split('/').pop();
+                    // Extraire le token depuis l'URL (format: /signature/widget/{token})
+                    const urlParts = currentUrl.split('/signature/widget/');
+                    const token = urlParts.length > 1 ? urlParts[1] : currentUrl.split('/').pop();
+                    console.log('Token extrait:', token);
+                    
                     fetch(window.location.origin + '/api/v1/signature/mark-token-used', {
                         method: 'POST',
                         headers: {
@@ -134,7 +138,12 @@
                             'X-Api-Key': '{{ $api_key ?? '' }}'
                         },
                         body: JSON.stringify({ token: token })
-                    }).catch(err => console.error('Erreur marquage token:', err));
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        console.log('Token marqué:', result);
+                    })
+                    .catch(err => console.error('Erreur marquage token:', err));
                     
                     // La redirection est gérée automatiquement si successRedirectUrl est fourni
                 },
