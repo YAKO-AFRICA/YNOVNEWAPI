@@ -115,6 +115,7 @@
                 documentUrl: documentUrl,
                 documentDescription: '{{ $document_description ?? 'Document à signer' }}',
                 webhookUrl: '{{ $webhook_url ?? '' }}',
+                backendWebhookUrl: window.location.origin + '/api/v1/signature/webhook',  // Backend Laravel webhook
                 apiKey: '{{ $api_key ?? '' }}',
                 signingLink: currentUrl,  // Lien actuel avec token pour QR code desktop
                 forceMode: isMobile ? 'mobile' : null,  // Forcer mode mobile sur petits écrans

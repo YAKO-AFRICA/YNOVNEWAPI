@@ -46,6 +46,7 @@
  * - Affiche le document à signer
  * - Affiche un QR code pointant vers signingLink
  * - Permet l'envoi du lien par Email/SMS/WhatsApp (si sendLinkEndpoint fourni)
+ * - Permet l'envoi du lien par Email/SMS/WhatsApp (si sendLinkEndpoint fourni)
  * - Au scan du QR, ouverture automatique sur mobile avec forceMode: 'mobile'
  * 
  * Mobile (écran < 768px) :
@@ -180,6 +181,7 @@
    * @param {string} config.apiKey - Secret partagé pour authentification webhook
    * @param {string} [config.documentDescription] - Description du document affichée
    * @param {string} [config.signingLink] - Lien de signature avec token (pour QR code desktop)
+   * @param {string} [config.sendLinkEndpoint] - Endpoint pour envoi email/sms/whatsapp
    * @param {string} [config.sendLinkEndpoint] - Endpoint pour envoi email/sms/whatsapp
    * @param {string} [config.forceMode] - Force le mode : 'desktop' | 'mobile'
    * @param {Function} [config.onSigned] - Callback après signature réussie

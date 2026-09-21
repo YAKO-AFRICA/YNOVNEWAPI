@@ -259,10 +259,12 @@ class SignatureService
 
             // Transmettre la signature au webhook de l'app hôte
             // C'est l'app hôte qui va apposer la signature sur le document
+            $webhookUrl = $signatureRequest->webhook_url;
+            
             $webhookResponse = Http::withHeaders([
                 'X-Api-Key' => $apiKey,
                 'Content-Type' => 'application/json',
-            ])->post($signatureRequest->webhook_url, [
+            ])->post($webhookUrl, [
                 'success' => true,
                 'signature' => $signatureBase64,
                 'token' => $token,
