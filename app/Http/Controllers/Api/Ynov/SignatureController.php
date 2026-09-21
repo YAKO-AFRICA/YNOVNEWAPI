@@ -410,7 +410,7 @@ class SignatureController extends Controller
                 'token' => ['required', 'string'],
             ]);
 
-            $token = self::normalizeToken($validated['token']);
+            $token = $this->signatureService->normalizeToken($validated['token']);
             $apiKey = $request->header('X-Api-Key');
 
             if (!$apiKey) {
