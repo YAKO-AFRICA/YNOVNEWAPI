@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use Laravel\Sanctum\PersonalAccessToken;
+use App\Models\Api\Ynov\SignatureRequest;
 use App\Services\Api\Ynov\SignatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
