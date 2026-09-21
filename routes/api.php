@@ -938,16 +938,16 @@ Route::prefix('v1')->middleware([
     // ============================================================
     // SIGNATURE ÉLECTRONIQUE - Administration
     // ============================================================
-    Route::prefix('signature')->group(function () {
-        // Envoyer le lien de signature par Email
-        Route::post('send-email', [SignatureController::class, 'sendByEmail']);
+    // Route::prefix('signature')->group(function () {
+    //     // Envoyer le lien de signature par Email
+    //     Route::post('send-email', [SignatureController::class, 'sendByEmail']);
 
-        // Envoyer le lien de signature par SMS
-        Route::post('send-sms', [SignatureController::class, 'sendBySms']);
+    //     // Envoyer le lien de signature par SMS
+    //     Route::post('send-sms', [SignatureController::class, 'sendBySms']);
 
-        // Envoyer le lien de signature par WhatsApp
-        Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
-    });
+    //     // Envoyer le lien de signature par WhatsApp
+    //     Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
+    // });
 
 
     // groupe de route pour les paramètres de configuration
