@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'docnumerises'),
 
     /*
     |--------------------------------------------------------------------------
@@ -54,6 +54,15 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
+        ],
+
+
+        'docnumerises' => [
+            'driver'     => 'local',
+            'root'       => base_path(env('DOC_PATH', '../public_html/docnumerises/TEST')),
+            'url'        => rtrim(env('APP_URL', 'http://localhost'), '/') . env('DOC_URL', '/docnumerises/TEST'),
+            'visibility' => 'public',
+            'throw'      => false,
         ],
 
     ],

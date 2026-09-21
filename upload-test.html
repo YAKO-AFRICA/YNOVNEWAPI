@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test API Documents</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        .section {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        label {
+            display: block;
+            margin: 8px 0 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 6px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #999; cursor: not-allowed; }
+        .fichier-ligne {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .fichier-ligne input[type="file"] { flex: 2; }
+        .fichier-ligne input[type="text"] { flex: 1; }
+        .fichier-ligne button {
+            background: #dc3545;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+        .groupe {
+            border: 1px dashed #aaa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .groupe-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .groupe-header input { flex: 1; }
+        .groupe-header button {
+            background: #6c757d;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+        .btn-add {
+            background: #28a745;
+            margin-bottom: 15px;
+        }
+        pre {
+            background: #222;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 13px;
+            max-height: 500px;
+        }
+        .status-ok { color: green; font-weight: bold; }
+        .status-err { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h1>Test API - Enregistrement de documents</h1>
+
+<div class="section">
+    <label for="apiUrl">URL de l'API</label>
+    <!-- <input type="text" id="apiUrl" value="http://127.0.0.1:8000/api/v1/esouscription/upload-multiple-json"> -->
+
+    <label for="referenceUuid">Reference UUID</label>
+    <input type="text" id="referenceUuid" value="550e8400-e29b-41d4-a716-446655440000">
+
+    <label for="source">Source</label>
+    <input type="text" id="source" value="YNOV">
+
+    <label for="createdBy">Created By</label>
+    <input type="text" id="createdBy" value="jdupont">
+</div>
+
+<div class="section">
+    <h3>Groupes de documents</h3>
+    <div id="groupesContainer"></div>
+    <button class="btn-add" onclick="ajouterGroupe()">+ Ajouter un groupe</button>
+</div>
+
+<div class="section">
+    <button id="btnEnvoyer" onclick="envoyer()">Envoyer à l'API</button>
+    <span id="status"></span>
+</div>
+
+<div class="section">
+    <h3>Réponse</h3>
+    <pre id="reponse">Aucune requête envoyée.</pre>
+</div>
+
+<script>
+    let compteurGroupe = 0;
+
+    // Groupes prédéfinis comme dans votre exemple
+    const groupesDisponibles = [
+        'bulletin_souscription',
+        'piece_identite',
+        'contrat',
+        'rib',
+        'justificatif_domicile',
+        'autre'
+    ];
+
+    function creerOptionsGroupes(selected) {
+        return groupesDisponibles.map(g =>
+            `<option value="${g}" ${g === selected ? 'selected' : ''}>${g}</option>`
+        ).join('');
+    }
+
+    function ajouterGroupe(groupe = 'bulletin_souscription') {
+        const id = compteurGroupe++;
+        const div = document.createElement('div');
+        div.className = 'groupe';
+        div.dataset.id = id;
+
+        div.innerHTML = `
+            <div class="groupe-header">
+                <label style="margin:0;">Groupe :</label>
+                <select class="groupe-nom">
+                    ${creerOptionsGroupes(groupe)}
+                </select>
+                <button type="button" onclick="this.closest('.groupe').remove()">Supprimer groupe</button>
+            </div>
+            <div class="fichiers-container"></div>
+            <button type="button" onclick="ajouterFichier(this)">+ Ajouter un fichier</button>
+        `;
+
+        document.getElementById('groupesContainer').appendChild(div);
+        ajouterFichier(div.querySelector('button[onclick="ajouterFichier(this)"]'));
+    }
+
+    function ajouterFichier(btn) {
+        const groupe = btn.closest('.groupe');
+        const container = groupe.querySelector('.fichiers-container');
+
+        const ligne = document.createElement('div');
+        ligne.className = 'fichier-ligne';
+        ligne.innerHTML = `
+            <input type="file" class="fichier-input">
+            <input type="text" class="libelle-input" placeholder="libelle (optionnel)">
+            <button type="button" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(ligne);
+    }
+
+    async function envoyer() {
+        const btn = document.getElementById('btnEnvoyer');
+        const status = document.getElementById('status');
+        const reponse = document.getElementById('reponse');
+
+        btn.disabled = true;
+        status.textContent = 'Envoi en cours...';
+        status.className = '';
+        reponse.textContent = '';
+
+        try {
+            const formData = new FormData();
+            formData.append('reference_uuid', document.getElementById('referenceUuid').value);
+            formData.append('source', document.getElementById('source').value);
+            formData.append('created_by', document.getElementById('createdBy').value);
+
+            const groupes = document.querySelectorAll('.groupe');
+            let indexGroupe = 0;
+
+            groupes.forEach(groupe => {
+                const nomGroupe = groupe.querySelector('.groupe-nom').value;
+                formData.append(`documents[${indexGroupe}][groupe]`, nomGroupe);
+
+                const lignes = groupe.querySelectorAll('.fichier-ligne');
+                let indexFichier = 0;
+
+                lignes.forEach(ligne => {
+                    const fileInput = ligne.querySelector('.fichier-input');
+                    const libelleInput = ligne.querySelector('.libelle-input');
+
+                    if (fileInput.files.length > 0) {
+                        formData.append(
+                            `documents[${indexGroupe}][fichiers][${indexFichier}][file]`,
+                            fileInput.files[0]
+                        );
+                        formData.append(
+                            `documents[${indexGroupe}][fichiers][${indexFichier}][libelle]`,
+                            libelleInput.value || fileInput.files[0].name.replace(/\.[^/.]+$/, '')
+                        );
+                        indexFichier++;
+                    }
+                });
+
+                if (indexFichier > 0) {
+                    indexGroupe++;
+                }
+            });
+
+            const url = 'http://127.0.0.1:8000/api/v1/esouscription/upload-multiple'
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer 429|5ACIaIoTN2NrvcOqJYFgqJmzWrA45gWgOSRoGK4B639c7aac'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            reponse.textContent = `HTTP ${response.status}\n\n` + JSON.stringify(data, null, 2);
+
+            if (response.ok) {
+                status.textContent = '✔ Succès';
+                status.className = 'status-ok';
+            } else {
+            console.log(url);
+                status.textContent = '✘ Erreur';
+                status.className = 'status-err';
+            }
+
+        } catch (err) {
+            status.textContent = '✘ Erreur réseau';
+            status.className = 'status-err';
+            reponse.textContent = 'Erreur : ' + err.message;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // Pré-remplir avec l'exemple de votre JSON
+    window.addEventListener('DOMContentLoaded', () => {
+        ajouterGroupe('bulletin_souscription');
+        ajouterGroupe('piece_identite');
+    });
+</script>
+
+ // "content-hash": "0422d54c1cc27c64b4570fe42676d53e",
+</body>
+</html>
