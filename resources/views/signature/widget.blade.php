@@ -115,7 +115,6 @@
                 documentUrl: documentUrl,
                 documentDescription: '{{ $document_description ?? 'Document à signer' }}',
                 webhookUrl: '{{ $webhook_url ?? '' }}',
-                backendWebhookUrl: window.location.origin + '/api/v1/signature/webhook',  // Backend Laravel webhook
                 apiKey: '{{ $api_key ?? '' }}',
                 signingLink: currentUrl,  // Lien actuel avec token pour QR code desktop
                 forceMode: isMobile ? 'mobile' : null,  // Forcer mode mobile sur petits écrans
@@ -126,6 +125,17 @@
                 useProxy: true,  // Utiliser le proxy dans le widget
                 onSigned: function(data) {
                     console.log('Signature envoyée avec succès', data);
+                    // Marquer le token comme utilisé en appelant l'endpoint backend
+                    const token = currentUrl.split('/').pop();
+                    fetch(window.location.origin + '/api/v1/signature/mark-token-used', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Api-Key': '{{ $api_key ?? '' }}'
+                        },
+                        body: JSON.stringify({ token: token })
+                    }).catch(err => console.error('Erreur marquage token:', err));
+                    
                     // La redirection est gérée automatiquement si successRedirectUrl est fourni
                 },
                 onError: function(error) {

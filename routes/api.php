@@ -166,6 +166,9 @@ Route::prefix('v1')->group(function () {
         // Webhook pour recevoir la signature depuis le widget
         Route::post('webhook', [SignatureController::class, 'receiveSignature']);
 
+        // Marquer le token comme utilisé (pour scénario où le widget envoie directement au webhook de l'app hôte)
+        Route::post('mark-token-used', [SignatureController::class, 'markTokenUsed']);
+
         // Vérifier le statut d'un token
         Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);
     });

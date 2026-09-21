@@ -391,6 +391,97 @@ class SignatureController extends Controller
     }
 
     /**
+     * Marquer un token comme utilisé (sans traiter la signature)
+     * 
+     * Ce endpoint est utilisé quand le widget envoie directement la signature
+     * au webhook de l'app hôte et nous avons juste besoin de marquer le token comme utilisé
+     * pour que le polling fonctionne.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     * 
+     * @bodyParam token string required Token de signature
+     * @bodyParam api_key string required Secret partagé
+     */
+    public function markTokenUsed(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'token' => ['required', 'string'],
+            ]);
+
+            $token = self::normalizeToken($validated['token']);
+            $apiKey = $request->header('X-Api-Key');
+
+            if (!$apiKey) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'API Key manquante.',
+                    'code' => 'MISSING_API_KEY',
+                ], 401);
+            }
+
+            // Trouver la requête de signature
+            $signatureRequest = SignatureRequest::where('token', $token)->first();
+
+            if (!$signatureRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token invalide.',
+                    'code' => 'INVALID_TOKEN',
+                ], 404);
+            }
+
+            // Vérifier l'API Key
+            if ($signatureRequest->api_key !== $apiKey) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'API Key invalide.',
+                    'code' => 'INVALID_API_KEY',
+                ], 401);
+            }
+
+            // Vérifier si déjà utilisé
+            if ($signatureRequest->is_used) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Token déjà marqué comme utilisé.',
+                    'code' => 'ALREADY_USED',
+                ]);
+            }
+
+            // Marquer comme utilisé
+            $signatureRequest->markAsUsed(null); // Pas de signature car traitée directement par l'app hôte
+
+            // Invalider le token Sanctum
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $accessToken->delete();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token marqué comme utilisé avec succès.',
+                'code' => 'TOKEN_MARKED_USED',
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'errors' => $e->errors(),
+                'code' => 'VALIDATION_ERROR',
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage du token.',
+                'code' => 'MARK_TOKEN_ERROR',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Vérifier le statut d'un token
      * 
      * Permet à l'app client de faire du polling pour savoir si la signature est terminée
