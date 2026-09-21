@@ -264,7 +264,7 @@
                             <div class="card-body">
                                 <p class="card-text small">
                                     Cette section génère un lien de signature avec token Sanctum.
-                                    Le lien peut être utilisé pour afficher le widget ou envoyé par email/SMS.
+                                    Le lien sert uniquement à ouvrir le widget sur mobile via QR code.
                                 </p>
                             </div>
                         </div>
@@ -400,70 +400,7 @@
                 </div>
             </div>
             
-            <!-- Section 4: Scénario Gestionnaire -->
-            <div class="test-section">
-                <h3 class="section-title"><i class="bi bi-person-workspace"></i> Scénario Gestionnaire (Envoi au client)</h3>
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <i class="bi bi-info-circle"></i> Info
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text small">
-                            Ce scénario permet à un gestionnaire de générer un lien de signature et de l'envoyer au client par Email, SMS ou WhatsApp.
-                        </p>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Email du client</label>
-                            <input type="email" class="form-control" id="clientEmail" placeholder="client@example.com">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Téléphone du client</label>
-                            <input type="text" class="form-control" id="clientPhone" placeholder="+33612345678">
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Nom du client</label>
-                            <input type="text" class="form-control" id="clientName" placeholder="Jean Dupont">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Méthode d'envoi</label>
-                            <select class="form-select" id="sendMethod">
-                                <option value="email">Email</option>
-                                <option value="sms">SMS</option>
-                                <option value="whatsapp">WhatsApp</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary" onclick="generateManagerLink()">
-                        <i class="bi bi-send"></i> Générer et Envoyer Lien
-                    </button>
-                </div>
-                <div id="managerLinkResult" class="api-response" style="display: none; margin-top: 15px;">
-                    <h5><i class="bi bi-check-circle"></i> Lien envoyé avec succès</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Envoyé via</label>
-                        <input type="text" class="form-control" id="sentVia" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Envoyé à</label>
-                        <input type="text" class="form-control" id="sentTo" readonly>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 5: Logs -->
+            <!-- Section 4: Logs -->
             <div class="test-section">
                 <h3 class="section-title"><i class="bi bi-terminal"></i> Logs</h3>
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -652,6 +589,7 @@
                 documentUrl: documentUrl,
                 documentDescription: documentDescription,
                 webhookUrl: webhookUrl,
+                backendWebhookUrl: apiUrl + '/webhook',  // Backend Laravel webhook pour marquer le token
                 apiKey: apiKey,
                 successRedirectUrl: successRedirectUrl || null,
                 cancelRedirectUrl: cancelRedirectUrl || null,
@@ -770,67 +708,6 @@
             }
             document.getElementById('pollingToken').value = generatedLinkData.token;
             startPolling();
-        }
-        
-        // Générer un lien pour gestionnaire (envoi au client)
-        async function generateManagerLink() {
-            const apiUrl = document.getElementById('apiUrl').value;
-            const documentUrl = document.getElementById('documentUrl').value;
-            const webhookUrl = document.getElementById('webhookUrl').value;
-            const apiKey = document.getElementById('apiKey').value;
-            const clientEmail = document.getElementById('clientEmail').value;
-            const clientPhone = document.getElementById('clientPhone').value;
-            const clientName = document.getElementById('clientName').value;
-            const sendMethod = document.getElementById('sendMethod').value;
-            const documentDescription = document.getElementById('documentDescription').value;
-            
-            if (!clientEmail) {
-                log('Email du client requis', 'error');
-                return;
-            }
-            
-            if ((sendMethod === 'sms' || sendMethod === 'whatsapp') && !clientPhone) {
-                log('Téléphone requis pour SMS/WhatsApp', 'error');
-                return;
-            }
-            
-            log(`Génération du lien gestionnaire (${sendMethod})...`, 'info');
-            
-            try {
-                const response = await fetch(`${apiUrl}/generate-manager-link`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        document_url: documentUrl,
-                        document_description: documentDescription,
-                        client_email: clientEmail,
-                        client_phone: clientPhone || null,
-                        client_name: clientName || null,
-                        send_method: sendMethod,
-                        webhook_url: webhookUrl,
-                        api_key: apiKey,
-                        expires_in: 7200 // 2 heures pour scénario gestionnaire
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('sentVia').value = data.data.sent_via;
-                    document.getElementById('sentTo').value = data.data.sent_to;
-                    document.getElementById('managerLinkResult').style.display = 'block';
-                    
-                    log(`Lien généré et envoyé par ${sendMethod}`, 'success');
-                    log(`Envoyé à: ${data.data.sent_to}`, 'info');
-                    log(`Client: ${data.data.client_name || 'Non spécifié'}`, 'info');
-                } else {
-                    throw new Error(data.message || 'Erreur de génération');
-                }
-            } catch (error) {
-                log(`Erreur de génération gestionnaire: ${error.message}`, 'error');
-            }
         }
         
         // Initialisation

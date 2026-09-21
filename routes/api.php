@@ -160,23 +160,11 @@ Route::prefix('v1')->group(function () {
         // Générer un lien de signature avec token Sanctum
         Route::post('generate-link', [SignatureController::class, 'generateLink']);
 
-        // Générer un lien de signature pour gestionnaire (envoi au client)
-        Route::post('generate-manager-link', [SignatureController::class, 'generateManagerLink']);
-
         // Servir la page du widget avec token (route web pour affichage direct)
         Route::get('widget/{token}', [SignatureController::class, 'serveWidget']);
 
         // Webhook pour recevoir la signature depuis le widget
         Route::post('webhook', [SignatureController::class, 'receiveSignature']);
-
-        // Envoi du lien de signature par Email
-        Route::post('send-email', [SignatureController::class, 'sendByEmail']);
-
-        // Envoi du lien de signature par SMS (Infobip)
-        Route::post('send-sms', [SignatureController::class, 'sendBySms']);
-
-        // Envoi du lien de signature par WhatsApp (Infobip)
-        Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
 
         // Vérifier le statut d'un token
         Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);

@@ -31,7 +31,7 @@
  *     webhookUrl: 'https://app-host.com/api/signature-webhook',
  *     apiKey: 'your-secret-api-key',              // Secret partagé pour auth webhook
  *     signingLink: 'https://backend.com/sign/xyz', // Optionnel : lien avec token pour QR desktop
- *     sendLinkEndpoint: 'https://backend.com/api/send-link', // Optionnel : envoi email/sms/whatsapp
+ *     backendWebhookUrl: 'https://backend.com/api/v1/signature/webhook', // Backend Laravel pour marquer le token
  *     forceMode: null,                            // Optionnel : 'desktop' | 'mobile' pour forcer le mode
  *     onSigned: function(data) { ... },           // Callback après signature réussie
  *     onError: function(error) { ... }           // Callback en cas d'erreur
@@ -45,8 +45,6 @@
  * Desktop (écran >= 768px) :
  * - Affiche le document à signer
  * - Affiche un QR code pointant vers signingLink
- * - Permet l'envoi du lien par Email/SMS/WhatsApp (si sendLinkEndpoint fourni)
- * - Permet l'envoi du lien par Email/SMS/WhatsApp (si sendLinkEndpoint fourni)
  * - Au scan du QR, ouverture automatique sur mobile avec forceMode: 'mobile'
  * 
  * Mobile (écran < 768px) :
@@ -158,9 +156,6 @@
     + '.sw-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 16px; text-align: center; background: #f9f9f9; }'
     + '.sw-qr-box { padding: 12px; background: #fff; border: 2px solid #075429; border-radius: 10px; }'
     + '.sw-qr-hint { font-size: 13px; color: #6b6b70; max-width: 320px; }'
-    + '.sw-send { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }'
-    + '.sw-send select, .sw-send input { font-size: 13px; padding: 8px 10px; border: 1px solid #d0d0d5; border-radius: 8px; }'
-    + '.sw-send input { flex: 1; min-width: 160px; }'
     + '.sw-status { font-size: 12.5px; margin-top: 8px; }'
     + '.sw-status.ok { color: #075429; }'
     + '.sw-status.err { color: #c62828; }'
@@ -178,11 +173,10 @@
    * @param {string|HTMLElement} config.container - Conteneur du widget (sélecteur CSS ou élément DOM)
    * @param {string} config.documentUrl - URL du document à signer (HTTP(S))
    * @param {string} config.webhookUrl - URL du webhook de l'app hôte pour recevoir la signature
+   * @param {string} config.backendWebhookUrl - URL du webhook du backend Laravel (pour marquer le token comme utilisé)
    * @param {string} config.apiKey - Secret partagé pour authentification webhook
    * @param {string} [config.documentDescription] - Description du document affichée
    * @param {string} [config.signingLink] - Lien de signature avec token (pour QR code desktop)
-   * @param {string} [config.sendLinkEndpoint] - Endpoint pour envoi email/sms/whatsapp
-   * @param {string} [config.sendLinkEndpoint] - Endpoint pour envoi email/sms/whatsapp
    * @param {string} [config.forceMode] - Force le mode : 'desktop' | 'mobile'
    * @param {Function} [config.onSigned] - Callback après signature réussie
    * @param {Function} [config.onError] - Callback en cas d'erreur
@@ -203,7 +197,6 @@
       documentDescription: '',              // Description vide par défaut
       apiKey: null,                         // API key optionnelle
       signingLink: null,                    // Lien de signature optionnel
-      sendLinkEndpoint: null,               // Endpoint envoi lien optionnel
       forceMode: null,                      // Mode forcé optionnel
       onSigned: null,                       // Callback signature optionnel
       onError: null,                        // Callback erreur optionnel
@@ -212,7 +205,8 @@
       maxPollingAttempts: 60,               // Max tentatives de polling
       successRedirectUrl: null,             // URL de redirection après succès
       cancelRedirectUrl: null,              // URL de redirection après annulation
-      useProxy: false                       // Utiliser le proxy pour contourner CORS
+      useProxy: false,                      // Utiliser le proxy pour contourner CORS
+      backendWebhookUrl: null               // URL du webhook backend Laravel (pour marquer le token comme utilisé)
     }, config);
     
     // Appliquer le proxy si activé et si l'URL n'est pas déjà un proxy
@@ -397,72 +391,6 @@
       qrBox.textContent = 'QR indisponible.';
       self._error(err);
     });
-
-    // Optionnel : formulaire d'envoi du lien
-    if (this.cfg.sendLinkEndpoint) {
-      this._renderSendForm(section);
-    }
-  };
-
-  /**
-   * Rendu du formulaire d'envoi du lien de signature
-   * Permet d'envoyer le lien par Email, SMS ou WhatsApp
-   * @param {HTMLElement} container - Conteneur parent
-   */
-  SignatureWidget.prototype._renderSendForm = function (container) {
-    var self = this;
-    var wrap = document.createElement('div');
-    wrap.className = 'sw-send';
-    wrap.innerHTML =
-      '<select class="sw-channel">' +
-      '<option value="email">Email</option>' +
-      '<option value="sms">SMS</option>' +
-      '<option value="whatsapp">WhatsApp</option>' +
-      '</select>' +
-      '<input class="sw-dest" type="text" placeholder="Email ou numéro de téléphone" />' +
-      '<button type="button" class="sw-btn">Envoyer le lien</button>' +
-      '<div class="sw-status"></div>';
-    container.appendChild(wrap);
-
-    var status = wrap.querySelector('.sw-status');
-    
-    // Gestion de l'envoi du lien
-    wrap.querySelector('button').addEventListener('click', function () {
-      var channel = wrap.querySelector('.sw-channel').value;
-      var destination = wrap.querySelector('.sw-dest').value.trim();
-      
-      // Validation du destinataire
-      if (!destination) {
-        status.className = 'sw-status err';
-        status.textContent = 'Renseignez un destinataire.';
-        return;
-      }
-      
-      status.className = 'sw-status';
-      status.textContent = 'Envoi en cours…';
-      
-      // Appel au endpoint d'envoi
-      fetch(self.cfg.sendLinkEndpoint, {
-        method: 'POST',
-        headers: Object.assign(
-          { 'Content-Type': 'application/json' },
-          self.cfg.apiKey ? { 'X-Api-Key': self.cfg.apiKey } : {}
-        ),
-        body: JSON.stringify({ 
-          channel: channel, 
-          destination: destination, 
-          signingLink: self.cfg.signingLink 
-        })
-      }).then(function (res) {
-        if (!res.ok) throw new Error('Échec de l’envoi (' + res.status + ')');
-        status.className = 'sw-status ok';
-        status.textContent = 'Lien envoyé.';
-      }).catch(function (err) {
-        status.className = 'sw-status err';
-        status.textContent = 'Échec de l’envoi du lien.';
-        self._error(err);
-      });
-    });
   };
 
   /**
@@ -585,21 +513,32 @@
       // Export de la signature en base64
       var signatureBase64 = canvas.toDataURL('image/png');
 
-      // Envoi au webhook de l'app hôte
-      fetch(self.cfg.webhookUrl, {
+      // Déterminer l'URL du webhook backend (si fournie) ou directe
+      var webhookUrl = self.cfg.backendWebhookUrl || self.cfg.webhookUrl;
+      
+      // Préparer le payload
+      var payload = {
+        success: true,
+        status: 200,
+        signature: signatureBase64,
+        token: self._tokenFromLink(),
+        documentUrl: self.cfg.documentUrl,
+        signedAt: new Date().toISOString()
+      };
+      
+      // Si backendWebhookUrl est fourni, inclure le webhook de l'app hôte pour le relais
+      if (self.cfg.backendWebhookUrl && self.cfg.webhookUrl) {
+        payload.forward_webhook_url = self.cfg.webhookUrl;
+      }
+
+      // Envoi au webhook (backend Laravel ou direct)
+      fetch(webhookUrl, {
         method: 'POST',
         headers: Object.assign(
           { 'Content-Type': 'application/json' },
           self.cfg.apiKey ? { 'X-Api-Key': self.cfg.apiKey } : {}
         ),
-        body: JSON.stringify({
-          success: true,
-          status: 200,
-          signature: signatureBase64,
-          token: self._tokenFromLink(),
-          documentUrl: self.cfg.documentUrl,
-          signedAt: new Date().toISOString()
-        })
+        body: JSON.stringify(payload)
       }).then(function (res) {
         if (!res.ok) throw new Error('Le webhook a répondu ' + res.status);
         return res.json().catch(function () { return {}; });
