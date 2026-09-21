@@ -124,27 +124,11 @@
                 apiUrl: window.location.origin + '/api/v1/signature',  // URL de l'API pour polling (avec origine complète)
                 useProxy: true,  // Utiliser le proxy dans le widget
                 onSigned: function(data) {
-                    console.log('=== onSigned appelé ===');
                     console.log('Signature envoyée avec succès', data);
-                    
-                    // Marquer le token comme utilisé via une image invisible (pixel de tracking)
-                    // C'est la méthode la plus fiable sur mobile
-                    const urlParts = currentUrl.split('/signature/widget/');
-                    const token = urlParts.length > 1 ? urlParts[1] : currentUrl.split('/').pop();
-                    console.log('Token extrait:', token);
-                    
-                    const markUrl = window.location.origin + '/api/v1/signature/mark-token-used/' + encodeURIComponent(token);
-                    console.log('Chargement pixel:', markUrl);
-                    
-                    // Créer une image invisible
-                    const img = new Image();
-                    img.onload = function() {
-                        console.log('Token marqué avec succès (pixel)');
-                    };
-                    img.onerror = function() {
-                        console.error('Erreur marquage token (pixel)');
-                    };
-                    img.src = markUrl;
+                    // L'app hôte doit appeler l'endpoint Laravel pour marquer le token comme utilisé
+                    // Endpoint: POST /api/v1/signature/mark-token-used
+                    // Body: { "token": "..." }
+                    // Headers: { "X-Api-Key": "..." }
                     
                     // La redirection est gérée automatiquement si successRedirectUrl est fourni
                 },

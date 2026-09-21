@@ -597,6 +597,9 @@
                     log('Signature envoyée avec succès !', 'success');
                     log('Réponse webhook: ' + JSON.stringify(data), 'info');
                     
+                    // NOTE: Dans un cas réel, l'app hôte doit appeler l'endpoint Laravel
+                    // pour marquer le token comme utilisé. Voir la documentation SCENARIOS_AGENCE.md
+                    
                     if (document.getElementById('enablePolling').checked && generatedLinkData) {
                         stopPolling();
                     }

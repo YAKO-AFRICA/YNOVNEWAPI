@@ -48,6 +48,74 @@ new SignatureWidget({
   // Pour scénario agence tablette, on peut forcer le mode mobile
   forceMode: 'mobile', 
   onSigned: function(data) {
+    console.log('Signature reçue', data);
+    // L'app hôte doit appeler l'endpoint Laravel pour marquer le token comme utilisé
+    // Voir section "Important pour l'app hôte" ci-dessous
+  },
+  onError: function(error) {
+    console.error('Erreur', error);
+  }
+});
+```
+
+### ⚠️ Important pour l'app hôte
+
+Lorsque l'app hôte reçoit la signature via le webhook, elle doit **appeler l'endpoint Laravel** pour marquer le token comme utilisé. Cela permet au desktop (qui affiche le QR code) de détecter que la signature est terminée via le polling.
+
+**Endpoint à appeler :**
+```http
+POST /api/v1/signature/mark-token-used
+Content-Type: application/json
+X-Api-Key: {votre-api-key}
+
+{
+  "token": "{token-de-signature}"
+}
+```
+
+**Exemple d'intégration côté app hôte (Node.js) :**
+```javascript
+app.post('/api/signature-webhook', async (req, res) => {
+  const { signature, token, timestamp } = req.body;
+  
+  // 1. Traiter la signature (appliquer sur document, enregistrer, etc.)
+  await processSignature(signature, token);
+  
+  // 2. Marquer le token comme utilisé chez Laravel
+  await fetch('https://apidev.yakoafricassur.com/api/v1/signature/mark-token-used', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': 'votre-api-key'
+    },
+    body: JSON.stringify({ token: token })
+  });
+  
+  res.json({ success: true });
+});
+```
+
+**Exemple d'intégration côté app hôte (PHP/Laravel) :**
+```php
+public function receiveSignature(Request $request)
+{
+    $signature = $request->input('signature');
+    $token = $request->input('token');
+    
+    // 1. Traiter la signature
+    $this->processSignature($signature, $token);
+    
+    // 2. Marquer le token comme utilisé chez Laravel
+    Http::withHeaders([
+        'X-Api-Key' => config('signature.api_key'),
+        'Content-Type' => 'application/json',
+    ])->post('https://apidev.yakoafricassur.com/api/v1/signature/mark-token-used', [
+        'token' => $token
+    ]);
+    
+    return response()->json(['success' => true]);
+}
+```
     // Signature reçue - continuer le processus
     console.log('Signature terminée', data);
   }
