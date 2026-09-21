@@ -10,6 +10,8 @@ use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
+use App\Services\Api\Ynov\Documents\DocumentService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -501,6 +503,31 @@ class PrestationService
     }
 
     /**
+     * Sauvegarder les documents d'une prestation.
+     */
+    public function savePrestationDocuments(Prestation $prestation, array $data, string $creatorUuid): void
+    {
+        $documents = $data['documents'] ?? [];
+
+        if (empty($documents)) {
+            return;
+        }
+
+        $documentService = app(DocumentService::class);
+
+        $payload = [
+            'reference_uuid' => $prestation->uuid_prestation,
+            'source' => 'E-PRESTATION',
+            'created_by' => $creatorUuid,
+            'documents' => $documents,
+            'type_document' => $data['type_document'] ?? null,
+            'libelle' => $data['libelle'] ?? null,
+        ];
+
+        $documentService->createDocument($payload);
+    }
+
+    /**
      * Créer une prestation
      */
     public function createPrestation(array $data, string $creatorUuid): Prestation
@@ -529,6 +556,10 @@ class PrestationService
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $creatorUuid,
             ]);
+
+            if (!empty($data['documents'] ?? [])) {
+                $this->savePrestationDocuments($prestation, $data, $creatorUuid);
+            }
 
             ActivityLog::log([
                 'user_uuid' => $creatorUuid,

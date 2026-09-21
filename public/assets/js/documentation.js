@@ -13706,7 +13706,7 @@
                 module: "prestations",
                 name: "Créer une prestation",
                 description:
-                    "Crée une nouvelle prestation. Le service génère automatiquement un UUID, un code (PREST-...), un statut par défaut (en_attente) et le gestionnaire si absent.",
+                    "Crée une nouvelle prestation. Le service génère automatiquement un UUID, un code (PREST-...), un statut par défaut (en_attente), le gestionnaire si absent, puis sauvegarde éventuellement les documents joints avec reference_uuid = uuid_prestation et source = E-PRESTATION.",
                 method: "POST",
                 path: "/prestations",
                 isProtected: true,
@@ -13826,6 +13826,11 @@
                             required: false,
                             description: "Observation",
                         },
+                        documents: {
+                            type: "array",
+                            required: false,
+                            description: "Documents joints à la prestation. Chaque élément est un fichier uploadé : { file, libelle, type_document }. Le service lie automatiquement chaque document à la prestation via reference_uuid = uuid_prestation et source = E-PRESTATION.",
+                        },
                     },
                 },
                 exampleRequest: {
@@ -13838,6 +13843,18 @@
                     status: "en_attente",
                     observation: "À traiter",
                     motif_traitement: ["delai"],
+                    documents: [
+                        {
+                            file: "<fichier-uploadé>",
+                            libelle: "Pièce d'identité",
+                            type_document: "piece_identite",
+                        },
+                        {
+                            file: "<fichier-uploadé>",
+                            libelle: "Justificatif de domicile",
+                            type_document: "justificatif_domicile",
+                        },
+                    ],
                 },
                 responses: [
                     {

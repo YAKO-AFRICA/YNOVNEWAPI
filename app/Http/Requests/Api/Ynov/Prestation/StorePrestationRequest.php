@@ -31,6 +31,10 @@ class StorePrestationRequest extends FormRequest
             'cle_rib' => ['nullable', 'string', 'max:10'],
             'ville_declaration' => ['nullable', 'string', 'max:55'],
             'status' => ['nullable', 'string', Rule::in(['inacheve', 'en_attente', 'transmis', 'accepte', 'rejete', 'annule'])],
+            'documents' => ['nullable', 'array'],
+            'documents.*.file' => ['nullable', 'file', 'max:' . config('documents.max_size')],
+            'documents.*.libelle' => ['nullable', 'string', 'max:255'],
+            'documents.*.type_document' => ['nullable', 'string', 'max:100'],
         ];
     }
 
@@ -45,6 +49,11 @@ class StorePrestationRequest extends FormRequest
             'montant.numeric' => 'Le montant doit être un nombre valide.',
             'montant.min' => 'Le montant ne peut pas être négatif.',
             'status.in' => 'Le statut doit être l’un des suivants : inacheve, en_attente, transmis, accepte, rejete, annule.',
+            'documents.array' => 'Le tableau de documents est invalide.',
+            'documents.*.file.file' => 'Un document joint est invalide.',
+            'documents.*.file.max' => 'Un document dépasse la taille maximale autorisée.',
+            'documents.*.libelle.string' => 'Le libellé d’un document doit être une chaîne de caractères.',
+            'documents.*.type_document.string' => 'Le type de document est invalide.',
         ];
     }
 }
