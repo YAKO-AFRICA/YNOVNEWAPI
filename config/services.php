@@ -44,6 +44,14 @@ return [
         'encaissement_bis' => env('API_ENCAISSEMENT_BIS', 'https://api.yakoafricassur.com/oldweb/encaissement-bis'),
     ],
 
+    'rnpp' => [
+        'base_url' => env('RNPP_API_URL', 'https://kyc.rnpp-connect.ci'),
+        'api_key' => env('RNPP_API_KEY'),
+    ],
+
+    'documents' => [
+        'doc_path' => env('DOC_PATH'),
+    ],
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

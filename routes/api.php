@@ -5,6 +5,11 @@ use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
+use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
+use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
+use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
+use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
+use App\Http\Controllers\Api\Ynov\Esouscription\SanteController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FaqCategoryController;
 use App\Http\Controllers\Api\Ynov\FaqController;
@@ -50,6 +55,18 @@ use Illuminate\Support\Facades\Route;
 | Routes Publiques (sans auth)
 |--------------------------------------------------------------------------
 */
+
+Route::prefix('esousciption')->group(function () {
+    Route::get('index', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Bienvenue sur l\'API eSouscription',
+            'code' => 'WELCOME',
+        ]);
+    });
+});
+
+
 
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
@@ -644,40 +661,6 @@ Route::prefix('v1')->middleware([
         Route::post('{uuid_rdvs}/assign-gestionnaire', [RdvController::class, 'assignGestionnaire']);
     });
 
-    // // ============================================================
-    // // JOURS FÉRIÉS
-    // // ============================================================
-    // Route::prefix('jour-feries')->group(function () {
-    //     // Liste et détails
-    //     Route::get('/', [JourFerieController::class, 'index'])
-    //         ->middleware('permission:jour_feries.afficher');
-        
-    //     Route::get('stats', [JourFerieController::class, 'stats'])
-    //         ->middleware('permission:jour_feries.afficher');
-        
-    //     Route::get('{uuid_jour_ferie}', [JourFerieController::class, 'show'])
-    //         ->middleware('permission:jour_feries.afficher');
-        
-    //     // CRUD
-    //     Route::post('/', [JourFerieController::class, 'store'])
-    //         ->middleware('permission:jour_feries.creer');
-        
-    //     Route::put('{uuid_jour_ferie}', [JourFerieController::class, 'update'])
-    //         ->middleware('permission:jour_feries.modifier');
-        
-    //     Route::delete('{uuid_jour_ferie}', [JourFerieController::class, 'destroy'])
-    //         ->middleware('permission:jour_feries.supprimer');
-        
-    //     // Utilitaires
-    //     Route::post('verifier', [JourFerieController::class, 'verifier'])
-    //         ->middleware('permission:jour_feries.afficher');
-        
-    //     Route::get('annee/{year}', [JourFerieController::class, 'annee'])
-    //         ->middleware('permission:jour_feries.afficher');
-        
-    //     Route::get('prochains-jours-ouvres', [JourFerieController::class, 'prochainsJoursOuvres'])
-    //         ->middleware('permission:jour_feries.afficher');
-    // });
 
     // ============================================================
     // JOURS FÉRIÉS
@@ -736,4 +719,59 @@ Route::prefix('v1')->middleware([
         Route::get('contrats-factures/', [CustomerController::class, 'getContratsFactures']);
         Route::get('contrat-etat-cotisation/{contrat_id}', [CustomerController::class, 'getContratEtatCotisation']);
     });
+
+
+
+    // groupe de route pour les paramètres de configuration
+
+    Route::prefix('param')->group(function () {
+        Route::get('get-reseau-product', [ParamController::class, 'getReseauProducts']);
+        Route::post('store-product-reseau', [ParamController::class, 'storeReseauProduct']);
+        Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
+        Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
+    });
+
+    // groupe de route enregistrement du contrat et ces acteurs
+    Route::prefix('esouscription')->group(function () {
+
+        // get personne by nni endpoint
+        Route::post('get-personne-by-NNI', [CheckController::class, 'getPersonByNni']);
+
+        // crud acteurs
+        Route::get('get-acteurs', [ActeurController::class, 'getActeurs']);
+        Route::post('store-acteur', [ActeurController::class, 'storeActeur']);
+        Route::get('show-acteur/{uuid}', [ActeurController::class, 'showActeur']);
+        Route::put('update-acteur/{uuid}', [ActeurController::class, 'updateActeur']);
+        Route::delete('delete-acteur/{uuid}', [ActeurController::class, 'deleteActeur']);
+        Route::get('restore-acteur/{uuid}', [ActeurController::class, 'restoreActeur']);
+
+        // crud santer
+        Route::get('get-sante-data', [SanteController::class, 'getSanteData']);
+        Route::post('store-santer', [SanteController::class, 'storeSante']);
+        Route::get('show-sante/{uuid}', [SanteController::class, 'showSante']);
+        Route::put('update-sante/{uuid}', [SanteController::class, 'updateSante']);
+        Route::delete('delete-sante/{uuid}', [SanteController::class, 'destroySante']);
+        Route::get('restore-sante/{uuid}', [SanteController::class, 'restoreSante']);
+        Route::get('get-trashed-sante', [SanteController::class, 'getTrashedSante']);
+
+        // CRUD DOCUMENTS
+        Route::get('get-documents', [DocumentController::class, 'getDocuments']);
+        Route::post('store-document', [DocumentController::class, 'storeDocument']);
+        Route::post('upload-doc',[DocumentController::class, 'uploadDoc']);
+
+        Route::post('/upload-multiple', [DocumentController::class, 'uploadMultidoc']);
+        Route::get('/preview-doc', [DocumentController::class, 'previewDoc']);
+        Route::get('show-document/{uuid}', [DocumentController::class, 'showDocument']);
+
+        Route::put('update-document/{uuid}', [DocumentController::class, 'updateDocument']);
+        Route::delete('delete-document/{uuid}', [DocumentController::class, 'destroyDocument']);
+        Route::get('restore-document/{uuid}', [DocumentController::class, 'restoreDocument']);
+        Route::get('force-delete-document/{uuid}', [DocumentController::class, 'forceDeleteDocument']);
+        Route::get('get-trashed-documents', [DocumentController::class, 'getTrashedDocuments']);
+
+    });
+
+    
+
+
 });
