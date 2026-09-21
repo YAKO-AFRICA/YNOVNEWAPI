@@ -484,6 +484,72 @@ class SignatureController extends Controller
     }
 
     /**
+     * Marquer un token comme utilisé via redirection (pour mobile)
+     * 
+     * Ce endpoint est appelé via GET après une redirection pour marquer le token comme utilisé
+     * C'est plus fiable sur mobile que les requêtes AJAX qui peuvent être bloquées
+     * 
+     * @param string $token Token de signature
+     * @return JsonResponse
+     */
+    public function markTokenUsedRedirect(string $token): JsonResponse
+    {
+        try {
+            $token = $this->signatureService->normalizeToken($token);
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token invalide.',
+                    'code' => 'INVALID_TOKEN',
+                ], 404);
+            }
+
+            // Trouver la requête de signature
+            $signatureRequest = SignatureRequest::where('token', $token)->first();
+
+            if (!$signatureRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token invalide.',
+                    'code' => 'INVALID_TOKEN',
+                ], 404);
+            }
+
+            // Vérifier si déjà utilisé
+            if ($signatureRequest->is_used) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Token déjà marqué comme utilisé.',
+                    'code' => 'ALREADY_USED',
+                ]);
+            }
+
+            // Marquer comme utilisé
+            $signatureRequest->markAsUsed(null);
+
+            // Invalider le token Sanctum
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $accessToken->delete();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token marqué comme utilisé avec succès.',
+                'code' => 'TOKEN_MARKED_USED',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage du token.',
+                'code' => 'MARK_TOKEN_ERROR',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Vérifier le statut d'un token
      * 
      * Permet à l'app client de faire du polling pour savoir si la signature est terminée
