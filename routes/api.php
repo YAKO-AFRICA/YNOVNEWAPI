@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
+use App\Services\Api\Ynov\SignatureService;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 
@@ -145,35 +146,65 @@ Route::prefix('v1')->group(function () {
 
     // ============================================================
     // ============================================================
-    // SIGNATURE ÉLECTRONIQUE - Widget
+    // SIGNATURE ÉLECTRONIQUE - Widget dans api.php
     // ============================================================
     // Widget JS embarquable consolidé (version unique avec documentation complète)
+    // Route::prefix('signature')->group(function () {
+    //     // Widget JS embarquable - Version consolidée et documentée
+    //     Route::get('signature-widget.js', function () {
+    //         return response()->file(public_path('assets/js/signature-widget.js'), [
+    //             'Content-Type' => 'application/javascript',
+    //             'Cache-Control' => 'public, max-age=3600',
+    //         ]);
+    //     });
+
+    //     // Générer un lien de signature avec token Sanctum
+    //     Route::post('generate-link', [SignatureController::class, 'generateLink']);
+
+    //     // Servir la page du widget avec token (route web pour affichage direct)
+    //     Route::get('widget/{token}', [SignatureController::class, 'serveWidget']);
+
+    //     // Webhook pour recevoir la signature depuis le widget
+    //     Route::post('webhook', [SignatureController::class, 'receiveSignature']);
+
+    //     // Marquer le token comme utilisé via redirection (pour mobile)
+    //     Route::get('mark-token-used/{token}', [SignatureController::class, 'markTokenUsedRedirect']);
+
+    //     // Marquer le token comme utilisé (pour scénario où le widget envoie directement au webhook de l'app hôte)
+    //     Route::post('mark-token-used', [SignatureController::class, 'markTokenUsed']);
+
+    //     // Vérifier le statut d'un token
+    //     Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);
+    // });
+
     Route::prefix('signature')->group(function () {
-        // Widget JS embarquable - Version consolidée et documentée
+ 
+        // Widget JS embarquable
         Route::get('signature-widget.js', function () {
             return response()->file(public_path('assets/js/signature-widget.js'), [
-                'Content-Type' => 'application/javascript',
+                'Content-Type'  => 'application/javascript',
                 'Cache-Control' => 'public, max-age=3600',
             ]);
         });
-
-        // Générer un lien de signature avec token Sanctum
-        Route::post('generate-link', [SignatureController::class, 'generateLink']);
-
-        // Servir la page du widget avec token (route web pour affichage direct)
-        Route::get('widget/{token}', [SignatureController::class, 'serveWidget']);
-
-        // Webhook pour recevoir la signature depuis le widget
-        Route::post('webhook', [SignatureController::class, 'receiveSignature']);
-
-        // Marquer le token comme utilisé via redirection (pour mobile)
-        Route::get('mark-token-used/{token}', [SignatureController::class, 'markTokenUsedRedirect']);
-
-        // Marquer le token comme utilisé (pour scénario où le widget envoie directement au webhook de l'app hôte)
-        Route::post('mark-token-used', [SignatureController::class, 'markTokenUsed']);
-
-        // Vérifier le statut d'un token
-        Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus']);
+    
+        // --- Réservé à l'application hôte (à protéger !) ---
+        // Sans authentification ni throttling, n'importe qui peut générer des liens
+        // de signature et faire émettre des SMS/WhatsApp à vos frais.
+        Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+            Route::post('generate-link',  [SignatureController::class, 'generateLink']);
+            Route::post('send/email',     [SignatureController::class, 'sendByEmail']);
+            Route::post('send/sms',       [SignatureController::class, 'sendBySms']);
+            Route::post('send/whatsapp',  [SignatureController::class, 'sendByWhatsapp']);
+        });
+    
+        // --- Appelé par le widget (authentifié par le token lui-même) ---
+        Route::post('webhook', [SignatureController::class, 'receiveSignature'])
+            ->middleware('throttle:20,1');
+    
+        // --- Polling du poste desktop ---
+        Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus'])
+            ->where('token', SignatureService::TOKEN_PATTERN)
+            ->middleware('throttle:240,1');
     });
 
     Route::prefix('/rdvs/auto')->group(function () {

@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
-use Laravel\Sanctum\PersonalAccessToken;
-use App\Models\Api\Ynov\SignatureRequest;
+// use App\Models\Api\Ynov\SignatureRequest;
 use App\Services\Api\Ynov\SignatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+// use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Contrôleur pour le Widget de Signature Électronique
@@ -25,567 +26,845 @@ use Illuminate\Validation\ValidationException;
  * - Le backend ne stocke que les métadonnées des tokens dans signature_requests
  * - L'application hôte est responsable d'apposer et enregistrer la signature
  */
+// class SignatureController extends Controller
+// {
+//     public function __construct(
+//         private SignatureService $signatureService
+//     ) {}
+
+//     /**
+//      * Générer un lien de signature à usage unique
+//      * 
+//      * Crée un token Sanctum avec expiration et stocke les métadonnées
+//      * Le lien généré peut être utilisé pour afficher le widget ou envoyé par Email/SMS/WhatsApp
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam document_url string nullable URL HTTP(S) du document à signer
+//      * @bodyParam document_description string nullable Description du document (max 500 caractères)
+//      * @bodyParam webhook_url string required URL du webhook de l'app hôte pour recevoir la signature
+//      * @bodyParam api_key string required Secret partagé pour authentification webhook
+//      * @bodyParam success_redirect_url string nullable URL de redirection après signature réussie
+//      * @bodyParam cancel_redirect_url string nullable URL de redirection si signature annulée
+//      * @bodyParam enable_auto_polling boolean nullable Activer le polling automatique (scénario agence grand écran)
+//      * @bodyParam expires_in int nullable Durée de validité en secondes (max 86400 = 24h, défaut 3600 = 1h)
+//      * 
+//      * @response 201 {"success":true,"message":"Lien de signature généré avec succès.","code":"SIGNATURE_LINK_GENERATED","data":{"token":"...","widget_url":"...","expires_at":"...","expires_in":3600}}
+//      */
+//     public function generateLink(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'document_url' => ['nullable', 'url'],
+//                 'document_description' => ['nullable', 'string', 'max:500'],
+//                 'webhook_url' => ['required', 'url'],
+//                 'api_key' => ['required', 'string'],
+//                 'success_redirect_url' => ['nullable', 'url'],
+//                 'cancel_redirect_url' => ['nullable', 'url'],
+//                 'enable_auto_polling' => ['nullable', 'boolean'],
+//                 'expires_in' => ['nullable', 'integer', 'min:1', 'max:86400'], // Max 24h
+//             ]);
+
+//             $result = $this->signatureService->generateSignatureLink(
+//                 $validated['document_url'],
+//                 $validated['document_description'] ?? null,
+//                 $validated['webhook_url'],
+//                 $validated['api_key'],
+//                 $validated['success_redirect_url'] ?? null,
+//                 $validated['cancel_redirect_url'] ?? null,
+//                 $validated['enable_auto_polling'] ?? false,
+//                 $validated['expires_in'] ?? 3600 // 1h par défaut
+//             );
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Lien de signature généré avec succès.',
+//                 'code' => 'SIGNATURE_LINK_GENERATED',
+//                 'data' => $result,
+//             ], 201);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors de la génération du lien de signature.',
+//                 'code' => 'SIGNATURE_LINK_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Servir la page du widget avec le token
+//      * 
+//      * Cette route web affiche la page du widget avec les paramètres liés au token
+//      * Le widget JS est initialisé avec les données du token
+//      * 
+//      * @param string $token Token Sanctum de signature
+//      * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+//      */
+//     public function serveWidget(string $token)
+//     {
+//         try {
+//             $widgetData = $this->signatureService->getWidgetData($token);
+
+//             if (!$widgetData) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'Token invalide ou expiré.',
+//                     'code' => 'INVALID_TOKEN',
+//                 ], 404);
+//             }
+
+//             // Récupérer les paramètres depuis l'URL ou les métadonnées du token
+//             $documentUrl = request()->query('document_url', $widgetData['document_url'] ?? '');
+//             $documentDescription = request()->query('document_description', $widgetData['document_description'] ?? 'Document à signer');
+//             $webhookUrl = request()->query('webhook_url', $widgetData['webhook_url'] ?? '');
+//             $apiKey = request()->query('api_key', $widgetData['api_key'] ?? '');
+//             $successRedirectUrl = request()->query('success_redirect_url', $widgetData['success_redirect_url'] ?? '');
+//             $cancelRedirectUrl = request()->query('cancel_redirect_url', $widgetData['cancel_redirect_url'] ?? '');
+//             $enableAutoPolling = request()->query('enable_auto_polling', $widgetData['enable_auto_polling'] ?? false);
+
+//             // Retourner la vue avec les données du widget
+//             return view('signature.widget', [
+//                 'token' => $token,
+//                 'document_url' => $documentUrl,
+//                 'document_description' => $documentDescription,
+//                 'webhook_url' => $webhookUrl,
+//                 'api_key' => $apiKey,
+//                 'success_redirect_url' => $successRedirectUrl,
+//                 'cancel_redirect_url' => $cancelRedirectUrl,
+//                 'enable_auto_polling' => $enableAutoPolling,
+//             ]);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors du chargement du widget.',
+//                 'code' => 'WIDGET_LOAD_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Webhook pour recevoir la signature
+//      * 
+//      * Reçoit la signature en base64 depuis le widget JS et la transmet à l'app hôte
+//      * Authentifié via header X-Api-Key (secret partagé)
+//      * Invalide le token après signature réussie
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam signature string required Signature en base64 (data:image/png;base64,...)
+//      * @bodyParam token string required Token de signature
+//      * 
+//      * @header X-Api-Key Secret partagé pour authentification
+//      */
+//     public function receiveSignature(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'signature' => ['required', 'string'],
+//                 'token' => ['required', 'string'],
+//             ]);
+
+//             // Vérifier l'authentification via X-Api-Key
+//             $apiKey = $request->header('X-Api-Key');
+//             if (!$apiKey) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'API Key manquante.',
+//                     'code' => 'MISSING_API_KEY',
+//                 ], 401);
+//             }
+
+//             $result = $this->signatureService->processSignature(
+//                 $validated['signature'],
+//                 $validated['token'],
+//                 $apiKey
+//             );
+
+//             if (!$result['success']) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => $result['message'],
+//                     'code' => $result['code'],
+//                 ], $result['status'] ?? 400);
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Signature reçue avec succès.',
+//                 'code' => 'SIGNATURE_RECEIVED',
+//                 'data' => $result['data'],
+//             ]);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors du traitement de la signature.',
+//                 'code' => 'SIGNATURE_PROCESS_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Envoyer le lien de signature par Email
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam token string required Token de signature
+//      * @bodyParam email string required Email du destinataire
+//      * @bodyParam subject string nullable Sujet de l'email (max 200 caractères)
+//      * @bodyParam message string nullable Message personnalisé (max 1000 caractères)
+//      */
+//     public function sendByEmail(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'token' => ['required', 'string'],
+//                 'email' => ['required', 'email'],
+//                 'subject' => ['nullable', 'string', 'max:200'],
+//                 'message' => ['nullable', 'string', 'max:1000'],
+//             ]);
+
+//             $result = $this->signatureService->sendLinkByEmail(
+//                 $validated['token'],
+//                 $validated['email'],
+//                 $validated['subject'] ?? null,
+//                 $validated['message'] ?? null
+//             );
+
+//             if (!$result['success']) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => $result['message'],
+//                     'code' => $result['code'],
+//                 ], $result['status'] ?? 400);
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Lien de signature envoyé par email avec succès.',
+//                 'code' => 'EMAIL_SENT',
+//                 'data' => $result['data'],
+//             ]);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors de l\'envoi de l\'email.',
+//                 'code' => 'EMAIL_SEND_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Envoyer le lien de signature par SMS via Infobip
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam token string required Token de signature
+//      * @bodyParam phone string required Numéro de téléphone du destinataire
+//      * @bodyParam message string nullable Message personnalisé (max 160 caractères)
+//      */
+//     public function sendBySms(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'token' => ['required', 'string'],
+//                 'phone' => ['required', 'string'],
+//                 'message' => ['nullable', 'string', 'max:160'],
+//             ]);
+
+//             $result = $this->signatureService->sendLinkBySms(
+//                 $validated['token'],
+//                 $validated['phone'],
+//                 $validated['message'] ?? null
+//             );
+
+//             if (!$result['success']) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => $result['message'],
+//                     'code' => $result['code'],
+//                 ], $result['status'] ?? 400);
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Lien de signature envoyé par SMS avec succès.',
+//                 'code' => 'SMS_SENT',
+//                 'data' => $result['data'],
+//             ]);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors de l\'envoi du SMS.',
+//                 'code' => 'SMS_SEND_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Envoyer le lien de signature par WhatsApp via Infobip
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam token string required Token de signature
+//      * @bodyParam phone string required Numéro de téléphone du destinataire
+//      * @bodyParam message string nullable Message personnalisé (max 1000 caractères)
+//      */
+//     public function sendByWhatsapp(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'token' => ['required', 'string'],
+//                 'phone' => ['required', 'string'],
+//                 'message' => ['nullable', 'string', 'max:1000'],
+//             ]);
+
+//             $result = $this->signatureService->sendLinkByWhatsapp(
+//                 $validated['token'],
+//                 $validated['phone'],
+//                 $validated['message'] ?? null
+//             );
+
+//             if (!$result['success']) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => $result['message'],
+//                     'code' => $result['code'],
+//                 ], $result['status'] ?? 400);
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Lien de signature envoyé par WhatsApp avec succès.',
+//                 'code' => 'WHATSAPP_SENT',
+//                 'data' => $result['data'],
+//             ]);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors de l\'envoi WhatsApp.',
+//                 'code' => 'WHATSAPP_SEND_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Marquer un token comme utilisé (sans traiter la signature)
+//      * 
+//      * Ce endpoint est utilisé quand le widget envoie directement la signature
+//      * au webhook de l'app hôte et nous avons juste besoin de marquer le token comme utilisé
+//      * pour que le polling fonctionne.
+//      * 
+//      * @param Request $request
+//      * @return JsonResponse
+//      * 
+//      * @bodyParam token string required Token de signature
+//      * @bodyParam api_key string required Secret partagé
+//      */
+//     public function markTokenUsed(Request $request): JsonResponse
+//     {
+//         try {
+//             $validated = $request->validate([
+//                 'token' => ['required', 'string'],
+//             ]);
+
+//             $token = $this->signatureService->normalizeToken($validated['token']);
+//             $apiKey = $request->header('X-Api-Key');
+
+//             if (!$apiKey) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'API Key manquante.',
+//                     'code' => 'MISSING_API_KEY',
+//                 ], 401);
+//             }
+
+//             // Trouver la requête de signature
+//             $signatureRequest = SignatureRequest::where('token', $token)->first();
+
+//             if (!$signatureRequest) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'Token invalide.',
+//                     'code' => 'INVALID_TOKEN',
+//                 ], 404);
+//             }
+
+//             // Vérifier l'API Key
+//             if ($signatureRequest->api_key !== $apiKey) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'API Key invalide.',
+//                     'code' => 'INVALID_API_KEY',
+//                 ], 401);
+//             }
+
+//             // Vérifier si déjà utilisé
+//             if ($signatureRequest->is_used) {
+//                 return response()->json([
+//                     'success' => true,
+//                     'message' => 'Token déjà marqué comme utilisé.',
+//                     'code' => 'ALREADY_USED',
+//                 ]);
+//             }
+
+//             // Marquer comme utilisé
+//             $signatureRequest->markAsUsed(null); // Pas de signature car traitée directement par l'app hôte
+
+//             // Invalider le token Sanctum
+//             $accessToken = PersonalAccessToken::findToken($token);
+//             if ($accessToken) {
+//                 $accessToken->delete();
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Token marqué comme utilisé avec succès.',
+//                 'code' => 'TOKEN_MARKED_USED',
+//             ]);
+//         } catch (ValidationException $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur de validation.',
+//                 'errors' => $e->errors(),
+//                 'code' => 'VALIDATION_ERROR',
+//             ], 422);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors du marquage du token.',
+//                 'code' => 'MARK_TOKEN_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Marquer un token comme utilisé via redirection (pour mobile)
+//      * 
+//      * Ce endpoint est appelé via GET après une redirection pour marquer le token comme utilisé
+//      * C'est plus fiable sur mobile que les requêtes AJAX qui peuvent être bloquées
+//      * 
+//      * @param string $token Token de signature
+//      * @return JsonResponse
+//      */
+//     public function markTokenUsedRedirect(string $token): JsonResponse
+//     {
+//         try {
+//             $token = $this->signatureService->normalizeToken($token);
+
+//             if (!$token) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'Token invalide.',
+//                     'code' => 'INVALID_TOKEN',
+//                 ], 404);
+//             }
+
+//             // Trouver la requête de signature
+//             $signatureRequest = SignatureRequest::where('token', $token)->first();
+
+//             if (!$signatureRequest) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'Token invalide.',
+//                     'code' => 'INVALID_TOKEN',
+//                 ], 404);
+//             }
+
+//             // Vérifier si déjà utilisé
+//             if ($signatureRequest->is_used) {
+//                 return response()->json([
+//                     'success' => true,
+//                     'message' => 'Token déjà marqué comme utilisé.',
+//                     'code' => 'ALREADY_USED',
+//                 ]);
+//             }
+
+//             // Marquer comme utilisé
+//             $signatureRequest->markAsUsed(null);
+
+//             // Invalider le token Sanctum
+//             $accessToken = PersonalAccessToken::findToken($token);
+//             if ($accessToken) {
+//                 $accessToken->delete();
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Token marqué comme utilisé avec succès.',
+//                 'code' => 'TOKEN_MARKED_USED',
+//             ]);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors du marquage du token.',
+//                 'code' => 'MARK_TOKEN_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+
+//     /**
+//      * Vérifier le statut d'un token
+//      * 
+//      * Permet à l'app client de faire du polling pour savoir si la signature est terminée
+//      * 
+//      * @param string $token Token de signature
+//      * @return JsonResponse
+//      * 
+//      * @response 200 {"success":true,"code":"TOKEN_STATUS","data":{"valid":true,"expired":false,"is_used":false,"is_valid":true}}
+//      * @response 200 {"success":true,"code":"TOKEN_STATUS","data":{"valid":true,"expired":false,"is_used":true,"is_valid":false,"signed_at":"2024-09-18T10:30:00Z"}}
+//      */
+//     public function checkTokenStatus(string $token): JsonResponse
+//     {
+//         try {
+//             $status = $this->signatureService->checkTokenStatus($token);
+
+//             if (!$status) {
+//                 return response()->json([
+//                     'success' => false,
+//                     'message' => 'Token invalide.',
+//                     'code' => 'INVALID_TOKEN',
+//                 ], 404);
+//             }
+
+//             return response()->json([
+//                 'success' => true,
+//                 'message' => 'Statut du token.',
+//                 'code' => 'TOKEN_STATUS',
+//                 'data' => $status,
+//             ]);
+//         } catch (\Exception $e) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Erreur lors de la vérification du token.',
+//                 'code' => 'TOKEN_CHECK_ERROR',
+//                 'error' => $e->getMessage(),
+//             ], 500);
+//         }
+//     }
+// }
+
+/**
+ * Contrôleur du Widget de Signature Électronique — YAKOA AFRICASSUR
+ *
+ * Endpoints :
+ *   POST /api/v1/signature/generate-link          (app hôte, à protéger par auth)
+ *   POST /api/v1/signature/webhook                (widget -> Laravel, authentifié par le token)
+ *   GET  /api/v1/signature/token/{token}/status   (polling desktop)
+ *   POST /api/v1/signature/send/{email|sms|whatsapp}
+ *   GET  /signature/widget/{token}                (page du widget)
+ *
+ * Endpoints SUPPRIMÉS par rapport à la version précédente :
+ *   - POST /mark-token-used        -> inutile, Laravel marque lui-même le token
+ *   - GET  /mark-token-used/{token} -> GET non authentifié, invalidable par un simple prefetch
+ */
 class SignatureController extends Controller
 {
     public function __construct(
         private SignatureService $signatureService
     ) {}
-
+ 
+    // =====================================================================
+    // GÉNÉRATION DU LIEN
+    // =====================================================================
+ 
     /**
-     * Générer un lien de signature à usage unique
-     * 
-     * Crée un token Sanctum avec expiration et stocke les métadonnées
-     * Le lien généré peut être utilisé pour afficher le widget ou envoyé par Email/SMS/WhatsApp
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
      * @bodyParam document_url string nullable URL HTTP(S) du document à signer
-     * @bodyParam document_description string nullable Description du document (max 500 caractères)
-     * @bodyParam webhook_url string required URL du webhook de l'app hôte pour recevoir la signature
-     * @bodyParam api_key string required Secret partagé pour authentification webhook
-     * @bodyParam success_redirect_url string nullable URL de redirection après signature réussie
-     * @bodyParam cancel_redirect_url string nullable URL de redirection si signature annulée
-     * @bodyParam enable_auto_polling boolean nullable Activer le polling automatique (scénario agence grand écran)
-     * @bodyParam expires_in int nullable Durée de validité en secondes (max 86400 = 24h, défaut 3600 = 1h)
-     * 
-     * @response 201 {"success":true,"message":"Lien de signature généré avec succès.","code":"SIGNATURE_LINK_GENERATED","data":{"token":"...","widget_url":"...","expires_at":"...","expires_in":3600}}
+     * @bodyParam document_description string nullable Description (max 500)
+     * @bodyParam webhook_url string required Webhook de l'app hôte
+     * @bodyParam api_key string required Secret partagé (reste côté serveur)
+     * @bodyParam success_redirect_url string nullable
+     * @bodyParam cancel_redirect_url string nullable
+     * @bodyParam enable_auto_polling boolean nullable
+     * @bodyParam expires_in int nullable Secondes (60 à 86400, défaut 3600)
      */
     public function generateLink(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'document_url' => ['nullable', 'url'],
+                'document_url'         => ['nullable', 'url:http,https'],
                 'document_description' => ['nullable', 'string', 'max:500'],
-                'webhook_url' => ['required', 'url'],
-                'api_key' => ['required', 'string'],
-                'success_redirect_url' => ['nullable', 'url'],
-                'cancel_redirect_url' => ['nullable', 'url'],
-                'enable_auto_polling' => ['nullable', 'boolean'],
-                'expires_in' => ['nullable', 'integer', 'min:1', 'max:86400'], // Max 24h
+                'webhook_url'          => ['required', 'url:https'],
+                'api_key'              => ['required', 'string', 'min:16', 'max:255'],
+                'success_redirect_url' => ['nullable', 'url:http,https'],
+                'cancel_redirect_url'  => ['nullable', 'url:http,https'],
+                'enable_auto_polling'  => ['nullable', 'boolean'],
+                'expires_in'           => ['nullable', 'integer', 'min:60', 'max:86400'],
             ]);
-
+ 
             $result = $this->signatureService->generateSignatureLink(
-                $validated['document_url'],
+                $validated['document_url'] ?? null,
                 $validated['document_description'] ?? null,
                 $validated['webhook_url'],
                 $validated['api_key'],
                 $validated['success_redirect_url'] ?? null,
                 $validated['cancel_redirect_url'] ?? null,
                 $validated['enable_auto_polling'] ?? false,
-                $validated['expires_in'] ?? 3600 // 1h par défaut
+                $validated['expires_in'] ?? SignatureService::DEFAULT_EXPIRES_IN
             );
-
+ 
             return response()->json([
                 'success' => true,
                 'message' => 'Lien de signature généré avec succès.',
-                'code' => 'SIGNATURE_LINK_GENERATED',
-                'data' => $result,
+                'code'    => 'SIGNATURE_LINK_GENERATED',
+                'data'    => $result,
             ], 201);
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la génération du lien de signature.',
-                'code' => 'SIGNATURE_LINK_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->validationError($e);
+        } catch (\Throwable $e) {
+            return $this->serverError($e, 'SIGNATURE_LINK_ERROR', 'Erreur lors de la génération du lien.');
         }
     }
-
+ 
+    // =====================================================================
+    // PAGE DU WIDGET
+    // =====================================================================
+ 
     /**
-     * Servir la page du widget avec le token
-     * 
-     * Cette route web affiche la page du widget avec les paramètres liés au token
-     * Le widget JS est initialisé avec les données du token
-     * 
-     * @param string $token Token Sanctum de signature
-     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     * Sert la page du widget.
+     *
+     * Aucun paramètre n'est lu depuis la query string : la configuration provient
+     * exclusivement des métadonnées du token. Ni webhook_url ni api_key ne sont exposés.
      */
     public function serveWidget(string $token)
     {
         try {
             $widgetData = $this->signatureService->getWidgetData($token);
-
+ 
             if (!$widgetData) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Token invalide ou expiré.',
-                    'code' => 'INVALID_TOKEN',
-                ], 404);
+                return response()->view('signature.invalid', [], 404);
             }
-
-            // Récupérer les paramètres depuis l'URL ou les métadonnées du token
-            $documentUrl = request()->query('document_url', $widgetData['document_url'] ?? '');
-            $documentDescription = request()->query('document_description', $widgetData['document_description'] ?? 'Document à signer');
-            $webhookUrl = request()->query('webhook_url', $widgetData['webhook_url'] ?? '');
-            $apiKey = request()->query('api_key', $widgetData['api_key'] ?? '');
-            $successRedirectUrl = request()->query('success_redirect_url', $widgetData['success_redirect_url'] ?? '');
-            $cancelRedirectUrl = request()->query('cancel_redirect_url', $widgetData['cancel_redirect_url'] ?? '');
-            $enableAutoPolling = request()->query('enable_auto_polling', $widgetData['enable_auto_polling'] ?? false);
-
-            // Retourner la vue avec les données du widget
+ 
             return view('signature.widget', [
-                'token' => $token,
-                'document_url' => $documentUrl,
-                'document_description' => $documentDescription,
-                'webhook_url' => $webhookUrl,
-                'api_key' => $apiKey,
-                'success_redirect_url' => $successRedirectUrl,
-                'cancel_redirect_url' => $cancelRedirectUrl,
-                'enable_auto_polling' => $enableAutoPolling,
+                'token'                => $widgetData['token'],
+                'document_url'         => $widgetData['document_url'],
+                'document_description' => $widgetData['document_description'] ?: 'Document à signer',
+                'success_redirect_url' => $widgetData['success_redirect_url'],
+                'cancel_redirect_url'  => $widgetData['cancel_redirect_url'],
+                'enable_auto_polling'  => $widgetData['enable_auto_polling'],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du chargement du widget.',
-                'code' => 'WIDGET_LOAD_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
+        } catch (\Throwable $e) {
+            Log::error('[Signature] Erreur de chargement du widget', ['message' => $e->getMessage()]);
+ 
+            return response()->view('signature.invalid', [], 500);
         }
     }
-
+ 
+    // =====================================================================
+    // RÉCEPTION DE LA SIGNATURE
+    // =====================================================================
+ 
     /**
-     * Webhook pour recevoir la signature
-     * 
-     * Reçoit la signature en base64 depuis le widget JS et la transmet à l'app hôte
-     * Authentifié via header X-Api-Key (secret partagé)
-     * Invalide le token après signature réussie
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * @bodyParam signature string required Signature en base64 (data:image/png;base64,...)
-     * @bodyParam token string required Token de signature
-     * 
-     * @header X-Api-Key Secret partagé pour authentification
+     * Reçoit la signature depuis le widget, la relaie à l'app hôte et consomme le token.
+     *
+     * Authentification : le token lui-même (imprévisible, usage unique, expirant).
+     * Aucun header X-Api-Key n'est attendu — un secret rendu dans le navigateur
+     * n'authentifie plus rien.
+     *
+     * @bodyParam token string required
+     * @bodyParam signature string required data:image/png;base64,...
      */
     public function receiveSignature(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
+                'token'     => ['required', 'string'],
                 'signature' => ['required', 'string'],
-                'token' => ['required', 'string'],
             ]);
-
-            // Vérifier l'authentification via X-Api-Key
-            $apiKey = $request->header('X-Api-Key');
-            if (!$apiKey) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'API Key manquante.',
-                    'code' => 'MISSING_API_KEY',
-                ], 401);
-            }
-
+ 
             $result = $this->signatureService->processSignature(
                 $validated['signature'],
-                $validated['token'],
-                $apiKey
+                $validated['token']
             );
-
+ 
             if (!$result['success']) {
                 return response()->json([
                     'success' => false,
                     'message' => $result['message'],
-                    'code' => $result['code'],
+                    'code'    => $result['code'],
+                    'data'    => $result['data'] ?? null,
                 ], $result['status'] ?? 400);
             }
-
+ 
             return response()->json([
                 'success' => true,
-                'message' => 'Signature reçue avec succès.',
-                'code' => 'SIGNATURE_RECEIVED',
-                'data' => $result['data'],
+                'message' => $result['message'],
+                'code'    => $result['code'],
+                'data'    => $result['data'],
             ]);
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du traitement de la signature.',
-                'code' => 'SIGNATURE_PROCESS_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->validationError($e);
+        } catch (\Throwable $e) {
+            return $this->serverError($e, 'SIGNATURE_PROCESS_ERROR', 'Erreur lors du traitement de la signature.');
         }
     }
-
-    /**
-     * Envoyer le lien de signature par Email
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * @bodyParam token string required Token de signature
-     * @bodyParam email string required Email du destinataire
-     * @bodyParam subject string nullable Sujet de l'email (max 200 caractères)
-     * @bodyParam message string nullable Message personnalisé (max 1000 caractères)
-     */
-    public function sendByEmail(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'token' => ['required', 'string'],
-                'email' => ['required', 'email'],
-                'subject' => ['nullable', 'string', 'max:200'],
-                'message' => ['nullable', 'string', 'max:1000'],
-            ]);
-
-            $result = $this->signatureService->sendLinkByEmail(
-                $validated['token'],
-                $validated['email'],
-                $validated['subject'] ?? null,
-                $validated['message'] ?? null
-            );
-
-            if (!$result['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message'],
-                    'code' => $result['code'],
-                ], $result['status'] ?? 400);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Lien de signature envoyé par email avec succès.',
-                'code' => 'EMAIL_SENT',
-                'data' => $result['data'],
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi de l\'email.',
-                'code' => 'EMAIL_SEND_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Envoyer le lien de signature par SMS via Infobip
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * @bodyParam token string required Token de signature
-     * @bodyParam phone string required Numéro de téléphone du destinataire
-     * @bodyParam message string nullable Message personnalisé (max 160 caractères)
-     */
-    public function sendBySms(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'token' => ['required', 'string'],
-                'phone' => ['required', 'string'],
-                'message' => ['nullable', 'string', 'max:160'],
-            ]);
-
-            $result = $this->signatureService->sendLinkBySms(
-                $validated['token'],
-                $validated['phone'],
-                $validated['message'] ?? null
-            );
-
-            if (!$result['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message'],
-                    'code' => $result['code'],
-                ], $result['status'] ?? 400);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Lien de signature envoyé par SMS avec succès.',
-                'code' => 'SMS_SENT',
-                'data' => $result['data'],
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi du SMS.',
-                'code' => 'SMS_SEND_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Envoyer le lien de signature par WhatsApp via Infobip
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * @bodyParam token string required Token de signature
-     * @bodyParam phone string required Numéro de téléphone du destinataire
-     * @bodyParam message string nullable Message personnalisé (max 1000 caractères)
-     */
-    public function sendByWhatsapp(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'token' => ['required', 'string'],
-                'phone' => ['required', 'string'],
-                'message' => ['nullable', 'string', 'max:1000'],
-            ]);
-
-            $result = $this->signatureService->sendLinkByWhatsapp(
-                $validated['token'],
-                $validated['phone'],
-                $validated['message'] ?? null
-            );
-
-            if (!$result['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message'],
-                    'code' => $result['code'],
-                ], $result['status'] ?? 400);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Lien de signature envoyé par WhatsApp avec succès.',
-                'code' => 'WHATSAPP_SENT',
-                'data' => $result['data'],
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi WhatsApp.',
-                'code' => 'WHATSAPP_SEND_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Marquer un token comme utilisé (sans traiter la signature)
-     * 
-     * Ce endpoint est utilisé quand le widget envoie directement la signature
-     * au webhook de l'app hôte et nous avons juste besoin de marquer le token comme utilisé
-     * pour que le polling fonctionne.
-     * 
-     * @param Request $request
-     * @return JsonResponse
-     * 
-     * @bodyParam token string required Token de signature
-     * @bodyParam api_key string required Secret partagé
-     */
-    public function markTokenUsed(Request $request): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'token' => ['required', 'string'],
-            ]);
-
-            $token = $this->signatureService->normalizeToken($validated['token']);
-            $apiKey = $request->header('X-Api-Key');
-
-            if (!$apiKey) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'API Key manquante.',
-                    'code' => 'MISSING_API_KEY',
-                ], 401);
-            }
-
-            // Trouver la requête de signature
-            $signatureRequest = SignatureRequest::where('token', $token)->first();
-
-            if (!$signatureRequest) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Token invalide.',
-                    'code' => 'INVALID_TOKEN',
-                ], 404);
-            }
-
-            // Vérifier l'API Key
-            if ($signatureRequest->api_key !== $apiKey) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'API Key invalide.',
-                    'code' => 'INVALID_API_KEY',
-                ], 401);
-            }
-
-            // Vérifier si déjà utilisé
-            if ($signatureRequest->is_used) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Token déjà marqué comme utilisé.',
-                    'code' => 'ALREADY_USED',
-                ]);
-            }
-
-            // Marquer comme utilisé
-            $signatureRequest->markAsUsed(null); // Pas de signature car traitée directement par l'app hôte
-
-            // Invalider le token Sanctum
-            $accessToken = PersonalAccessToken::findToken($token);
-            if ($accessToken) {
-                $accessToken->delete();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Token marqué comme utilisé avec succès.',
-                'code' => 'TOKEN_MARKED_USED',
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors' => $e->errors(),
-                'code' => 'VALIDATION_ERROR',
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du marquage du token.',
-                'code' => 'MARK_TOKEN_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Marquer un token comme utilisé via redirection (pour mobile)
-     * 
-     * Ce endpoint est appelé via GET après une redirection pour marquer le token comme utilisé
-     * C'est plus fiable sur mobile que les requêtes AJAX qui peuvent être bloquées
-     * 
-     * @param string $token Token de signature
-     * @return JsonResponse
-     */
-    public function markTokenUsedRedirect(string $token): JsonResponse
-    {
-        try {
-            $token = $this->signatureService->normalizeToken($token);
-
-            if (!$token) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Token invalide.',
-                    'code' => 'INVALID_TOKEN',
-                ], 404);
-            }
-
-            // Trouver la requête de signature
-            $signatureRequest = SignatureRequest::where('token', $token)->first();
-
-            if (!$signatureRequest) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Token invalide.',
-                    'code' => 'INVALID_TOKEN',
-                ], 404);
-            }
-
-            // Vérifier si déjà utilisé
-            if ($signatureRequest->is_used) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Token déjà marqué comme utilisé.',
-                    'code' => 'ALREADY_USED',
-                ]);
-            }
-
-            // Marquer comme utilisé
-            $signatureRequest->markAsUsed(null);
-
-            // Invalider le token Sanctum
-            $accessToken = PersonalAccessToken::findToken($token);
-            if ($accessToken) {
-                $accessToken->delete();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Token marqué comme utilisé avec succès.',
-                'code' => 'TOKEN_MARKED_USED',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du marquage du token.',
-                'code' => 'MARK_TOKEN_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Vérifier le statut d'un token
-     * 
-     * Permet à l'app client de faire du polling pour savoir si la signature est terminée
-     * 
-     * @param string $token Token de signature
-     * @return JsonResponse
-     * 
-     * @response 200 {"success":true,"code":"TOKEN_STATUS","data":{"valid":true,"expired":false,"is_used":false,"is_valid":true}}
-     * @response 200 {"success":true,"code":"TOKEN_STATUS","data":{"valid":true,"expired":false,"is_used":true,"is_valid":false,"signed_at":"2024-09-18T10:30:00Z"}}
-     */
+ 
+    // =====================================================================
+    // STATUT (polling)
+    // =====================================================================
+ 
     public function checkTokenStatus(string $token): JsonResponse
     {
         try {
             $status = $this->signatureService->checkTokenStatus($token);
-
+ 
             if (!$status) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Token invalide.',
-                    'code' => 'INVALID_TOKEN',
+                    'code'    => 'INVALID_TOKEN',
                 ], 404);
             }
-
+ 
             return response()->json([
                 'success' => true,
                 'message' => 'Statut du token.',
-                'code' => 'TOKEN_STATUS',
-                'data' => $status,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la vérification du token.',
-                'code' => 'TOKEN_CHECK_ERROR',
-                'error' => $e->getMessage(),
-            ], 500);
+                'code'    => 'TOKEN_STATUS',
+                'data'    => $status,
+            ])->header('Cache-Control', 'no-store');
+        } catch (\Throwable $e) {
+            return $this->serverError($e, 'TOKEN_CHECK_ERROR', 'Erreur lors de la vérification du token.');
         }
+    }
+ 
+    // =====================================================================
+    // ENVOI DU LIEN
+    // =====================================================================
+ 
+    public function sendByEmail(Request $request): JsonResponse
+    {
+        return $this->dispatchSend($request, [
+            'token'   => ['required', 'string'],
+            'email'   => ['required', 'email'],
+            'subject' => ['nullable', 'string', 'max:200'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ], fn (array $v) => $this->signatureService->sendLinkByEmail(
+            $v['token'], $v['email'], $v['subject'] ?? null, $v['message'] ?? null
+        ), 'EMAIL_SEND_ERROR');
+    }
+ 
+    public function sendBySms(Request $request): JsonResponse
+    {
+        return $this->dispatchSend($request, [
+            'token'   => ['required', 'string'],
+            'phone'   => ['required', 'string', 'max:20'],
+            'message' => ['nullable', 'string', 'max:160'],
+        ], fn (array $v) => $this->signatureService->sendLinkBySms(
+            $v['token'], $v['phone'], $v['message'] ?? null
+        ), 'SMS_SEND_ERROR');
+    }
+ 
+    public function sendByWhatsapp(Request $request): JsonResponse
+    {
+        return $this->dispatchSend($request, [
+            'token'   => ['required', 'string'],
+            'phone'   => ['required', 'string', 'max:20'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ], fn (array $v) => $this->signatureService->sendLinkByWhatsapp(
+            $v['token'], $v['phone'], $v['message'] ?? null
+        ), 'WHATSAPP_SEND_ERROR');
+    }
+ 
+    private function dispatchSend(Request $request, array $rules, callable $handler, string $errorCode): JsonResponse
+    {
+        try {
+            $result = $handler($request->validate($rules));
+ 
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'code'    => $result['code'],
+                ], $result['status'] ?? 400);
+            }
+ 
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'code'    => $result['code'],
+                'data'    => $result['data'],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->validationError($e);
+        } catch (\Throwable $e) {
+            return $this->serverError($e, $errorCode, "Erreur lors de l'envoi.");
+        }
+    }
+ 
+    // =====================================================================
+    // RÉPONSES D'ERREUR
+    // =====================================================================
+ 
+    private function validationError(ValidationException $e): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Erreur de validation.',
+            'code'    => 'VALIDATION_ERROR',
+            'errors'  => $e->errors(),
+        ], 422);
+    }
+ 
+    /** Le détail technique n'est renvoyé qu'en mode debug. */
+    private function serverError(\Throwable $e, string $code, string $message): JsonResponse
+    {
+        Log::error('[Signature] ' . $code, [
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile() . ':' . $e->getLine(),
+        ]);
+ 
+        return response()->json(array_filter([
+            'success' => false,
+            'message' => $message,
+            'code'    => $code,
+            'error'   => config('app.debug') ? $e->getMessage() : null,
+        ], fn ($v) => $v !== null), 500);
     }
 }

@@ -2,161 +2,190 @@
 
 namespace App\Services\Api\Ynov;
 
-use App\Models\Api\Ynov\parameter\Role;
-use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\SignatureRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Service de Signature Électronique
- * 
- * Ce service gère la logique métier du widget de signature électronique :
- * - Génération de liens de signature à usage unique avec tokens Sanctum
- * - Validation et traitement des signatures
- * - Transmission des signatures aux applications hôtes via webhooks
- * - Envoi de liens de signature par Email, SMS et WhatsApp via Infobip
- * 
- * IMPORTANT : Règle de persistance
- * - Aucune persistance du document ni de la signature elle-même
- * - Stockage uniquement des métadonnées dans la table signature_requests
- * - L'application hôte est responsable d'apposer et enregistrer la signature
- * - Les tokens Sanctum sont invalidés après signature réussie
+ * Service de Signature Électronique — YAKOA AFRICASSUR
+ *
+ * ARCHITECTURE
+ * ------------
+ * 1. L'app hôte appelle POST /api/v1/signature/generate-link
+ *    -> Laravel crée un token public opaque (64 car. alphanumériques, usage unique, expirant)
+ *       et stocke les métadonnées (webhook_url + api_key de l'app hôte) dans signature_requests.
+ * 2. Le client ouvre /signature/widget/{token} (directement, par QR code, SMS, email ou WhatsApp).
+ * 3. Le widget poste la signature sur POST /api/v1/signature/webhook (MÊME ORIGINE, donc
+ *    ni CORS, ni preflight, ni 404).
+ * 4. Laravel relaie la signature au webhook de l'app hôte (avec l'api_key lue en base),
+ *    puis marque le token comme utilisé dans la MÊME transaction.
+ * 5. Le poste desktop détecte la fin via GET /api/v1/signature/token/{token}/status.
+ *
+ * RÈGLES DE PERSISTANCE (strictes)
+ * --------------------------------
+ * - Le document n'est JAMAIS stocké (seulement son URL).
+ * - La signature n'est JAMAIS stockée, même « pour traçabilité ». Elle transite en mémoire.
+ * - Seules les métadonnées du token vivent en base.
+ *
+ * SÉCURITÉ
+ * --------
+ * - L'api_key de l'app hôte ne quitte jamais le serveur : elle n'est ni rendue dans le HTML,
+ *   ni acceptée depuis le navigateur. C'est le token (imprévisible, usage unique, expirant)
+ *   qui authentifie la requête du widget.
+ * - Aucun paramètre de configuration (webhook_url, api_key…) n'est surchargeable par query string.
  */
 class SignatureService
 {
+    /**
+     * Marqueur spécial utilisé UNIQUEMENT par la route de démonstration.
+     *
+     * Un `webhook_url` réel entraîne un véritable appel HTTP sortant. Or la démo
+     * s'auto-appelle (Laravel -> Laravel) : sur un serveur mono-thread comme
+     * `php artisan serve`, la requête sortante attend un processus déjà occupé
+     * à traiter la requête entrante -> blocage jusqu'au timeout. Ce marqueur
+     * court-circuite l'appel réseau pour ne simuler QUE la livraison, sans
+     * jamais toucher au flux réel (voir deliverToHost()).
+     */
+    public const INTERNAL_ECHO_MARKER = 'internal-echo';
+
+    /** Longueur du token public. */
+    public const TOKEN_LENGTH = 64;
+
+    /** Contrainte de route — garantit un token URL-safe (pas de « | » à encoder/décoder). */
+    public const TOKEN_PATTERN = '[A-Za-z0-9]{64}';
+
+    /** Taille max acceptée pour la signature base64 (~2 Mo). */
+    private const MAX_SIGNATURE_BYTES = 2 * 1024 * 1024;
+
+    /** Durée de validité par défaut d'un lien (1 h). */
+    public const DEFAULT_EXPIRES_IN = 3600;
+
+    // =====================================================================
+    // TOKEN
+    // =====================================================================
+
+    /**
+     * Normalise et valide un token reçu de l'extérieur.
+     *
+     * Le token est volontairement alphanumérique pur : il traverse des URL, des QR codes,
+     * des SMS et des aperçus de liens WhatsApp sans jamais être ré-encodé. On se contente
+     * d'un rawurldecode défensif (au cas où une couche intermédiaire aurait encodé la chaîne)
+     * puis d'une validation stricte du format.
+     */
     public static function normalizeToken(?string $token): ?string
     {
         if ($token === null) {
             return null;
         }
 
-        $normalized = trim((string) $token);
-        if ($normalized === '') {
+        $normalized = rawurldecode(trim($token));
+
+        if (!preg_match('/^[A-Za-z0-9]{' . self::TOKEN_LENGTH . '}$/', $normalized)) {
             return null;
         }
 
-        $normalized = preg_replace('/[?#].*$/', '', $normalized);
-        $normalized = preg_replace('/\/+$/', '', $normalized);
-
-        if (preg_match('/^(?:https?:)?\/\//i', $normalized)) {
-            $path = parse_url($normalized, PHP_URL_PATH) ?? $normalized;
-            $segments = preg_split('#/+#', trim((string) $path, '/'));
-            $normalized = end($segments) ?: $normalized;
-        }
-
-        $normalized = preg_replace('/^.*\//', '', $normalized);
-        $normalized = trim($normalized, " \t\n\r/\\");
-
-        return $normalized !== '' ? $normalized : null;
+        return $normalized;
     }
 
+    /** Génère un token public unique. */
+    private function generateUniqueToken(): string
+    {
+        do {
+            $token = Str::random(self::TOKEN_LENGTH);
+        } while (SignatureRequest::where('token', $token)->exists());
+
+        return $token;
+    }
+
+    // =====================================================================
+    // GÉNÉRATION DU LIEN
+    // =====================================================================
+
     /**
-     * Générer un lien de signature à usage unique avec token Sanctum
-     * 
-     * Crée un token Sanctum avec abilities spécifiques et expiration
-     * Stocke les métadonnées nécessaires dans signature_requests
-     * Ne stocke PAS le document ni la signature
-     * 
-     * @param string $documentUrl URL HTTP(S) du document à signer
-     * @param string|null $documentDescription Description du document
-     * @param string $webhookUrl URL du webhook de l'app hôte
-     * @param string $apiKey Secret partagé pour authentification webhook
-     * @param string|null $successRedirectUrl URL de redirection après signature réussie
-     * @param string|null $cancelRedirectUrl URL de redirection si signature annulée
-     * @param bool $enableAutoPolling Activer le polling automatique (scénario agence)
-     * @param int $expiresIn Durée de validité en secondes (défaut 3600 = 1h)
-     * @return array Données du lien généré (token, widget_url, expires_at, etc.)
+     * Générer un lien de signature à usage unique.
+     *
+     * @param string|null $documentUrl         URL HTTP(S) du document (optionnel : signature sans document)
+     * @param string|null $documentDescription Description affichée au signataire
+     * @param string      $webhookUrl          Webhook de l'app hôte qui recevra la signature
+     * @param string      $apiKey              Secret partagé — reste côté serveur
+     * @param string|null $successRedirectUrl  Redirection après signature réussie
+     * @param string|null $cancelRedirectUrl   Redirection en cas d'annulation
+     * @param bool        $enableAutoPolling   Polling automatique (scénario agence grand écran)
+     * @param int         $expiresIn           Durée de validité en secondes
      */
     public function generateSignatureLink(
-        string $documentUrl,
+        ?string $documentUrl,
         ?string $documentDescription,
         string $webhookUrl,
         string $apiKey,
         ?string $successRedirectUrl = null,
         ?string $cancelRedirectUrl = null,
         bool $enableAutoPolling = false,
-        int $expiresIn = 3600
+        int $expiresIn = self::DEFAULT_EXPIRES_IN
     ): array {
-        return DB::transaction(function () use ($documentUrl, $documentDescription, $webhookUrl, $apiKey, $successRedirectUrl, $cancelRedirectUrl, $enableAutoPolling, $expiresIn) {
-            // Créer ou réutiliser un utilisateur système pour les tokens Sanctum
-            $systemUser = User::where('email', 'signature@system.local')->first();
-            $superAdmin = Role::where('code', 'super_admin')->first();
-            
-            if (!$systemUser) {
-                $systemUser = User::create([
-                    'uuid_user' => (string) Str::uuid(),
-                    'role_uuid' => $superAdmin->uuid_role,
-                    'email' => 'signature@system.local',
-                    'login' => 'signature_system',
-                    'password' => bcrypt(Str::random(32)),
-                    'status' => 'actif',
-                    'user_type' => 'system',
-                ]);
-            }
-
-            // Créer un token Sanctum avec abilities spécifiques et expiration
-            $token = $systemUser->createToken(
-                'signature_token',
-                ['signature:sign'],
-                now()->addSeconds($expiresIn)
-            );
-
-            // Calculer l'expiration manuellement (Sanctum ne l'expose plus directement)
+        return DB::transaction(function () use (
+            $documentUrl,
+            $documentDescription,
+            $webhookUrl,
+            $apiKey,
+            $successRedirectUrl,
+            $cancelRedirectUrl,
+            $enableAutoPolling,
+            $expiresIn
+        ) {
+            $token     = $this->generateUniqueToken();
             $expiresAt = now()->addSeconds($expiresIn);
 
-            // Récupérer l'ID du token depuis la base de données
-            $sanctumToken = \Laravel\Sanctum\PersonalAccessToken::where('token', hash('sha256', $token->plainTextToken))->first();
-            $sanctumTokenId = $sanctumToken ? $sanctumToken->id : null;
-
-            // Créer l'enregistrement de signature request (métadonnées uniquement)
-            // IMPORTANT : On ne stocke PAS le document ni la signature
             $signatureRequest = SignatureRequest::create([
                 'uuid_signature_request' => (string) Str::uuid(),
-                'token' => $token->plainTextToken,
-                'document_url' => $documentUrl,              // URL uniquement, pas le contenu
-                'document_description' => $documentDescription,
-                'webhook_url' => $webhookUrl,
-                'api_key' => $apiKey,
-                'expires_at' => $expiresAt,
-                'metadata' => [
-                    'sanctum_token_id' => $sanctumTokenId,
-                    'created_by' => 'system',
+                'token'                  => $token,
+                'document_url'           => $documentUrl,   // URL uniquement, jamais le contenu
+                'document_description'   => $documentDescription,
+                'webhook_url'            => $webhookUrl,
+                'api_key'                => $apiKey,
+                'expires_at'             => $expiresAt,
+                'delivery_status'        => SignatureRequest::DELIVERY_PENDING,
+                'metadata'               => [
+                    'created_by'           => 'system',
                     'success_redirect_url' => $successRedirectUrl,
-                    'cancel_redirect_url' => $cancelRedirectUrl,
-                    'enable_auto_polling' => $enableAutoPolling,
+                    'cancel_redirect_url'  => $cancelRedirectUrl,
+                    'enable_auto_polling'  => $enableAutoPolling,
                 ],
             ]);
 
-            // Générer l'URL du widget qui sera utilisée pour afficher la page de signature
-            $widgetUrl = url('/signature/widget/' . $token->plainTextToken);
-
             return [
-                'token' => $token->plainTextToken,
-                'widget_url' => $widgetUrl,
-                'expires_at' => $expiresAt->toIso8601String(),
-                'expires_in' => $expiresIn,
-                'document_url' => $documentUrl,
-                'document_description' => $documentDescription,
-                'webhook_url' => $webhookUrl,
-                'signature_request_uuid' => $signatureRequest->uuid_signature_request,
-                'success_redirect_url' => $successRedirectUrl,
-                'cancel_redirect_url' => $cancelRedirectUrl,
-                'enable_auto_polling' => $enableAutoPolling,
+                'token'                    => $token,
+                'widget_url'               => $this->widgetUrl($token),
+                'status_url'               => url('/api/v1/signature/token/' . $token . '/status'),
+                'expires_at'               => $expiresAt->toIso8601String(),
+                'expires_in'               => $expiresIn,
+                'document_url'             => $documentUrl,
+                'document_description'     => $documentDescription,
+                'signature_request_uuid'   => $signatureRequest->uuid_signature_request,
+                'success_redirect_url'     => $successRedirectUrl,
+                'cancel_redirect_url'      => $cancelRedirectUrl,
+                'enable_auto_polling'      => $enableAutoPolling,
             ];
         });
     }
 
+    /** URL publique du widget pour un token donné. */
+    public function widgetUrl(string $token): string
+    {
+        return url('/signature/widget/' . $token);
+    }
+
+    // =====================================================================
+    // AFFICHAGE DU WIDGET
+    // =====================================================================
+
     /**
-     * Récupérer les données du widget pour un token donné
-     * 
-     * Valide le token et retourne les métadonnées nécessaires
-     * pour initialiser le widget JS
-     * 
-     * @param string $token Token Sanctum de signature
-     * @return array|null Données du widget ou null si token invalide
+     * Données nécessaires à l'initialisation du widget.
+     *
+     * N'expose NI webhook_url NI api_key : ces valeurs restent côté serveur.
      */
     public function getWidgetData(string $token): ?array
     {
@@ -168,411 +197,196 @@ class SignatureService
 
         $signatureRequest = SignatureRequest::where('token', $token)->first();
 
-        if (!$signatureRequest) {
+        if (!$signatureRequest || !$signatureRequest->isValid()) {
             return null;
         }
 
-        // Vérifier si la requête est valide (non utilisée et non expirée)
-        if (!$signatureRequest->isValid()) {
-            return null;
-        }
+        $metadata = $signatureRequest->metadata ?? [];
 
         return [
-            'token' => $token,
-            'document_url' => $signatureRequest->document_url,
+            'token'                => $signatureRequest->token,
+            'document_url'         => $signatureRequest->document_url,
             'document_description' => $signatureRequest->document_description,
-            'webhook_url' => $signatureRequest->webhook_url,
-            'api_key' => $signatureRequest->api_key,
-            'success_redirect_url' => $signatureRequest->metadata['success_redirect_url'] ?? null,
-            'cancel_redirect_url' => $signatureRequest->metadata['cancel_redirect_url'] ?? null,
-            'enable_auto_polling' => $signatureRequest->metadata['enable_auto_polling'] ?? false,
+            'success_redirect_url' => $metadata['success_redirect_url'] ?? null,
+            'cancel_redirect_url'  => $metadata['cancel_redirect_url'] ?? null,
+            'enable_auto_polling'  => (bool) ($metadata['enable_auto_polling'] ?? false),
         ];
     }
 
+    // =====================================================================
+    // RÉCEPTION ET RELAIS DE LA SIGNATURE
+    // =====================================================================
+
     /**
-     * Traiter la signature reçue via webhook
-     * 
-     * Valide le token, vérifie l'API key, transmet la signature à l'app hôte
-     * et invalide le token après succès
-     * 
-     * @param string $signatureBase64 Signature en base64
-     * @param string $token Token de signature
-     * @param string $apiKey API key pour validation
-     * @return array Résultat du traitement
+     * Traiter la signature envoyée par le widget.
+     *
+     * Le token seul authentifie l'appel. Aucun header X-Api-Key n'est attendu du navigateur.
+     *
+     * Point important : le token est marqué comme utilisé MÊME si le webhook de l'app hôte
+     * échoue. Sinon un hôte momentanément indisponible bloquerait indéfiniment le poste
+     * desktop en polling alors que le client a bel et bien signé. L'état de livraison est
+     * exposé séparément via delivery_status.
      */
-    public function processSignature(string $signatureBase64, string $token, string $apiKey): array
+    public function processSignature(string $signatureBase64, string $token): array
     {
         $token = self::normalizeToken($token);
 
         if (!$token) {
-            return [
-                'success' => false,
-                'message' => 'Token invalide.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
+            return $this->failure('Token invalide.', 'INVALID_TOKEN', 404);
         }
 
-        return DB::transaction(function () use ($signatureBase64, $token, $apiKey) {
-            // Trouver la requête de signature
-            $signatureRequest = SignatureRequest::where('token', $token)->first();
+        if (!$this->isValidSignaturePayload($signatureBase64)) {
+            return $this->failure(
+                'Signature invalide : une image PNG encodée en base64 est attendue.',
+                'INVALID_SIGNATURE',
+                422
+            );
+        }
+
+        // Verrouillage pessimiste : deux soumissions simultanées ne peuvent pas
+        // relayer deux fois la même signature.
+        $claim = DB::transaction(function () use ($token) {
+            $signatureRequest = SignatureRequest::where('token', $token)->lockForUpdate()->first();
 
             if (!$signatureRequest) {
-                return [
-                    'success' => false,
-                    'message' => 'Token invalide.',
-                    'code' => 'INVALID_TOKEN',
-                    'status' => 404,
-                ];
+                return $this->failure('Token invalide.', 'INVALID_TOKEN', 404);
             }
 
-            // Vérifier si la requête est valide (non utilisée et non expirée)
-            if (!$signatureRequest->isValid()) {
-                if ($signatureRequest->is_used) {
-                    return [
-                        'success' => false,
-                        'message' => 'Token déjà utilisé.',
-                        'code' => 'TOKEN_ALREADY_USED',
-                        'status' => 400,
-                    ];
-                }
-                
-                if ($signatureRequest->isExpired()) {
-                    return [
-                        'success' => false,
-                        'message' => 'Token expiré.',
-                        'code' => 'EXPIRED_TOKEN',
-                        'status' => 400,
-                    ];
-                }
+            if ($signatureRequest->is_used) {
+                return $this->failure('Token déjà utilisé.', 'TOKEN_ALREADY_USED', 409);
             }
 
-            // Vérifier l'API Key (secret partagé)
-            if ($signatureRequest->api_key !== $apiKey) {
-                return [
-                    'success' => false,
-                    'message' => 'API Key invalide.',
-                    'code' => 'INVALID_API_KEY',
-                    'status' => 401,
-                ];
+            if ($signatureRequest->isExpired()) {
+                return $this->failure('Token expiré.', 'EXPIRED_TOKEN', 410);
             }
 
-            // Transmettre la signature au webhook de l'app hôte
-            // C'est l'app hôte qui va apposer la signature sur le document
-            $webhookUrl = $signatureRequest->webhook_url;
-            
-            $webhookResponse = Http::withHeaders([
-                'X-Api-Key' => $apiKey,
-                'Content-Type' => 'application/json',
-            ])->post($webhookUrl, [
-                'success' => true,
-                'signature' => $signatureBase64,
-                'token' => $token,
-                'timestamp' => now()->toIso8601String(),
-                'signature_request_uuid' => $signatureRequest->uuid_signature_request,
-                'status' => 200,
-            ]);
+            // Marquage immédiat : la signature n'est PAS stockée.
+            $signatureRequest->markAsUsed();
 
-            if (!$webhookResponse->successful()) {
-                return [
-                    'success' => false,
-                    'message' => 'Échec de l\'envoi au webhook.',
-                    'code' => 'WEBHOOK_ERROR',
-                    'status' => 500,
-                    'webhook_status' => $webhookResponse->status(),
-                ];
-            }
-
-            // Marquer la requête comme utilisée (métadonnées uniquement)
-            // On stocke la signature en base64 uniquement pour traçabilité
-            // mais ce n'est PAS la persistance de la signature finale
-            $signatureRequest->markAsUsed($signatureBase64);
-
-            // Invalider le token Sanctum (usage unique)
-            $accessToken = PersonalAccessToken::findToken($token);
-            if ($accessToken) {
-                $accessToken->delete();
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Signature traitée avec succès.',
-                'code' => 'SIGNATURE_PROCESSED',
-                'data' => [
-                    'webhook_response' => $webhookResponse->json(),
-                    'signature_request_uuid' => $signatureRequest->uuid_signature_request,
-                    'token_invalidated' => true,
-                ],
-            ];
+            return ['success' => true, 'request' => $signatureRequest];
         });
-    }
 
-    /**
-     * Envoyer le lien de signature par email
-     * 
-     * @param string $token Token de signature
-     * @param string $email Email du destinataire
-     * @param string|null $subject Sujet de l'email
-     * @param string|null $message Message personnalisé
-     * @return array Résultat de l'envoi
-     */
-    public function sendLinkByEmail(
-        string $token,
-        string $email,
-        ?string $subject = null,
-        ?string $message = null
-    ): array {
-        $token = self::normalizeToken($token);
-        if (!$token) {
-            return [
-                'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
+        if (!$claim['success']) {
+            return $claim;
         }
 
-        // Vérifier que le token est valide
-        $signatureRequest = SignatureRequest::where('token', $token)->first();
-        
-        if (!$signatureRequest || !$signatureRequest->isValid()) {
+        /** @var SignatureRequest $signatureRequest */
+        $signatureRequest = $claim['request'];
+
+        $delivery = $this->deliverToHost($signatureRequest, $signatureBase64);
+
+        $signatureRequest->forceFill([
+            'delivery_status' => $delivery['delivered']
+                ? SignatureRequest::DELIVERY_DELIVERED
+                : SignatureRequest::DELIVERY_FAILED,
+            'delivered_at'    => $delivery['delivered'] ? now() : null,
+        ])->save();
+
+        if (!$delivery['delivered']) {
+            // La signature est perdue volontairement (aucune persistance).
+            // L'app hôte devra relancer une demande de signature.
             return [
                 'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
-        }
-
-        $widgetUrl = url('/signature/widget/' . $token);
-        $defaultSubject = 'Document à signer';
-        $defaultMessage = "Veuillez signer le document en cliquant sur le lien suivant : {$widgetUrl}";
-
-        // Intégration avec votre service d'email existant
-        // À adapter selon votre infrastructure d'email
-        try {
-            // Exemple avec Laravel Mail (à adapter selon votre config)
-            // Mail::to($email)->send(new SignatureLinkMail($widgetUrl, $subject ?? $defaultSubject, $message ?? $defaultMessage));
-            
-            return [
-                'success' => true,
-                'message' => 'Email envoyé avec succès.',
-                'code' => 'EMAIL_SENT',
-                'data' => [
-                    'email' => $email,
-                    'widget_url' => $widgetUrl,
+                'message' => "La signature n'a pas pu être transmise à l'application hôte.",
+                'code'    => 'WEBHOOK_DELIVERY_FAILED',
+                'status'  => 502,
+                'data'    => [
+                    'signature_request_uuid' => $signatureRequest->uuid_signature_request,
+                    'webhook_status'         => $delivery['status'],
+                    'token_consumed'         => true,
                 ],
             ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi de l\'email.',
-                'code' => 'EMAIL_SEND_ERROR',
-                'status' => 500,
-                'error' => $e->getMessage(),
-            ];
         }
+
+        return [
+            'success' => true,
+            'message' => 'Signature transmise avec succès.',
+            'code'    => 'SIGNATURE_PROCESSED',
+            'data'    => [
+                'signature_request_uuid' => $signatureRequest->uuid_signature_request,
+                'webhook_response'       => $delivery['body'],
+                'token_consumed'         => true,
+            ],
+        ];
     }
 
     /**
-     * Envoyer le lien de signature par SMS via Infobip
-     * 
-     * @param string $token Token de signature
-     * @param string $phone Numéro de téléphone
-     * @param string|null $message Message personnalisé
-     * @return array Résultat de l'envoi
+     * Relaie la signature au webhook de l'app hôte, avec l'api_key lue en base.
      */
-    public function sendLinkBySms(
-        string $token,
-        string $phone,
-        ?string $message = null
-    ): array {
-        $token = self::normalizeToken($token);
-        if (!$token) {
+    private function deliverToHost(SignatureRequest $signatureRequest, string $signatureBase64): array
+    {
+        // Court-circuit réservé à la page de démonstration : voir INTERNAL_ECHO_MARKER.
+        // Ne concerne jamais un webhook_url réel fourni par une app hôte.
+        if ($signatureRequest->webhook_url === self::INTERNAL_ECHO_MARKER) {
             return [
-                'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
+                'delivered' => true,
+                'status'    => 200,
+                'body'      => [
+                    'success'     => true,
+                    'received_at' => now()->toIso8601String(),
+                    'simulated'   => true,
+                ],
             ];
         }
-
-        // Vérifier que le token est valide
-        $signatureRequest = SignatureRequest::where('token', $token)->first();
-        
-        if (!$signatureRequest || !$signatureRequest->isValid()) {
-            return [
-                'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
-        }
-
-        $widgetUrl = url('/signature/widget/' . $token);
-        $defaultMessage = "Signez votre document ici : {$widgetUrl}";
 
         try {
-            // Intégration Infobip SMS
-            $infobipApiKey = config('services.infobip.api_key');
-            $infobipBaseUrl = config('services.infobip.base_url');
-
-            if (!$infobipApiKey || !$infobipBaseUrl) {
-                return [
-                    'success' => false,
-                    'message' => 'Configuration Infobip manquante.',
-                    'code' => 'INFOBIP_CONFIG_ERROR',
-                    'status' => 500,
-                ];
-            }
-
             $response = Http::withHeaders([
-                'Authorization' => 'App ' . $infobipApiKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$infobipBaseUrl}/sms/2/text", [
-                'messages' => [
-                    [
-                        'from' => config('services.infobip.sms_from', 'InfoSMS'),
-                        'to' => $phone,
-                        'text' => $message ?? $defaultMessage,
-                    ],
-                ],
-            ]);
+                    'X-Api-Key'    => $signatureRequest->api_key,
+                    'Content-Type' => 'application/json',
+                ])
+                ->timeout(15)
+                ->retry(2, 500, throw: false)
+                ->post($signatureRequest->webhook_url, [
+                    'success'                => true,
+                    'status'                 => 200,
+                    'signature'              => $signatureBase64,
+                    'token'                  => $signatureRequest->token,
+                    'document_url'           => $signatureRequest->document_url,
+                    'signature_request_uuid' => $signatureRequest->uuid_signature_request,
+                    'signed_at'              => optional($signatureRequest->signed_at)->toIso8601String()
+                                                ?? now()->toIso8601String(),
+                    'timestamp'              => now()->toIso8601String(),
+                ]);
 
             if (!$response->successful()) {
-                return [
-                    'success' => false,
-                    'message' => 'Erreur Infobip SMS.',
-                    'code' => 'INFOBIP_SMS_ERROR',
-                    'status' => 500,
-                    'error' => $response->body(),
-                ];
+                Log::warning('[Signature] Webhook hôte en échec', [
+                    'uuid'   => $signatureRequest->uuid_signature_request,
+                    'status' => $response->status(),
+                ]);
+
+                return ['delivered' => false, 'status' => $response->status(), 'body' => null];
             }
 
             return [
-                'success' => true,
-                'message' => 'SMS envoyé avec succès.',
-                'code' => 'SMS_SENT',
-                'data' => [
-                    'phone' => $phone,
-                    'widget_url' => $widgetUrl,
-                    'message_id' => $response->json('messages.0.messageId'),
-                ],
+                'delivered' => true,
+                'status'    => $response->status(),
+                'body'      => $response->json(),
             ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi du SMS.',
-                'code' => 'SMS_SEND_ERROR',
-                'status' => 500,
-                'error' => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Envoyer le lien de signature par WhatsApp via Infobip
-     * 
-     * @param string $token Token de signature
-     * @param string $phone Numéro de téléphone
-     * @param string|null $message Message personnalisé
-     * @return array Résultat de l'envoi
-     */
-    public function sendLinkByWhatsapp(
-        string $token,
-        string $phone,
-        ?string $message = null
-    ): array {
-        $token = self::normalizeToken($token);
-        if (!$token) {
-            return [
-                'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
-        }
-
-        // Vérifier que le token est valide
-        $signatureRequest = SignatureRequest::where('token', $token)->first();
-        
-        if (!$signatureRequest || !$signatureRequest->isValid()) {
-            return [
-                'success' => false,
-                'message' => 'Token invalide ou expiré.',
-                'code' => 'INVALID_TOKEN',
-                'status' => 404,
-            ];
-        }
-
-        $widgetUrl = url('/signature/widget/' . $token);
-        $defaultMessage = "Veuillez signer votre document en cliquant sur ce lien : {$widgetUrl}";
-
-        try {
-            // Intégration Infobip WhatsApp
-            $infobipApiKey = config('services.infobip.api_key');
-            $infobipBaseUrl = config('services.infobip.base_url');
-
-            if (!$infobipApiKey || !$infobipBaseUrl) {
-                return [
-                    'success' => false,
-                    'message' => 'Configuration Infobip manquante.',
-                    'code' => 'INFOBIP_CONFIG_ERROR',
-                    'status' => 500,
-                ];
-            }
-
-            $response = Http::withHeaders([
-                'Authorization' => 'App ' . $infobipApiKey,
-                'Content-Type' => 'application/json',
-            ])->post("{$infobipBaseUrl}/whatsapp/1/message/text", [
-                'from' => config('services.infobip.whatsapp_from'),
-                'to' => $phone,
-                'content' => [
-                    'text' => $message ?? $defaultMessage,
-                ],
+        } catch (\Throwable $e) {
+            // On ne logge jamais le contenu de la signature.
+            Log::error('[Signature] Exception lors de la livraison au webhook hôte', [
+                'uuid'    => $signatureRequest->uuid_signature_request,
+                'message' => $e->getMessage(),
             ]);
 
-            if (!$response->successful()) {
-                return [
-                    'success' => false,
-                    'message' => 'Erreur Infobip WhatsApp.',
-                    'code' => 'INFOBIP_WHATSAPP_ERROR',
-                    'status' => 500,
-                    'error' => $response->body(),
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Message WhatsApp envoyé avec succès.',
-                'code' => 'WHATSAPP_SENT',
-                'data' => [
-                    'phone' => $phone,
-                    'widget_url' => $widgetUrl,
-                    'message_id' => $response->json('messageId'),
-                ],
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de l\'envoi WhatsApp.',
-                'code' => 'WHATSAPP_SEND_ERROR',
-                'status' => 500,
-                'error' => $e->getMessage(),
-            ];
+            return ['delivered' => false, 'status' => null, 'body' => null];
         }
     }
 
-    /**
-     * Vérifier le statut d'un token
-     * 
-     * Permet à l'app client de faire du polling pour savoir si la signature est terminée
-     * Retourne des informations détaillées sur l'état de la demande de signature
-     * 
-     * @param string $token Token de signature
-     * @return array|null Statut du token ou null si invalide
-     */
+    /** Valide le format de la signature sans la conserver. */
+    private function isValidSignaturePayload(string $signatureBase64): bool
+    {
+        if (strlen($signatureBase64) > self::MAX_SIGNATURE_BYTES) {
+            return false;
+        }
+
+        return (bool) preg_match('#^data:image/png;base64,[A-Za-z0-9+/]+={0,2}$#', $signatureBase64);
+    }
+
+    // =====================================================================
+    // STATUT (polling desktop)
+    // =====================================================================
+
     public function checkTokenStatus(string $token): ?array
     {
         $token = self::normalizeToken($token);
@@ -588,15 +402,179 @@ class SignatureService
         }
 
         return [
-            'valid' => true,
-            'expires_at' => $signatureRequest->expires_at->toIso8601String(),
-            'expired' => $signatureRequest->isExpired(),
-            'is_used' => $signatureRequest->is_used,
-            'is_valid' => $signatureRequest->isValid(),
-            'signed_at' => $signatureRequest->signed_at ? $signatureRequest->signed_at->toIso8601String() : null,
-            'document_url' => $signatureRequest->document_url,
-            'document_description' => $signatureRequest->document_description,
+            'valid'                  => true,
+            'expires_at'             => optional($signatureRequest->expires_at)->toIso8601String(),
+            'expired'                => $signatureRequest->isExpired(),
+            'is_used'                => (bool) $signatureRequest->is_used,
+            'is_valid'               => $signatureRequest->isValid(),
+            'signed_at'              => optional($signatureRequest->signed_at)->toIso8601String(),
+            'delivery_status'        => $signatureRequest->delivery_status,
+            'document_description'   => $signatureRequest->document_description,
             'signature_request_uuid' => $signatureRequest->uuid_signature_request,
+        ];
+    }
+
+    // =====================================================================
+    // ENVOI DU LIEN (Email / SMS / WhatsApp)
+    // =====================================================================
+
+    /** Récupère une demande de signature encore valide, ou null. */
+    private function activeRequest(?string $token): ?SignatureRequest
+    {
+        $token = self::normalizeToken($token);
+
+        if (!$token) {
+            return null;
+        }
+
+        $signatureRequest = SignatureRequest::where('token', $token)->first();
+
+        return ($signatureRequest && $signatureRequest->isValid()) ? $signatureRequest : null;
+    }
+
+    public function sendLinkByEmail(
+        string $token,
+        string $email,
+        ?string $subject = null,
+        ?string $message = null
+    ): array {
+        $signatureRequest = $this->activeRequest($token);
+
+        if (!$signatureRequest) {
+            return $this->failure('Token invalide ou expiré.', 'INVALID_TOKEN', 404);
+        }
+
+        $widgetUrl = $this->widgetUrl($signatureRequest->token);
+        $subject   = $subject ?: 'Document à signer';
+        $body      = $message
+            ?: "Bonjour,\n\nVeuillez signer votre document en cliquant sur le lien ci-dessous :\n{$widgetUrl}\n\n"
+             . "Ce lien est personnel, à usage unique et expire le "
+             . $signatureRequest->expires_at->format('d/m/Y à H:i') . ".\n\nYAKOA AFRICASSUR";
+
+        try {
+            Mail::raw($body, function ($mail) use ($email, $subject) {
+                $mail->to($email)->subject($subject);
+            });
+
+            return [
+                'success' => true,
+                'message' => 'Email envoyé avec succès.',
+                'code'    => 'EMAIL_SENT',
+                'data'    => ['email' => $email],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[Signature] Échec envoi email', ['message' => $e->getMessage()]);
+
+            return $this->failure("Erreur lors de l'envoi de l'email.", 'EMAIL_SEND_ERROR', 500);
+        }
+    }
+
+    public function sendLinkBySms(string $token, string $phone, ?string $message = null): array
+    {
+        $signatureRequest = $this->activeRequest($token);
+
+        if (!$signatureRequest) {
+            return $this->failure('Token invalide ou expiré.', 'INVALID_TOKEN', 404);
+        }
+
+        $widgetUrl = $this->widgetUrl($signatureRequest->token);
+        $text      = $message ?: "Signez votre document ici : {$widgetUrl}";
+
+        return $this->sendViaInfobip(
+            '/sms/2/text/advanced',
+            [
+                'messages' => [[
+                    'from'         => config('services.infobip.sms_from', 'YAKOA'),
+                    'destinations' => [['to' => $phone]],
+                    'text'         => $text,
+                ]],
+            ],
+            ['phone' => $phone],
+            'SMS_SENT',
+            'INFOBIP_SMS_ERROR'
+        );
+    }
+
+    public function sendLinkByWhatsapp(string $token, string $phone, ?string $message = null): array
+    {
+        $signatureRequest = $this->activeRequest($token);
+
+        if (!$signatureRequest) {
+            return $this->failure('Token invalide ou expiré.', 'INVALID_TOKEN', 404);
+        }
+
+        $widgetUrl = $this->widgetUrl($signatureRequest->token);
+        $text      = $message ?: "Veuillez signer votre document en cliquant sur ce lien : {$widgetUrl}";
+
+        return $this->sendViaInfobip(
+            '/whatsapp/1/message/text',
+            [
+                'from'    => config('services.infobip.whatsapp_from'),
+                'to'      => $phone,
+                'content' => ['text' => $text],
+            ],
+            ['phone' => $phone],
+            'WHATSAPP_SENT',
+            'INFOBIP_WHATSAPP_ERROR'
+        );
+    }
+
+    /** Appel générique à l'API Infobip. */
+    private function sendViaInfobip(
+        string $path,
+        array $payload,
+        array $extraData,
+        string $successCode,
+        string $errorCode
+    ): array {
+        $apiKey  = config('services.infobip.api_key');
+        $baseUrl = rtrim((string) config('services.infobip.base_url'), '/');
+
+        if (!$apiKey || !$baseUrl) {
+            return $this->failure('Configuration Infobip manquante.', 'INFOBIP_CONFIG_ERROR', 500);
+        }
+
+        try {
+            $response = Http::withHeaders([
+                    'Authorization' => 'App ' . $apiKey,
+                    'Content-Type'  => 'application/json',
+                ])
+                ->timeout(15)
+                ->post($baseUrl . $path, $payload);
+
+            if (!$response->successful()) {
+                Log::warning('[Signature] Infobip en échec', [
+                    'path'   => $path,
+                    'status' => $response->status(),
+                ]);
+
+                return $this->failure('Erreur du fournisseur de messagerie.', $errorCode, 502);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Message envoyé avec succès.',
+                'code'    => $successCode,
+                'data'    => $extraData,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[Signature] Exception Infobip', ['message' => $e->getMessage()]);
+
+            return $this->failure('Erreur du fournisseur de messagerie.', $errorCode, 502);
+        }
+    }
+
+    // =====================================================================
+    // HELPERS
+    // =====================================================================
+
+    private function failure(string $message, string $code, int $status): array
+    {
+        return [
+            'success' => false,
+            'message' => $message,
+            'code'    => $code,
+            'status'  => $status,
         ];
     }
 }
