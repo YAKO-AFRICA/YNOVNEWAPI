@@ -127,25 +127,24 @@
                     console.log('=== onSigned appelé ===');
                     console.log('Signature envoyée avec succès', data);
                     
-                    // Marquer le token comme utilisé via redirection (plus fiable sur mobile)
+                    // Marquer le token comme utilisé via une image invisible (pixel de tracking)
+                    // C'est la méthode la plus fiable sur mobile
                     const urlParts = currentUrl.split('/signature/widget/');
                     const token = urlParts.length > 1 ? urlParts[1] : currentUrl.split('/').pop();
                     console.log('Token extrait:', token);
                     
-                    // Rediriger vers l'endpoint qui marque le token comme utilisé
                     const markUrl = window.location.origin + '/api/v1/signature/mark-token-used/' + encodeURIComponent(token);
-                    console.log('Redirection vers:', markUrl);
+                    console.log('Chargement pixel:', markUrl);
                     
-                    // Redirection en arrière-plan via un iframe invisible
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = markUrl;
-                    document.body.appendChild(iframe);
-                    
-                    // Nettoyer l'iframe après 2 secondes
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                    }, 2000);
+                    // Créer une image invisible
+                    const img = new Image();
+                    img.onload = function() {
+                        console.log('Token marqué avec succès (pixel)');
+                    };
+                    img.onerror = function() {
+                        console.error('Erreur marquage token (pixel)');
+                    };
+                    img.src = markUrl;
                     
                     // La redirection est gérée automatiquement si successRedirectUrl est fourni
                 },
