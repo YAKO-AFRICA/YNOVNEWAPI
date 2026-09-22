@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
 use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
+use App\Http\Controllers\Api\Ynov\Esouscription\PropositionController;
 use App\Http\Controllers\Api\Ynov\Esouscription\SanteController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FaqCategoryController;
@@ -55,6 +56,8 @@ use Illuminate\Support\Facades\Route;
 | Routes Publiques (sans auth)
 |--------------------------------------------------------------------------
 */
+
+Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
 
 Route::prefix('esousciption')->group(function () {
     Route::get('index', function () {
@@ -768,6 +771,10 @@ Route::prefix('v1')->middleware([
         Route::get('restore-document/{uuid}', [DocumentController::class, 'restoreDocument']);
         Route::get('force-delete-document/{uuid}', [DocumentController::class, 'forceDeleteDocument']);
         Route::get('get-trashed-documents', [DocumentController::class, 'getTrashedDocuments']);
+
+        // GESTION STORE CONTRAT
+        
+
 
     });
 
