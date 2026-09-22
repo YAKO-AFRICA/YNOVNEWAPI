@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Services\ClientNumberGenerator;
+use App\Services\Api\Ynov\Esouscription\ActeurService;
+use App\Services\Api\Ynov\Esouscription\ClientNumberGenerator;
 use DateTimeImmutable;
 use Illuminate\Http\Request;
 
@@ -11,29 +12,55 @@ class PropositionController extends Controller
 {
 
     public function __construct(
-        private ClientNumberGenerator $clientNumberGenerator
+        private ClientNumberGenerator $clientNumberGenerator,
+        private ActeurService $acteurService
     ) {}
     public function storeSouscription(Request $request)
     {
         try {
 
-            // generation idClient 
+            $adherentData = $request->all();
+
             $numeroClient = $this->clientNumberGenerator->generate(
-                'M',
-                new DateTimeImmutable('2000-01-01'),
+                (int) $adherentData['genre'],
+                new DateTimeImmutable($adherentData['date_naissance']),
             );
-            // $numeroClient = $this->clientNumberGenerator->generate(
-            //     (int) $adherentData['genre'],
-            //     $adherentData['date_naissance']
-            // );
 
-            return $numeroClient;
+            $adherentStore = $this->acteurService->create([
+                'idClient' => $numeroClient,
+                'civilite' => $adherentData['civilite'],
+                'genre' => $adherentData['genre'],
+                'nom' => $adherentData['nom'],
+                'prenoms' => $adherentData['prenoms'],
+                'date_naissance' => $adherentData['date_naissance'],
+                'lieunaissance_code' => $adherentData['lieunaissance_code'],
+                'email' => $adherentData['email'],
+                'mobile' => $adherentData['mobile'],
+                'telephone' => $adherentData['telephone'],
+                'numero_piece' => $adherentData['numero_piece'],
+                'nni' => $adherentData['nni'],
+                'nature_piece' => $adherentData['nature_piece'],
+                'situation_matrimoniale' => $adherentData['situation_matrimoniale'],
+                'profession_code' => $adherentData['profession_code'],
+                'employeur' => $adherentData['employeur'],
+                'lieuresidence_code' => $adherentData['lieuresidence_code'],
+                'pays_code' => $adherentData['pays_code'],
+                'integration_key' => $adherentData['integration_key'],
+                'created_by' => $adherentData['created_by'],
+            ]);
 
-            
+            return response()->json([
+                'success' => true,
+                'message' => 'Souscription crée avec succès',
+                'code' => 200,
+                'data' => $adherentStore
+            ]);
 
             
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
         }
     }
 }
+
+

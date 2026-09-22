@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Api\Ynov\Esouscription;
 
 use App\Models\Api\Ynov\Esouscription\Acteur;
 use DateTimeInterface;
@@ -30,15 +30,12 @@ class ClientNumberGenerator
             ->value('idClient');
 
         if ($dernierIdClient === null) {
-            // Aucun acteur avec cette racine => on démarre la séquence à 1
             $sequence = 1;
         } else {
-            // On extrait la partie séquentielle (les 4 derniers chiffres)
             $partieSequence = (int) substr($dernierIdClient, strlen($racine));
             $sequence = $partieSequence + 1;
         }
 
-        // On formate la séquence sur 4 chiffres (0001, 0002, ...)
         $sequenceFormatee = str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
 
         return $racine . $sequenceFormatee;
