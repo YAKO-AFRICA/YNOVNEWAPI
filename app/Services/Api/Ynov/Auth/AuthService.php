@@ -254,7 +254,7 @@ class AuthService
 
     public function logout(User $user, string $tokenId): void
     {
-        $user->tokens()->where('id', $tokenId)->delete();
+        $user->tokens()->whereKey($tokenId)->delete();
         if ($user->tokens()->count() === 0) {
             $user->update(['is_online' => false]);
         }
@@ -269,7 +269,7 @@ class AuthService
     public function refresh(User $user, string $currentTokenId, string $deviceName): string
     {
         $newToken = $user->createToken($deviceName, ['*'], now()->addHours(24));
-        $user->tokens()->where('id', $currentTokenId)->delete();
+        $user->tokens()->whereKey($currentTokenId)->delete();
         return $newToken->plainTextToken;
     }
 

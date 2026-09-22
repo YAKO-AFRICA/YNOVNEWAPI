@@ -19,6 +19,12 @@ class Rdv extends Model
 
     protected $table = 'rdvs';
 
+    protected $primaryKey = 'uuid_rdvs';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_rdvs',
         'code',

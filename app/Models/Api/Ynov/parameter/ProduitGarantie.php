@@ -12,6 +12,11 @@ class ProduitGarantie extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'produit_garanties';
+    protected $primaryKey = 'uuid_produit_garantie';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'uuid_produit_garantie',

@@ -11,6 +11,11 @@ class UserContrat extends Model
     use HasFactory;
 
     protected $table = 'user_contrat';
+    protected $primaryKey = 'uuid_user_contrat';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
      protected $fillable = [
         'uuid_user_contrat',
         'user_uuid',

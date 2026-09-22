@@ -18,6 +18,19 @@ class Agence extends Model
     use SoftDeletes, HasFactory;
     
     protected $table = 'agences';
+    /**
+     * La clé primaire du modèle.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'uuid_agence';
+
+    /**
+     * Le type de la clé primaire.
+     *
+     * @var string
+     */
+    protected $keyType = 'string';
     
     protected $fillable = [
         'uuid_agence',

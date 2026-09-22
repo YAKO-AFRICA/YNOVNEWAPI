@@ -15,8 +15,11 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
      *
      * @var string
      */
-    
+
     protected $table = 'personal_access_tokens';
+
+    protected $primaryKey = 'id';
+
     protected $fillable = [
         'tokenable_id',
         'tokenable_type',

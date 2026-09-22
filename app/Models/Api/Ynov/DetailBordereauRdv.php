@@ -15,6 +15,12 @@ class DetailBordereauRdv extends Model
 
     protected $table = 'detail_bordereau_rdvs';
 
+    protected $primaryKey = 'uuid_detail_bordereau_rdv';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_detail_bordereau_rdv',
         'bordereau_rdv_uuid',

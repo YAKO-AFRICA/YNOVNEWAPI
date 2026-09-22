@@ -15,6 +15,12 @@ class Facture extends Model
 
     protected $table = 'factures';
 
+    protected $primaryKey = 'uuid_facture';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_facture',
         'id_presentaion',

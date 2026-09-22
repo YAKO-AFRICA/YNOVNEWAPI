@@ -65,6 +65,10 @@
                 label: "Double Authentification",
                 icon: "fa-shield-halved",
             },
+            otp: {
+                label: "OTP & Vérification",
+                icon: "fa-mobile-screen-button",
+            },
             security: {
                 label: "Questions de Sécurité",
                 icon: "fa-question-circle",
@@ -1331,16 +1335,15 @@
 
             {
                 id: "otp-send",
-                module: "2fa",
-                name: "Envoyer un code OTP",
+                module: "otp",
+                name: "Envoyer un code OTP pour une opération métier",
                 description:
-                    "Génère et envoie un code OTP à 6 chiffres par email, SMS ou WhatsApp.",
+                    "Génère et envoie un code OTP à 6 chiffres pour une action métier (demande de prestation, souscription, déclaration de sinistre, reset, 2FA, login). Supporte email, SMS et WhatsApp.",
                 method: "POST",
                 path: "/auth/otp/send",
-                isProtected: true,
-                permissionsRequired: ["auth.2fa"],
+                isProtected: false,
+                rateLimit: "throttle:5,10",
                 headers: {
-                    Authorization: "Bearer {token}",
                     "Content-Type": "application/json",
                     Accept: "application/json",
                 },
@@ -1355,19 +1358,50 @@
                         purpose: {
                             type: "string",
                             required: true,
-                            enum: ["login", "2fa", "reset"],
-                            description: "Usage du code",
+                            enum: [
+                                "login",
+                                "2fa",
+                                "reset",
+                                "prestation_request",
+                                "subscription",
+                                "claim_declaration",
+                            ],
+                            description: "Objet métier de l'OTP. Le système normalise automatiquement les valeurs.",
                         },
                         login: {
                             type: "string",
                             required: false,
                             description: "Login de l'utilisateur",
                         },
+                        user_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "UUID de l'utilisateur",
+                        },
+                        email: {
+                            type: "string",
+                            required: false,
+                            description: "Adresse email spécifique si l'utilisateur n'en a pas de principale",
+                        },
+                        tel: {
+                            type: "string",
+                            required: false,
+                            description: "Téléphone pour l'envoi SMS/WhatsApp",
+                        },
+                        expiry_minutes: {
+                            type: "integer",
+                            required: false,
+                            default: 5,
+                            description: "Durée de validité du code en minutes",
+                        },
                     },
                 },
                 exampleRequest: {
-                    channel: "email",
-                    purpose: "2fa",
+                    channel: "sms",
+                    purpose: "prestation_request",
+                    login: "jdupont",
+                    tel: "0551234567",
+                    expiry_minutes: 5,
                 },
                 responses: [
                     {
@@ -1376,31 +1410,101 @@
                         example: {
                             success: true,
                             code: "OTP_SENT",
+                            message: "Code OTP envoyé par SMS.",
+                            data: {
+                                channel: "sms",
+                                purpose: "prestation_request",
+                                expires_in: 5,
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Utilisateur introuvable",
+                        example: {
+                            success: false,
+                            code: "USER_NOT_FOUND",
+                            message: "Utilisateur introuvable.",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Canal ou téléphone invalide",
+                        example: {
+                            success: false,
+                            code: "TELEPHONE_INVALID",
+                            message: "Numéro de téléphone invalide pour l'envoi SMS.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "otp-resend",
+                module: "otp",
+                name: "Renvoyer un OTP",
+                description:
+                    "Renvoye un code OTP pour le même purpose en respectant les règles de cooldown et la limite de 3 renvois.",
+                method: "POST",
+                path: "/auth/otp/resend",
+                isProtected: false,
+                rateLimit: "throttle:5,10",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        channel: {
+                            type: "string",
+                            required: true,
+                            enum: ["email", "sms", "whatsapp"],
+                            description: "Canal d'envoi",
+                        },
+                        purpose: {
+                            type: "string",
+                            required: true,
+                            description: "Même purpose que pour l'OTP initial",
+                        },
+                        login: {
+                            type: "string",
+                            required: false,
+                            description: "Login de l'utilisateur",
+                        },
+                        user_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "UUID de l'utilisateur",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    channel: "email",
+                    purpose: "subscription",
+                    user_uuid: "f3f5d9df-8b6f-4e1b-9b29-b588f0f2a1b4",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "OTP renvoyé avec succès",
+                        example: {
+                            success: true,
+                            code: "OTP_SENT",
                             message: "Code OTP envoyé par email.",
                             data: {
                                 channel: "email",
-                                purpose: "2fa",
+                                purpose: "subscription",
                                 expires_in: 5,
                             },
                         },
                     },
                     {
                         status: 422,
-                        description: "Canal invalide",
+                        description: "Limite de renvoi atteinte",
                         example: {
                             success: false,
-                            code: "CHANNEL_INVALID",
-                            message:
-                                "Le canal WhatsApp n'est pas encore configuré.",
-                        },
-                    },
-                    {
-                        status: 422,
-                        description: "Téléphone invalide",
-                        example: {
-                            success: false,
-                            code: "TELEPHONE_INVALID",
-                            message: "Numéro de téléphone invalide.",
+                            code: "OTP_RESEND_LIMIT_REACHED",
+                            message: "Vous avez déjà demandé un renvoi trop récemment. Veuillez réessayer plus tard.",
                         },
                     },
                 ],
@@ -1408,12 +1512,12 @@
 
             {
                 id: "otp-verify-code",
-                module: "2fa",
+                module: "otp",
                 name: "Vérifier un OTP pour une opération",
                 description:
-                    'Vérifie un code OTP précédemment envoyé. Si le `purpose` est "reset", génère un token de réinitialisation.',
+                    'Vérifie un code OTP précédemment envoyé. Le `purpose` est utilisé pour distinguer les flux : prestation, souscription, sinistre, reset, login, 2FA. Si le `purpose` est "reset", génère aussi un token de réinitialisation.',
                 method: "POST",
-                path: "/auth/otp/verify-code",
+                path: "/auth/otp/verify",
                 isProtected: false,
                 rateLimit: "throttle:5,10",
                 headers: {
@@ -1424,33 +1528,58 @@
                     body: {
                         login: {
                             type: "string",
-                            required: true,
+                            required: false,
                             description: "Login de l'utilisateur",
+                        },
+                        user_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "UUID de l'utilisateur",
                         },
                         code: {
                             type: "string",
                             required: true,
                             size: 6,
                             pattern: "^[0-9]{6}$",
-                            description: "Code OTP",
+                            description: "Code OTP à 6 chiffres",
                         },
                         purpose: {
                             type: "string",
                             required: true,
-                            enum: ["login", "2fa", "reset"],
-                            description: "Usage du code",
+                            enum: [
+                                "login",
+                                "2fa",
+                                "reset",
+                                "prestation_request",
+                                "subscription",
+                                "claim_declaration",
+                            ],
+                            description: "Usage du code OTP",
                         },
                     },
                 },
                 exampleRequest: {
                     login: "jdupont",
                     code: "123456",
-                    purpose: "reset",
+                    purpose: "claim_declaration",
                 },
                 responses: [
                     {
                         status: 200,
-                        description: "OTP vérifié avec token",
+                        description: "OTP vérifié",
+                        example: {
+                            success: true,
+                            code: "OTP_VERIFIED",
+                            message: "Code OTP vérifié.",
+                            data: {
+                                user_uuid: "...",
+                                purpose: "claim_declaration",
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "OTP vérifié pour reset",
                         example: {
                             success: true,
                             code: "OTP_VERIFIED",
@@ -1468,14 +1597,6 @@
                             success: false,
                             code: "OTP_INVALID",
                             message: "Code OTP invalide ou expiré.",
-                        },
-                    },
-                    {
-                        status: 429,
-                        description: "Trop de tentatives",
-                        example: {
-                            success: false,
-                            message: "Trop de tentatives. Veuillez patienter.",
                         },
                     },
                 ],
@@ -13829,7 +13950,7 @@
                         documents: {
                             type: "array",
                             required: false,
-                            description: "Documents joints à la prestation. Chaque élément est un fichier uploadé : { file, libelle, type_document }. Le service lie automatiquement chaque document à la prestation via reference_uuid = uuid_prestation et source = E-PRESTATION.",
+                            description: "Documents joints à la prestation. Chaque élément est un fichier uploadé : { file, libelle }. Le service lie automatiquement chaque document à la prestation via reference_uuid = uuid_prestation et source = E-PRESTATION.",
                         },
                     },
                 },
@@ -13847,12 +13968,10 @@
                         {
                             file: "<fichier-uploadé>",
                             libelle: "Pièce d'identité",
-                            type_document: "piece_identite",
                         },
                         {
                             file: "<fichier-uploadé>",
                             libelle: "Justificatif de domicile",
-                            type_document: "justificatif_domicile",
                         },
                     ],
                 },

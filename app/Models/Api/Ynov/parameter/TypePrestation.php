@@ -17,6 +17,12 @@ class TypePrestation extends Model
 
     protected $table = 'type_prestations';
 
+    protected $primaryKey = 'uuid_type_prestation';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_type_prestation',
         'code',

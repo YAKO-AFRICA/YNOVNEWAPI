@@ -54,6 +54,14 @@ class AssignClientPermissionsSeeder extends Seeder
         // NOTIFICATIONS - Consultation des notifications
         // ============================================================
         'notifications.afficher',
+
+        // ============================================================
+        // PRESTATIONS - Consultation et gestion des prestations
+        // ============================================================
+        'prestations.afficher',
+        'prestations.creer',
+        'prestations.modifier',
+        'prestations.supprimer',
         
         // ============================================================
         // GROUPES DE NOTIFICATION - Consultation des groupes

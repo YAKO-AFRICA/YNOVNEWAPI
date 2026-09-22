@@ -455,6 +455,7 @@ class PrestationService
             'rdv',
             'gestionnaire',
             'partner',
+            'documents',
         ]);
 
         if (isset($filters['status'])) {
@@ -499,6 +500,7 @@ class PrestationService
             'rdv',
             'gestionnaire',
             'partner',
+            'documents',
         ])->where('uuid_prestation', $uuid)->firstOrFail();
     }
 

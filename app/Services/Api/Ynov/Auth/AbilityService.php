@@ -138,7 +138,7 @@ class AbilityService
     public function revokeAllTokensExcept(User $user, PersonalAccessToken $exceptToken): void
     {
         $user->tokens()
-            ->where('id', '!=', $exceptToken->id)
+            ->whereKeyNot($exceptToken->getKey())
             ->delete();
     }
 

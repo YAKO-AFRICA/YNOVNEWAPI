@@ -19,6 +19,12 @@ class Produit extends Model
 
     protected $table = 'produits';
 
+    protected $primaryKey = 'uuid_produit';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_produit',
         'code',

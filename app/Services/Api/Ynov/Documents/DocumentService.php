@@ -162,8 +162,7 @@ class DocumentService
                         $createdPaths[] = $cheminRelatif;
                     }
 
-                    $typeDocument = $data['type_document']
-                        ?? $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
+                    $typeDocument = $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
 
                     $libelle = $labelsByFile[$index] ?? $data['libelle'] ?? pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
 

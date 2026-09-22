@@ -9,6 +9,11 @@ class MotifTraitement extends Model
 {
     protected $table = 'motif_traitements';
 
+    protected $primaryKey = 'uuid_motif_traitements';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
     protected $fillable = [
         'uuid_motif_traitements',
         'libelle',

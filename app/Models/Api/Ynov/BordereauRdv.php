@@ -17,6 +17,12 @@ class BordereauRdv extends Model
 
     protected $table = 'bordereau_rdvs';
 
+    protected $primaryKey = 'uuid_bordereau_rdv';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_bordereau_rdv',
         'reference',

@@ -16,6 +16,12 @@ class ProduitPrestation extends Model
 
     protected $table = 'produit_prestations';
 
+    protected $primaryKey = 'uuid_product_prestation';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_product_prestation',
         'produit_uuid',

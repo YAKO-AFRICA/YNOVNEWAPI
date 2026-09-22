@@ -16,6 +16,20 @@ class ActivityLog extends Model
     protected $table = 'activity_logs';
     
     public $timestamps = false;
+
+    /**
+     * La clé primaire du modèle.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'uuid_activity_log';
+
+    /**
+     * Le type de la clé primaire.
+     *
+     * @var string
+     */
+    protected $keyType = 'string';
     
     protected $fillable = [
         'uuid_activity_log',

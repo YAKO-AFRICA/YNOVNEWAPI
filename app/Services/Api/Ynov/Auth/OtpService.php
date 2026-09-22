@@ -15,6 +15,17 @@ class OtpService
     ) {
     }
 
+    public function normalizePurpose(string $purpose): string
+    {
+        $cleaned = trim((string) $purpose);
+
+        if ($cleaned === '') {
+            throw new \InvalidArgumentException('Le but de l\'OTP est requis.');
+        }
+
+        return strtolower(preg_replace('/[^a-z0-9_\-]+/i', '_', $cleaned));
+    }
+
     public function generate(
         User $user,
         string $channel,
@@ -23,6 +34,18 @@ class OtpService
         ?string $ua = null,
         int $expiryMinutes = 2
     ): string {
+        $purpose = $this->normalizePurpose($purpose);
+
+        OtpCode::query()
+            ->where('user_uuid', $user->uuid_user)
+            ->where('purpose', $purpose)
+            ->where('is_valid', true)
+            ->where('is_used', false)
+            ->where('expires_at', '>', now())
+            ->update([
+                'is_valid' => false,
+            ]);
+
         $code = str_pad(
             (string) random_int(0, 999999),
             6,
@@ -33,17 +56,13 @@ class OtpService
         OtpCode::create([
             'user_uuid' => $user->uuid_user,
             'code' => Hash::make($code),
-
-            // À éviter si la sécurité est prioritaire :
-            // idéalement ne pas conserver l'OTP en clair.
             // 'code_plain' => $code,
-
             'channel' => $channel,
             'purpose' => $purpose,
             'length' => 6,
-
             'expires_at' => now()->addMinutes($expiryMinutes),
-
+            'is_valid' => true,
+            'is_used' => false,
             'ip_address' => $ip,
             'user_agent' => $ua,
         ]);
@@ -56,6 +75,8 @@ class OtpService
         string $code,
         string $purpose
     ): bool {
+        $purpose = $this->normalizePurpose($purpose);
+
         $record = OtpCode::where('user_uuid', $user->uuid_user)
             ->where('purpose', $purpose)
             ->where('is_valid', true)
@@ -69,9 +90,9 @@ class OtpService
         }
 
         if (Hash::check($code, $record->code)) {
-
             $record->update([
                 'is_used' => true,
+                'is_valid' => false,
                 'used_at' => now(),
             ]);
 
@@ -83,24 +104,15 @@ class OtpService
         return false;
     }
 
-    public function sendOtp(
+    protected function dispatchOtp(
         User $user,
         string $channel,
         string $purpose,
-        ?string $ip = null,
-        ?string $ua = null,
-        int $expiryMinutes = 2,
+        string $code,
+        int $expiryMinutes,
         array $data = []
     ): array {
-
-        /*
-         * Vérifier le canal avant de générer/enregistrer l'OTP.
-         */
-        if (!in_array($channel, [
-            'sms',
-            'email',
-            'whatsapp',
-        ], true)) {
+        if (!in_array($channel, ['sms', 'email', 'whatsapp'], true)) {
             return [
                 'success' => false,
                 'code' => 'CHANNEL_INVALID',
@@ -108,26 +120,10 @@ class OtpService
             ];
         }
 
-        /*
-         * Génération et stockage de l'OTP.
-         */
-        $code = $this->generate(
-            $user,
-            $channel,
-            $purpose,
-            $ip,
-            $ua,
-            $expiryMinutes
-        );
-
-        /*
-         * EMAIL
-         */
         if ($channel === 'email') {
-
             $email = $user->email
                 ?? $user->details?->email_pro
-                ?? $data['email'] 
+                ?? $data['email']
                 ?? null;
 
             if (empty($email)) {
@@ -159,19 +155,8 @@ class OtpService
             ];
         }
 
-        /*
-         * SMS
-         */
         if ($channel === 'sms') {
-
-            $phone = preg_replace(
-                '/\D/',
-                '', $user->details?->mobile_1
-                    ?? $data['tel']
-                    ?? $data['login']
-                    ?? ''
-            );
-
+            $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
             $phone = substr($phone, -10);
 
             if (strlen($phone) !== 10) {
@@ -183,7 +168,6 @@ class OtpService
             }
 
             $phoneNumber = '+225' . $phone;
-
             $message = sprintf(
                 'Votre code OTP YNOV est : %s (valable %d min)',
                 $code,
@@ -208,55 +192,112 @@ class OtpService
             ];
         }
 
-        /*
-         * WHATSAPP
-         *
-         * À connecter à ton service WhatsApp.
-         */
-        if ($channel === 'whatsapp') {
+        $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
+        $phone = substr($phone, -10);
 
-            $phone = preg_replace(
-                '/\D/',
-                '',
-                $user->details?->mobile_1
-                ?? $data['tel']
-                ?? $data['login']
-                    ?? ''
-            );
-
-            $phone = substr($phone, -10);
-
-            if (strlen($phone) !== 10) {
-                return [
-                    'success' => false,
-                    'code' => 'TELEPHONE_INVALID',
-                    'message' => 'Numéro de téléphone invalide pour WhatsApp.',
-                ];
-            }
-
-            $phoneNumber = '+225' . $phone;
-
-            /*
-             * Exemple :
-             *
-             * $this->WhatsAppService->send(...);
-             *
-             * Ne pas simuler l'envoi tant que le service
-             * WhatsApp n'est pas réellement configuré.
-             */
-
+        if (strlen($phone) !== 10) {
             return [
                 'success' => false,
-                'code' => 'WHATSAPP_NOT_CONFIGURED',
-                'message' => 'Le canal WhatsApp n\'est pas encore configuré.',
+                'code' => 'TELEPHONE_INVALID',
+                'message' => 'Numéro de téléphone invalide pour WhatsApp.',
             ];
         }
 
         return [
             'success' => false,
-            'code' => 'OTP_SEND_FAILED',
-            'message' => 'Impossible d\'envoyer le code OTP.',
+            'code' => 'WHATSAPP_NOT_CONFIGURED',
+            'message' => 'Le canal WhatsApp n\'est pas encore configuré.',
         ];
+    }
+
+    public function sendOtp(
+        User $user,
+        string $channel,
+        string $purpose,
+        ?string $ip = null,
+        ?string $ua = null,
+        int $expiryMinutes = 2,
+        array $data = []
+    ): array {
+        $purpose = $this->normalizePurpose($purpose);
+        $code = $this->generate(
+            $user,
+            $channel,
+            $purpose,
+            $ip,
+            $ua,
+            $expiryMinutes
+        );
+
+        return $this->dispatchOtp(
+            $user,
+            $channel,
+            $purpose,
+            $code,
+            $expiryMinutes,
+            $data
+        );
+    }
+
+    public function resendOtp(
+        User $user,
+        string $channel,
+        string $purpose,
+        ?string $ip = null,
+        ?string $ua = null,
+        int $expiryMinutes = 2,
+        array $data = []
+    ): array {
+        $purpose = $this->normalizePurpose($purpose);
+
+        $latest = OtpCode::where('user_uuid', $user->uuid_user)
+            ->where('purpose', $purpose)
+            ->latest('created_at')
+            ->first();
+
+        if (!$latest) {
+            return $this->sendOtp(
+                $user,
+                $channel,
+                $purpose,
+                $ip,
+                $ua,
+                $expiryMinutes,
+                $data
+            );
+        }
+
+        if (!$latest->canResend(3, 1)) {
+            return [
+                'success' => false,
+                'code' => 'OTP_RESEND_LIMIT_REACHED',
+                'message' => 'Vous avez déjà demandé un renvoi trop récemment. Veuillez réessayer plus tard.',
+            ];
+        }
+
+        $code = $this->generate(
+            $user,
+            $channel,
+            $purpose,
+            $ip,
+            $ua,
+            $expiryMinutes
+        );
+
+        $result = $this->dispatchOtp(
+            $user,
+            $channel,
+            $purpose,
+            $code,
+            $expiryMinutes,
+            $data
+        );
+
+        if ($result['success']) {
+            $latest->incrementResendCount();
+        }
+
+        return $result;
     }
 
     public function getOtpByUser(
@@ -267,7 +308,7 @@ class OtpService
     ): ?OtpCode {
         return OtpCode::query()
             ->where('user_uuid', $user->uuid_user)
-            ->where('purpose', $purpose)
+            ->where('purpose', $this->normalizePurpose($purpose))
             ->where('channel', $channel)
             ->where('created_at', '>=', now()->subHours($dateInHours))
             ->latest('created_at')

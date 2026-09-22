@@ -18,6 +18,12 @@ class Role extends Model
     
     
     protected $table = 'roles';
+
+    protected $primaryKey = 'uuid_role';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
     
     protected $fillable = [
         'uuid_role',

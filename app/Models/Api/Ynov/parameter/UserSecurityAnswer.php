@@ -13,6 +13,10 @@ class UserSecurityAnswer extends Model
 {
     protected $table = 'user_security_answers';
 
+    protected $primaryKey = 'uuid';
+
+    protected $keyType = 'string';
+
     protected $fillable = [
         'uuid',
         'user_uuid',

@@ -15,6 +15,12 @@ class Paiement extends Model
 
     protected $table = 'paiements';
 
+    protected $primaryKey = 'uuid_paiement';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_paiement',
         'payment_code',

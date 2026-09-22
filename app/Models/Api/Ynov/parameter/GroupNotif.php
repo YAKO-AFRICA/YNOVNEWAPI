@@ -14,7 +14,13 @@ class GroupNotif extends Model
     use SoftDeletes, HasFactory;
     
     protected $table = 'group_notifs';
-    
+
+    protected $primaryKey = 'uuid_group_notif';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_group_notif',
         'code',

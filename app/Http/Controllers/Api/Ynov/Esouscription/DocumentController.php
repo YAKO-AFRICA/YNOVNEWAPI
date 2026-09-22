@@ -423,7 +423,8 @@ class DocumentController extends Controller
                 ], 404);
             }
 
-            $url = env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
+            $url = url('preview/doc/' . $document->nom_fichier); // env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
+            // $url = env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
 
             return response()->json([
                 'success' => true,

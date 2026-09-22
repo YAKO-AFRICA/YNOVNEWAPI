@@ -29,17 +29,36 @@
     }
 
     if (!function_exists('RefgenerateCode')) {
-        function RefgenerateCode($table, $init, $key)
+        function RefgenerateCode($model, $init, $key)
         {
-            $latest = $table::orderBy('id', 'desc')->first();
+            $query = $model::query();
+
+            if (in_array(
+                \Illuminate\Database\Eloquent\SoftDeletes::class,
+                class_uses_recursive($model)
+            )) {
+                $query->withTrashed();
+            }
+
+            $createdAtColumn = (new $model)->getCreatedAtColumn();
+
+            $latest = $query
+                ->orderByDesc($createdAtColumn ?? 'created_at')
+                ->first();
+
             if (!$latest) {
                 $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
                 return $code;
             }
 
-            $string = preg_replace("/[^0-9\.]/", '', $latest->$key);
-            $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
-            return $code;
+            $latestValue = (string) ($latest->{$key} ?? '');
+
+            if ($latestValue === '') {
+                $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
+                return $code;
+            }
+
+            return $latestValue;
         }
     }
 

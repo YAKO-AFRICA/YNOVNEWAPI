@@ -23,6 +23,12 @@ class SignatureRequest extends Model
 
     protected $table = 'signature_requests';
 
+    protected $primaryKey = 'uuid_signature_request';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_signature_request',
         'token',

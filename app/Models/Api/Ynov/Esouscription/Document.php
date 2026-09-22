@@ -2,6 +2,7 @@
 
 namespace App\Models\Api\Ynov\Esouscription;
 
+use App\Models\Api\Ynov\Prestation;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -82,5 +83,10 @@ class Document extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function prestation()
+    {
+        return $this->belongsTo(Prestation::class, 'reference_uuid', 'uuid_prestation');
+    }
 
 }

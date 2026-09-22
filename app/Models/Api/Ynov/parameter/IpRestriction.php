@@ -11,7 +11,13 @@ class IpRestriction extends Model
 {
     
     protected $table = 'ip_restrictions';
-    
+
+    protected $primaryKey = 'uuid_restriction';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_restriction',
         'ip_address',

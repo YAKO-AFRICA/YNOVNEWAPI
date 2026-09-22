@@ -34,15 +34,6 @@ class PrestationResource extends JsonResource
             'date_traitement' => $this->date_traitement?->format('Y-m-d H:i:s'),
             'status' => $this->status,
             'status_label' => $this->getPrestationStatusLabel(),
-            // 'status_label' => $this->status ? match ($this->status) {
-            //     'inacheve' => 'Inachevée',
-            //     'en_attente' => 'En attente',
-            //     'transmis' => 'Transmise',
-            //     'accepte' => 'Acceptée',
-            //     'rejete' => 'Rejetée',
-            //     'annule' => 'Annulée',
-            //     default => $this->status,
-            // } : null,
             'is_migrated' => (bool) $this->is_migrated,
             'migration_date' => $this->migration_date?->format('Y-m-d H:i:s'),
             'motif_traitement' => $this->motif_traitement,
@@ -160,6 +151,25 @@ class PrestationResource extends JsonResource
                     'prenoms' => $user->details?->prenoms,
                     'full_name' => trim(($user->details?->nom ?? '') . ' ' . ($user->details?->prenoms ?? '')),
                 ] : null;
+            }),
+
+            'documents' => $this->whenLoaded('documents', function () {
+                return $this->documents->map(function ($document) {
+                    return [
+                        'uuid_document' => $document->uuid_document,
+                        'reference_uuid' => $document->reference_uuid,
+                        'nom_fichier' => $document->nom_fichier,
+                        'libelle' => $document->libelle,
+                        'source' => $document->source,
+                        'chemin' => $document->chemin,
+                        'type_document' => $document->type_document,
+                        'taille_fichier' => $document->taille_fichier,
+                        'mime_type' => $document->mime_type,
+                        'statut' => $document->statut,
+                        'url' => url('preview/doc/' . $document->nom_fichier),
+                        'created_at' => $document->created_at?->format('Y-m-d H:i:s'),
+                    ];
+                })->values()->all();
             }),
 
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

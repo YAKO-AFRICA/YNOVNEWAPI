@@ -14,7 +14,13 @@ class UserDetails extends Model
     
     
     protected $table = 'user_details';
-    
+
+    protected $primaryKey = 'uuid_user_details';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_user_details',
         'code_agent',

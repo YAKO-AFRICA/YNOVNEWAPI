@@ -2,6 +2,7 @@
 
 namespace App\Models\Api\Ynov;
 
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Partner;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\User;
@@ -15,6 +16,12 @@ class Prestation extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'prestations';
+
+    protected $primaryKey = 'uuid_prestation';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'uuid_prestation',
@@ -110,6 +117,13 @@ class Prestation extends Model
     public function traiterPar()
     {
         return $this->belongsTo(User::class, 'traiter_par', 'uuid_user');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class, 'reference_uuid', 'uuid_prestation')
+            ->where('source', 'E-PRESTATION')
+            ->orderByDesc('created_at');
     }
 
     public function scopeActive($query)

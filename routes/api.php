@@ -87,7 +87,15 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify-email', [EmailVerificationController::class, 'verify']);
     Route::post('auth/resend-verification', [EmailVerificationController::class, 'send']);
 
+    Route::post('auth/otp/send', [OtpController::class, 'sendOtp'])
+        ->middleware('throttle:5,10');
+    Route::post('auth/otp/resend', [OtpController::class, 'resendOtp'])
+        ->middleware('throttle:5,10');
+
     Route::post('auth/otp/verify-code', [OtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10');
+
+    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
         ->middleware('throttle:5,10');
 
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
@@ -227,8 +235,8 @@ Route::prefix('v1')->middleware([
         Route::post('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
     });
 
-    Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp'])
-        ->middleware(['throttle:5,10', 'permission:auth.2fa']);
+    // Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp'])
+    //     ->middleware(['throttle:5,10', 'permission:auth.2fa']);
 
     Route::group(['middleware' => 'permission:auth.devices'], function () {
         Route::get('auth/devices', [DeviceController::class, 'index']);

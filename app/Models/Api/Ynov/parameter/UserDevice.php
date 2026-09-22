@@ -11,6 +11,12 @@ class UserDevice extends Model
 {
     
     protected $table = 'user_devices';
+
+    protected $primaryKey = 'uuid_device';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
     
     protected $fillable = [
         'uuid_device',
