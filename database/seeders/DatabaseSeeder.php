@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             TypePrestationSeeder::class,
             DefaultGroupNotifSeeder::class,
             YakoAgenceSeeder::class,
+            SecurityQuestionSeeder::class,
         ]);
     }
 }

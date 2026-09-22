@@ -16,6 +16,85 @@ class SecurityQuestionService
     private const MIN_REQUIRED_ANSWERS = 3;
     private const MAX_ALLOWED_ANSWERS = 5;
 
+    public function suggestedQuestions(){
+        return [
+            [
+                'category' => 'Personnelle',
+                'questions' => [
+                    'Quel est le nom de votre premier animal de compagnie ?',
+                    'Quel est le nom de jeune fille de votre mère ?',
+                    'Quelle est votre couleur préférée ?',
+                    'Quel est votre plat préféré ?',
+                    'Quel est votre film préféré ?',
+                    'Quelle est votre chanson préférée ?',
+                    'Quel est votre livre préféré ?',
+                    'Quelle est votre ville préférée ?',
+                    'Quel est votre sport préféré ?',
+                    'Quelle est votre saison préférée ?',
+                ]
+            ],
+            [
+                'category' => 'Famille',
+                'questions' => [
+                    'Quel est le prénom de votre père ?',
+                    'Quel est le prénom de votre mère ?',
+                    'Quel est le prénom de votre frère/soeur ?',
+                    'Quel est le nom de votre grand-mère maternelle ?',
+                    'Quel est le nom de votre grand-père paternel ?',
+                    'Dans quelle ville vos parents se sont-ils rencontrés ?',
+                    'Quelle est la date de naissance de votre mère ?',
+                    'Quel est le métier de votre père ?',
+                ]
+            ],
+            [
+                'category' => 'Éducation',
+                'questions' => [
+                    'Quel est le nom de votre école primaire ?',
+                    'Quel est le nom de votre lycée ?',
+                    'Quel est le nom de votre université ?',
+                    'Quelle était votre matière préférée à l\'école ?',
+                    'Quel est le nom de votre meilleur professeur ?',
+                    'Quelle est votre année de diplôme ?',
+                    'Quel est votre diplôme le plus élevé ?',
+                ]
+            ],
+            [
+                'category' => 'Professionnelle',
+                'questions' => [
+                    'Quel est le nom de votre premier employeur ?',
+                    'Quel était votre premier poste ?',
+                    'Quel est le nom de votre manager actuel ?',
+                    'Quelle est votre entreprise actuelle ?',
+                    'Quel a été votre premier salaire ?',
+                    'Quel est votre projet professionnel préféré ?',
+                ]
+            ],
+            [
+                'category' => 'Loisirs',
+                'questions' => [
+                    'Quel est votre hobby préféré ?',
+                    'Quel est votre sport préféré ?',
+                    'Quelle est votre destination de vacances préférée ?',
+                    'Quel est votre jeu vidéo préféré ?',
+                    'Quelle est votre série préférée ?',
+                    'Quel est votre acteur/actrice préféré ?',
+                    'Quel est votre groupe/musicien préféré ?',
+                ]
+            ],
+            [
+                'category' => 'Mémorable',
+                'questions' => [
+                    'Quel est votre plus beau souvenir d\'enfance ?',
+                    'Quel est votre voyage le plus mémorable ?',
+                    'Quel est votre événement marquant préféré ?',
+                    'Quelle est votre plus grande fierté ?',
+                    'Quel est votre meilleur ami d\'enfance ?',
+                    'Quel est votre restaurant préféré ?',
+                ]
+            ],
+        ];
+    }
+
     /**
      * Récupérer toutes les questions actives
      */
