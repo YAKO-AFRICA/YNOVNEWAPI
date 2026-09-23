@@ -80,17 +80,13 @@ class PrestationResource extends JsonResource
                     'impact_label' => method_exists($type, 'getImpactLabel') ? $type->getImpactLabel() : null,
                     'delai_traitement' => $type->delai_traitement,
                     'status' => $type->status,
-                    'category' => $type->whenLoaded('category', function () use ($type) {
-                        $category = $type->category;
-
-                        return $category ? [
-                            'uuid_category_type_prestations' => $category->uuid_category_type_prestations,
-                            'code' => $category->code,
-                            'libelle' => $category->libelle,
-                            'description' => $category->description,
-                            'status' => $category->status,
-                        ] : null;
-                    }),
+                    'category' => $type->category ? [
+                        'uuid_category_type_prestations' => $type->category->uuid_category_type_prestations,
+                        'code' => $type->category->code,
+                        'libelle' => $type->category->libelle,
+                        'description' => $type->category->description,
+                        'status' => $type->category->status,
+                    ] : null,
                 ];
             }),
 

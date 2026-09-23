@@ -42,23 +42,25 @@
 
             $createdAtColumn = (new $model)->getCreatedAtColumn();
 
-            $latest = $query
-                ->orderByDesc($createdAtColumn ?? 'created_at')
-                ->first();
+            // Générer un code unique
+            $attempts = 0;
+            $maxAttempts = 10;
 
-            if (!$latest) {
+            while ($attempts < $maxAttempts) {
                 $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
-                return $code;
+
+                // Vérifier si le code existe déjà
+                $exists = $query->where($key, $code)->exists();
+
+                if (!$exists) {
+                    return $code;
+                }
+
+                $attempts++;
             }
 
-            $latestValue = (string) ($latest->{$key} ?? '');
-
-            if ($latestValue === '') {
-                $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
-                return $code;
-            }
-
-            return $latestValue;
+            // Si après 10 tentatives on n'a toujours pas de code unique, utiliser un timestamp
+            return $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . time();
         }
     }
 

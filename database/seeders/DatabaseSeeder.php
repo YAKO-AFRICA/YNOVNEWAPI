@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AssignGestionnaireRdvPermissionsSeeder::class,
             SuperAdminUserSeeder::class,
             FaqCategorySeeder::class,
+            FaqSeeder::class,
             JourFerieSeeder::class,
             MotifTraitementSeeder::class,
             TypeProduitSeeder::class,

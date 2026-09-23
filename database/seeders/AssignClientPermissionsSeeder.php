@@ -22,7 +22,7 @@ class AssignClientPermissionsSeeder extends Seeder
         'auth.sessions',
         'auth.devices',
         'auth.login_attempts',
-        'auth.2fa',
+        'auth.2fa', 
         
         // ============================================================
         // PROFIL - Gestion du profil
@@ -41,7 +41,7 @@ class AssignClientPermissionsSeeder extends Seeder
         'espace_client.contrats_factures_impayees',
         'espace_client.ajouter_contrat',
 
-        // 'agences.afficher',
+        'agences.afficher',
         
         // ============================================================
         // RENDEZ-VOUS - Création et gestion des rendez-vous
