@@ -156,7 +156,7 @@ class OtpService
         }
 
         if ($channel === 'sms') {
-            $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
+            $phone = preg_replace('/\D/', '', $data['tel'] ?? $data['login'] ??  $user->details?->mobile_1 ?? '');
             $phone = substr($phone, -10);
 
             if (strlen($phone) !== 10) {
@@ -192,7 +192,7 @@ class OtpService
             ];
         }
 
-        $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
+        $phone = preg_replace('/\D/', '', $data['tel'] ?? $data['login'] ??  $user->details?->mobile_1 ?? '');
         $phone = substr($phone, -10);
 
         if (strlen($phone) !== 10) {

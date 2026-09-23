@@ -89,14 +89,16 @@ Route::prefix('v1')->group(function () {
 
     Route::post('auth/otp/send', [OtpController::class, 'sendOtp'])
         ->middleware('throttle:5,10');
+
+    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10');
+
     Route::post('auth/otp/resend', [OtpController::class, 'resendOtp'])
         ->middleware('throttle:5,10');
 
     Route::post('auth/otp/verify-code', [OtpController::class, 'verifyOtp'])
         ->middleware('throttle:5,10');
 
-    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
-        ->middleware('throttle:5,10');
 
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
     Route::post('auth/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])

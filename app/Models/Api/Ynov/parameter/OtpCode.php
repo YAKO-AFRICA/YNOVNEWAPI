@@ -22,7 +22,7 @@ class OtpCode extends Model
         'uuid_otp_code',
         'user_uuid',
         'code', // Hash du code OTP
-        'code_plain', // Code en clair (pour SMS/Email)
+        // 'code_plain', // Code en clair (pour SMS/Email)
         'channel',
         'purpose',
         'length',
