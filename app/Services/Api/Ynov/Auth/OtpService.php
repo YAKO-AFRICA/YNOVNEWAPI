@@ -56,7 +56,6 @@ class OtpService
         OtpCode::create([
             'user_uuid' => $user->uuid_user,
             'code' => Hash::make($code),
-            // 'code_plain' => $code,
             'channel' => $channel,
             'purpose' => $purpose,
             'length' => 6,

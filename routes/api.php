@@ -160,31 +160,59 @@ Route::prefix('v1')->group(function () {
     // ============================================================
     // Widget JS embarquable consolidé (version unique avec documentation complète)
 
-    Route::prefix('signature')->group(function () {
+    // Route::prefix('signature')->group(function () {
  
-        // Widget JS embarquable
+    //     // Widget JS embarquable
+    //     Route::get('signature-widget.js', function () {
+    //         return response()->file(public_path('assets/js/signature-widget.js'), [
+    //             'Content-Type'  => 'application/javascript',
+    //             'Cache-Control' => 'public, max-age=3600',
+    //         ]);
+    //     });
+    //     // --- Réservé à l'application hôte (à protéger !) ---
+    //     // Sans authentification ni throttling, n'importe qui peut générer des liens
+    //     // de signature et faire émettre des SMS/WhatsApp à vos frais.
+    //     Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+    //         Route::post('generate-link',  [SignatureController::class, 'generateLink']);
+    //     });
+    
+    //     // --- Appelé par le widget (authentifié par le token lui-même) ---
+    //     Route::post('webhook', [SignatureController::class, 'receiveSignature'])
+    //         ->middleware('throttle:20,1');
+    
+    //     // --- Polling du poste desktop ---
+    //     Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus'])
+    //         ->where('token', SignatureService::TOKEN_PATTERN)
+    //         ->middleware('throttle:240,1');
+    // });
+
+    // ============================================================
+    // SIGNATURE ÉLECTRONIQUE
+    // ============================================================
+    Route::prefix('signature')->group(function () {
+
         Route::get('signature-widget.js', function () {
             return response()->file(public_path('assets/js/signature-widget.js'), [
                 'Content-Type'  => 'application/javascript',
                 'Cache-Control' => 'public, max-age=3600',
             ]);
         });
-    
-        // --- Réservé à l'application hôte (à protéger !) ---
-        // Sans authentification ni throttling, n'importe qui peut générer des liens
-        // de signature et faire émettre des SMS/WhatsApp à vos frais.
+
+        // --- Réservé à l'application hôte ---
         Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
-            Route::post('generate-link',  [SignatureController::class, 'generateLink']);
-            Route::post('send/email',     [SignatureController::class, 'sendByEmail']);
-            Route::post('send/sms',       [SignatureController::class, 'sendBySms']);
-            Route::post('send/whatsapp',  [SignatureController::class, 'sendByWhatsapp']);
+            Route::post('generate-link', [SignatureController::class, 'generateLink']);
         });
-    
-        // --- Appelé par le widget (authentifié par le token lui-même) ---
+
+        // --- Appelé par le widget ---
         Route::post('webhook', [SignatureController::class, 'receiveSignature'])
             ->middleware('throttle:20,1');
-    
-        // --- Polling du poste desktop ---
+
+        // --- Passerelle OTP signature (nouveau) ---
+        // Réutilise OtpService::verify, renvoie des données autoritaires.
+        Route::post('otp/verify', [SignatureController::class, 'verifySignatureOtp'])
+            ->middleware('throttle:10,1');
+
+        // --- Polling ---
         Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus'])
             ->where('token', SignatureService::TOKEN_PATTERN)
             ->middleware('throttle:240,1');
