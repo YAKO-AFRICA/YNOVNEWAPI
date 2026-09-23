@@ -22,6 +22,8 @@ class StoreUserRequest extends FormRequest
             'user_type' => ['required', 'in:client,user_interne,user_partner,admin'],
             'partner_uuid' => ['nullable', 'exists:partners,uuid_partner'],
             'reseau_uuid' => ['nullable', 'exists:reseaux,uuid_reseau'],
+            'agence_uuids' => ['nullable', 'array'],
+            'agence_uuids.*' => ['exists:agences,uuid_agence'],
             'agence_uuid' => ['nullable', 'exists:agences,uuid_agence'],
             'nom' => ['required', 'string', 'max:55'],
             'prenoms' => ['required', 'string', 'max:255'],
@@ -57,7 +59,7 @@ class StoreUserRequest extends FormRequest
             'user_type.in' => 'Le type d\'utilisateur est incorrect.',
             'partner_uuid.exists' => 'Le partenaire n\'existe pas.',
             'reseau_uuid.exists' => 'Le réseau n\'existe pas.',
-            'agence_uuid.exists' => 'L\'agence n\'existe pas.',
+            'agence_uuids.*.exists' => 'Une ou plusieurs agences n\'existent pas.',
             'nom.required' => 'Le nom est requis.',
             'nom.string' => 'Le nom doit être une chaîne de caractères.',
             'nom.max' => 'Le nom ne doit pas dépasser 55 caractères.',
@@ -79,5 +81,15 @@ class StoreUserRequest extends FormRequest
             'photo.image' => 'La photo doit être une image.',
             'photo.max' => 'La photo ne doit pas dépasser 2Mo.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        // Si une seule agence est fournie via agence_uuid, la convertir en tableau
+        if ($this->has('agence_uuid') && !$this->has('agence_uuids')) {
+            $this->merge([
+                'agence_uuids' => [$this->input('agence_uuid')]
+            ]);
+        }
     }
 }

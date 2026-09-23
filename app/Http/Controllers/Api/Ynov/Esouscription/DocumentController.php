@@ -423,7 +423,8 @@ class DocumentController extends Controller
                 ], 404);
             }
 
-            $url = env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
+            $url = url('preview/doc/' . $document->nom_fichier); // env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
+            // $url = env('APP_URL') . 'preview/doc/' . $document->nom_fichier;
 
             return response()->json([
                 'success' => true,
@@ -575,46 +576,6 @@ class DocumentController extends Controller
         }
     }
 
-    /**
-     * Suppression définitive (force delete) d'un document.
-     */
-    // public function forceDelete(string $uuid): JsonResponse
-    // {
-    //     DB::beginTransaction();
-
-    //     try {
-    //         $document = Document::withTrashed()->find($uuid);
-
-    //         if (!$document) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Document introuvable.',
-    //             ], 404);
-    //         }
-
-    //         // Supprimer aussi le fichier physique si présent
-    //         if ($document->chemin && Storage::exists($document->chemin)) {
-    //             Storage::delete($document->chemin);
-    //         }
-
-    //         $document->forceDelete();
-
-    //         DB::commit();
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Document supprimé définitivement.',
-    //         ], 200);
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Erreur lors de la suppression définitive.',
-    //             'error'   => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
 
     public function forceDeleteDocument(string $uuid): JsonResponse
     {

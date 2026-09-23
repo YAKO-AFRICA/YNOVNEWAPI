@@ -14,6 +14,11 @@ class ProduitFormule extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'produit_formules';
+    protected $primaryKey = 'uuid_produit_formule';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'uuid_produit_formule',

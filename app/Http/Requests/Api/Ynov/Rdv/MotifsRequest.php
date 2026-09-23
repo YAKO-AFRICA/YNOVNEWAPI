@@ -24,6 +24,7 @@ class MotifsRequest extends FormRequest
         return [
             'code_produit' => ['required', 'string', 'exists:produits,code'],
             'impact' => ['nullable', 'string', Rule::in(['0', '1'])],
+            'category_uuid' => ['nullable', 'string', 'exists:category_type_prestations,uuid_category_type_prestations'],
         ];
     }
 
@@ -36,6 +37,7 @@ class MotifsRequest extends FormRequest
             'code_produit.required' => 'Le code du produit est obligatoire.',
             'code_produit.exists' => 'Le code du produit n\'existe pas.',
             'impact.in' => 'L\'impact doit être 0 (non sortie portefeuille) ou 1 (sortie portefeuille).',
+            'category_uuid.exists' => 'La catégorie de prestation n\'existe pas.',
         ];
     }
 
@@ -47,6 +49,7 @@ class MotifsRequest extends FormRequest
         return [
             'code_produit' => 'code du produit',
             'impact' => 'impact',
+            'category_uuid' => 'catégorie de prestation',
         ];
     }
 

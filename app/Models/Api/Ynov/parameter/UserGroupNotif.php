@@ -12,7 +12,13 @@ class UserGroupNotif extends Model
 {
     
     protected $table = 'user_group_notifs';
-    
+
+    protected $primaryKey = 'uuid_user_group_notif';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_user_group_notif',
         'user_uuid',

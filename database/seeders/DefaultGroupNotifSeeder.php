@@ -214,6 +214,26 @@ class DefaultGroupNotifSeeder extends Seeder
             ]
         );
 
+        // ============================================================
+        // GROUPE PRESTATIONS
+        // ============================================================
+        GroupNotif::firstOrCreate(
+            ['code' => 'prestations'],
+            [
+                'uuid_group_notif' => (string) Str::uuid(),
+                'libelle' => 'Prestations',
+                'description' => 'Notifications liées aux prestations : création, modification, annulation, etc.',
+                'channels' => ['database', 'email', 'sms'],
+                'preferences' => [
+                    'email_enabled' => true,
+                    'database_enabled' => true,
+                    'sms_enabled' => true,
+                    'push_enabled' => true,
+                ],
+                'status' => 'actif',
+            ]
+        );
+
         $this->command->info('✅ Groupes de notification créés avec succès !');
         $this->command->info('📋 Liste des groupes :');
         $this->command->info('   - securite (Sécurité)');

@@ -23,7 +23,7 @@ class SessionController extends Controller
     public function revoke(Request $request, string $tokenId): JsonResponse
     {
         $user = $request->user();
-        $token = $user->tokens()->find($tokenId);
+        $token = $user->tokens()->whereKey($tokenId)->first();
         if (!$token) {
             return response()->json(['success' => false, 'message' => 'Session non trouvée.'], 404);
         }

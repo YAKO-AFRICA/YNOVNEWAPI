@@ -18,34 +18,98 @@ class OtpController extends Controller
     public function __construct(
         private OtpService $otpService,
     ) {}
-    
+
+    protected function resolveUser(Request $request): ?User
+    {
+        if ($request->filled('user_uuid')) {
+            return User::where('uuid_user', $request->user_uuid)->first();
+        }
+
+        if ($request->filled('login')) {
+            return User::where('login', $request->login)->first();
+        }
+
+        return null;
+    }
+
+    public function sendOtp(Request $request): JsonResponse
+    {
+        $request->validate([
+            'channel' => ['required', 'string', 'in:sms,email,whatsapp'],
+            'purpose' => ['required', 'string', 'max:120'],
+            'login' => ['nullable', 'string', 'max:100'],
+            'user_uuid' => ['nullable', 'uuid'],
+            'email' => ['nullable', 'email'],
+            'tel' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = $this->resolveUser($request);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'code' => 'USER_NOT_FOUND',
+                'message' => 'Utilisateur introuvable.',
+            ], 404);
+        }
+
+        $result = $this->otpService->sendOtp(
+            user: $user,
+            channel: $request->channel,
+            purpose: $request->purpose,
+            ip: $request->ip(),
+            ua: $request->userAgent(),
+            expiryMinutes: (int) ($request->expiry_minutes ?? 5),
+            data: $request->all(),
+        );
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    public function resendOtp(Request $request): JsonResponse
+    {
+        $request->validate([
+            'channel' => ['required', 'string', 'in:sms,email,whatsapp'],
+            'purpose' => ['required', 'string', 'max:120'],
+            'login' => ['nullable', 'string', 'max:100'],
+            'user_uuid' => ['nullable', 'uuid'],
+            'email' => ['nullable', 'email'],
+            'tel' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = $this->resolveUser($request);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'code' => 'USER_NOT_FOUND',
+                'message' => 'Utilisateur introuvable.',
+            ], 404);
+        }
+
+        $result = $this->otpService->resendOtp(
+            user: $user,
+            channel: $request->channel,
+            purpose: $request->purpose,
+            ip: $request->ip(),
+            ua: $request->userAgent(),
+            expiryMinutes: (int) ($request->expiry_minutes ?? 5),
+            data: $request->all(),
+        );
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
 
     public function verifyOtp(Request $request): JsonResponse
     {
         $request->validate([
-            'login' => [
-                'required',
-                'string',
-                'max:100',
-            ],
-            'code' => [
-                'required',
-                'string',
-                'size:6',
-                'regex:/^[0-9]{6}$/',
-            ],
-            'purpose' => [
-                'required',
-                'string',
-            ],
+            'code' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
+            'purpose' => ['required', 'string', 'max:120'],
+            'login' => ['nullable', 'string', 'max:100'],
+            'user_uuid' => ['nullable', 'uuid'],
         ]);
-        /*
-        * Pour un OTP de réinitialisation,
-        * l'utilisateur n'est pas encore authentifié.
-        */
-        $user = User::where('login', $request->login)->first();
 
-        $result = $this->otpService->verify($user, $request->code, $request->purpose);
+        $user = $this->resolveUser($request);
 
         if (!$user) {
             return response()->json([
@@ -55,26 +119,26 @@ class OtpController extends Controller
             ], 422);
         }
 
+        $result = $this->otpService->verify(
+            $user,
+            $request->code,
+            $request->purpose
+        );
+
         if (!$result) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'code' => 'OTP_INVALID',
-                'message' => 'Code OTP invalide ou expiré.'
-                ], 422);
+                'message' => 'Code OTP invalide ou expiré.',
+            ], 422);
         }
 
-        if ($request->purpose === 'reset') {
-            // Génération du token
+        if (strtolower($request->purpose) === 'reset') {
             $resetToken = Str::random(64);
-            // Log::info($resetToken);
-
-            // Hash du token avant stockage
             $hashedToken = Hash::make($resetToken);
 
             DB::table('password_reset_tokens')->updateOrInsert(
-                [
-                    'login' => $user->login,
-                ],
+                ['login' => $user->login],
                 [
                     'token' => $hashedToken,
                     'created_at' => now(),
@@ -83,21 +147,26 @@ class OtpController extends Controller
                     'user_agent' => $request->userAgent(),
                 ]
             );
+
             return response()->json([
                 'success' => true,
                 'code' => 'OTP_VERIFIED',
                 'message' => 'Code OTP vérifié.',
                 'data' => [
                     'user_uuid' => $user->uuid_user,
-                    'reset_token' => $resetToken
-                ]
+                    'reset_token' => $resetToken,
+                ],
             ]);
         }
 
         return response()->json([
-                'success' => true,
-                'code' => 'OTP_VERIFIED',
-                'message' => 'Code OTP vérifié.'
-            ]);
+            'success' => true,
+            'code' => 'OTP_VERIFIED',
+            'message' => 'Code OTP vérifié.',
+            'data' => [
+                'user_uuid' => $user->uuid_user,
+                'purpose' => $this->otpService->normalizePurpose($request->purpose),
+            ],
+        ]);
     }
 }

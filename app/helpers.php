@@ -29,17 +29,38 @@
     }
 
     if (!function_exists('RefgenerateCode')) {
-        function RefgenerateCode($table, $init, $key)
+        function RefgenerateCode($model, $init, $key)
         {
-            $latest = $table::orderBy('id', 'desc')->first();
-            if (!$latest) {
-                $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
-                return $code;
+            $query = $model::query();
+
+            if (in_array(
+                \Illuminate\Database\Eloquent\SoftDeletes::class,
+                class_uses_recursive($model)
+            )) {
+                $query->withTrashed();
             }
 
-            $string = preg_replace("/[^0-9\.]/", '', $latest->$key);
-            $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
-            return $code;
+            $createdAtColumn = (new $model)->getCreatedAtColumn();
+
+            // Générer un code unique
+            $attempts = 0;
+            $maxAttempts = 10;
+
+            while ($attempts < $maxAttempts) {
+                $code = $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . rand(10, 99);
+
+                // Vérifier si le code existe déjà
+                $exists = $query->where($key, $code)->exists();
+
+                if (!$exists) {
+                    return $code;
+                }
+
+                $attempts++;
+            }
+
+            // Si après 10 tentatives on n'a toujours pas de code unique, utiliser un timestamp
+            return $init . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3)) . time();
         }
     }
 

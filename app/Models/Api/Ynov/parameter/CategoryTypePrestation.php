@@ -15,6 +15,12 @@ class CategoryTypePrestation extends Model
 
     protected $table = 'category_type_prestations';
 
+    protected $primaryKey = 'uuid_category_type_prestations';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_category_type_prestations',
         'code',

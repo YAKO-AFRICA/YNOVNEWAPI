@@ -14,6 +14,12 @@ class Faq extends Model
 
     protected $table = 'faqs';
 
+    protected $primaryKey = 'uuid_faq';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_faq',
         'faq_category_uuid',

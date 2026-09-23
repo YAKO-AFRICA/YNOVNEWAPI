@@ -14,6 +14,12 @@ class RolePermission extends Model
     
     protected $table = 'role_permissions';
 
+    protected $primaryKey = 'uuid_role_permission';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_role_permission',
         'role_uuid',

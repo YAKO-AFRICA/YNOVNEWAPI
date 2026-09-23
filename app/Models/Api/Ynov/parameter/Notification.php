@@ -15,6 +15,12 @@ class Notification extends Model
 
     protected $table = 'notifications';
 
+    protected $primaryKey = 'uuid_notification';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_notification',
         'user_uuid',

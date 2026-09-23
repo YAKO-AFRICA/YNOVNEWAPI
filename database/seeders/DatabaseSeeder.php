@@ -12,15 +12,26 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SuperAdminRoleSeeder::class,
+            PermissionSeeder::class,
             AssignSuperAdminPermissionsSeeder::class,
             AssignClientPermissionsSeeder::class,
-            PermissionSeeder::class,
+            AssignAdminPrestationPermissionsSeeder::class,
+            AssignAdminRdvPermissionsSeeder::class,
+            AssignGestionnairePrestationPermissionsSeeder::class,
+            AssignGestionnaireRdvPermissionsSeeder::class,
             SuperAdminUserSeeder::class,
             FaqCategorySeeder::class,
+            FaqSeeder::class,
             JourFerieSeeder::class,
+            MotifTraitementSeeder::class,
             TypeProduitSeeder::class,
             ProduitSeeder::class,
+            ProduitGarantieSeeder::class,
             CategoryTypePrestationSeeder::class,
+            TypePrestationSeeder::class,
+            DefaultGroupNotifSeeder::class,
+            YakoAgenceSeeder::class,
+            SecurityQuestionSeeder::class,
         ]);
     }
 }

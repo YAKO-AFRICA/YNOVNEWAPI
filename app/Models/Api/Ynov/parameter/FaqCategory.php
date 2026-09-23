@@ -14,6 +14,12 @@ class FaqCategory extends Model
 
     protected $table = 'faq_categories';
 
+    protected $primaryKey = 'uuid_faq_category';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_faq_category',
         'code',

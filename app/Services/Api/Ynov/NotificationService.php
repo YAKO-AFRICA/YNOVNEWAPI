@@ -2,10 +2,14 @@
 // app/Services/Api/Ynov/NotificationService.php
 namespace App\Services\Api\Ynov;
 
+use App\Mail\TransmettreRdvMail;
 use App\Models\Api\Ynov\parameter\Notification;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\DetailBordereauRdv;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class NotificationService
@@ -224,5 +228,161 @@ class NotificationService
         return Notification::where('user_uuid', $userUuid)
             ->where('is_important', true)
             ->count();
+    }
+
+    /**
+     * Envoyer un email avec pièce jointe
+     */
+    public function sendEmailWithAttachment(array $data): array
+    {
+        return DB::transaction(function () use ($data) {
+            $gestionnaire = User::where('uuid_user', $data['gestionnaire_uuid'])->first();
+            $envoyePar = User::where('uuid_user', $data['envoye_par'])->first();
+            
+            if (!$gestionnaire) {
+                return [
+                    'success' => false,
+                    'message' => 'Gestionnaire non trouvé.',
+                    'code' => 'GESTIONNAIRE_NOT_FOUND',
+                    'status' => 404,
+                ];
+            }
+
+            // Sujet et message automatiques
+            $sujet = "Transmission de RDV pour traitement";
+            
+            // Construire le nom du destinataire avec fallbacks
+            $nomDestinataire = '';
+            $nomExpediteur = '';
+            if ($gestionnaire->details) {
+                $nomDestinataire = trim(($gestionnaire->details->prenoms ?? '') . ' ' . ($gestionnaire->details->nom ?? ''));
+            }
+            if (empty($nomDestinataire)) {
+                $nomDestinataire = $gestionnaire->login ?? '';
+            }
+
+            if ($envoyePar->details) {
+                $nomExpediteur = trim(($envoyePar->details->prenoms ?? '') . ' ' . ($envoyePar->details->nom ?? ''));
+            }
+            if (empty($nomExpediteur)) {
+                $nomExpediteur = $envoyePar->login ?? '';
+            }
+            
+            $message = "Bonjour {$nomDestinataire},<br><br>Merci de trouver ci-joint le fichier Excel contenant les RDV transmis pour traitement.<br><br>Veuillez procéder aux calculs des valeurs (PM, etc.) dans les meilleurs délais.<br><br>Cordialement,<br>{$nomExpediteur}<br>L'équipe YNOV.";
+
+            // Stocker le fichier temporairement
+            $fichier = $data['fichier'];
+            $fichierNom = $fichier->getClientOriginalName();
+            $fichierExtension = $fichier->getClientOriginalExtension();
+            $fichierPath = $fichier->storeAs('temp', uniqid() . '.' . $fichierExtension, 'local');
+
+            // Mettre à jour les détails de bordereau si des rdv_uuids sont fournis
+            $rdvUuids = $data['rdv_uuids'] ?? [];
+            $detailsUpdates = 0;
+            
+            if (!empty($rdvUuids)) {
+                foreach ($rdvUuids as $rdvUuid) {
+                    $detail = DetailBordereauRdv::where('rdv_uuid', $rdvUuid)->first();
+                    if ($detail) {
+                        $detail->update([
+                            'status' => 'soumis',
+                            'soumis_a_gestionnaire_prestation_uuid' => $data['gestionnaire_uuid'],
+                        ]);
+                        $detailsUpdates++;
+                    }
+                }
+            }
+
+            try {
+                // Envoyer l'email au gestionnaire principal
+                Mail::to($gestionnaire->email)
+                    ->cc($data['copie_cc'] ?? [])
+                    ->send(new TransmettreRdvMail(
+                        $gestionnaire->email,
+                        storage_path('app/' . $fichierPath),
+                        $fichierNom,
+                        $sujet,
+                        $message
+                    ));
+
+                // Créer une notification pour le gestionnaire (database)
+                $notification = $this->create([
+                    'user_uuid' => $gestionnaire->uuid_user,
+                    'title' => $sujet,
+                    'body' => $message,
+                    'type' => 'email',
+                    'channel' => 'database',
+                    'metadata' => [
+                        'fichier_nom' => $fichierNom,
+                        'fichier_taille' => $fichier->getSize(),
+                        'envoye_par' => $data['envoye_par'] ?? null,
+                        'copie_cc' => $data['copie_cc'] ?? [],
+                        'rdv_uuids' => $rdvUuids,
+                        'details_mis_a_jour' => $detailsUpdates,
+                    ],
+                    'created_by' => $data['envoye_par'] ?? null,
+                ]);
+
+                // Créer des notifications database pour les destinataires en copie
+                if (!empty($data['copie_cc'])) {
+                    foreach ($data['copie_cc'] as $emailCc) {
+                        $userCc = User::where('email', $emailCc)->first();
+                        if ($userCc) {
+                            $this->create([
+                                'user_uuid' => $userCc->uuid_user,
+                                'title' => "[Copie] " . $sujet,
+                                'body' => $message,
+                                'type' => 'email',
+                                'channel' => 'database',
+                                'metadata' => [
+                                    'is_copy' => true,
+                                    'original_recipient' => $gestionnaire->email,
+                                ],
+                                'created_by' => $data['envoye_par'] ?? null,
+                            ]);
+                        }
+                    }
+                }
+
+                // Log d'activité
+                ActivityLog::log([
+                    'user_uuid' => $data['envoye_par'] ?? null,
+                    'action' => 'rdv_transmis_par_email',
+                    'action_type' => 'email',
+                    'module' => 'rdvs',
+                    'description' => "Email avec fichier Excel envoyé à {$gestionnaire->email}",
+                    'resource_type' => 'rdv',
+                    'level' => 'info',
+                    'old_values' => [],
+                    'new_values' => [
+                        'gestionnaire_uuid' => $gestionnaire->uuid_user,
+                        'gestionnaire_email' => $gestionnaire->email,
+                        'sujet' => $sujet,
+                        'fichier_nom' => $fichierNom,
+                        'copie_cc' => $data['copie_cc'] ?? [],
+                        'rdv_uuids' => $rdvUuids,
+                        'details_mis_a_jour' => $detailsUpdates,
+                    ],
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Email transmis avec succès.',
+                    'code' => 'EMAIL_TRANSMIS',
+                    'status' => 200,
+                    'data' => [
+                        'notification_uuid' => $notification->uuid_notification,
+                        'gestionnaire_email' => $gestionnaire->email,
+                        'fichier_nom' => $fichierNom,
+                        'details_mis_a_jour' => $detailsUpdates,
+                    ],
+                ];
+            } finally {
+                // Nettoyer le fichier temporaire
+                if (Storage::disk('local')->exists($fichierPath)) {
+                    Storage::disk('local')->delete($fichierPath);
+                }
+            }
+        });
     }
 }

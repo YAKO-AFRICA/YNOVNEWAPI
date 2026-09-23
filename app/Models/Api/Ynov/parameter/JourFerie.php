@@ -16,6 +16,12 @@ class JourFerie extends Model
 
     protected $table = 'jour_feries';
 
+    protected $primaryKey = 'uuid_jour_ferie';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_jour_ferie',
         'date',

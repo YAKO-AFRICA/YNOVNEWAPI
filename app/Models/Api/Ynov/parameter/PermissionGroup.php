@@ -14,7 +14,13 @@ class PermissionGroup extends Model
     
     
     protected $table = 'permission_groups';
-    
+
+    protected $primaryKey = 'uuid_permission_group';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_permission_group',
         'code',

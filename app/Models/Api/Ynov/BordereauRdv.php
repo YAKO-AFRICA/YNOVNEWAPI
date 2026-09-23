@@ -3,8 +3,11 @@
 
 namespace App\Models\Api\Ynov;
 
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -14,11 +17,17 @@ class BordereauRdv extends Model
 
     protected $table = 'bordereau_rdvs';
 
+    protected $primaryKey = 'uuid_bordereau_rdv';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_bordereau_rdv',
         'reference',
-        'periode_1',
-        'periode_2',
+        'periode_1', // Date de début de la période
+        'periode_2', // Date de fin de la période
         'observation',
         'status',
         'created_by',
@@ -40,12 +49,36 @@ class BordereauRdv extends Model
         });
     }
 
+    public function details(): HasMany
+    {
+        return $this->hasMany(DetailBordereauRdv::class, 'bordereau_rdv_uuid', 'uuid_bordereau_rdv');
+    }
+
+    public function createur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function modificateur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function isDisponiblePourRdv(Rdv $rdv): bool
+    {
+        return $this->details()
+            ->where('rdv_uuid', $rdv->uuid_rdvs)
+            ->where('status', 'traite')
+            ->exists()
+            && $this->status === 'cloture';
+    }
+
     /**
      * Vérifier si une date est dans une période clôturée
      */
     public static function isDateCloturee($date): bool
     {
-        return static::where('periode_1', '<=', $date)
+        return static::where('status', 'transfere')->where('periode_1', '<=', $date)
             ->where('periode_2', '>=', $date)
             ->exists();
     }
@@ -55,7 +88,7 @@ class BordereauRdv extends Model
      */
     public static function isPeriodeCloturee($dateDebut, $dateFin): bool
     {
-        return static::where(function ($query) use ($dateDebut, $dateFin) {
+        return static::where('status', 'transfere')->where(function ($query) use ($dateDebut, $dateFin) {
                 $query->whereBetween('periode_1', [$dateDebut, $dateFin])
                       ->orWhereBetween('periode_2', [$dateDebut, $dateFin])
                       ->orWhere(function ($q) use ($dateDebut, $dateFin) {
@@ -74,11 +107,8 @@ class BordereauRdv extends Model
         return $query->where('status', 'cloture');
     }
 
-    /**
-     * Scope pour les bordereaux valides
-     */
     public function scopeValide($query)
     {
-        return $query->where('status', 'valide');
+        return $query->where('status', 'transfere');
     }
 }

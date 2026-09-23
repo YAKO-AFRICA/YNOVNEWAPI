@@ -23,6 +23,81 @@ class UserService
         private readonly SMSService $SMSService,
         private NotificationService $notificationService,
     ) {}
+    // public function create(array $data, string $creatorUuid): User
+    // {
+    //     return DB::transaction(function () use ($data, $creatorUuid) {
+    //         $user = User::create([
+    //             'uuid_user' => (string) Str::uuid(),
+    //             'email' => $data['email'],
+    //             'login' => $data['login'] ?? null,
+    //             'password' => Hash::make($data['password']),
+    //             'role_uuid' => $data['role_uuid'],
+    //             'user_type' => $data['user_type'],
+    //             'partner_uuid' => $data['partner_uuid'] ?? null,
+    //             'reseau_uuid' => $data['reseau_uuid'] ?? null,
+    //             'status' => 'actif',
+    //             'is_first_login' => true,
+    //             'password_expires_at' => now()->addDays(90),
+    //         ]);
+
+    //         UserDetails::create([
+    //             'uuid_user_details' => (string) Str::uuid(),
+    //             'user_uuid' => $user->uuid_user,
+    //             'code_agent' => $data['code_agent'] ?? null,
+    //             'matricule' => $data['matricule'] ?? null,
+    //             'nom' => $data['nom'],
+    //             'prenoms' => $data['prenoms'],
+    //             'fonction' => $data['fonction'] ?? null,
+    //             'service' => $data['service'] ?? null,
+    //             'departement' => $data['departement'] ?? null,
+    //             'mobile_1' => $data['mobile_1'] ?? null,
+    //             'mobile_2' => $data['mobile_2'] ?? null,
+    //             'email_pro' => $data['email_pro'] ?? null,
+    //             'date_naissance' => $data['date_naissance'] ?? null,
+    //             'lieu_naissance' => $data['lieu_naissance'] ?? null,
+    //             'genre' => $data['genre'] ?? null,
+    //             'civilite' => $data['civilite'] ?? null,
+    //             'ville' => $data['ville'] ?? null,
+    //             'pays' => $data['pays'] ?? null,
+    //             'created_by' => $creatorUuid,
+    //         ]);
+
+    //         if (!empty($data['agence_uuid'])) {
+    //             $user->agences()->attach($data['agence_uuid'], [
+    //                 'uuid_user_agence' => (string) Str::uuid(),
+    //                 'is_primary' => true,
+    //                 'is_active' => true,
+    //                 'assigned_at' => now(),
+    //             ]);
+    //         }
+
+    //         // Créer une notification pour le nouvel utilisateur
+    //         $this->notificationService->create([
+    //             'user_uuid' => $user->uuid_user,
+    //             'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+    //             'title' => '👋 Bienvenue sur YNOV',
+    //             'body' => 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
+    //             'type' => 'account',
+    //             'metadata' => [
+    //                 'created_at' => now()->toISOString(),
+    //             ],
+    //             'channel' => 'database',
+    //             'created_by' => $creatorUuid,
+    //         ]);
+
+    //         if ($user->email){
+    //             Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $data['password']));
+    //         }
+
+    //         return $user;
+    //     });
+    // }
+
+
+
+    /**
+     * Créer un utilisateur
+     */
     public function create(array $data, string $creatorUuid): User
     {
         return DB::transaction(function () use ($data, $creatorUuid) {
@@ -40,11 +115,13 @@ class UserService
                 'password_expires_at' => now()->addDays(90),
             ]);
 
+            // Créer les détails utilisateur
             UserDetails::create([
                 'uuid_user_details' => (string) Str::uuid(),
                 'user_uuid' => $user->uuid_user,
                 'code_agent' => $data['code_agent'] ?? null,
                 'matricule' => $data['matricule'] ?? null,
+                'numero_client' => $data['numero_client'] ?? null,
                 'nom' => $data['nom'],
                 'prenoms' => $data['prenoms'],
                 'fonction' => $data['fonction'] ?? null,
@@ -62,36 +139,23 @@ class UserService
                 'created_by' => $creatorUuid,
             ]);
 
-            if (!empty($data['agence_uuid'])) {
-                $user->agences()->attach($data['agence_uuid'], [
-                    'uuid_user_agence' => (string) Str::uuid(),
-                    'is_primary' => true,
-                    'is_active' => true,
-                    'assigned_at' => now(),
-                ]);
+            // Assigner les agences si fournies
+            if (!empty($data['agence_uuids'])) {
+                $this->assignAgences($user, $data['agence_uuids'], $creatorUuid);
             }
 
-            // Créer une notification pour le nouvel utilisateur
-            $this->notificationService->create([
-                'user_uuid' => $user->uuid_user,
-                'group_notif_uuid' => $this->getWelcomeGroupUuid(),
-                'title' => '👋 Bienvenue sur YNOV',
-                'body' => 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
-                'type' => 'account',
-                'metadata' => [
-                    'created_at' => now()->toISOString(),
-                ],
-                'channel' => 'database',
-                'created_by' => $creatorUuid,
-            ]);
-
-            if ($user->email){
-                Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $data['password']));
+            // Si une seule agence est fournie (compatibilité)
+            if (!empty($data['agence_uuid']) && empty($data['agence_uuids'])) {
+                $this->assignAgences($user, [$data['agence_uuid']], $creatorUuid);
             }
+
+            // Notifications
+            $this->sendWelcomeNotifications($user, $data['password']);
 
             return $user;
         });
     }
+
 
     public function createClient(array $data): array
     {
@@ -390,6 +454,54 @@ class UserService
 
     }
 
+    // public function update(User $user, array $data, string $updaterUuid): User
+    // {
+    //     return DB::transaction(function () use ($user, $data, $updaterUuid) {
+    //         $user->update([
+    //             'email' => $data['email'] ?? $user->email,
+    //             'login' => $data['login'] ?? $user->login,
+    //             'role_uuid' => $data['role_uuid'] ?? $user->role_uuid,
+    //             'user_type' => $data['user_type'] ?? $user->user_type,
+    //             'partner_uuid' => $data['partner_uuid'] ?? $user->partner_uuid,
+    //             'reseau_uuid' => $data['reseau_uuid'] ?? $user->reseau_uuid,
+    //             'status' => $data['status'] ?? $user->status,
+    //         ]);
+
+    //         if ($user->details) {
+    //             $user->details->update([
+    //                 'nom' => $data['nom'] ?? $user->details->nom,
+    //                 'prenoms' => $data['prenoms'] ?? $user->details->prenoms,
+    //                 'fonction' => $data['fonction'] ?? $user->details->fonction,
+    //                 'mobile_1' => $data['mobile_1'] ?? $user->details->mobile_1,
+    //                 'mobile_2' => $data['mobile_2'] ?? $user->details->mobile_2,
+    //                 'ville' => $data['ville'] ?? $user->details->ville,
+    //                 'updated_by' => $updaterUuid,
+    //             ]);
+    //         }
+
+    //         // Créer une notification pour la mise à jour du profil
+    //         $this->notificationService->create([
+    //             'user_uuid' => $user->uuid_user,
+    //             'group_notif_uuid' => $this->getAccountGroupUuid(),
+    //             'title' => '📝 Profil mis à jour',
+    //             'body' => 'Vos informations de profil ont été mises à jour avec succès.',
+    //             'type' => 'account',
+    //             'metadata' => [
+    //                 'updated_by' => $updaterUuid,
+    //                 'updated_at' => now()->toISOString(),
+    //             ],
+    //             'channel' => 'database',
+    //             'created_by' => $updaterUuid,
+    //         ]);
+
+    //         return $user->fresh();
+    //     });
+    // }
+
+
+    /**
+     * Mettre à jour un utilisateur
+     */
     public function update(User $user, array $data, string $updaterUuid): User
     {
         return DB::transaction(function () use ($user, $data, $updaterUuid) {
@@ -403,35 +515,170 @@ class UserService
                 'status' => $data['status'] ?? $user->status,
             ]);
 
+            // Mettre à jour les détails si présents
             if ($user->details) {
-                $user->details->update([
+                 $user->details->update([
                     'nom' => $data['nom'] ?? $user->details->nom,
                     'prenoms' => $data['prenoms'] ?? $user->details->prenoms,
                     'fonction' => $data['fonction'] ?? $user->details->fonction,
+                    'service' => $data['service'] ?? $user->details->service,
+                    'departement' => $data['departement'] ?? $user->details->departement,
                     'mobile_1' => $data['mobile_1'] ?? $user->details->mobile_1,
                     'mobile_2' => $data['mobile_2'] ?? $user->details->mobile_2,
+                    'email_pro' => $data['email_pro'] ?? $user->details->email_pro,
+                    'date_naissance' => $data['date_naissance'] ?? $user->details->date_naissance,
+                    'lieu_naissance' => $data['lieu_naissance'] ?? $user->details->lieu_naissance,
+                    'genre' => $data['genre'] ?? $user->details->genre,
+                    'civilite' => $data['civilite'] ?? $user->details->civilite,
                     'ville' => $data['ville'] ?? $user->details->ville,
+                    'pays' => $data['pays'] ?? $user->details->pays,
                     'updated_by' => $updaterUuid,
                 ]);
             }
 
-            // Créer une notification pour la mise à jour du profil
-            $this->notificationService->create([
-                'user_uuid' => $user->uuid_user,
-                'group_notif_uuid' => $this->getAccountGroupUuid(),
-                'title' => '📝 Profil mis à jour',
-                'body' => 'Vos informations de profil ont été mises à jour avec succès.',
-                'type' => 'account',
-                'metadata' => [
-                    'updated_by' => $updaterUuid,
-                    'updated_at' => now()->toISOString(),
-                ],
-                'channel' => 'database',
-                'created_by' => $updaterUuid,
-            ]);
+            // Mettre à jour les agences
+            // Mise à jour des agences
+            if (isset($data['agence_uuids'])) {
+                // Si replace est true, on remplace toutes les agences
+                if (isset($data['replace']) && $data['replace']) {
+                    $this->syncAgences($user, $data['agence_uuids'], $updaterUuid);
+                } else {
+                    // Sinon, on ajoute les nouvelles agences
+                    $this->assignAgences($user, $data['agence_uuids'], $updaterUuid);
+                }
+            }
 
-            return $user->fresh();
+            return $user->fresh(['details', 'role', 'agences']);
+            // return $user->fresh();
         });
+    }
+
+    /**
+     * Assigner des agences à un utilisateur
+     */
+    public function assignAgences(User $user, array $agenceUuids, string $assignerUuid): void
+    {
+        $syncData = [];
+        // $isFirst = $user->agences()->count() === 0;
+
+        $currentAgences = $user->agences()->pluck('uuid_agence')->toArray();
+        $newAgences = array_diff($agenceUuids, $currentAgences);
+
+        if (empty($newAgences)) {
+            return;
+        }
+
+        // foreach ($agenceUuids as $agenceUuid) {
+        //     $syncData[$agenceUuid] = [
+        //         'uuid_user_agence' => (string) Str::uuid(),
+        //         'is_primary' => $isFirst, // La première agence devient principale
+        //         'is_active' => true,
+        //         'assigned_at' => now(),
+        //         'assigned_by' => $assignerUuid,
+        //     ];
+        //     $isFirst = false;
+        // }
+
+        $hasPrimary = $user->agences()->wherePivot('is_primary', true)->exists();
+
+        foreach ($newAgences as $agenceUuid) {
+            $syncData[$agenceUuid] = [
+                'uuid_user_agence' => (string) Str::uuid(),
+                'is_primary' => !$hasPrimary, // La première agence devient principale si aucune n'existe
+                'is_active' => true,
+                'assigned_at' => now(),
+                'assigned_by' => $assignerUuid,
+            ];
+            $hasPrimary = true;
+        }
+
+        $user->agences()->syncWithoutDetaching($syncData);
+    }
+
+    /**
+     * Synchroniser les agences d'un utilisateur
+     */
+    public function syncAgences(User $user, array $agenceUuids, string $updaterUuid): void
+    {
+        $currentAgences = $user->agences()->pluck('uuid_agence')->toArray();
+
+        // Agences à supprimer
+        $toRemove = array_diff($currentAgences, $agenceUuids);
+        if (!empty($toRemove)) {
+            $user->agences()->detach($toRemove);
+        }
+
+        // Agences à ajouter
+        $toAdd = array_diff($agenceUuids, $currentAgences);
+        if (!empty($toAdd)) {
+            $syncData = [];
+            $isFirst = $user->agences()->count() === 0;
+
+            foreach ($toAdd as $agenceUuid) {
+                $syncData[$agenceUuid] = [
+                    'uuid_user_agence' => (string) Str::uuid(),
+                    'is_primary' => $isFirst,
+                    'is_active' => true,
+                    'assigned_at' => now(),
+                    'assigned_by' => $updaterUuid,
+                ];
+                $isFirst = false;
+            }
+
+            $user->agences()->attach($syncData);
+        }
+
+        // Si aucune agence n'est assignée, réinitialiser la première comme principale
+        if ($user->agences()->count() > 0) {
+            $firstAgence = $user->agences()->first();
+            $user->agences()->updateExistingPivot($firstAgence->uuid_agence, ['is_primary' => true]);
+        }
+    }
+
+    /**
+     * Définir l'agence principale d'un utilisateur
+     */
+    public function setPrimaryAgence(User $user, string $agenceUuid, string $updaterUuid): bool
+    {
+        // Vérifier que l'utilisateur appartient à cette agence
+        if (!$user->belongsToAgence($agenceUuid)) {
+            return false;
+        }
+
+        // Retirer le statut principal des autres agences
+        $user->agences()->updateExistingPivot($user->agences()->pluck('uuid_agence')->toArray(), [
+            'is_primary' => false,
+        ]);
+
+        // Définir cette agence comme principale
+        $user->agences()->updateExistingPivot($agenceUuid, [
+            'is_primary' => true,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Envoyer les notifications de bienvenue
+     */
+    private function sendWelcomeNotifications(User $user, string $password): void
+    {
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+            'title' => '👋 Bienvenue sur YNOV',
+            'body' => 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.',
+            'type' => 'account',
+            'metadata' => [
+                'created_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $user->uuid_user,
+        ]);
+
+        if ($user->email) {
+            Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $password));
+        }
     }
 
     public function delete(User $user, string $deleterUuid): void

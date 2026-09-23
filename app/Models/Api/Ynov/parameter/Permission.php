@@ -14,7 +14,13 @@ class Permission extends Model
 {
     use SoftDeletes;
     protected $table = 'permissions';
-    
+
+    protected $primaryKey = 'uuid_permission';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_permission',
         'permission_group_uuid',

@@ -15,8 +15,11 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
      *
      * @var string
      */
-    
+
     protected $table = 'personal_access_tokens';
+
+    protected $primaryKey = 'id';
+
     protected $fillable = [
         'tokenable_id',
         'tokenable_type',
@@ -25,6 +28,13 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
         'abilities',
         'last_used_at',
         'expires_at',
+    ];
+
+    protected $casts = [
+        'tokenable_id' => 'string',
+        'abilities' => 'json',
+        'last_used_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
 }

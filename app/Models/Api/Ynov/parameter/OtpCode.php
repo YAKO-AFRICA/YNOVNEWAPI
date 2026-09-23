@@ -11,6 +11,12 @@ class OtpCode extends Model
 {
     
     protected $table = 'otp_codes';
+
+    protected $primaryKey = 'uuid_otp_code';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
     
     protected $fillable = [
         'uuid_otp_code',

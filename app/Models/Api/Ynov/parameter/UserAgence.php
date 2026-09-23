@@ -13,7 +13,13 @@ class UserAgence extends Model
 {
     
     protected $table = 'user_agences';
-    
+
+    protected $primaryKey = 'uuid_user_agence';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'uuid_user_agence',
         'user_uuid',

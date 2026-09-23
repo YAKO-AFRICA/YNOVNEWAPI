@@ -4,6 +4,7 @@
 namespace App\Models\Api\Ynov\parameter;
 
 use App\Models\Api\Ynov\parameter\ProduitFormule;
+use App\Models\Api\Ynov\parameter\ProduitGarantie;
 use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Models\Api\Ynov\parameter\TypeProduit;
@@ -17,6 +18,12 @@ class Produit extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'produits';
+
+    protected $primaryKey = 'uuid_produit';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'uuid_produit',
@@ -86,6 +93,14 @@ class Produit extends Model
     public function formules()
     {
         return $this->hasMany(ProduitFormule::class, 'produit_uuid', 'uuid_produit');
+    }
+
+    /**
+     * Relation avec les garanties du produit
+     */
+    public function garanties()
+    {
+        return $this->hasMany(ProduitGarantie::class, 'produit_uuid', 'uuid_produit');
     }
 
     /**

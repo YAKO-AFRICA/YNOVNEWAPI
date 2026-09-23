@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Ynov\GroupNotifController;
 use App\Http\Controllers\Api\Ynov\IpRestrictionController;
 use App\Http\Controllers\Api\Ynov\JourFerieController;
 use App\Http\Controllers\Api\Ynov\LoginAttemptController;
+use App\Http\Controllers\Api\Ynov\MotifTraitementController;
 use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
@@ -26,17 +27,25 @@ use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
-use App\Http\Controllers\Api\Ynov\PrestationController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
-use App\Http\Controllers\Api\Ynov\RdvController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauDashboardController;
+use App\Http\Controllers\Api\Ynov\Rdv\CalendrierController;
+use App\Http\Controllers\Api\Ynov\Rdv\DashboardController;
+use App\Http\Controllers\Api\Ynov\Rdv\RdvController;
+use App\Http\Controllers\Api\Ynov\Rdv\RoutingController;
+use App\Http\Controllers\Api\Ynov\Rdv\TraitementController;
 use App\Http\Controllers\Api\Ynov\ReseauController;
 use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
 use App\Http\Controllers\Api\Ynov\SessionController;
+use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
+use App\Services\Api\Ynov\SignatureService;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 
@@ -81,7 +90,15 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify-email', [EmailVerificationController::class, 'verify']);
     Route::post('auth/resend-verification', [EmailVerificationController::class, 'send']);
 
+    Route::post('auth/otp/send', [OtpController::class, 'sendOtp'])
+        ->middleware('throttle:5,10');
+    Route::post('auth/otp/resend', [OtpController::class, 'resendOtp'])
+        ->middleware('throttle:5,10');
+
     Route::post('auth/otp/verify-code', [OtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10');
+
+    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
         ->middleware('throttle:5,10');
 
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
@@ -137,6 +154,51 @@ Route::prefix('v1')->group(function () {
         // Webhook
         Route::post('webhook', [PaymentController::class, 'webhook']);
     });
+
+    // ============================================================
+    // ============================================================
+    // SIGNATURE ÉLECTRONIQUE - Widget dans api.php
+    // ============================================================
+    // Widget JS embarquable consolidé (version unique avec documentation complète)
+
+    Route::prefix('signature')->group(function () {
+ 
+        // Widget JS embarquable
+        Route::get('signature-widget.js', function () {
+            return response()->file(public_path('assets/js/signature-widget.js'), [
+                'Content-Type'  => 'application/javascript',
+                'Cache-Control' => 'public, max-age=3600',
+            ]);
+        });
+    
+        // --- Réservé à l'application hôte (à protéger !) ---
+        // Sans authentification ni throttling, n'importe qui peut générer des liens
+        // de signature et faire émettre des SMS/WhatsApp à vos frais.
+        Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+            Route::post('generate-link',  [SignatureController::class, 'generateLink']);
+            Route::post('send/email',     [SignatureController::class, 'sendByEmail']);
+            Route::post('send/sms',       [SignatureController::class, 'sendBySms']);
+            Route::post('send/whatsapp',  [SignatureController::class, 'sendByWhatsapp']);
+        });
+    
+        // --- Appelé par le widget (authentifié par le token lui-même) ---
+        Route::post('webhook', [SignatureController::class, 'receiveSignature'])
+            ->middleware('throttle:20,1');
+    
+        // --- Polling du poste desktop ---
+        Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus'])
+            ->where('token', SignatureService::TOKEN_PATTERN)
+            ->middleware('throttle:240,1');
+    });
+
+    Route::prefix('/rdvs/auto')->group(function () {
+        // Assignation automatique des RDV (appelé par front-end 3 min après création)
+        Route::post('assign', [RoutingController::class, 'autoAssign']);
+        
+        // Gestion des RDV expirés (appelé par front-end tous les jours)
+        Route::post('expires', [RoutingController::class, 'gererExpires']);
+    });
+    
 });
 
 /*
@@ -176,8 +238,8 @@ Route::prefix('v1')->middleware([
         Route::post('auth/2fa/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
     });
 
-    Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp'])
-        ->middleware(['throttle:5,10', 'permission:auth.2fa']);
+    // Route::post('auth/otp/verify', [TwoFactorController::class, 'verifyOtp'])
+    //     ->middleware(['throttle:5,10', 'permission:auth.2fa']);
 
     Route::group(['middleware' => 'permission:auth.devices'], function () {
         Route::get('auth/devices', [DeviceController::class, 'index']);
@@ -215,6 +277,16 @@ Route::prefix('v1')->middleware([
 
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
+
+    // Gestion des agences pour un utilisateur
+    Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
+        Route::get('/', [UserController::class, 'getAgences']);
+        Route::post('/', [UserController::class, 'assignAgences']);
+        Route::put('/', [UserController::class, 'syncAgences']);
+        Route::patch('/primary', [UserController::class, 'setPrimaryAgence']);
+        Route::delete('/{uuid_agence}', [UserController::class, 'removeAgence']);
+    });
+
     Route::delete('users/{uuid_user}', [UserController::class, 'destroy'])->middleware('permission:users.supprimer');
 
     Route::group(['middleware' => 'permission:users.bloquer'], function () {
@@ -249,6 +321,32 @@ Route::prefix('v1')->middleware([
         Route::get('permissions/{uuid_permission}', [PermissionController::class, 'show']);
     });
 
+    Route::prefix('motif-traitements')->group(function () {
+        Route::get('/', [MotifTraitementController::class, 'index'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('actives', [MotifTraitementController::class, 'actives'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('types/suggested', [MotifTraitementController::class, 'suggestedTypes'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::get('{uuid}', [MotifTraitementController::class, 'show'])
+            ->middleware('permission:motif_traitements.afficher');
+
+        Route::post('/', [MotifTraitementController::class, 'store'])
+            ->middleware('permission:motif_traitements.creer');
+
+        Route::put('{uuid}', [MotifTraitementController::class, 'update'])
+            ->middleware('permission:motif_traitements.modifier');
+
+        Route::patch('{uuid}/toggle', [MotifTraitementController::class, 'toggle'])
+            ->middleware('permission:motif_traitements.modifier');
+
+        Route::delete('{uuid}', [MotifTraitementController::class, 'destroy'])
+            ->middleware('permission:motif_traitements.supprimer');
+    });
+
     Route::post('permissions', [PermissionController::class, 'store'])->middleware('permission:permissions.creer');
     Route::put('permissions/{uuid_permission}', [PermissionController::class, 'update'])->middleware('permission:permissions.modifier');
     Route::delete('permissions/{uuid_permission}', [PermissionController::class, 'destroy'])->middleware('permission:permissions.supprimer');
@@ -271,7 +369,7 @@ Route::prefix('v1')->middleware([
     });
 
     //================================================================
-    // NOUVEAU : Routes de questions de sécurité (authentifiées)
+    // Routes de questions de sécurité (authentifiées)
     // ================================================================
     Route::prefix('security')->group(function () {
         // Route::get('questions', [SecurityQuestionController::class, 'getAvailableQuestions']);
@@ -280,7 +378,7 @@ Route::prefix('v1')->middleware([
     });
 
     // ================================================================
-    // NOUVEAU : Routes admin des questions de sécurité
+    // Routes admin des questions de sécurité
     // ================================================================
     Route::prefix('admin/security')->middleware('permission:security_questions.gerer')->group(function () {
         Route::post('questions', [SecurityQuestionController::class, 'createQuestion']);
@@ -347,6 +445,7 @@ Route::prefix('v1')->middleware([
     Route::group(['middleware' => 'permission:agences.assigner_utilisateurs'], function () {
         Route::post('agences/{uuid_agence}/users', [AgenceController::class, 'assignUsers']);
         Route::delete('agences/{uuid_agence}/users/{uuid_user}', [AgenceController::class, 'removeUser']);
+
     });
 
 
@@ -571,40 +670,80 @@ Route::prefix('v1')->middleware([
         
         Route::delete('prestations/{uuid_association}', [ProduitController::class, 'removePrestation'])
             ->middleware('permission:produits.modifier');
+        
+        // Garanties du produit
+        Route::get('{uuid_produit}/garanties', [ProduitController::class, 'getGaranties'])
+            ->middleware('permission:produits.afficher');
+        
+        Route::post('{uuid_produit}/garanties', [ProduitController::class, 'storeGarantie'])
+            ->middleware('permission:produits.creer');
+        
+        Route::put('garanties/{uuid_produit_garantie}', [ProduitController::class, 'updateGarantie'])
+            ->middleware('permission:produits.modifier');
+        
+        Route::delete('garanties/{uuid_produit_garantie}', [ProduitController::class, 'destroyGarantie'])
+            ->middleware('permission:produits.supprimer');
     });
 
     // ============================================================
     // PRESTATIONS
     // ============================================================
     Route::prefix('prestations')->group(function () {
-        // Catégories
-        Route::get('categories', [PrestationController::class, 'categories'])
-            ->middleware('permission:prestations.afficher');
-        
-        Route::post('categories', [PrestationController::class, 'storeCategory'])
+
+        // Rrecupérer les motifs de prestations pour un produit avec le montant maximum de prestation
+        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount'])
+            ->middleware('permission:prestations.creer');
+
+        // vérifier si un motif de prestations necessite une prise de rendez-vous
+        Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
         
+        // Prestations CRUD
+        Route::get('', [PrestationController::class, 'index'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::post('', [PrestationController::class, 'store'])
+            ->middleware('permission:prestations.creer');
+
+        Route::get('stats-prestations', [PrestationController::class, 'prestationStats'])
+            ->middleware('permission:prestations.afficher');
+
+        // Catégories
+        Route::get('categories', [PrestationController::class, 'categories']);
+
+        Route::post('categories', [PrestationController::class, 'storeCategory'])
+            ->middleware('permission:prestations.creer');
+
         Route::get('categories/{uuid_category}', [PrestationController::class, 'showCategory'])
             ->middleware('permission:prestations.afficher');
-        
+
         Route::put('categories/{uuid_category}', [PrestationController::class, 'updateCategory'])
             ->middleware('permission:prestations.modifier');
-        
+
         Route::delete('categories/{uuid_category}', [PrestationController::class, 'deleteCategory'])
             ->middleware('permission:prestations.supprimer');
-        
+
         // Types de prestations
         Route::get('types', [PrestationController::class, 'types'])
             ->middleware('permission:prestations.afficher');
-        
+
         Route::post('types', [PrestationController::class, 'storeType'])
             ->middleware('permission:prestations.creer');
-        
+
         Route::get('types/{uuid_type}', [PrestationController::class, 'showType'])
             ->middleware('permission:prestations.afficher');
-        
+
         Route::put('types/{uuid_type}', [PrestationController::class, 'updateType'])
             ->middleware('permission:prestations.modifier');
+
+        Route::get('{uuid_prestation}', [PrestationController::class, 'show'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::put('{uuid_prestation}', [PrestationController::class, 'update'])
+            ->middleware('permission:prestations.modifier');
+
+        Route::delete('{uuid_prestation}', [PrestationController::class, 'destroy'])
+            ->middleware('permission:prestations.supprimer');
         
         Route::delete('types/{uuid_type}', [PrestationController::class, 'deleteType'])
             ->middleware('permission:prestations.supprimer');
@@ -617,6 +756,38 @@ Route::prefix('v1')->middleware([
     // ============================================================
     // RENDEZ-VOUS (RDV) - CLIENT
     // ============================================================
+    Route::prefix('bordereaux')->group(function () {
+        // Dashboard bordereau (API-only)
+        Route::get('dashboard', [BordereauDashboardController::class, 'dashboard'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/stats', [BordereauDashboardController::class, 'stats'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/lots', [BordereauDashboardController::class, 'index'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('lots', [BordereauController::class, 'indexLots'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('details', [BordereauController::class, 'indexDetails'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::post('details/import', [BordereauController::class, 'importDetails'])
+                ->middleware('permission:rdvs.import_bordereau_final');
+
+        // Transmettre des RDV par email avec fichier Excel
+        Route::post('transmettre-email-gest-prestation', [BordereauController::class, 'transmettreParEmail'])
+            ->middleware('permission:rdvs.transmettre_bordereau_gest_prestation');
+
+        // Récupérer les gestionnaires prestation
+        Route::get('gestionnaires-prestation', [BordereauController::class, 'getGestionnairesPrestation'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::get('dashboard/{uuid_bordereau}', [BordereauDashboardController::class, 'show'])
+            ->middleware('permission:rdvs.afficher');
+    });
+
     Route::prefix('rdvs')->group(function () {
         // Motifs disponibles
         Route::get('motifs', [RdvController::class, 'motifs'])
@@ -634,9 +805,27 @@ Route::prefix('v1')->middleware([
         Route::post('verifier-date', [RdvController::class, 'verifierDate'])
             ->middleware('permission:rdvs.creer');
 
-        // Mes rendez-vous
+        // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
+        Route::get('list', [RdvController::class, 'getList'])->middleware('permission:rdvs.afficher');
+
+        // Liste globale des RDV avec filtres (gestionnaire auto-appliqué si besoin)
+        Route::get('clients-arrives', [RdvController::class, 'clientsArrives'])->middleware('permission:rdvs.afficher');
+
+        // Mes rendez-vous CLIENT (connecté)
         Route::get('/', [RdvController::class, 'index']);
         Route::get('stats', [RdvController::class, 'stats']);
+
+        // Calendrier des RDV Gestionnaire (connecté) ou Admin (tous les RDV)
+        Route::get('calendrier', [CalendrierController::class, 'calendrier'])
+            ->middleware('permission:rdvs.calendrier');
+        Route::get('calendrier/stats', [CalendrierController::class, 'stats'])
+            ->middleware('permission:rdvs.calendrier');
+
+        // Détails d'un rendez-vous connecté (admin ou gestionnaire)
+        Route::get('{uuid_rdvs}/detail-rdv', [RdvController::class, 'showDetailAdmin'])
+            ->middleware('permission:rdvs.afficher');
+
+        // Détails d'un rendez-vous connecté (client)
         Route::get('{uuid_rdvs}', [RdvController::class, 'show']);
 
         // Créer un rendez-vous
@@ -648,20 +837,64 @@ Route::prefix('v1')->middleware([
 
         // Annuler un rendez-vous
         Route::post('{uuid_rdvs}/cancel', [RdvController::class, 'cancel'])->middleware('permission:rdvs.annuler');
+
+        // Liste des rendez-vous d'une agence
+        Route::get('agence/{uuid_agence}', [RdvController::class, 'agenceRdvs']);
     });
 
     // ============================================================
-    // RENDEZ-VOUS (RDV) - ADMIN
+    // RENDEZ-VOUS (RDV) - TRAITEMENT
     // ============================================================
-    Route::prefix('admin/rdvs')->group(function () {
-        // Liste des rendez-vous d'une agence
-        Route::get('agence/{uuid_agence}', [RdvController::class, 'agenceRdvs']);
+    Route::prefix('rdvs/traitement')->group(function () {
+        // Transmettre/Assigner un RDV à un gestionnaire (passe automatiquement en transmis)
+        // Route::post('{uuid_rdvs}/transmettre', [TraitementController::class, 'assignGestionnaire']);
+        
+        Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
-        // Mettre à jour le statut
-        Route::put('{uuid_rdvs}/status', [RdvController::class, 'updateStatus']);
+        // Recuperer les produits de tranformation pour un RDV
+        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
 
-        // Assigner un gestionnaire
-        Route::post('{uuid_rdvs}/assign-gestionnaire', [RdvController::class, 'assignGestionnaire']);
+        // Rééquilibrer la charge des gestionnaires
+        Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
+        
+        // Réassigner un RDV manuellement
+        Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner'])->middleware('permission:rdvs.retransmettre');
+        
+        // Traiter un RDV (effectuer le traitement)
+        Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter'])->middleware('permission:rdvs.traiter');
+        
+        // Reporter un RDV (client n'est pas venu)
+        Route::post('{uuid_rdvs}/reporter', [TraitementController::class, 'reporter'])->middleware('permission:rdvs.reporter');
+        
+        // Rejeter un RDV
+        Route::post('{uuid_rdvs}/rejeter', [TraitementController::class, 'rejeter'])->middleware('permission:rdvs.rejeter');
+        
+        // Annuler un RDV (admin)
+        Route::post('{uuid_rdvs}/annuler', [TraitementController::class, 'annuler'])->middleware('permission:rdvs.annuler');
+        
+        // Ajouter une observation/commentaire
+        Route::post('{uuid_rdvs}/observation', [TraitementController::class, 'addObservation']);
+        
+        // Historique des traitements d'un RDV
+        Route::get('{uuid_rdvs}/historique', [TraitementController::class, 'historique']);
+        
+        // Marquer comme expiré
+        Route::post('{uuid_rdvs}/expirer', [TraitementController::class, 'expirer'])->middleware('permission:rdvs.expirer');
+
+        // Liste des garanties d'un produit (pour le traitement des RDV)
+        Route::get('produits/{uuid_produit}/garanties', [ProduitController::class, 'getGaranties']);
+    });
+
+
+    // Tableau de bord
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/', [DashboardController::class, 'dashboard']);
+        Route::get('stats', [DashboardController::class, 'stats']);
+        Route::get('stats/motif', [DashboardController::class, 'statsByMotif']);
+        Route::get('stats/gestionnaire', [DashboardController::class, 'statsByGestionnaire']);
+        Route::get('stats/agence', [DashboardController::class, 'statsByAgence']);
+        
+        // Dashboard global uniquement (statistiques, file d'attente...)
     });
 
 
@@ -723,6 +956,19 @@ Route::prefix('v1')->middleware([
         Route::get('contrat-etat-cotisation/{contrat_id}', [CustomerController::class, 'getContratEtatCotisation']);
     });
 
+    // ============================================================
+    // SIGNATURE ÉLECTRONIQUE - Administration
+    // ============================================================
+    // Route::prefix('signature')->group(function () {
+    //     // Envoyer le lien de signature par Email
+    //     Route::post('send-email', [SignatureController::class, 'sendByEmail']);
+
+    //     // Envoyer le lien de signature par SMS
+    //     Route::post('send-sms', [SignatureController::class, 'sendBySms']);
+
+    //     // Envoyer le lien de signature par WhatsApp
+    //     Route::post('send-whatsapp', [SignatureController::class, 'sendByWhatsapp']);
+    // });
 
 
     // groupe de route pour les paramètres de configuration
@@ -777,8 +1023,4 @@ Route::prefix('v1')->middleware([
 
 
     });
-
-    
-
-
 });

@@ -187,7 +187,15 @@ class EncaissementBisService
                 break;
         }
 
+        // calculer le cumul des Cotisation à Terme du contrat
+        $cumulCotisationTerme = $Duree * $prime;
+        // calculer 15% du cumul des Cotisation à Terme du contrat
+        $contisationQuinzePourcent = $cumulCotisationTerme * 0.15;
+
         $data['details'][0]['DureeCotisationMois'] = $Duree;
+
+        $data['details'][0]['CumulCotisationTerme'] = $cumulCotisationTerme;
+        $data['details'][0]['ContisationQuinzePourcent'] = $contisationQuinzePourcent;
 
         // Calcul de l'état d'avancement des cotisations
         $EtatAvancement = $Duree > 0 ? ($NbrencConfirmer / $Duree) * 100 : 0;
