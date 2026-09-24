@@ -575,6 +575,10 @@ class PrestationService
                 'level' => 'info',
             ]);
 
+            // Assignation automatique différée (sera traitée par le cron job)
+            // On ne fait pas l'assignation immédiate pour laisser le temps au système
+            // L'assignation sera faite via l'endpoint public autoAssign
+
             return $prestation->fresh()->load([
                 'client',
                 'typePrestation.category',
@@ -700,7 +704,7 @@ class PrestationService
             ];
         }
 
-        $montantMax = $details['ContisationQuinzePourcent'] ?? 0;
+        $montantMax = $details['montantMaxSouhaitePrestation'] ?? 0;
 
         return [
             'success' => true,
@@ -801,6 +805,483 @@ class PrestationService
             'requires_appointment' => $requiresAppointment,
             'impact' => $typePrestation->impact,
             'impact_label' => $typePrestation->getImpactLabel(),
+        ];
+    }
+
+    /**
+     * Vérifier l'éligibilité d'une prestation selon les règles métier
+     */
+    public function checkPrestationEligibility(string $codeProduit, int $idContrat, string $typePrestationUuid): array
+    {
+        // Récupérer les données du contrat
+        $encaissementService = new \App\Services\EncaissementBisService();
+        $contratData = $encaissementService->getContrat($idContrat);
+
+        if (!$contratData['success']) {
+            return [
+                'success' => false,
+                'code' => $contratData['code'] ?? 'CONTRACT_ERROR',
+                'message' => $contratData['message'] ?? 'Erreur lors de la récupération du contrat',
+                'eligible' => false,
+                'blocking_reason' => 'Impossible de vérifier le contrat',
+            ];
+        }
+
+        $details = $contratData['data']['details'][0] ?? null;
+        if (!$details) {
+            return [
+                'success' => false,
+                'code' => 'CONTRACT_DETAILS_ERROR',
+                'message' => 'Détails du contrat non disponibles',
+                'eligible' => false,
+                'blocking_reason' => 'Détails du contrat non disponibles',
+            ];
+        }
+
+        // Récupérer le type de prestation
+        $typePrestation = TypePrestation::where('uuid_type_prestation', $typePrestationUuid)
+            ->where('status', 'actif')
+            ->first();
+
+        if (!$typePrestation) {
+            return [
+                'success' => false,
+                'code' => 'TYPE_PRESTATION_NOT_FOUND',
+                'message' => 'Type de prestation non trouvé',
+                'eligible' => false,
+                'blocking_reason' => 'Type de prestation non trouvé',
+            ];
+        }
+
+        // Calculer les variables préalables
+        $NbrencConfirmer = $details['NbreEncaissment'] ?? 0;
+        $periodicite = $details['periodicite'] ?? null;
+        $DureeCotisationAns = $details['DureeCotisationAns'] ?? 0;
+        $prime = (float) ($details['TotalPrime'] ?? 0);
+        $TotalEncaissement = (float) ($details['TotalEncaissement'] ?? 0);
+
+        // Conversion de la périodicité en durée attendue
+        $DureeCotisationMois = $DureeCotisationAns * 12;
+        switch ($periodicite) {
+            case "M":
+                $Duree = $DureeCotisationMois;
+                break;
+            case "T":
+                $Duree = $DureeCotisationMois / 3;
+                break;
+            case "S":
+                $Duree = $DureeCotisationMois / 6;
+                break;
+            case "A":
+                $Duree = $DureeCotisationMois / 12;
+                break;
+            case "U":
+                $Duree = $NbrencConfirmer;
+                break;
+            default:
+                $Duree = 0;
+                break;
+        }
+
+        // Calculer le cumul des cotisations à terme et 15%
+        $cumulCotisationTerme = $Duree * $prime;
+        $contisationPourcentage = $cumulCotisationTerme * 0.15;
+
+        // Calculer la durée déjà cotisée en années
+        $dureeCotisation = 0;
+        switch ($periodicite) {
+            case "M":
+                $dureeCotisation = $NbrencConfirmer / 12;
+                break;
+            case "T":
+                $dureeCotisation = ($NbrencConfirmer * 3) / 12;
+                break;
+            case "S":
+                $dureeCotisation = ($NbrencConfirmer * 6) / 12;
+                break;
+            case "A":
+                $dureeCotisation = $NbrencConfirmer;
+                break;
+            case "U":
+                $dureeCotisation = $NbrencConfirmer;
+                break;
+            default:
+                $dureeCotisation = 0;
+                break;
+        }
+
+        // Déterminer la famille du produit
+        $familleProduit = $this->getProductFamily($codeProduit);
+
+        // Codes de prestations par famille
+        $remboursementCodes = [25, 31, 40, 41, 44, 48];
+        $termeCodes = [27, 37];
+
+        // Vérifier le cas particulier impact = 'Autre'
+        if ($typePrestation->impact === 'Autre') {
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_AUTRE',
+                'message' => 'Prestation autorisée (impact Autre)',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'redirect' => true,
+                'calculation_details' => [
+                    'famille_produit' => $familleProduit,
+                    'code_prestation' => $typePrestation->code,
+                    'impact' => $typePrestation->impact,
+                ],
+            ];
+        }
+
+        // Règles par famille de produit
+        switch ($familleProduit) {
+            case 'EPARGNE':
+                return $this->checkEpargneEligibility(
+                    $typePrestation,
+                    $NbrencConfirmer,
+                    $TotalEncaissement,
+                    $contisationPourcentage,
+                    $remboursementCodes
+                );
+
+            case 'OBSEQUES_GROUPE_1':
+                return $this->checkObsequesGroupe1Eligibility(
+                    $typePrestation,
+                    $NbrencConfirmer,
+                    $DureeCotisationAns,
+                    $dureeCotisation,
+                    $remboursementCodes,
+                    $termeCodes
+                );
+
+            case 'OBSEQUES_GROUPE_2':
+                return [
+                    'success' => true,
+                    'code' => 'ELIGIBLE_GROUPE_2',
+                    'message' => 'Prestation autorisée (Obsèques groupe 2)',
+                    'eligible' => true,
+                    'blocking_reason' => null,
+                    'calculation_details' => [
+                        'famille_produit' => $familleProduit,
+                        'code_prestation' => $typePrestation->code,
+                        'impact' => $typePrestation->impact,
+                    ],
+                ];
+
+            default:
+                return [
+                    'success' => false,
+                    'code' => 'UNKNOWN_PRODUCT_FAMILY',
+                    'message' => 'Famille de produit non reconnue',
+                    'eligible' => false,
+                    'blocking_reason' => 'Famille de produit non reconnue',
+                ];
+        }
+    }
+
+    /**
+     * Déterminer la famille du produit
+     */
+    private function getProductFamily(string $codeProduit): string
+    {
+        $epargneCodes = ['CADENCE', 'DOIHOO', 'CAD_EDUCPLUS', 'PFA_IND'];
+        $obsequesGroupe1Codes = ['YKE_2008', 'YKE_2018'];
+        $obsequesGroupe2Codes = ['YKS_2008', 'YKS_2018'];
+
+        if (in_array($codeProduit, $epargneCodes)) {
+            return 'EPARGNE';
+        }
+
+        if (in_array($codeProduit, $obsequesGroupe1Codes)) {
+            return 'OBSEQUES_GROUPE_1';
+        }
+
+        if (in_array($codeProduit, $obsequesGroupe2Codes)) {
+            return 'OBSEQUES_GROUPE_2';
+        }
+
+        return 'UNKNOWN';
+    }
+
+    /**
+     * Vérifier l'éligibilité pour la famille Épargne
+     */
+    private function checkEpargneEligibility(
+        TypePrestation $typePrestation,
+        int $NbrencConfirmer,
+        float $TotalEncaissement,
+        float $contisationPourcentage,
+        array $remboursementCodes
+    ): array {
+        $codePrestation = (int) $typePrestation->code;
+
+        // Famille Remboursement : toujours autorisée
+        if (in_array($codePrestation, $remboursementCodes)) {
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_REMBOURSEMENT',
+                'message' => 'Prestation autorisée (famille Remboursement)',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'EPARGNE',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'raison' => 'Famille Remboursement toujours autorisée',
+                ],
+            ];
+        }
+
+        // Rachat total (code 23, impact = 1)
+        if ($codePrestation === 23) {
+            if ($TotalEncaissement <= $contisationPourcentage) {
+                return [
+                    'success' => true,
+                    'code' => 'NOT_ELIGIBLE_RACHAT_TOTAL',
+                    'message' => 'Rachat total bloqué',
+                    'eligible' => false,
+                    'blocking_reason' => 'Total encaissé inférieur ou égal à 15% du cumul à terme',
+                    'calculation_details' => [
+                        'famille_produit' => 'EPARGNE',
+                        'code_prestation' => $codePrestation,
+                        'impact' => $typePrestation->impact,
+                        'total_encaisse' => $TotalEncaissement,
+                        'seuil_15_pourcent' => $contisationPourcentage,
+                    ],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_RACHAT_TOTAL',
+                'message' => 'Rachat total autorisé',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'EPARGNE',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'total_encaisse' => $TotalEncaissement,
+                    'seuil_15_pourcent' => $contisationPourcentage,
+                ],
+            ];
+        }
+
+        // Toute prestation à impact = 0 hors famille Remboursement
+        if ($typePrestation->impact === '0') {
+            if ($NbrencConfirmer <= 24) {
+                return [
+                    'success' => true,
+                    'code' => 'NOT_ELIGIBLE_IMPACT_0',
+                    'message' => 'Prestation bloquée (impact 0)',
+                    'eligible' => false,
+                    'blocking_reason' => 'Nombre d\'encaissements confirmés inférieur ou égal à 24',
+                    'calculation_details' => [
+                        'famille_produit' => 'EPARGNE',
+                        'code_prestation' => $codePrestation,
+                        'impact' => $typePrestation->impact,
+                        'nbre_enc_confirmer' => $NbrencConfirmer,
+                        'seuil' => 24,
+                    ],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_IMPACT_0',
+                'message' => 'Prestation autorisée (impact 0)',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'EPARGNE',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'nbre_enc_confirmer' => $NbrencConfirmer,
+                    'seuil' => 24,
+                ],
+            ];
+        }
+
+        // Par défaut, autoriser
+        return [
+            'success' => true,
+            'code' => 'ELIGIBLE_DEFAULT',
+            'message' => 'Prestation autorisée',
+            'eligible' => true,
+            'blocking_reason' => null,
+            'calculation_details' => [
+                'famille_produit' => 'EPARGNE',
+                'code_prestation' => $codePrestation,
+                'impact' => $typePrestation->impact,
+            ],
+        ];
+    }
+
+    /**
+     * Vérifier l'éligibilité pour la famille Obsèques groupe 1
+     */
+    private function checkObsequesGroupe1Eligibility(
+        TypePrestation $typePrestation,
+        int $NbrencConfirmer,
+        float $DureeCotisationAns,
+        float $dureeCotisation,
+        array $remboursementCodes,
+        array $termeCodes
+    ): array {
+        $codePrestation = (int) $typePrestation->code;
+
+        // Famille Remboursement : toujours autorisée
+        if (in_array($codePrestation, $remboursementCodes)) {
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_REMBOURSEMENT',
+                'message' => 'Prestation autorisée (famille Remboursement)',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'OBSEQUES_GROUPE_1',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'raison' => 'Famille Remboursement toujours autorisée',
+                ],
+            ];
+        }
+
+        // Renonciation (22) et Résiliation (36) : toujours autorisées
+        if (in_array($codePrestation, [22, 36])) {
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_RENONCIATION_RESILIATION',
+                'message' => 'Prestation autorisée (Renonciation/Résiliation)',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'OBSEQUES_GROUPE_1',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'raison' => 'Renonciation/Résiliation toujours autorisées',
+                ],
+            ];
+        }
+
+        // Avance (code 20, impact = 0)
+        if ($codePrestation === 20) {
+            if ($NbrencConfirmer <= 13) {
+                return [
+                    'success' => true,
+                    'code' => 'NOT_ELIGIBLE_AVANCE',
+                    'message' => 'Avance bloquée',
+                    'eligible' => false,
+                    'blocking_reason' => 'Nombre d\'encaissements confirmés inférieur ou égal à 13',
+                    'calculation_details' => [
+                        'famille_produit' => 'OBSEQUES_GROUPE_1',
+                        'code_prestation' => $codePrestation,
+                        'impact' => $typePrestation->impact,
+                        'nbre_enc_confirmer' => $NbrencConfirmer,
+                        'seuil' => 13,
+                    ],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_AVANCE',
+                'message' => 'Avance autorisée',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'OBSEQUES_GROUPE_1',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'nbre_enc_confirmer' => $NbrencConfirmer,
+                    'seuil' => 13,
+                ],
+            ];
+        }
+
+        // Rachat partiel (code 24, impact = 0)
+        if ($codePrestation === 24) {
+            if ($DureeCotisationAns >= $dureeCotisation) {
+                return [
+                    'success' => true,
+                    'code' => 'NOT_ELIGIBLE_RACHAT_PARTIEL',
+                    'message' => 'Rachat partiel bloqué',
+                    'eligible' => false,
+                    'blocking_reason' => 'Durée contractuelle supérieure ou égale à la durée déjà cotisée',
+                    'calculation_details' => [
+                        'famille_produit' => 'OBSEQUES_GROUPE_1',
+                        'code_prestation' => $codePrestation,
+                        'impact' => $typePrestation->impact,
+                        'duree_contractuelle' => $DureeCotisationAns,
+                        'duree_cotisee' => $dureeCotisation,
+                    ],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_RACHAT_PARTIEL',
+                'message' => 'Rachat partiel autorisé',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'OBSEQUES_GROUPE_1',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'duree_contractuelle' => $DureeCotisationAns,
+                    'duree_cotisee' => $dureeCotisation,
+                ],
+            ];
+        }
+
+        // Terme (27) et Terme Cotisations YAKO (37)
+        if (in_array($codePrestation, $termeCodes)) {
+            if ($DureeCotisationAns < $dureeCotisation) {
+                return [
+                    'success' => true,
+                    'code' => 'NOT_ELIGIBLE_TERME',
+                    'message' => 'Terme bloqué',
+                    'eligible' => false,
+                    'blocking_reason' => 'Durée contractuelle inférieure à la durée déjà cotisée',
+                    'calculation_details' => [
+                        'famille_produit' => 'OBSEQUES_GROUPE_1',
+                        'code_prestation' => $codePrestation,
+                        'impact' => $typePrestation->impact,
+                        'duree_contractuelle' => $DureeCotisationAns,
+                        'duree_cotisee' => $dureeCotisation,
+                    ],
+                ];
+            }
+
+            return [
+                'success' => true,
+                'code' => 'ELIGIBLE_TERME',
+                'message' => 'Terme autorisé',
+                'eligible' => true,
+                'blocking_reason' => null,
+                'calculation_details' => [
+                    'famille_produit' => 'OBSEQUES_GROUPE_1',
+                    'code_prestation' => $codePrestation,
+                    'impact' => $typePrestation->impact,
+                    'duree_contractuelle' => $DureeCotisationAns,
+                    'duree_cotisee' => $dureeCotisation,
+                ],
+            ];
+        }
+
+        // Par défaut, autoriser
+        return [
+            'success' => true,
+            'code' => 'ELIGIBLE_DEFAULT',
+            'message' => 'Prestation autorisée',
+            'eligible' => true,
+            'blocking_reason' => null,
+            'calculation_details' => [
+                'famille_produit' => 'OBSEQUES_GROUPE_1',
+                'code_prestation' => $codePrestation,
+                'impact' => $typePrestation->impact,
+            ],
         ];
     }
 

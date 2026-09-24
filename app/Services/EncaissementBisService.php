@@ -192,6 +192,10 @@ class EncaissementBisService
         // calculer 15% du cumul des Cotisation à Terme du contrat
         $contisationQuinzePourcent = $cumulCotisationTerme * 0.15;
 
+        // calculer montant maximum disponible pour une prestation
+        $montantMax = $NbrencConfirmer * 0.5;
+        $data['details'][0]['montantMaxSouhaitePrestation'] = $montantMax;
+
         $data['details'][0]['DureeCotisationMois'] = $Duree;
 
         $data['details'][0]['CumulCotisationTerme'] = $cumulCotisationTerme;

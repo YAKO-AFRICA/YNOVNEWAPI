@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationRoutingController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
 use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
@@ -189,11 +190,16 @@ Route::prefix('v1')->group(function () {
     Route::prefix('/rdvs/auto')->group(function () {
         // Assignation automatique des RDV (appelé par front-end 3 min après création)
         Route::post('assign', [RoutingController::class, 'autoAssign']);
-        
+
         // Gestion des RDV expirés (appelé par front-end tous les jours)
         Route::post('expires', [RoutingController::class, 'gererExpires']);
     });
-    
+
+    Route::prefix('/prestations/auto')->group(function () {
+        // Assignation automatique des prestations (appelé par front-end quelques minutes après création)
+        Route::post('assign', [PrestationRoutingController::class, 'autoAssign']);
+    });
+
 });
 
 /*
@@ -692,7 +698,18 @@ Route::prefix('v1')->middleware([
         // vérifier si un motif de prestations necessite une prise de rendez-vous
         Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
-        
+
+        // vérifier l'éligibilité d'une prestation selon les règles métier
+        Route::post('check-eligibility', [PrestationController::class, 'checkEligibility'])
+            ->middleware('permission:prestations.creer');
+
+        // Routage et assignation des prestations
+        Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
+            ->middleware('permission:prestations.modifier');
+
+        Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
+            ->middleware('permission:prestations.modifier');
+
         // Prestations CRUD
         Route::get('', [PrestationController::class, 'index'])
             ->middleware('permission:prestations.afficher');

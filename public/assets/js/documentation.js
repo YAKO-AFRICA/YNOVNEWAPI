@@ -13697,6 +13697,459 @@
                 ],
             },
             {
+                id: "prestations-check-eligibility",
+                module: "prestations",
+                name: "Vérifier l'éligibilité d'une prestation",
+                description:
+                    "Vérifie l'éligibilité d'une prestation selon les règles métier définies par famille de produit (Épargne, Obsèques groupe 1, Obsèques groupe 2). Calcule les variables préalables (nombre d'encaissements, durée de cotisation, cumul à terme) et applique les règles de blocage spécifiques à chaque famille et type de prestation.",
+                method: "POST",
+                path: "/prestations/check-eligibility",
+                isProtected: true,
+                permissionsRequired: ["prestations.creer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_produit: {
+                            type: "string",
+                            required: true,
+                            description: "Code du produit (ex: CADENCE, YKE_2008, YKS_2008)",
+                        },
+                        id_contrat: {
+                            type: "integer",
+                            required: true,
+                            description: "Identifiant du contrat",
+                        },
+                        type_prestation_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du type de prestation",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    code_produit: "CADENCE",
+                    id_contrat: 123456,
+                    type_prestation_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestation éligible - Épargne",
+                        example: {
+                            success: true,
+                            code: "ELIGIBLE_IMPACT_0",
+                            message: "Prestation autorisée (impact 0)",
+                            eligible: true,
+                            blocking_reason: null,
+                            calculation_details: {
+                                famille_produit: "EPARGNE",
+                                code_prestation: 20,
+                                impact: "0",
+                                nbre_enc_confirmer: 30,
+                                seuil: 24,
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation non éligible - Épargne (encaissements insuffisants)",
+                        example: {
+                            success: true,
+                            code: "NOT_ELIGIBLE_IMPACT_0",
+                            message: "Prestation bloquée (impact 0)",
+                            eligible: false,
+                            blocking_reason: "Nombre d'encaissements confirmés inférieur ou égal à 24",
+                            calculation_details: {
+                                famille_produit: "EPARGNE",
+                                code_prestation: 20,
+                                impact: "0",
+                                nbre_enc_confirmer: 15,
+                                seuil: 24,
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation non éligible - Rachat total (15% non atteint)",
+                        example: {
+                            success: true,
+                            code: "NOT_ELIGIBLE_RACHAT_TOTAL",
+                            message: "Rachat total bloqué",
+                            eligible: false,
+                            blocking_reason: "Total encaissé inférieur ou égal à 15% du cumul à terme",
+                            calculation_details: {
+                                famille_produit: "EPARGNE",
+                                code_prestation: 23,
+                                impact: "1",
+                                total_encaisse: 50000,
+                                seuil_15_pourcent: 75000,
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation éligible - Obsèques groupe 1 (Avance)",
+                        example: {
+                            success: true,
+                            code: "ELIGIBLE_AVANCE",
+                            message: "Avance autorisée",
+                            eligible: true,
+                            blocking_reason: null,
+                            calculation_details: {
+                                famille_produit: "OBSEQUES_GROUPE_1",
+                                code_prestation: 20,
+                                impact: "0",
+                                nbre_enc_confirmer: 18,
+                                seuil: 13,
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation non éligible - Obsèques groupe 1 (Avance)",
+                        example: {
+                            success: true,
+                            code: "NOT_ELIGIBLE_AVANCE",
+                            message: "Avance bloquée",
+                            eligible: false,
+                            blocking_reason: "Nombre d'encaissements confirmés inférieur ou égal à 13",
+                            calculation_details: {
+                                famille_produit: "OBSEQUES_GROUPE_1",
+                                code_prestation: 20,
+                                impact: "0",
+                                nbre_enc_confirmer: 10,
+                                seuil: 13,
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation éligible - Obsèques groupe 2 (toujours autorisé)",
+                        example: {
+                            success: true,
+                            code: "ELIGIBLE_GROUPE_2",
+                            message: "Prestation autorisée (Obsèques groupe 2)",
+                            eligible: true,
+                            blocking_reason: null,
+                            calculation_details: {
+                                famille_produit: "OBSEQUES_GROUPE_2",
+                                code_prestation: 20,
+                                impact: "0",
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation éligible - Impact Autre (redirection)",
+                        example: {
+                            success: true,
+                            code: "ELIGIBLE_AUTRE",
+                            message: "Prestation autorisée (impact Autre)",
+                            eligible: true,
+                            blocking_reason: null,
+                            redirect: true,
+                            calculation_details: {
+                                famille_produit: "EPARGNE",
+                                code_prestation: 99,
+                                impact: "Autre",
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation éligible - Famille Remboursement (toujours autorisée)",
+                        example: {
+                            success: true,
+                            code: "ELIGIBLE_REMBOURSEMENT",
+                            message: "Prestation autorisée (famille Remboursement)",
+                            eligible: true,
+                            blocking_reason: null,
+                            calculation_details: {
+                                famille_produit: "EPARGNE",
+                                code_prestation: 25,
+                                impact: "0",
+                                raison: "Famille Remboursement toujours autorisée",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                code_produit: ["Le code produit est requis."],
+                                id_contrat: ["L'identifiant du contrat est requis."],
+                                type_prestation_uuid: ["L'UUID du type de prestation est requis."],
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Contrat introuvable",
+                        example: {
+                            success: false,
+                            code: "CONTRACT_ERROR",
+                            message: "Erreur lors de la récupération du contrat",
+                            eligible: false,
+                            blocking_reason: "Impossible de vérifier le contrat",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Type de prestation non trouvé",
+                        example: {
+                            success: false,
+                            code: "TYPE_PRESTATION_NOT_FOUND",
+                            message: "Type de prestation non trouvé",
+                            eligible: false,
+                            blocking_reason: "Type de prestation non trouvé",
+                        },
+                    },
+                ],
+            },
+            {
+                id: "prestations-auto-assign",
+                module: "prestations",
+                name: "Assignation automatique des prestations",
+                description:
+                    "Assignation automatique de toutes les prestations en attente sans gestionnaire. Utilise un algorithme de distribution équitable basé sur la charge de travail quotidienne. Privilégie le même gestionnaire si le client a déjà des prestations récentes. Endpoint public sécurisé par token.",
+                method: "POST",
+                path: "/prestations/auto/assign",
+                isProtected: false,
+                rateLimit: "throttle:60,1",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        token: {
+                            type: "string",
+                            required: true,
+                            description: "Token de sécurité pour l'appel automatique",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    token: "auto_assign_secret_token",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Assignation automatique réussie",
+                        example: {
+                            success: true,
+                            message: "Assignation automatique terminée.",
+                            code: "AUTO_ASSIGN_DONE",
+                            data: {
+                                total: 5,
+                                assignees: 4,
+                                echecs: 1,
+                                details: [
+                                    {
+                                        prestation_code: "PREST-001",
+                                        gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                        status: "assignee",
+                                    },
+                                    {
+                                        prestation_code: "PREST-002",
+                                        status: "echec",
+                                        raison: "Aucun gestionnaire disponible pour cette agence.",
+                                    },
+                                ],
+                                executed_at: "2025-01-15 10:30:00",
+                            },
+                        },
+                    },
+                    {
+                        status: 401,
+                        description: "Token invalide",
+                        example: {
+                            success: false,
+                            message: "Token invalide.",
+                            code: "INVALID_TOKEN",
+                        },
+                    },
+                ],
+            },
+            {
+                id: "prestations-reassign",
+                module: "prestations",
+                name: "Réassigner manuellement une prestation",
+                description:
+                    "Réassigne manuellement une prestation à un autre gestionnaire. Vérifie que le nouveau gestionnaire existe et a le rôle 'gestionnaire_prestation'. Envoie des notifications au nouveau gestionnaire et à l'ancien gestionnaire si existant.",
+                method: "POST",
+                path: "/prestations/{uuid_prestation}/reassign",
+                isProtected: true,
+                permissionsRequired: ["prestations.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_prestation: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la prestation",
+                        },
+                    },
+                    body: {
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du nouveau gestionnaire",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            description: "Observation sur la réassignation",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transmis", "accepte", "rejete", "annule"],
+                            description: "Nouveau statut de la prestation",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    observation: "Réassignation pour charge de travail",
+                    status: "transmis",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestation réassignée avec succès",
+                        example: {
+                            success: true,
+                            code: "PRESTATION_REASSIGNEE",
+                            message: "Prestation réassignée avec succès.",
+                            data: {
+                                uuid_prestation: "550e8400-e29b-41d4-a716-446655440003",
+                                code: "PREST-001",
+                                gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                status: "transmis",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Prestation non trouvée",
+                        example: {
+                            success: false,
+                            message: "Prestation non trouvée.",
+                            code: "PRESTATION_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Gestionnaire non trouvé",
+                        example: {
+                            success: false,
+                            message: "Le gestionnaire n'existe pas.",
+                            code: "GESTIONNAIRE_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Pas un gestionnaire de prestation",
+                        example: {
+                            success: false,
+                            message: "Cet utilisateur n'est pas un gestionnaire de prestation.",
+                            code: "NOT_GESTIONNAIRE_PRESTATION",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Même gestionnaire",
+                        example: {
+                            success: false,
+                            message: "La prestation est déjà assignée à ce gestionnaire.",
+                            code: "SAME_GESTIONNAIRE",
+                        },
+                    },
+                ],
+            },
+            {
+                id: "prestations-assign-single",
+                module: "prestations",
+                name: "Assigner automatiquement une prestation spécifique",
+                description:
+                    "Assignation automatique d'une prestation spécifique à un gestionnaire disponible. Utilise le même algorithme que l'assignation automatique groupée mais pour une seule prestation.",
+                method: "POST",
+                path: "/prestations/{uuid_prestation}/assign",
+                isProtected: true,
+                permissionsRequired: ["prestations.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_prestation: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la prestation à assigner",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestation assignée avec succès",
+                        example: {
+                            success: true,
+                            code: "PRESTATION_ASSIGNEE_AUTO",
+                            message: "Prestation assignée automatiquement avec succès.",
+                            data: {
+                                uuid_prestation: "550e8400-e29b-41d4-a716-446655440003",
+                                code: "PREST-001",
+                                gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                status: "transmis",
+                            },
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Prestation non assignable",
+                        example: {
+                            success: false,
+                            code: "PRESTATION_NON_ASSIGNABLE",
+                            message: "Cette prestation ne peut pas être assignée automatiquement.",
+                            data: null,
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Aucun gestionnaire disponible",
+                        example: {
+                            success: false,
+                            code: "AUCUN_GESTIONNAIRE",
+                            message: "Aucun gestionnaire de prestation disponible.",
+                            data: null,
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Prestation non trouvée",
+                        example: {
+                            success: false,
+                            message: "Prestation non trouvée.",
+                            code: "PRESTATION_NOT_FOUND",
+                        },
+                    },
+                ],
+            },
+            {
                 id: "prestations-list",
                 module: "prestations",
                 name: "Liste des prestations",

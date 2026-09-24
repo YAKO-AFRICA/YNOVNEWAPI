@@ -599,4 +599,33 @@ class PrestationController extends Controller
             'data' => $stats,
         ]);
     }
+
+    /**
+     * Vérifier l'éligibilité d'une prestation selon les règles métier
+     */
+    public function checkEligibility(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'code_produit' => ['required', 'string'],
+                'id_contrat' => ['required', 'integer'],
+                'type_prestation_uuid' => ['required', 'string', 'exists:type_prestations,uuid_type_prestation'],
+            ]);
+
+            $result = $this->prestationService->checkPrestationEligibility(
+                $validated['code_produit'],
+                $validated['id_contrat'],
+                $validated['type_prestation_uuid']
+            );
+
+            return response()->json($result);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'errors' => $e->errors(),
+                'code' => 'VALIDATION_ERROR',
+            ], 422);
+        }
+    }
 }
