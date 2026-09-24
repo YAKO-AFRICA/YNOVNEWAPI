@@ -166,8 +166,9 @@ class PrestationResource extends JsonResource
                         'taille_fichier' => $document->taille_fichier,
                         'mime_type' => $document->mime_type,
                         'statut' => $document->statut,
-                        'url' => url('storage/doc/' . $document->chemin),
-                        'preview_url'    => url('preview/doc/' . $document->nom_fichier),
+                        'url' => url('preview/doc/' . $document->nom_fichier),
+                        // 'url' => url('storage/doc/' . $document->chemin),
+                        // 'preview_url'    => url('preview/doc/' . $document->nom_fichier),
 
                         'created_at' => $document->created_at?->format('Y-m-d H:i:s'),
                     ];
