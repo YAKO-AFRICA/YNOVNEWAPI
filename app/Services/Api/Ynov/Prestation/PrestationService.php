@@ -581,6 +581,7 @@ class PrestationService
                 'rdv',
                 'gestionnaire',
                 'partner',
+                'documents',
             ]);
         });
     }
@@ -601,6 +602,7 @@ class PrestationService
                 'rdv',
                 'gestionnaire',
                 'partner',
+                'documents',
             ]);
         });
     }
