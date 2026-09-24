@@ -118,15 +118,114 @@ class DocumentService
         }
     }
 
+    // public function createDocument(array $data = [], ?UploadedFile $file = null): mixed
+    // {
+    //     $createdPaths = [];
+    //     $documentsCrees = [];
+    //     $files = [];
+    //     $labelsByFile = [];
+
+
+    //     foreach ($data['documents'] as $entry) {
+    //         if (!is_array($entry)) {
+    //             continue;
+    //         }
+
+    //         $uploadedFile = $entry['file'] ?? null;
+
+    //         if (!$uploadedFile instanceof UploadedFile) {
+    //             continue;
+    //         }
+
+    //         $files[] = $uploadedFile;
+    //         $labelsByFile[] = $entry['libelle'] ?? null;
+    //     }
+
+    //     if (empty($files)) {
+    //         return [];
+    //     }
+
+    //     try {
+    //         return DB::transaction(function () use ($data, $files, $labelsByFile, &$documentsCrees, &$createdPaths) {
+    //             foreach ($files as $index => $uploadedFile) {
+    //                 $extension = strtolower($uploadedFile->getClientOriginalExtension());
+    //                 $allowedExtensions = config('documents.allowed_extensions', []);
+
+    //                 if (!in_array($extension, $allowedExtensions, true)) {
+    //                     throw new \RuntimeException("Extension non autorisée : .{$extension}");
+    //                 }
+
+    //                 $resultat = $this->traiter($uploadedFile);
+    //                 $cheminRelatif = $resultat['chemin_relatif'] ?? null;
+
+    //                 if ($cheminRelatif) {
+    //                     $createdPaths[] = $cheminRelatif;
+    //                 }
+
+    //                 $typeDocument = $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
+
+    //                 $libelle = $labelsByFile[$index] ?? $data['libelle'] ?? pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
+
+    //                 $document = Document::create([
+    //                     'uuid_document'  => (string) Str::uuid(),
+    //                     'reference_uuid' => $data['reference_uuid'] ?? null,
+    //                     'nom_fichier'    => $resultat['nom_stocke'] ?? $uploadedFile->getClientOriginalName(),
+    //                     'libelle'        => $libelle,
+    //                     'source'         => $data['source'] ?? null,
+    //                     'chemin'         => $resultat['url_publique'],
+    //                     'type_document'  => $typeDocument,
+    //                     'taille_fichier' => $resultat['taille'],
+    //                     'mime_type'      => $resultat['mime_type'],
+    //                     'statut'         => 'actif',
+    //                     'created_by'     => $data['created_by'] ?? null,
+    //                 ]);
+
+    //                 $documentsCrees[] = [
+    //                     'document'       => $document,
+    //                     'nom_original'   => $uploadedFile->getClientOriginalName(),
+    //                     'nom_stocke'     => $resultat['nom_stocke'],
+    //                     'extension'      => $resultat['extension'],
+    //                     'mime_type'      => $resultat['mime_type'],
+    //                     'taille'         => $resultat['taille'],
+    //                     'compresse'      => $resultat['compresse'],
+    //                     'dimensions'     => $resultat['dimensions'],
+    //                     'chemin_relatif' => $cheminRelatif,
+    //                     'url_publique'   => $resultat['url_publique'],
+    //                 ];
+    //             }
+
+    //             return count($documentsCrees) === 1 ? $documentsCrees[0] : $documentsCrees;
+    //         });
+    //     } catch (\Throwable $e) {
+    //         foreach ($createdPaths as $path) {
+    //             if (is_string($path) && $path !== '') {
+    //                 $this->supprimer($path);
+    //             }
+    //         }
+
+    //         throw $e;
+    //     }
+    // }
+
+
+    /**
+     * Crée un ou plusieurs documents en BDD + stocke les fichiers physiques.
+     */
     public function createDocument(array $data = [], ?UploadedFile $file = null): mixed
     {
-        $createdPaths = [];
+        $createdPaths   = [];
         $documentsCrees = [];
-        $files = [];
-        $labelsByFile = [];
+        $files          = [];
+        $labelsByFile   = [];
 
+        // Cas 1 : un seul fichier passé directement
+        if ($file instanceof UploadedFile) {
+            $files[]        = $file;
+            $labelsByFile[] = $data['libelle'] ?? null;
+        }
 
-        foreach ($data['documents'] as $entry) {
+        // Cas 2 : tableau de documents
+        foreach ($data['documents'] ?? [] as $entry) {
             if (!is_array($entry)) {
                 continue;
             }
@@ -137,7 +236,7 @@ class DocumentService
                 continue;
             }
 
-            $files[] = $uploadedFile;
+            $files[]        = $uploadedFile;
             $labelsByFile[] = $entry['libelle'] ?? null;
         }
 
@@ -149,30 +248,33 @@ class DocumentService
             return DB::transaction(function () use ($data, $files, $labelsByFile, &$documentsCrees, &$createdPaths) {
                 foreach ($files as $index => $uploadedFile) {
                     $extension = strtolower($uploadedFile->getClientOriginalExtension());
-                    $allowedExtensions = config('documents.allowed_extensions', []);
+                    $allowed   = config('documents.allowed_extensions', []);
 
-                    if (!in_array($extension, $allowedExtensions, true)) {
+                    if (!in_array($extension, $allowed, true)) {
                         throw new \RuntimeException("Extension non autorisée : .{$extension}");
                     }
 
-                    $resultat = $this->traiter($uploadedFile);
-                    $cheminRelatif = $resultat['chemin_relatif'] ?? null;
+                    $resultat      = $this->traiter($uploadedFile);
+                    $cheminRelatif = $resultat['chemin_relatif'];
 
                     if ($cheminRelatif) {
                         $createdPaths[] = $cheminRelatif;
                     }
 
                     $typeDocument = $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
-
-                    $libelle = $labelsByFile[$index] ?? $data['libelle'] ?? pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
+                    $libelle      = $labelsByFile[$index]
+                        ?? $data['libelle']
+                        ?? pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
 
                     $document = Document::create([
                         'uuid_document'  => (string) Str::uuid(),
                         'reference_uuid' => $data['reference_uuid'] ?? null,
-                        'nom_fichier'    => $resultat['nom_stocke'] ?? $uploadedFile->getClientOriginalName(),
+                        'nom_fichier'    => $resultat['nom_stocke'],
                         'libelle'        => $libelle,
                         'source'         => $data['source'] ?? null,
-                        'chemin'         => $resultat['url_publique'],
+                        // ⚠️ On stocke le CHEMIN RELATIF (ex: 2026/09/fichier.pdf)
+                        //    ainsi que l'URL publique complète n'est PAS stockée.
+                        'chemin'         => $cheminRelatif,
                         'type_document'  => $typeDocument,
                         'taille_fichier' => $resultat['taille'],
                         'mime_type'      => $resultat['mime_type'],
@@ -295,41 +397,41 @@ class DocumentService
         return Document::onlyTrashed()->get();
     }
 
-    public function devinerTypeDocument(string $extension, string $mimeType): string
-    {
-        $extension = strtolower($extension);
+    // public function devinerTypeDocument(string $extension, string $mimeType): string
+    // {
+    //     $extension = strtolower($extension);
 
-        $mapping = [
-            'pdf'  => 'pdf',
-            'doc'  => 'word',
-            'docx' => 'word',
-            'xls'  => 'excel',
-            'xlsx' => 'excel',
-            'csv'  => 'csv',
-            'ppt'  => 'powerpoint',
-            'pptx' => 'powerpoint',
-            'jpg'  => 'image',
-            'jpeg' => 'image',
-            'png'  => 'image',
-            'gif'  => 'image',
-            'svg'  => 'image',
-            'webp' => 'image',
-            'zip'  => 'archive',
-            'rar'  => 'archive',
-            'txt'  => 'texte',
-        ];
+    //     $mapping = [
+    //         'pdf'  => 'pdf',
+    //         'doc'  => 'word',
+    //         'docx' => 'word',
+    //         'xls'  => 'excel',
+    //         'xlsx' => 'excel',
+    //         'csv'  => 'csv',
+    //         'ppt'  => 'powerpoint',
+    //         'pptx' => 'powerpoint',
+    //         'jpg'  => 'image',
+    //         'jpeg' => 'image',
+    //         'png'  => 'image',
+    //         'gif'  => 'image',
+    //         'svg'  => 'image',
+    //         'webp' => 'image',
+    //         'zip'  => 'archive',
+    //         'rar'  => 'archive',
+    //         'txt'  => 'texte',
+    //     ];
 
-        if (isset($mapping[$extension])) {
-            return $mapping[$extension];
-        }
+    //     if (isset($mapping[$extension])) {
+    //         return $mapping[$extension];
+    //     }
 
-        if (Str::startsWith($mimeType, 'image/')) return 'image';
-        if (Str::startsWith($mimeType, 'video/')) return 'video';
-        if (Str::startsWith($mimeType, 'audio/')) return 'audio';
-        if (Str::startsWith($mimeType, 'text/')) return 'texte';
+    //     if (Str::startsWith($mimeType, 'image/')) return 'image';
+    //     if (Str::startsWith($mimeType, 'video/')) return 'video';
+    //     if (Str::startsWith($mimeType, 'audio/')) return 'audio';
+    //     if (Str::startsWith($mimeType, 'text/')) return 'texte';
 
-        return 'autre';
-    }
+    //     return 'autre';
+    // }
 
     protected function resoudreCheminAbsolu(?string $chemin): ?string
     {
@@ -373,31 +475,62 @@ class DocumentService
      *     dimensions: array{width: int, height: int}
      * }
      */
+    // public function traiter(UploadedFile $file): array
+    // {
+    //     // 1. Extraction des métadonnées de base
+    //     $extension = strtolower($file->getClientOriginalExtension());
+    //     $poidsOctets = $file->getSize();
+    //     $poidsKo     = (int) ceil($poidsOctets / 1024);
+
+    //     // 2. Lecture des dimensions (rapide, juste l'en-tête du fichier)
+    //     [$largeur, $hauteur] = $this->lireDimensions($file);
+
+    //     // 3. Génération d'un nom unique
+    //     $nomUnique = $this->genererNomUnique($file);
+
+    //     // 4. Création du dossier du mois s'il n'existe pas
+    //     $disque = Storage::disk($this->disk);
+    //     if (!$disque->exists($this->dossierRelatif)) {
+    //         $disque->makeDirectory($this->dossierRelatif, 0755, true, true);
+    //     }
+
+    //     // 5. Décision : compresser ou pas ?
+    //     $compresser = config('documents.image.enabled')
+    //         && $this->estImageCompressible($extension)
+    //         && $this->doitEtreCompresse($largeur, $hauteur, $poidsKo);
+
+    //     // 6. Traitement
+    //     if ($compresser) {
+    //         return $this->compresserImage($file, $nomUnique, $largeur, $hauteur, $extension);
+    //     }
+
+    //     return $this->copieDirecte($file, $nomUnique, $extension, $largeur, $hauteur);
+    // }
+
+    /**
+     * Traite un fichier : décide s'il faut compresser, stocke, retourne les infos.
+     */
     public function traiter(UploadedFile $file): array
     {
-        // 1. Extraction des métadonnées de base
-        $extension = strtolower($file->getClientOriginalExtension());
+        $extension   = strtolower($file->getClientOriginalExtension());
         $poidsOctets = $file->getSize();
         $poidsKo     = (int) ceil($poidsOctets / 1024);
 
-        // 2. Lecture des dimensions (rapide, juste l'en-tête du fichier)
         [$largeur, $hauteur] = $this->lireDimensions($file);
 
-        // 3. Génération d'un nom unique
         $nomUnique = $this->genererNomUnique($file);
 
-        // 4. Création du dossier du mois s'il n'existe pas
         $disque = Storage::disk($this->disk);
+
+        // Création du dossier année/mois si nécessaire
         if (!$disque->exists($this->dossierRelatif)) {
             $disque->makeDirectory($this->dossierRelatif, 0755, true, true);
         }
 
-        // 5. Décision : compresser ou pas ?
         $compresser = config('documents.image.enabled')
             && $this->estImageCompressible($extension)
             && $this->doitEtreCompresse($largeur, $hauteur, $poidsKo);
 
-        // 6. Traitement
         if ($compresser) {
             return $this->compresserImage($file, $nomUnique, $largeur, $hauteur, $extension);
         }
@@ -407,6 +540,20 @@ class DocumentService
 
     /**
      * Supprime un fichier du disque (utilisé pour le rollback).
+     */
+    // public function supprimer(string $cheminRelatif): bool
+    // {
+    //     $disque = Storage::disk($this->disk);
+
+    //     if ($disque->exists($cheminRelatif)) {
+    //         return $disque->delete($cheminRelatif);
+    //     }
+
+    //     return false;
+    // }
+
+    /**
+     * Supprime un fichier du disque (rollback).
      */
     public function supprimer(string $cheminRelatif): bool
     {
@@ -419,6 +566,36 @@ class DocumentService
         return false;
     }
 
+    /**
+     * Devine le type de document à partir de l'extension / mime.
+     */
+    public function devinerTypeDocument(string $extension, string $mimeType): string
+    {
+        $extension = strtolower($extension);
+
+        $mapping = [
+            'pdf'  => 'pdf',
+            'doc'  => 'word',   'docx' => 'word',
+            'xls'  => 'excel',  'xlsx' => 'excel', 'csv' => 'csv',
+            'ppt'  => 'powerpoint', 'pptx' => 'powerpoint',
+            'jpg'  => 'image',  'jpeg' => 'image', 'png' => 'image',
+            'gif'  => 'image',  'svg'  => 'image', 'webp' => 'image',
+            'zip'  => 'archive', 'rar' => 'archive',
+            'txt'  => 'texte',
+        ];
+
+        if (isset($mapping[$extension])) {
+            return $mapping[$extension];
+        }
+
+        if (Str::startsWith($mimeType, 'image/')) return 'image';
+        if (Str::startsWith($mimeType, 'video/')) return 'video';
+        if (Str::startsWith($mimeType, 'audio/')) return 'audio';
+        if (Str::startsWith($mimeType, 'text/'))  return 'texte';
+
+        return 'autre';
+    }
+
     // ========================================================================
     // LOGIQUE DE DÉCISION
     // ========================================================================
@@ -426,11 +603,33 @@ class DocumentService
     /**
      * Vérifie si l'extension est dans la liste des images compressibles.
      */
+    // protected function estImageCompressible(string $extension): bool
+    // {
+    //     $extensions = config('documents.image.extensions', ['jpg', 'jpeg', 'webp']);
+
+    //     return in_array($extension, $extensions, true);
+    // }
+
+    // ========================================================================
+    // LOGIQUE DE DÉCISION
+    // ========================================================================
+
     protected function estImageCompressible(string $extension): bool
     {
         $extensions = config('documents.image.extensions', ['jpg', 'jpeg', 'webp']);
-
         return in_array($extension, $extensions, true);
+    }
+
+    protected function doitEtreCompresse(int $largeur, int $hauteur, int $poidsKo): bool
+    {
+        $maxWidth   = (int) config('documents.image.max_width', 1920);
+        $maxHeight  = (int) config('documents.image.max_height', 1920);
+        $seuilPoids = (int) config('documents.image.seuil_poids', 500);
+
+        if ($largeur > $maxWidth || $hauteur > $maxHeight) return true;
+        if ($poidsKo > $seuilPoids) return true;
+
+        return false;
     }
 
     /**
@@ -441,22 +640,22 @@ class DocumentService
      *   - Si poids > seuil_poids (Ko)                    → OUI
      *   - Sinon                                          → NON
      */
-    protected function doitEtreCompresse(int $largeur, int $hauteur, int $poidsKo): bool
-    {
-        $maxWidth   = (int) config('documents.image.max_width', 1920);
-        $maxHeight  = (int) config('documents.image.max_height', 1920);
-        $seuilPoids = (int) config('documents.image.seuil_poids', 500);
+    // protected function doitEtreCompresse(int $largeur, int $hauteur, int $poidsKo): bool
+    // {
+    //     $maxWidth   = (int) config('documents.image.max_width', 1920);
+    //     $maxHeight  = (int) config('documents.image.max_height', 1920);
+    //     $seuilPoids = (int) config('documents.image.seuil_poids', 500);
 
-        if ($largeur > $maxWidth || $hauteur > $maxHeight) {
-            return true;
-        }
+    //     if ($largeur > $maxWidth || $hauteur > $maxHeight) {
+    //         return true;
+    //     }
 
-        if ($poidsKo > $seuilPoids) {
-            return true;
-        }
+    //     if ($poidsKo > $seuilPoids) {
+    //         return true;
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
     // ========================================================================
     // TRAITEMENTS
@@ -468,6 +667,82 @@ class DocumentService
      * En cas d'échec, on bascule automatiquement sur une copie directe
      * (fallback), pour que l'upload ne plante jamais.
      */
+    // protected function compresserImage(
+    //     UploadedFile $file,
+    //     string $nomUnique,
+    //     int $largeurOriginale,
+    //     int $hauteurOriginale,
+    //     string $extension
+    // ): array {
+    //     try {
+    //         $maxWidth  = (int) config('documents.image.max_width', 1920);
+    //         $maxHeight = (int) config('documents.image.max_height', 1920);
+    //         $quality   = (int) config('documents.image.quality', 85);
+
+    //         // 1. Charger l'image en mémoire (lit le fichier temporaire)
+    //         $image = $this->manager->read($file->getRealPath());
+
+    //         // 2. Redimensionner en gardant le ratio (réduit seulement si plus grand)
+    //         $image->scaleDown(width: $maxWidth, height: $maxHeight);
+
+    //         // 3. Encoder dans le format d'origine
+    //         $encoded = match ($extension) {
+    //             'jpg', 'jpeg' => $image->toJpeg($quality),
+    //             'webp'        => $image->toWebp($quality),
+    //             default       => throw new \RuntimeException("Format non supporté : {$extension}"),
+    //         };
+
+    //         // 4. Déterminer le chemin final
+    //         $cheminRelatif = $this->dossierRelatif . '/' . $nomUnique;
+
+    //         // 5. Écrire le binaire sur le disque
+    //         //    (string) est obligatoire : $encoded est un objet EncodedImage
+    //         Storage::disk($this->disk)->put($cheminRelatif, (string) $encoded);
+
+    //         // 6. Récupérer les nouvelles dimensions et le nouveau poids
+    //         $nouvellesDims = $this->lireDimensionsDepuisDisque($cheminRelatif);
+    //         $tailleFinale  = Storage::disk($this->disk)->size($cheminRelatif);
+
+    //         // 7. Logger l'opération
+    //         Log::info('[DocumentUploadService] Image compressée', [
+    //             'nom_original'   => $file->getClientOriginalName(),
+    //             'nom_stocke'     => $nomUnique,
+    //             'poids_avant_ko' => (int) ceil($file->getSize() / 1024),
+    //             'poids_apres_ko' => (int) ceil($tailleFinale / 1024),
+    //             'gain_pourcent'  => $file->getSize() > 0
+    //                 ? round((1 - $tailleFinale / $file->getSize()) * 100, 1)
+    //                 : 0,
+    //             'dimensions'     => "{$largeurOriginale}x{$hauteurOriginale} → "
+    //                               . "{$nouvellesDims['width']}x{$nouvellesDims['height']}",
+    //         ]);
+
+    //         return [
+    //             'chemin_relatif' => $cheminRelatif,
+    //             'url_publique'   => $this->construireUrlPublique($cheminRelatif),
+    //             'nom_stocke'     => $nomUnique,
+    //             'taille'         => $tailleFinale,
+    //             'mime_type'      => $this->mimeDepuisExtension($extension),
+    //             'extension'      => $extension,
+    //             'compresse'      => true,
+    //             'dimensions'     => $nouvellesDims,
+    //         ];
+
+    //     } catch (\Throwable $e) {
+    //         // Fallback : si la compression échoue, on copie le fichier brut
+    //         Log::error('[DocumentUploadService] Échec compression → fallback copie directe', [
+    //             'nom_original' => $file->getClientOriginalName(),
+    //             'erreur'       => $e->getMessage(),
+    //             'trace'        => $e->getTraceAsString(),
+    //         ]);
+
+    //         return $this->copieDirecte($file, $nomUnique, $extension, $largeurOriginale, $hauteurOriginale);
+    //     }
+    // }
+
+    // ========================================================================
+    // TRAITEMENTS
+    // ========================================================================
+
     protected function compresserImage(
         UploadedFile $file,
         string $nomUnique,
@@ -480,41 +755,28 @@ class DocumentService
             $maxHeight = (int) config('documents.image.max_height', 1920);
             $quality   = (int) config('documents.image.quality', 85);
 
-            // 1. Charger l'image en mémoire (lit le fichier temporaire)
             $image = $this->manager->read($file->getRealPath());
-
-            // 2. Redimensionner en gardant le ratio (réduit seulement si plus grand)
             $image->scaleDown(width: $maxWidth, height: $maxHeight);
 
-            // 3. Encoder dans le format d'origine
             $encoded = match ($extension) {
                 'jpg', 'jpeg' => $image->toJpeg($quality),
                 'webp'        => $image->toWebp($quality),
                 default       => throw new \RuntimeException("Format non supporté : {$extension}"),
             };
 
-            // 4. Déterminer le chemin final
             $cheminRelatif = $this->dossierRelatif . '/' . $nomUnique;
 
-            // 5. Écrire le binaire sur le disque
-            //    (string) est obligatoire : $encoded est un objet EncodedImage
             Storage::disk($this->disk)->put($cheminRelatif, (string) $encoded);
 
-            // 6. Récupérer les nouvelles dimensions et le nouveau poids
             $nouvellesDims = $this->lireDimensionsDepuisDisque($cheminRelatif);
             $tailleFinale  = Storage::disk($this->disk)->size($cheminRelatif);
 
-            // 7. Logger l'opération
-            Log::info('[DocumentUploadService] Image compressée', [
+            Log::info('[DocumentService] Image compressée', [
                 'nom_original'   => $file->getClientOriginalName(),
                 'nom_stocke'     => $nomUnique,
                 'poids_avant_ko' => (int) ceil($file->getSize() / 1024),
                 'poids_apres_ko' => (int) ceil($tailleFinale / 1024),
-                'gain_pourcent'  => $file->getSize() > 0
-                    ? round((1 - $tailleFinale / $file->getSize()) * 100, 1)
-                    : 0,
-                'dimensions'     => "{$largeurOriginale}x{$hauteurOriginale} → "
-                                  . "{$nouvellesDims['width']}x{$nouvellesDims['height']}",
+                'dimensions'     => "{$largeurOriginale}x{$hauteurOriginale} → {$nouvellesDims['width']}x{$nouvellesDims['height']}",
             ]);
 
             return [
@@ -527,22 +789,47 @@ class DocumentService
                 'compresse'      => true,
                 'dimensions'     => $nouvellesDims,
             ];
-
         } catch (\Throwable $e) {
-            // Fallback : si la compression échoue, on copie le fichier brut
-            Log::error('[DocumentUploadService] Échec compression → fallback copie directe', [
+            Log::error('[DocumentService] Échec compression → fallback', [
                 'nom_original' => $file->getClientOriginalName(),
                 'erreur'       => $e->getMessage(),
-                'trace'        => $e->getTraceAsString(),
             ]);
 
             return $this->copieDirecte($file, $nomUnique, $extension, $largeurOriginale, $hauteurOriginale);
         }
     }
-
     /**
      * Copie directe du fichier sans transformation.
      */
+    // protected function copieDirecte(
+    //     UploadedFile $file,
+    //     string $nomUnique,
+    //     string $extension,
+    //     int $largeur,
+    //     int $hauteur
+    // ): array {
+    //     $cheminRelatif = $file->storeAs($this->dossierRelatif, $nomUnique, $this->disk);
+
+    //     if (!$cheminRelatif) {
+    //         throw new \RuntimeException(
+    //             "Échec du stockage direct du fichier dans {$this->dossierRelatif}"
+    //         );
+    //     }
+
+    //     $taille = Storage::disk($this->disk)->size($cheminRelatif);
+
+    //     return [
+    //         'chemin_relatif' => $cheminRelatif,
+    //         'url_publique'   => $this->construireUrlPublique($cheminRelatif),
+    //         'nom_stocke'     => $nomUnique,
+    //         'taille'         => $taille,
+    //         'mime_type'      => $file->getMimeType() ?? 'application/octet-stream',
+    //         'extension'      => $extension,
+    //         'compresse'      => false,
+    //         'dimensions'     => ['width' => $largeur, 'height' => $hauteur],
+    //     ];
+    // }
+
     protected function copieDirecte(
         UploadedFile $file,
         string $nomUnique,
@@ -554,7 +841,7 @@ class DocumentService
 
         if (!$cheminRelatif) {
             throw new \RuntimeException(
-                "Échec du stockage direct du fichier dans {$this->dossierRelatif}"
+                "Échec du stockage direct dans {$this->dossierRelatif} (disque: {$this->disk})"
             );
         }
 
@@ -581,13 +868,99 @@ class DocumentService
      *
      * Exemple : "Ma Photo Été.jpg" → "ma-photo-ete_a1b2c3d4-...jpg"
      */
+    // protected function genererNomUnique(UploadedFile $file): string
+    // {
+    //     $nomOriginal = $file->getClientOriginalName();
+    //     $extension   = strtolower($file->getClientOriginalExtension());
+
+    //     // Slug du nom sans extension
+    //     $slug = Str::slug(pathinfo($nomOriginal, PATHINFO_FILENAME));
+
+    //     if (empty($slug)) {
+    //         $slug = 'fichier';
+    //     }
+
+    //     return $slug . '_' . now()->format('YmdHis') . '.' . $extension;
+    // }
+
+    /**
+     * Lit les dimensions d'une image via getimagesize() (rapide, sans charger en mémoire).
+     * Retourne [0, 0] si le fichier n'est pas une image.
+     */
+    // protected function lireDimensions(UploadedFile $file): array
+    // {
+    //     // @ supprime les warnings sur les fichiers non-image (PDF, DOCX, etc.)
+    //     $infos = @getimagesize($file->getRealPath());
+
+    //     if ($infos === false) {
+    //         return [0, 0];
+    //     }
+
+    //     return [(int) $infos[0], (int) $infos[1]];
+    // }
+
+    /**
+     * Lit les dimensions d'un fichier déjà stocké sur le disque.
+     */
+    // protected function lireDimensionsDepuisDisque(string $cheminRelatif): array
+    // {
+    //     $cheminAbsolu = Storage::disk($this->disk)->path($cheminRelatif);
+    //     $infos        = @getimagesize($cheminAbsolu);
+
+    //     if ($infos === false) {
+    //         return ['width' => 0, 'height' => 0];
+    //     }
+
+    //     return ['width' => (int) $infos[0], 'height' => (int) $infos[1]];
+    // }
+
+    /**
+     * Construit l'URL publique à partir du chemin relatif.
+     */
+    // protected function construireUrlPublique(string $cheminRelatif): string
+    // {
+    //     return rtrim(config('documents.url'), '/') . '/' . $cheminRelatif;
+    // }
+
+    /**
+     * Retourne le MIME type à partir de l'extension.
+     */
+    // protected function mimeDepuisExtension(string $extension): string
+    // {
+    //     return match (strtolower($extension)) {
+    //         'jpg', 'jpeg' => 'image/jpeg',
+    //         'png'         => 'image/png',
+    //         'gif'         => 'image/gif',
+    //         'webp'        => 'image/webp',
+    //         default       => 'application/octet-stream',
+    //     };
+    // }
+
+    /**
+     * Crée le manager Intervention Image avec le meilleur driver disponible.
+     *
+     * Utilise Imagick si l'extension est chargée (meilleure qualité),
+     * sinon GD (par défaut).
+     */
+    // protected function creerManager(): ImageManager
+    // {
+    //     $driver = extension_loaded('imagick')
+    //         ? new ImagickDriver()
+    //         : new GdDriver();
+
+    //     return new ImageManager($driver);
+    // }
+
+
+    // ========================================================================
+    // UTILITAIRES
+    // ========================================================================
+
     protected function genererNomUnique(UploadedFile $file): string
     {
         $nomOriginal = $file->getClientOriginalName();
         $extension   = strtolower($file->getClientOriginalExtension());
-
-        // Slug du nom sans extension
-        $slug = Str::slug(pathinfo($nomOriginal, PATHINFO_FILENAME));
+        $slug        = Str::slug(pathinfo($nomOriginal, PATHINFO_FILENAME));
 
         if (empty($slug)) {
             $slug = 'fichier';
@@ -596,13 +969,8 @@ class DocumentService
         return $slug . '_' . now()->format('YmdHis') . '.' . $extension;
     }
 
-    /**
-     * Lit les dimensions d'une image via getimagesize() (rapide, sans charger en mémoire).
-     * Retourne [0, 0] si le fichier n'est pas une image.
-     */
     protected function lireDimensions(UploadedFile $file): array
     {
-        // @ supprime les warnings sur les fichiers non-image (PDF, DOCX, etc.)
         $infos = @getimagesize($file->getRealPath());
 
         if ($infos === false) {
@@ -612,9 +980,6 @@ class DocumentService
         return [(int) $infos[0], (int) $infos[1]];
     }
 
-    /**
-     * Lit les dimensions d'un fichier déjà stocké sur le disque.
-     */
     protected function lireDimensionsDepuisDisque(string $cheminRelatif): array
     {
         $cheminAbsolu = Storage::disk($this->disk)->path($cheminRelatif);
@@ -629,15 +994,17 @@ class DocumentService
 
     /**
      * Construit l'URL publique à partir du chemin relatif.
+     * Utilise APP_URL + url_prefix (déduit de DOC_PATH).
      */
     protected function construireUrlPublique(string $cheminRelatif): string
     {
-        return rtrim(config('documents.url'), '/') . '/' . $cheminRelatif;
+        $base   = rtrim((string) url('/'), '/');
+        // $base   = rtrim((string) env('APP_URL', 'http://localhost'), '/');
+        $prefix = '/' . trim((string) config('documents.url_prefix', '/docnumerises/PROD'), '/');
+
+        return $base . $prefix . '/' . ltrim($cheminRelatif, '/');
     }
 
-    /**
-     * Retourne le MIME type à partir de l'extension.
-     */
     protected function mimeDepuisExtension(string $extension): string
     {
         return match (strtolower($extension)) {
@@ -649,12 +1016,6 @@ class DocumentService
         };
     }
 
-    /**
-     * Crée le manager Intervention Image avec le meilleur driver disponible.
-     *
-     * Utilise Imagick si l'extension est chargée (meilleure qualité),
-     * sinon GD (par défaut).
-     */
     protected function creerManager(): ImageManager
     {
         $driver = extension_loaded('imagick')

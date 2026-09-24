@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /*
@@ -770,29 +771,59 @@ Route::prefix('signature')->group(function () {
     // })->name('signature.demo.proof');
 });
 
+// Route::get('preview/doc/{file}', function ($file) {
+//     $doc = Document::where('nom_fichier', $file)->first();
+//     if (!$doc) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Document introuvable .',
+//         ]);
+//     }
+//     $path = base_path($doc->chemin);
+//     if (!file_exists($path)) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Le fichier nom_fichier ' . $doc->nom_fichier . ' n\'existe pas dans le repertoire.',
+//         ]);
+//     }
+//     $fileContents = file_get_contents($path);
+//     $mimeType = mime_content_type($path);
+//     return Response::make(
+//         $fileContents,
+//         200,
+//         [
+//             'Content-Type' => $mimeType,
+//             'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
+//         ]
+//     );
+// })->where('file', '.*');
+
 Route::get('preview/doc/{file}', function ($file) {
     $doc = Document::where('nom_fichier', $file)->first();
+
     if (!$doc) {
         return response()->json([
             'success' => false,
-            'message' => 'Document introuvable .',
-        ]);
+            'message' => 'Document introuvable.',
+        ], 404);
     }
-    $path = base_path($doc->chemin);
-    if (!file_exists($path)) {
+
+    // On utilise le disque configuré + le chemin relatif stocké en BDD
+    $disk = Storage::disk(config('documents.disk'));
+
+    if (!$disk->exists($doc->chemin)) {
         return response()->json([
             'success' => false,
-            'message' => 'Le fichier nom_fichier ' . $doc->nom_fichier . ' n\'existe pas dans le repertoire.',
-        ]);
+            'message' => "Le fichier {$doc->nom_fichier} n'existe pas dans le répertoire.",
+            'chemin'  => $doc->chemin,
+            'root'    => $disk->path(''),
+        ], 404);
     }
-    $fileContents = file_get_contents($path);
-    $mimeType = mime_content_type($path);
-    return Response::make(
-        $fileContents,
-        200,
-        [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
-        ]
-    );
+
+    $absolutePath = $disk->path($doc->chemin);
+
+    return response()->file($absolutePath, [
+        'Content-Type'        => $doc->mime_type ?: mime_content_type($absolutePath),
+        'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
+    ]);
 })->where('file', '.*');
