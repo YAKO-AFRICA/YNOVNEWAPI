@@ -798,6 +798,25 @@ Route::prefix('signature')->group(function () {
 //     );
 // })->where('file', '.*');
 
+Route::get('storage/doc/{file}', function ($file) {
+    // Nettoyer le nom du fichier
+    $path = base_path(env('DOC_PATH') . $file);
+
+
+    // Si toujours pas trouvé
+    if (!file_exists($path)) {
+        abort(404, 'Fichier non trouvé: ' . $file);
+    }
+
+    $fileContents = file_get_contents($path);
+    $mimeType = mime_content_type($path);
+
+    return Response::make($fileContents, 200, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('file', '.*')->name('storage.documents');
+
 Route::get('preview/doc/{file}', function ($file) {
     $doc = Document::where('nom_fichier', $file)->first();
 
