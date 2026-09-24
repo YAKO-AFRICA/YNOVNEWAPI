@@ -19387,107 +19387,303 @@
                 ],
             },
 
-            // ============================================================
-            // WIDGET SIGNATURE - INTÉGRATION
-            // ============================================================
-            {
-                id: "signature-widget-intro",
-                module: "signature_widget",
-                name: "Widget Signature Électronique",
-                description:
-                    "Le widget de signature électronique est un composant JavaScript autonome, embarquable dans n'importe quelle application hôte. Il détecte automatiquement le mode mobile/desktop, affiche un QR code sur desktop, ouvre le widget sur mobile au scan, et poste la signature au backend Laravel qui la relaie vers votre webhook avec authentification grâce au token unique.",
-                method: "GET",
-                path: "/api/v1/signature/signature-widget.js",
-                isProtected: false,
-                isHome: false,
-                hasWidgetInfo: true,
-                widgetInfo: {
-                    features: [
-                        "Détection automatique du mode mobile/desktop",
-                        "QR code automatique sur grand écran",
-                        "Ouverture du widget sur mobile au scan du QR",
-                        "Signature manuscrite directe sur écran tactile",
-                        "Transmission via webhook vers l'application hôte",
-                        "Token unique et expirant par demande",
-                        "Aucune dépendance de build / embarquable par copier-coller",
-                        "Polling automatique du statut de signature",
-                    ],
-                    paymentTypes: [
-                        {
-                            code: "desktop",
-                            label: "Desktop",
-                            description: "Affiche le QR code pour ouvrir la signature sur mobile",
-                            icon: "fa-desktop",
-                        },
-                        {
-                            code: "mobile",
-                            label: "Mobile",
-                            description: "Signature directe sur écran tactile",
-                            icon: "fa-mobile-screen-button",
-                        },
-                    ],
-                    docsLink: "/signature/demo",
-                    widgetJs: "/api/v1/signature/signature-widget.js",
-                },
-                responses: [
-                    {
-                        status: 200,
-                        description: "Script du widget de signature",
-                        example: {
-                            title: "Widget Signature Électronique",
-                            description: "Intégration front-end et démonstration",
-                            version: "1.0.0",
-                            modes: ["desktop", "mobile"],
-                            workflow: [
-                                "mobile/desktop detection",
-                                "QR code on desktop",
-                                "mobile signing",
-                                "webhook + polling",
-                            ],
-                            documentation: "/signature/demo",
-                        },
-                    },
-                ],
-            },
+            // // ============================================================
+            // // WIDGET SIGNATURE - INTÉGRATION
+            // // ============================================================
+            // {
+            //     id: "signature-widget-intro",
+            //     module: "signature_widget",
+            //     name: "Widget Signature Électronique",
+            //     description:
+            //         "Le widget de signature électronique est un composant JavaScript autonome, embarquable dans n'importe quelle application hôte. Il détecte automatiquement le mode mobile/desktop, affiche un QR code sur desktop, ouvre le widget sur mobile au scan, et poste la signature au backend Laravel qui la relaie vers votre webhook avec authentification grâce au token unique.",
+            //     method: "GET",
+            //     path: "/api/v1/signature/signature-widget.js",
+            //     isProtected: false,
+            //     isHome: false,
+            //     hasWidgetInfo: true,
+            //     widgetInfo: {
+            //         features: [
+            //             "Détection automatique du mode mobile/desktop",
+            //             "QR code automatique sur grand écran",
+            //             "Ouverture du widget sur mobile au scan du QR",
+            //             "Signature manuscrite directe sur écran tactile",
+            //             "Transmission via webhook vers l'application hôte",
+            //             "Token unique et expirant par demande",
+            //             "Aucune dépendance de build / embarquable par copier-coller",
+            //             "Polling automatique du statut de signature",
+            //         ],
+            //         paymentTypes: [
+            //             {
+            //                 code: "desktop",
+            //                 label: "Desktop",
+            //                 description: "Affiche le QR code pour ouvrir la signature sur mobile",
+            //                 icon: "fa-desktop",
+            //             },
+            //             {
+            //                 code: "mobile",
+            //                 label: "Mobile",
+            //                 description: "Signature directe sur écran tactile",
+            //                 icon: "fa-mobile-screen-button",
+            //             },
+            //         ],
+            //         docsLink: "/signature/demo",
+            //         widgetJs: "/api/v1/signature/signature-widget.js",
+            //     },
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: "Script du widget de signature",
+            //             example: {
+            //                 title: "Widget Signature Électronique",
+            //                 description: "Intégration front-end et démonstration",
+            //                 version: "1.0.0",
+            //                 modes: ["desktop", "mobile"],
+            //                 workflow: [
+            //                     "mobile/desktop detection",
+            //                     "QR code on desktop",
+            //                     "mobile signing",
+            //                     "webhook + polling",
+            //                 ],
+            //                 documentation: "/signature/demo",
+            //             },
+            //         },
+            //     ],
+            // },
 
+            // // ============================================================
+            // // WIDGET SIGNATURE - PAGE DE DÉMONSTRATION
+            // // ============================================================
+            // {
+            //     id: "signature-widget-demo",
+            //     module: "signature_widget",
+            //     name: "Démonstration du Widget Signature",
+            //     description:
+            //         "Page de démonstration interactive du widget de signature avec le flux complet : génération du token, QR code desktop, signature mobile et verification par webhook/polling.",
+            //     method: "GET",
+            //     path: "/signature/demo",
+            //     isProtected: false,
+            //     isHome: false,
+            //     isWidgetDemo: true,
+            //     responses: [
+            //         {
+            //             status: 200,
+            //             description: "Page de démonstration du widget de signature",
+            //             example: {
+            //                 title: "Widget Signature Électronique - Démonstration",
+            //                 description:
+            //                     "Testez le flux complet de génération, QR code desktop, signature mobile et webhook.",
+            //                 scenarios: [
+            //                     {
+            //                         type: "desktop",
+            //                         label: "Grand écran",
+            //                         description: "Affiche un QR code pour signer depuis le mobile",
+            //                     },
+            //                     {
+            //                         type: "mobile",
+            //                         label: "Petit écran",
+            //                         description: "Signature directe sur l'écran tactile",
+            //                     },
+            //                 ],
+            //             },
+            //         },
+            //     ],
+            // },
             // ============================================================
-            // WIDGET SIGNATURE - PAGE DE DÉMONSTRATION
-            // ============================================================
+// WIDGET SIGNATURE - INTÉGRATION
+// ============================================================
+{
+    id: "signature-widget-intro",
+    module: "signature_widget",
+    name: "Widget Signature Électronique",
+    description:
+        "Le widget de signature électronique YAKOA AFRICASSUR est un composant JavaScript autonome, " +
+        "embarquable dans n'importe quelle application hôte. Il propose deux modes de signature : " +
+        "(1) OTP multicanal (par défaut) — le signataire reçoit un code à 6 chiffres par SMS, Email ou " +
+        "WhatsApp et la preuve de signature est un QR code encodant une URL avec les données autoritaires " +
+        "du serveur (identité utilisateur, IP, User-Agent, horodatage) + la géolocalisation navigateur ; " +
+        "(2) signature manuscrite sur canvas (mode de repli, ou sélectionné manuellement). " +
+        "Le widget détecte automatiquement le mode mobile/desktop, affiche un QR d'appairage sur grand " +
+        "écran, poste la signature au backend Laravel qui la relaie vers le webhook de l'app hôte avec " +
+        "authentification via l'en-tête X-Api-Key.",
+    method: "GET",
+    path: "/api/v1/signature/signature-widget.js",
+    isProtected: false,
+    isHome: false,
+    hasWidgetInfo: true,
+    widgetInfo: {
+        features: [
+            // Modes de signature
+            "Mode OTP multicanal (SMS / Email / WhatsApp) — par défaut",
+            "Mode signature manuscrite (canvas tactile) — repli ou choix explicite",
+            "Basculage dynamique entre modes (lien « Signer à la main », repli auto si OTP expiré)",
+
+            // Comportement responsive
+            "Détection automatique du mode mobile/desktop",
+            "QR code d'appairage automatique sur grand écran",
+            "Ouverture directe du canvas sur mobile via ?mode=handwritten",
+
+            // Saisie OTP
+            "Saisie OTP en 6 cases individuelles avec auto-avance",
+            "Collage automatique d'un code complet (6 chiffres répartis)",
+            "Autofill SMS (autocomplete=one-time-code)",
+            "Navigation clavier (Backspace, flèches ← →)",
+            "Compte à rebours visuel (mm:ss) avec changement de couleur (vert / orange / rouge)",
+            "Masquage automatique de la zone de demande après envoi du code",
+            "Lien « Changer de contact » (sauf si contact pré-rempli par l'app hôte)",
+
+            // Preuve de signature
+            "Preuve QR en mode OTP — URL encodant les données autoritaires + géolocalisation",
+            "Preuve image PNG (canvas) en mode manuscrit",
+
+            // Intégration & sécurité
+            "Aucune dépendance de build / embarquable par copier-coller",
+            "Isolation Shadow DOM : styles du widget indépendants de l'app hôte",
+            "Token unique, expirant, à usage unique",
+            "Aucun secret côté client (api_key, webhook_url restent côté serveur)",
+
+            // Polling & workflow
+            "Polling automatique du statut de signature (poste desktop)",
+            "Redirection automatique après signature (success_redirect_url)",
+            "Expiration gérée (décompte OTP + expiration du token)",
+        ],
+
+        paymentTypes: [
             {
-                id: "signature-widget-demo",
-                module: "signature_widget",
-                name: "Démonstration du Widget Signature",
+                code: "otp",
+                label: "OTP multicanal",
                 description:
-                    "Page de démonstration interactive du widget de signature avec le flux complet : génération du token, QR code desktop, signature mobile et verification par webhook/polling.",
-                method: "GET",
-                path: "/signature/demo",
-                isProtected: false,
-                isHome: false,
-                isWidgetDemo: true,
-                responses: [
+                    "Mode par défaut. SMS / Email / WhatsApp — le signataire reçoit un code à 6 chiffres. " +
+                    "La preuve est un QR code encodant une URL avec les données autoritaires (identité, IP, " +
+                    "User-Agent, horodatage) + géolocalisation navigateur.",
+                icon: "fa-shield-halved",
+            },
+            {
+                code: "handwritten",
+                label: "Signature manuscrite",
+                description:
+                    "Canvas tactile. Accessible via « Signer à la main » ou automatiquement proposé si " +
+                    "l'OTP expire. Sur desktop, un QR d'appairage permet de signer depuis un mobile.",
+                icon: "fa-pen-fancy",
+            },
+            {
+                code: "desktop",
+                label: "Desktop (QR d'appairage)",
+                description:
+                    "Affiche un QR code à scanner pour ouvrir la signature sur un mobile " +
+                    "(mode auto-polling, écran d'agence).",
+                icon: "fa-desktop",
+            },
+            {
+                code: "mobile",
+                label: "Mobile",
+                description:
+                    "Ouverture directe du widget sur écran tactile — choix OTP ou canvas selon le contexte.",
+                icon: "fa-mobile-screen-button",
+            },
+        ],
+
+        docsLink: "/signature/demo",
+        widgetJs: "/api/v1/signature/signature-widget.js",
+    },
+    responses: [
+        {
+            status: 200,
+            description: "Script du widget de signature (JavaScript embarquable, chargé via <script>)",
+            example: {
+                title: "Widget Signature Électronique",
+                description: "Intégration front-end, démonstration et documentation",
+                version: "2.1.0",
+                modes: ["otp", "handwritten", "desktop", "mobile"],
+                workflow: [
+                    "génération du token via POST /api/v1/signature/generate-link",
+                    "chargement du widget sur la page de l'app hôte",
+                    "mode OTP : choix canal + contact → envoi du code → saisie 6 cases → vérification",
+                    "mode OTP : construction URL de preuve + génération QR (otpQrUrlTemplate)",
+                    "mode manuscrit : tracé sur canvas",
+                    "POST /api/v1/signature/webhook (widget → Laravel)",
+                    "Laravel relaie à l'app hôte avec X-Api-Key",
+                    "optionnel : polling via GET /api/v1/signature/token/{token}/status",
+                ],
+                endpoints: {
+                    generateLink: "POST /api/v1/signature/generate-link",
+                    widgetJs: "GET /api/v1/signature/signature-widget.js",
+                    otpSend: "POST /api/v1/auth/otp/send",
+                    otpVerify: "POST /api/v1/signature/otp/verify",
+                    webhook: "POST /api/v1/signature/webhook",
+                    tokenStatus: "GET /api/v1/signature/token/{token}/status",
+                    widgetPage: "GET /signature/widget/{token}",
+                },
+                documentation: "/signature/demo",
+            },
+        },
+    ],
+},
+
+// ============================================================
+// WIDGET SIGNATURE - PAGE DE DÉMONSTRATION
+// ============================================================
+{
+    id: "signature-widget-demo",
+    module: "signature_widget",
+    name: "Démonstration du Widget Signature",
+    description:
+        "Page de démonstration interactive du widget de signature avec le flux complet : " +
+        "génération du token côté serveur, test des trois modes (OTP, manuscrit, QR d'appairage desktop), " +
+        "saisie OTP en 6 cases avec décompte, construction de la preuve QR, signature manuscrite, " +
+        "et vérification via webhook + polling.",
+    method: "GET",
+    path: "/signature/demo",
+    isProtected: false,
+    isHome: false,
+    isWidgetDemo: true,
+    responses: [
+        {
+            status: 200,
+            description: "Page de démonstration du widget de signature",
+            example: {
+                title: "Widget Signature Électronique - Démonstration",
+                description:
+                    "Testez le flux complet : OTP multicanal (preuve QR), signature manuscrite (canvas), " +
+                    "QR d'appairage desktop et réception par webhook/polling.",
+                scenarios: [
                     {
-                        status: 200,
-                        description: "Page de démonstration du widget de signature",
-                        example: {
-                            title: "Widget Signature Électronique - Démonstration",
-                            description:
-                                "Testez le flux complet de génération, QR code desktop, signature mobile et webhook.",
-                            scenarios: [
-                                {
-                                    type: "desktop",
-                                    label: "Grand écran",
-                                    description: "Affiche un QR code pour signer depuis le mobile",
-                                },
-                                {
-                                    type: "mobile",
-                                    label: "Petit écran",
-                                    description: "Signature directe sur l'écran tactile",
-                                },
-                            ],
-                        },
+                        type: "otp",
+                        label: "Mode OTP (par défaut)",
+                        description:
+                            "Sélecteur de canal SMS / Email / WhatsApp, envoi de code, saisie en 6 cases, " +
+                            "décompte mm:ss, génération d'un QR de preuve encodant les données autoritaires.",
+                    },
+                    {
+                        type: "handwritten",
+                        label: "Signature manuscrite",
+                        description:
+                            "Canvas tactile direct (forceMode mobile). Utilisable via le lien " +
+                            "« Signer à la main » ou automatiquement proposé si l'OTP expire.",
+                    },
+                    {
+                        type: "desktop",
+                        label: "QR d'appairage (grand écran)",
+                        description:
+                            "Affiche un QR code pour signer depuis un mobile (mode auto-polling, " +
+                            "écran d'agence). Redirection ?mode=handwritten pour ouvrir directement le canvas.",
                     },
                 ],
+                demoConfig: {
+                    signerLogin: "demo.signataire",
+                    signerEmail: "demo@yakoafrica.ci",
+                    signerPhone: "0700000000",
+                    otpPurpose: "signature",
+                    expiresIn: 900,
+                },
+                notes: [
+                    "Ce lien de démonstration est réel et à usage unique (expire dans 15 minutes).",
+                    "En mode OTP, signer_login = 'demo.signataire' et le contact est pré-rempli.",
+                    "Après une signature réelle, rechargez la page pour obtenir un nouveau lien.",
+                ],
             },
+        },
+    ],
+},
         ],
 
         // ================================================================

@@ -65,6 +65,7 @@ return [
     ],
 
     'signature' => [
+        'api_webhook_key' => env('API_SIGN_WIDGET_WEBHOOK_KEY'),
         'allowed_document_hosts' => [
             'web.yakoafricassur.com',
             'yakoafricassur.com',

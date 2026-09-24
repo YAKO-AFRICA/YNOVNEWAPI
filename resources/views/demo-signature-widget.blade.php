@@ -173,6 +173,33 @@
             white-space: pre;
         }
 
+        .step-list { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+        .step-list li {
+            counter-increment: step; position: relative; padding-left: 42px;
+            margin-bottom: 14px; line-height: 1.6; color: #374151;
+        }
+        .step-list li::before {
+            content: counter(step); position: absolute; left: 0; top: 0;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #075429; color: #fff; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+        }
+
+        .table-wrap { overflow-x: auto; margin-top: 10px; }
+        table.doc-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
+            background: #fff; border-radius: 10px; overflow: hidden;
+        }
+        table.doc-table th, table.doc-table td {
+            padding: 10px 12px; text-align: left; border-bottom: 1px solid #edf1ee;
+            vertical-align: top;
+        }
+        table.doc-table th {
+            background: #f7faf7; color: #111827; font-weight: 700; font-size: 12.5px;
+        }
+        table.doc-table td code { font-size: 11.5px; }
+
         @media (max-width: 700px) {
             .header { flex-direction: column; align-items: flex-start; }
             .container { padding: 22px 18px; }
@@ -181,6 +208,28 @@
 </head>
 
 <body>
+
+@if (($webhook_mode ?? 'internal_echo') === 'webhook_site')
+    <div style="max-width: 1100px; margin: 0 auto 20px; padding: 14px 18px;
+                background: #dcfce7; border-left: 4px solid #22c55e;
+                border-radius: 10px; color: #166534; font-size: 14px;">
+        ✅ <strong>Mode webhook.site activé</strong> — la signature sera envoyée à
+        <a href="{{ $webhook_base }}" target="_blank" rel="noopener"
+           style="color: #166534; text-decoration: underline;">
+            webhook.site
+        </a>.
+        Ouvrez ce lien dans un autre onglet <strong>avant</strong> de signer pour voir
+        le payload en temps réel.
+    </div>
+@else
+    <div style="max-width: 1100px; margin: 0 auto 20px; padding: 14px 18px;
+                background: #fef3c7; border-left: 4px solid #f59e0b;
+                border-radius: 10px; color: #92400e; font-size: 14px;">
+        ⚠️ <strong>Mode écho interne</strong> — le webhook n'est pas réellement appelé.
+        Pour tester le flux complet, définissez <code>DEMO_WEBHOOK_BASE</code> dans
+        <code>.env</code> (ex: <code>https://webhook.site/votre-uuid</code>).
+    </div>
+@endif
     <div class="container">
         <div class="header">
             <div class="header-left">
@@ -251,7 +300,8 @@
             <strong>🧭 Deux modes de signature, un seul flux de preuve</strong>
             <div class="flow-diagram">Mode OTP (défaut)
   Widget  ──POST──►  /api/v1/auth/otp/send          (canal: sms|email|whatsapp)
-          ◄────────  { success: true, code: OTP_SENT }
+          ◄────────  { success: true, code: OTP_SENT, data: { expires_in } }
+  Widget  :  affiche 6 cases OTP + décompte (mm:ss)
   Widget  ──POST──►  /api/v1/signature/otp/verify   (code, channel, contact)
           ◄────────  { success, data: { user_uuid, login, email, nom, prenoms,
                                         mobile_1, adresse_complete, channel, contact,
@@ -281,6 +331,8 @@ Mode Handwritten (repli)
                 <button type="button" class="tab-btn" data-tab="otp">Flux OTP en détail</button>
                 <button type="button" class="tab-btn" data-tab="webhook">Payload webhook</button>
                 <button type="button" class="tab-btn" data-tab="api">API generate-link</button>
+                <button type="button" class="tab-btn" data-tab="security">Sécurité</button>
+                <button type="button" class="tab-btn" data-tab="troubleshoot">Dépannage</button>
             </div>
 
             {{-- ---------------------------------------------------------- --}}
@@ -296,7 +348,7 @@ Mode Handwritten (repli)
 
                 <div class="code-block">
                     @verbatim
-                    <pre><code>&lt;script src="https://api.yakoafrica.ci/api/v1/signature/signature-widget.js"&gt;&lt;/script&gt;
+                    <pre><code>&lt;script src="https://apidev.yakoafricassur.com/api/v1/signature/signature-widget.js"&gt;&lt;/script&gt;
 
 &lt;div id="signature-widget"&gt;&lt;/div&gt;
 
@@ -313,12 +365,12 @@ Mode Handwritten (repli)
     documentDescription: 'Contrat de souscription',
 
     // --- Backend Laravel (toujours, jamais l'app hôte directement) ---
-    backendWebhookUrl: 'https://api.yakoafrica.ci/api/v1/signature/webhook',
-    apiUrl: 'https://api.yakoafrica.ci/api/v1/signature',
+    backendWebhookUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/webhook',
+    apiUrl:            'https://apidev.yakoafricassur.com/api/v1/signature',
 
     // --- OTP (mode par défaut) ---
-    otpSendUrl:   'https://api.yakoafrica.ci/api/v1/auth/otp/send',
-    otpVerifyUrl: 'https://api.yakoafrica.ci/api/v1/signature/otp/verify',
+    otpSendUrl:   'https://apidev.yakoafricassur.com/api/v1/auth/otp/send',
+    otpVerifyUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/otp/verify',
     signerLogin:    '{{ SIGNER_LOGIN }}',      // ou null
     signerUserUuid: '{{ SIGNER_USER_UUID }}',  // ou null
     signerEmail:    'client@exemple.ci',       // pré-remplit le champ si canal=email
@@ -340,6 +392,16 @@ Mode Handwritten (repli)
   });
 &lt;/script&gt;</code></pre>
                     @endverbatim
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 Intégration en 4 étapes</strong>
+                    <ol class="step-list" style="margin-top: 12px;">
+                        <li>Votre backend appelle <code>generate-link</code> et récupère <code>token</code> + <code>widget_url</code>.</li>
+                        <li>Vous affichez le widget (redirection ou embarquement) avec ces valeurs + les pré-remplissages OTP.</li>
+                        <li>Le signataire signe (OTP ou canvas). Le widget poste sur <code>backendWebhookUrl</code>.</li>
+                        <li>Laravel relaie la signature à votre <code>webhook_url</code> avec <code>X-Api-Key</code>. Vous la traitez.</li>
+                    </ol>
                 </div>
             </div>
 
@@ -365,7 +427,7 @@ export default function SignatureWidgetHost({
 
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'https://api.yakoafrica.ci/api/v1/signature/signature-widget.js';
+    script.src = 'https://apidev.yakoafricassur.com/api/v1/signature/signature-widget.js';
 
     script.onload = () => {
       if (!window.SignatureWidget) return;
@@ -378,12 +440,12 @@ export default function SignatureWidgetHost({
         documentUrl: 'https://votre-domaine.com/documents/contrat.pdf',
         documentDescription: 'Contrat de souscription',
 
-        backendWebhookUrl: 'https://api.yakoafrica.ci/api/v1/signature/webhook',
-        apiUrl:            'https://api.yakoafrica.ci/api/v1/signature',
+        backendWebhookUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/webhook',
+        apiUrl:            'https://apidev.yakoafricassur.com/api/v1/signature',
 
         // OTP
-        otpSendUrl:   'https://api.yakoafrica.ci/api/v1/auth/otp/send',
-        otpVerifyUrl: 'https://api.yakoafrica.ci/api/v1/signature/otp/verify',
+        otpSendUrl:   'https://apidev.yakoafricassur.com/api/v1/auth/otp/send',
+        otpVerifyUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/otp/verify',
         signerLogin, signerUserUuid, signerEmail, signerPhone,
         otpPurpose: 'signature',
         otpQrUrlTemplate,
@@ -429,7 +491,7 @@ export default {
   ],
   mounted() {
     const script = document.createElement('script');
-    script.src = 'https://api.yakoafrica.ci/api/v1/signature/signature-widget.js';
+    script.src = 'https://apidev.yakoafricassur.com/api/v1/signature/signature-widget.js';
     script.onload = () =&gt; {
       new window.SignatureWidget({
         container: this.$refs.signatureHost,
@@ -439,11 +501,11 @@ export default {
         documentUrl: 'https://votre-domaine.com/documents/contrat.pdf',
         documentDescription: 'Contrat de souscription',
 
-        backendWebhookUrl: 'https://api.yakoafrica.ci/api/v1/signature/webhook',
-        apiUrl:            'https://api.yakoafrica.ci/api/v1/signature',
+        backendWebhookUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/webhook',
+        apiUrl:            'https://apidev.yakoafricassur.com/api/v1/signature',
 
-        otpSendUrl:   'https://api.yakoafrica.ci/api/v1/auth/otp/send',
-        otpVerifyUrl: 'https://api.yakoafrica.ci/api/v1/signature/otp/verify',
+        otpSendUrl:   'https://apidev.yakoafricassur.com/api/v1/auth/otp/send',
+        otpVerifyUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/otp/verify',
         signerLogin: this.signerLogin,
         signerUserUuid: this.signerUserUuid,
         signerEmail: this.signerEmail,
@@ -493,7 +555,7 @@ export class SignatureWidgetComponent implements OnInit {
 
   ngOnInit(): void {
     const script = document.createElement('script');
-    script.src = 'https://api.yakoafrica.ci/api/v1/signature/signature-widget.js';
+    script.src = 'https://apidev.yakoafricassur.com/api/v1/signature/signature-widget.js';
     script.onload = () =&gt; {
       new (window as any).SignatureWidget({
         container: this.host.nativeElement,
@@ -503,11 +565,11 @@ export class SignatureWidgetComponent implements OnInit {
         documentUrl: 'https://votre-domaine.com/documents/contrat.pdf',
         documentDescription: 'Contrat de souscription',
 
-        backendWebhookUrl: 'https://api.yakoafrica.ci/api/v1/signature/webhook',
-        apiUrl:            'https://api.yakoafrica.ci/api/v1/signature',
+        backendWebhookUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/webhook',
+        apiUrl:            'https://apidev.yakoafricassur.com/api/v1/signature',
 
-        otpSendUrl:   'https://api.yakoafrica.ci/api/v1/auth/otp/send',
-        otpVerifyUrl: 'https://api.yakoafrica.ci/api/v1/signature/otp/verify',
+        otpSendUrl:   'https://apidev.yakoafricassur.com/api/v1/auth/otp/send',
+        otpVerifyUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/otp/verify',
         signerLogin: this.signerLogin,
         signerUserUuid: this.signerUserUuid,
         signerEmail: this.signerEmail,
@@ -556,11 +618,11 @@ export default function SignatureWidgetClient(props) {
         documentUrl: 'https://votre-domaine.com/documents/contrat.pdf',
         documentDescription: 'Contrat de souscription',
 
-        backendWebhookUrl: 'https://api.yakoafrica.ci/api/v1/signature/webhook',
-        apiUrl:            'https://api.yakoafrica.ci/api/v1/signature',
+        backendWebhookUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/webhook',
+        apiUrl:            'https://apidev.yakoafricassur.com/api/v1/signature',
 
-        otpSendUrl:   'https://api.yakoafrica.ci/api/v1/auth/otp/send',
-        otpVerifyUrl: 'https://api.yakoafrica.ci/api/v1/signature/otp/verify',
+        otpSendUrl:   'https://apidev.yakoafricassur.com/api/v1/auth/otp/send',
+        otpVerifyUrl: 'https://apidev.yakoafricassur.com/api/v1/signature/otp/verify',
         signerLogin: props.signerLogin,
         signerUserUuid: props.signerUserUuid,
         signerEmail: props.signerEmail,
@@ -577,7 +639,7 @@ export default function SignatureWidgetClient(props) {
       init();
     } else {
       const script = document.createElement('script');
-      script.src = 'https://api.yakoafrica.ci/api/v1/signature/signature-widget.js';
+      script.src = 'https://apidev.yakoafricassur.com/api/v1/signature/signature-widget.js';
       script.async = true;
       script.onload = init;
       document.body.appendChild(script);
@@ -598,48 +660,201 @@ export default function SignatureWidgetClient(props) {
                     Liste exhaustive des options acceptées par <code>new SignatureWidget({...})</code>.
                 </p>
 
-                <div class="info-box">
-                    <strong>Identité du flux (obligatoire)</strong>
-                    <div class="separator"><code>container</code> — sélecteur CSS ou élément DOM hôte</div>
-                    <div class="separator"><code>token</code> — identifiant 64 car. renvoyé par <code>generate-link</code></div>
-                    <div class="separator"><code>backendWebhookUrl</code> — URL Laravel de relais (jamais l'app hôte directement)</div>
+                <div class="table-wrap">
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th>Paramètre</th>
+                                <th>Requis</th>
+                                <th>Défaut</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>container</code></td>
+                                <td>✅</td>
+                                <td>—</td>
+                                <td>Sélecteur CSS ou élément DOM hôte</td>
+                            </tr>
+                            <tr>
+                                <td><code>token</code></td>
+                                <td>✅</td>
+                                <td>—</td>
+                                <td>Token 64 car. reçu de <code>generate-link</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>backendWebhookUrl</code></td>
+                                <td>✅</td>
+                                <td>—</td>
+                                <td>Toujours <code>https://apidev.yakoafricassur.com/api/v1/signature/webhook</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>signingLink</code></td>
+                                <td>⚠️</td>
+                                <td><code>window.location.href</code></td>
+                                <td>URL complète du widget (QR d'appairage)</td>
+                            </tr>
+                            <tr>
+                                <td><code>apiUrl</code></td>
+                                <td>⚠️</td>
+                                <td>—</td>
+                                <td>Base API pour le polling</td>
+                            </tr>
+                            <tr>
+                                <td><code>documentUrl</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>URL du document à signer</td>
+                            </tr>
+                            <tr>
+                                <td><code>documentDescription</code></td>
+                                <td>❌</td>
+                                <td><code>''</code></td>
+                                <td>Libellé affiché en en-tête</td>
+                            </tr>
+                            <tr>
+                                <td><code>otpSendUrl</code></td>
+                                <td>⚠️ OTP</td>
+                                <td>—</td>
+                                <td><code>https://apidev.yakoafricassur.com/api/v1/auth/otp/send</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>otpVerifyUrl</code></td>
+                                <td>⚠️ OTP</td>
+                                <td>—</td>
+                                <td><code>https://apidev.yakoafricassur.com/api/v1/signature/otp/verify</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>signerLogin</code></td>
+                                <td>⚠️ OTP</td>
+                                <td><code>null</code></td>
+                                <td>Login du signataire</td>
+                            </tr>
+                            <tr>
+                                <td><code>signerUserUuid</code></td>
+                                <td>⚠️ OTP</td>
+                                <td><code>null</code></td>
+                                <td>Alternative à <code>signerLogin</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>signerEmail</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Pré-remplit le champ email</td>
+                            </tr>
+                            <tr>
+                                <td><code>signerPhone</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Pré-remplit le champ téléphone</td>
+                            </tr>
+                            <tr>
+                                <td><code>otpPurpose</code></td>
+                                <td>⚠️ OTP</td>
+                                <td><code>'signature'</code></td>
+                                <td>Doit correspondre au backend</td>
+                            </tr>
+                            <tr>
+                                <td><code>otpQrUrlTemplate</code></td>
+                                <td>⚠️ OTP</td>
+                                <td><code>null</code></td>
+                                <td>URL avec placeholders pour le QR de preuve</td>
+                            </tr>
+                            <tr>
+                                <td><code>otpExpiryMinutes</code></td>
+                                <td>❌</td>
+                                <td><code>5</code></td>
+                                <td>Durée fallback (si absente du backend)</td>
+                            </tr>
+                            <tr>
+                                <td><code>successRedirectUrl</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Redirection après succès (2 s)</td>
+                            </tr>
+                            <tr>
+                                <td><code>cancelRedirectUrl</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Redirection sur annulation</td>
+                            </tr>
+                            <tr>
+                                <td><code>enableAutoPolling</code></td>
+                                <td>❌</td>
+                                <td><code>false</code></td>
+                                <td>Active le polling desktop</td>
+                            </tr>
+                            <tr>
+                                <td><code>pollingInterval</code></td>
+                                <td>❌</td>
+                                <td><code>5000</code></td>
+                                <td>Intervalle de polling (ms)</td>
+                            </tr>
+                            <tr>
+                                <td><code>maxPollingAttempts</code></td>
+                                <td>❌</td>
+                                <td><code>120</code></td>
+                                <td>Nombre max de tentatives</td>
+                            </tr>
+                            <tr>
+                                <td><code>forceMode</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td><code>'desktop'</code> ou <code>'mobile'</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>breakpoint</code></td>
+                                <td>❌</td>
+                                <td><code>768</code></td>
+                                <td>Seuil px mobile/desktop</td>
+                            </tr>
+                            <tr>
+                                <td><code>onSigned</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Callback après succès</td>
+                            </tr>
+                            <tr>
+                                <td><code>onError</code></td>
+                                <td>❌</td>
+                                <td><code>null</code></td>
+                                <td>Callback erreur</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <div class="info-box">
-                    <strong>Document (optionnel)</strong>
-                    <div class="separator"><code>documentUrl</code> — URL du PDF/image à signer</div>
-                    <div class="separator"><code>documentDescription</code> — libellé affiché en en-tête</div>
-                </div>
-
-                <div class="info-box">
-                    <strong>Backend &amp; polling</strong>
-                    <div class="separator"><code>apiUrl</code> — base de l'API signature (utilisée pour le polling)</div>
-                    <div class="separator"><code>signingLink</code> — URL complète du widget (encodée dans le QR d'appairage desktop)</div>
-                    <div class="separator"><code>enableAutoPolling</code> — booléen ; utile pour les postes en agence</div>
-                    <div class="separator"><code>pollingInterval</code> — défaut 5000 ms</div>
-                    <div class="separator"><code>maxPollingAttempts</code> — défaut 120 (10 min)</div>
-                </div>
-
-                <div class="info-box info">
-                    <strong>OTP (mode par défaut)</strong>
-                    <div class="separator"><code>otpSendUrl</code> — <code>POST /api/v1/auth/otp/send</code> (existant, inchangé)</div>
-                    <div class="separator"><code>otpVerifyUrl</code> — <code>POST /api/v1/signature/otp/verify</code> (passerelle autoritaire)</div>
-                    <div class="separator"><code>signerLogin</code> — login du signataire (transmis à <code>auth/otp/send</code> et <code>signature/otp/verify</code>)</div>
-                    <div class="separator"><code>signerUserUuid</code> — alternative à <code>signerLogin</code></div>
-                    <div class="separator"><code>signerEmail</code> — pré-remplit le champ contact si canal = email</div>
-                    <div class="separator"><code>signerPhone</code> — pré-remplit le champ contact si canal = sms / whatsapp</div>
-                    <div class="separator"><code>otpPurpose</code> — défaut <code>'signature'</code> ; doit correspondre au purpose envoyé à <code>auth/otp/send</code></div>
-                    <div class="separator"><code>otpQrUrlTemplate</code> — URL avec placeholders <code>{user_uuid}</code>, <code>{login}</code>, <code>{email}</code>, <code>{nom}</code>, <code>{prenoms}</code>, <code>{mobile_1}</code>, <code>{adresse_complete}</code>, <code>{channel}</code>, <code>{contact}</code>, <code>{purpose}</code>, <code>{ip_address}</code>, <code>{user_agent}</code>, <code>{used_at}</code>, <code>{lat}</code>, <code>{lng}</code></div>
-                </div>
-
-                <div class="info-box warn">
-                    <strong>Redirections &amp; callbacks</strong>
-                    <div class="separator"><code>successRedirectUrl</code> — redirigé 2 s après confirmation</div>
-                    <div class="separator"><code>cancelRedirectUrl</code> — utilisé par le bouton « Annuler » (canvas)</div>
-                    <div class="separator"><code>onSigned(data)</code> — callback après confirmation backend</div>
-                    <div class="separator"><code>onError(err)</code> — callback d'erreur</div>
-                    <div class="separator"><code>forceMode</code> — <code>'desktop'</code> | <code>'mobile'</code> | <code>null</code></div>
-                    <div class="separator"><code>breakpoint</code> — défaut 768 px</div>
+                <div class="info-box info" style="margin-top: 20px;">
+                    <strong>Placeholders du <code>otpQrUrlTemplate</code></strong>
+                    <div class="table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Placeholder</th>
+                                    <th>Source</th>
+                                    <th>Autoritaire ?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>{user_uuid}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{login}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{email}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{nom}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{prenoms}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{mobile_1}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{adresse_complete}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{channel}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{contact}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{purpose}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{ip_address}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{user_agent}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{used_at}</code></td><td>Backend</td><td>✅</td></tr>
+                                <tr><td><code>{lat}</code></td><td>Navigateur</td><td>❌ déclaratif</td></tr>
+                                <tr><td><code>{lng}</code></td><td>Navigateur</td><td>❌ déclaratif</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -656,7 +871,9 @@ export default function SignatureWidgetClient(props) {
                     <div class="separator">
                         Le widget affiche un sélecteur SMS / Email / WhatsApp et un champ contact.
                         Si <code>signerEmail</code> ou <code>signerPhone</code> ont été fournis à l'init,
-                        le champ est pré-rempli.
+                        le champ est <strong>pré-rempli et désactivé</strong> (le signataire ne peut pas
+                        modifier un contact imposé par l'app hôte). Le lien « Changer de contact »
+                        est alors masqué.
                     </div>
                 </div>
 
@@ -667,10 +884,30 @@ export default function SignatureWidgetClient(props) {
                         throttle <code>5,10</code>) avec <code>{ channel, purpose, login?, user_uuid?, email?|tel? }</code>.
                         Le code est généré et envoyé par <code>OtpService</code>.
                     </div>
+                    <div class="separator">
+                        <strong>Après succès</strong> : la zone de demande (canal + contact + bouton)
+                        est <strong>masquée</strong>, la zone de saisie du code devient visible, et un
+                        <strong>compte à rebours</strong> démarre (5 min par défaut, lu dans <code>expires_in</code>).
+                    </div>
                 </div>
 
                 <div class="info-box info">
-                    <strong>Étape 3 — Vérification</strong>
+                    <strong>Étape 3 — Saisie du code</strong>
+                    <div class="separator">
+                        6 cases individuelles avec :
+                    </div>
+                    <div class="separator">• <strong>Auto-avance</strong> à la saisie d'un chiffre</div>
+                    <div class="separator">• <strong>Backspace</strong> qui recule et efface la case précédente</div>
+                    <div class="separator">• <strong>Coller</strong> un code de 6 chiffres le répartit automatiquement</div>
+                    <div class="separator">• <strong>Autofill SMS</strong> (<code>autocomplete="one-time-code"</code>)</div>
+                    <div class="separator">• <strong>Flèches</strong> ← → pour naviguer</div>
+                    <div class="separator">
+                        Le <strong>compte à rebours</strong> change de couleur : vert > 60 s, orange ≤ 60 s, rouge ≤ 10 s, puis « Code expiré ».
+                    </div>
+                </div>
+
+                <div class="info-box info">
+                    <strong>Étape 4 — Vérification</strong>
                     <div class="separator">
                         Le widget poste le code sur <code>POST /api/v1/signature/otp/verify</code>.
                         Cette passerelle :
@@ -685,7 +922,7 @@ export default function SignatureWidgetClient(props) {
                 </div>
 
                 <div class="info-box info">
-                    <strong>Étape 4 — Preuve QR</strong>
+                    <strong>Étape 5 — Preuve QR</strong>
                     <div class="separator">
                         Le widget demande la géolocalisation (best-effort, timeout 5 s), construit
                         l'URL de preuve à partir de <code>otpQrUrlTemplate</code> en substituant chaque
@@ -716,7 +953,7 @@ export default function SignatureWidgetClient(props) {
                 <div class="code-block">
                     @verbatim
                     <pre><code>// POST https://app-hote.com/webhooks/signature
-// Headers: X-Api-Key: <api_key fournie à generate-link>
+// Headers: X-Api-Key: <secret partagé communiqué par YAKOA>
 // Content-Type: application/json
 
 // --- Mode OTP (method = 'otp_qr') ---
@@ -743,7 +980,7 @@ export default function SignatureWidgetClient(props) {
     "nom":        "DUPONT",                  // nom
     "prenoms":    "Jean Pierre",             // prénoms
     "mobile_1":   "0700000000",              // mobile principal
-    "adresse_complete": "123 Rue de la République, Cocody" // adresse complète
+    "adresse_complete": "123 Rue de la République, Cocody"
   },
   "geo": { "lat": 5.359952, "lng": -4.008256 } // best-effort navigateur
 }
@@ -775,6 +1012,51 @@ export default function SignatureWidgetClient(props) {
                         c'est une preuve visuelle, pas un jeton.
                     </div>
                 </div>
+
+                <div class="info-box info">
+                    <strong>Exemple de contrôleur côté app hôte (Laravel)</strong>
+                    <div class="code-block" style="margin-top: 10px;">
+                        @verbatim
+                        <pre><code>public function signatureCallback(Request $request)
+{
+    // 1. Vérifier la clé API
+    if ($request->header('X-Api-Key') !== config('services.yakoa.webhook_key')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    // 2. Récupérer les données
+    $token     = $request->input('token');
+    $method    = $request->input('method', 'handwritten');
+    $signature = $request->input('signature');           // base64 PNG
+    $uuid      = $request->input('signature_request_uuid');
+
+    // 3. Retrouver la demande en local
+    $demand = SignatureDemand::where('yakoa_request_uuid', $uuid)->firstOrFail();
+
+    // 4. Sauvegarder la signature en fichier
+    [$meta, $b64] = explode(',', $signature, 2);
+    Storage::disk('local')->put("signatures/{$uuid}.png", base64_decode($b64));
+
+    // 5. Enregistrer les métadonnées
+    $demand->update([
+        'status'         => 'signed',
+        'method'         => $method,
+        'signature_path' => "signatures/{$uuid}.png",
+        'signed_at'      => $request->input('signed_at'),
+        'otp_channel'    => $request->input('otp.channel'),
+        'otp_contact'    => $request->input('otp.contact'),
+        'ip_address'     => $request->input('otp.ip_address'),      // autoritaire
+        'user_agent'     => $request->input('otp.user_agent'),      // autoritaire
+        'used_at'        => $request->input('otp.used_at'),         // autoritaire
+        'geo_lat'        => $request->input('geo.lat'),             // déclaratif
+        'geo_lng'        => $request->input('geo.lng'),             // déclaratif
+    ]);
+
+    return response()->json(['success' => true]);
+}</code></pre>
+                        @endverbatim
+                    </div>
+                </div>
             </div>
 
             {{-- ---------------------------------------------------------- --}}
@@ -788,7 +1070,7 @@ export default function SignatureWidgetClient(props) {
 
                 <div class="info-box">
                     <strong>Requête</strong>
-                    <div class="separator"><code>POST /api/v1/signature/generate-link</code> (auth : <code>auth:sanctum</code>)</div>
+                    <div class="separator"><code>POST /api/v1/signature/generate-link</code> (auth : <code>auth:sanctum</code>, throttle 60/min)</div>
                 </div>
 
                 <div class="code-block">
@@ -798,7 +1080,6 @@ export default function SignatureWidgetClient(props) {
   "document_url": "https://…/contrat.pdf",          // optionnel
   "document_description": "Contrat de souscription", // optionnel, max 500
   "webhook_url": "https://app-hote.com/webhooks/signature",  // requis, HTTPS
-  "api_key": "<secret partagé, min 16 car.>",       // requis, reste côté serveur
   "success_redirect_url": "https://app-hote.com/success",   // optionnel
   "cancel_redirect_url":  "https://app-hote.com/cancel",    // optionnel
   "enable_auto_polling": true,                       // optionnel, booléen
@@ -810,7 +1091,7 @@ export default function SignatureWidgetClient(props) {
   "signer_email":        "client@exemple.ci",        // pré-remplit le champ contact
   "signer_phone":        "0700000000",               // idem
   "otp_purpose":         "signature",                // défaut 'signature', max 120
-  "otp_qr_url_template": "https://app-hote.com/verify?user={user_uuid}&ch={channel}&contact={contact}&purpose={purpose}&ip={ip_address}&ua={user_agent}&at={used_at}&lat={lat}&lng={lng}"
+  "otp_qr_url_template": "https://app-hote.com/verify?user={user_uuid}&login={login}&email={email}&nom={nom}&prenoms={prenoms}&mobile={mobile_1}&adresse={adresse_complete}&ch={channel}&contact={contact}&purpose={purpose}&ip={ip_address}&ua={user_agent}&at={used_at}&lat={lat}&lng={lng}"
 }</code></pre>
                     @endverbatim
                 </div>
@@ -824,8 +1105,8 @@ export default function SignatureWidgetClient(props) {
   "code": "SIGNATURE_LINK_GENERATED",
   "data": {
     "token": "aB3k…64car…",
-    "widget_url": "https://api…/signature/widget/aB3k…",
-    "status_url": "https://api…/api/v1/signature/token/aB3k…/status",
+    "widget_url": "https://apidev.yakoafricassur.com/signature/widget/aB3k…",
+    "status_url": "https://apidev.yakoafricassur.com/api/v1/signature/token/aB3k…/status",
     "expires_at": "2026-01-15T11:32:11+00:00",
     "expires_in": 3600,
     "document_url": "https://…/contrat.pdf",
@@ -847,6 +1128,113 @@ export default function SignatureWidgetClient(props) {
                     <div class="separator">• <code>webhook_url</code> — reste en base</div>
                     <div class="separator">• <code>token</code> brut côté modèle — masqué par <code>$hidden</code></div>
                 </div>
+
+                <div class="info-box info">
+                    <strong>Champs à conserver côté app hôte</strong>
+                    <div class="separator">• <code>token</code> → à passer au frontend</div>
+                    <div class="separator">• <code>widget_url</code> → à passer au frontend (QR d'appairage)</div>
+                    <div class="separator">• <code>signature_request_uuid</code> → identifiant à stocker dans votre base</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Erreurs courantes</strong>
+                    <div class="separator">• <code>USER_NOT_FOUND</code> : l'utilisateur n'existe pas dans YAKOA (au moment de l'envoi OTP)</div>
+                    <div class="separator">• <code>INVALID_TOKEN</code> : token inconnu, expiré ou déjà utilisé</div>
+                    <div class="separator">• <code>WEBHOOK_DELIVERY_FAILED</code> : l'app hôte n'a pas répondu 2xx</div>
+                    <div class="separator">• <code>VALIDATION_ERROR</code> : un champ requis manque ou est invalide</div>
+                </div>
+            </div>
+
+            {{-- ---------------------------------------------------------- --}}
+            {{-- Sécurité                                                   --}}
+            {{-- ---------------------------------------------------------- --}}
+            <div class="tab-content" data-tab-panel="security">
+                <p class="code-description">
+                    Principes de sécurité appliqués sur toute la chaîne.
+                </p>
+
+                <div class="info-box">
+                    <strong>🔒 Principes</strong>
+                    <div class="separator">• <strong>Token opaque</strong> : 64 caractères aléatoires, usage unique, expirant</div>
+                    <div class="separator">• <strong>Aucun secret côté client</strong> : <code>api_key</code> et <code>webhook_url</code> ne quittent jamais le serveur YAKOA</div>
+                    <div class="separator">• <strong>Passerelle OTP autoritaire</strong> : IP, User-Agent et horodatage viennent du serveur, pas du navigateur</div>
+                    <div class="separator">• <strong>Aucune persistance</strong> : document et signature ne sont jamais stockés côté YAKOA</div>
+                    <div class="separator">• <strong>Verrou pessimiste</strong> : <code>lockForUpdate()</code> empêche les doubles soumissions</div>
+                    <div class="separator">• <strong>Throttling</strong> : chaque endpoint a sa limite</div>
+                    <div class="separator">• <strong>SSRF-hardened</strong> : le proxy document bloque IP privées, loopback, métadonnées cloud</div>
+                </div>
+
+                <div class="info-box info">
+                    <strong>Authentification webhook</strong>
+                    <div class="separator">• Header <code>X-Api-Key</code> envoyé par YAKOA à l'app hôte lors du relais</div>
+                    <div class="separator">• Vérification obligatoire côté app hôte <strong>avant tout traitement</strong></div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Règle de persistance stricte</strong>
+                    <div class="separator">• <strong>Aucune persistance</strong> du document ni de la signature côté YAKOA</div>
+                    <div class="separator">• Seules les métadonnées (<code>token</code>, <code>expires_at</code>, <code>delivery_status</code>, <code>metadata</code>) vivent dans <code>signature_requests</code></div>
+                    <div class="separator">• <strong>L'app hôte est seule responsable</strong> d'apposer et de conserver la signature</div>
+                </div>
+            </div>
+
+            {{-- ---------------------------------------------------------- --}}
+            {{-- Dépannage                                                  --}}
+            {{-- ---------------------------------------------------------- --}}
+            <div class="tab-content" data-tab-panel="troubleshoot">
+                <p class="code-description">
+                    Problèmes les plus fréquents et solutions.
+                </p>
+
+                <div class="info-box warn">
+                    <strong>Token invalide ou expiré</strong>
+                    <div class="separator">• Vérifier <code>expires_at</code> (durée max 24 h)</div>
+                    <div class="separator">• Vérifier que le token n'a pas déjà été utilisé (<code>is_used: true</code>)</div>
+                    <div class="separator">• Vérifier le format du token (64 caractères alphanumériques)</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong><code>USER_NOT_FOUND</code> à l'envoi OTP</strong>
+                    <div class="separator">• L'app hôte n'a pas fourni <code>signer_login</code> ou <code>signer_user_uuid</code></div>
+                    <div class="separator">• L'utilisateur n'existe pas dans YAKOA</div>
+                    <div class="separator">• Le login ne correspond à aucun utilisateur actif</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Erreur d'envoi SMS / Email</strong>
+                    <div class="separator">• Vérifier la configuration Infobip / SMTP côté YAKOA</div>
+                    <div class="separator">• Vérifier le format du numéro (10 chiffres pour la Côte d'Ivoire)</div>
+                    <div class="separator">• Vérifier que le canal WhatsApp est configuré (sinon désactivé dans le widget)</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Document ne se charge pas</strong>
+                    <div class="separator">• Vérifier que l'URL est accessible publiquement</div>
+                    <div class="separator">• Vérifier le format (PDF, JPG, PNG)</div>
+                    <div class="separator">• Si externe : vérifier la liste blanche <code>allowed_document_hosts</code></div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Le code OTP arrive mais ne valide pas</strong>
+                    <div class="separator">• Vérifier que <code>purpose</code> correspond exactement (défaut <code>'signature'</code>)</div>
+                    <div class="separator">• Vérifier que <code>channel</code> et <code>contact</code> sont identiques à ceux d'<code>otp/send</code></div>
+                    <div class="separator">• Vérifier que l'utilisateur est correctement résolu (<code>login</code> ou <code>user_uuid</code>)</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Le webhook hôte ne reçoit rien</strong>
+                    <div class="separator">• Vérifier que <code>webhook_url</code> est en <strong>HTTPS</strong> (HTTP refusé)</div>
+                    <div class="separator">• Vérifier que l'URL est accessible publiquement</div>
+                    <div class="separator">• Vérifier les logs YAKOA (<code>delivery_status</code> = <code>failed</code>)</div>
+                    <div class="separator">• Vérifier le <code>X-Api-Key</code> (doit correspondre au secret configuré)</div>
+                </div>
+
+                <div class="info-box warn">
+                    <strong>Le QR de preuve n'est pas lisible</strong>
+                    <div class="separator">• Vérifier que <code>otpQrUrlTemplate</code> est bien fourni (sinon fallback : URL du widget)</div>
+                    <div class="separator">• Vérifier que le template ne contient pas de caractères spéciaux non encodés</div>
+                    <div class="separator">• La taille du QR est fixe à 512×512, largement suffisante</div>
+                </div>
             </div>
         </div>
 
@@ -854,13 +1242,17 @@ export default function SignatureWidgetClient(props) {
         {{-- POINTS DE SÉCURITÉ                                          --}}
         {{-- ============================================================ --}}
         <div class="info-box">
-            <strong>📌 Points clés de sécurité</strong>
-            <div class="separator">• Ni le document ni la signature ne sont stockés côté Laravel.</div>
-            <div class="separator">• Le secret partagé (<code>api_key</code>) ne quitte jamais le serveur.</div>
-            <div class="separator">• Le widget authentifie ses appels via le <code>token</code> lui-même : imprévisible, à usage unique, expirant.</div>
-            <div class="separator">• La génération du lien exige une authentification côté app hôte.</div>
-            <div class="separator">• En mode OTP, <code>ip_address</code>, <code>user_agent</code> et <code>used_at</code> sont récupérés côté serveur (autoritaires).</div>
-            <div class="separator">• La géolocalisation (<code>lat</code>, <code>lng</code>) est <strong>déclarative</strong> : best-effort navigateur, peut être refusée.</div>
+            <strong>📌 Points clés à retenir</strong>
+            <div class="separator">1. Tous les endpoints du widget doivent pointer vers <strong>YAKOA</strong> (<code>apidev.yakoafricassur.com</code>), jamais vers l'app hôte.</div>
+            <div class="separator">2. Le <code>webhook_url</code> est <strong>toujours HTTPS</strong>.</div>
+            <div class="separator">3. L'app hôte doit fournir <code>signer_login</code> ou <code>signer_user_uuid</code> pour le mode OTP.</div>
+            <div class="separator">4. Le token est <strong>à usage unique</strong> : une nouvelle signature = un nouveau <code>generate-link</code>.</div>
+            <div class="separator">5. L'app hôte doit <strong>vérifier <code>X-Api-Key</code></strong> avant tout traitement de webhook.</div>
+            <div class="separator">6. <code>ip_address</code>, <code>user_agent</code>, <code>used_at</code> sont <strong>autoritaires</strong> (mode OTP).</div>
+            <div class="separator">7. <code>geo.lat</code> et <code>geo.lng</code> sont <strong>déclaratifs</strong> (best-effort navigateur).</div>
+            <div class="separator">8. Le document et la signature ne sont <strong>jamais stockés</strong> côté YAKOA.</div>
+            <div class="separator">9. Le proxy document bloque les IP privées, loopback et métadonnées cloud.</div>
+            <div class="separator">10. Le throttling protège chaque endpoint contre les abus.</div>
         </div>
     </div>
 

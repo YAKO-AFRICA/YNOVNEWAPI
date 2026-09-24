@@ -1,24 +1,12 @@
-{{--
-    resources/views/demo-signature-proof.blade.php
-
-    Page de démonstration : affiche les paramètres que le widget a encodés
-    dans le QR de preuve. En production, cette URL pointerait vers l'app hôte
-    (page de vérification interne, journal d'audit, etc.).
-
-    Utilité : vérifier visuellement que TOUS les champs attendus arrivent
-    bien, notamment l'IP et le User-Agent récupérés de façon autoritaire par
-    Laravel (voir SignatureController::verifySignatureOtp).
---}}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
-    <title>Preuve de signature OTP (démo)</title>
+    <title>Preuve de signature OTP — Démo</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-               background: #f3f4f6; margin: 0; padding: 32px 20px; color: #1f2937; }
+               background: #f3f4f6; margin: 0; padding: 24px; color: #1f2937; }
         .card { max-width: 720px; margin: 0 auto; background: #fff; border-radius: 14px;
                 box-shadow: 0 10px 30px rgba(0,0,0,.06); padding: 28px 26px; }
         h1 { margin: 0 0 6px; font-size: 20px; color: #075429; }
@@ -33,34 +21,27 @@
         .note { margin-top: 22px; padding: 12px 14px; background: #fef3c7;
                 border-left: 4px solid #f59e0b; border-radius: 8px; font-size: 13px;
                 color: #92400e; }
+        .back { display: inline-block; margin-top: 20px; padding: 10px 16px;
+                background: #075429; color: #fff; border-radius: 8px; text-decoration: none;
+                font-weight: 600; font-size: 13.5px; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Preuve de signature OTP</h1>
-        <p class="sub">
-            Contenu décodé du QR code envoyé par le widget comme preuve de signature.
-            Ces informations sont fournies par Laravel après vérification du code OTP.
-        </p>
+        <p class="sub">Contenu décodé du QR code envoyé par le widget comme preuve de signature.</p>
 
         <table>
             <tbody>
                 @php
                     $labels = [
-                        // Identité de base
                         'user'      => 'Utilisateur (user_uuid)',
                         'login'     => 'Login',
                         'email'     => 'Email',
-                        
-                        // Informations personnelles essentielles
                         'nom'       => 'Nom',
                         'prenoms'   => 'Prénoms',
-                        'mobile'    => 'Mobile principal',
-                        
-                        // Adresse
+                        'mobile'    => 'Mobile',
                         'adresse'   => 'Adresse complète',
-                        
-                        // Technique
                         'ch'        => 'Canal OTP (channel)',
                         'contact'   => 'Contact utilisé',
                         'purpose'   => 'Purpose',
@@ -88,10 +69,11 @@
 
         <div class="note">
             <strong>Note :</strong> <code>ip</code>, <code>ua</code> et <code>at</code> sont
-            récupérés côté serveur dans <code>SignatureController::verifySignatureOtp</code>,
-            ce qui garantit leur valeur probante. <code>lat</code> et <code>lng</code> proviennent
-            du navigateur et sont donc déclaratifs (le signataire peut refuser la géoloc).
+            récupérés côté serveur dans <code>SignatureController::verifySignatureOtp</code>.
+            <code>lat</code> et <code>lng</code> proviennent du navigateur (déclaratifs).
         </div>
+
+        <a class="back" href="{{ url('/signature/demo') }}">← Nouvelle démo</a>
     </div>
 </body>
 </html>
