@@ -1131,6 +1131,24 @@ class PermissionService
                         'description' => 'Permet de supprimer une prestation'
                     ],
                     [
+                        'category' => 'crud',
+                        'action' => 'annuler',
+                        'libelle' => 'Annuler un prestation',
+                        'description' => 'Permet d\'annuler une une prestation',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'traiter',
+                        'libelle' => 'Traiter une prestation',
+                        'description' => 'Permet de traiter une prestation',
+                    ],
+                    [
+                        'category' => 'traitement',
+                        'action' => 'retransmettre',
+                        'libelle' => 'Retransmettre une prestation',
+                        'description' => 'Permet de retransmettre une prestation à un autre gestionnaire',
+                    ],
+                    [
                         'category' => 'admin',
                         'action' => 'gerer_categories',
                         'libelle' => 'Gérer les catégories de prestations',

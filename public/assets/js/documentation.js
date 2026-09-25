@@ -14934,9 +14934,9 @@
             {
                 id: "prestations-create",
                 module: "prestations",
-                name: "Créer une prestation",
+                name: "Créer ou mettre à jour une prestation",
                 description:
-                    "Crée une nouvelle prestation. Le service génère automatiquement un UUID, un code (PREST-...), un statut par défaut (en_attente), puis sauvegarde éventuellement les documents joints avec reference_uuid = uuid_prestation et source = E-PRESTATION. Une assignation automatique est tentée immédiatement après la validation de la transaction via DB::afterCommit(), suivant le même algorithme que les RDV : continuité client (si prestations récentes) ou distribution équitable.",
+                    "Crée une nouvelle prestation ou met à jour une prestation existante selon que prestation_uuid est fourni ou non. Le service génère automatiquement un UUID et un code (PREST-...) pour les créations, un statut par défaut (en_attente), puis sauvegarde éventuellement les documents joints avec reference_uuid = uuid_prestation et source = E-PRESTATION. Une assignation automatique est tentée immédiatement après la validation de la transaction via DB::afterCommit(), suivant le même algorithme que les RDV : distribution équitable basée sur la charge de travail.",
                 method: "POST",
                 path: "/prestations",
                 isProtected: true,
@@ -14948,10 +14948,15 @@
                 },
                 requestParams: {
                     body: {
+                        prestation_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID de la prestation à mettre à jour (si fourni, mode mise à jour)",
+                        },
                         client_uuid: {
                             type: "uuid",
-                            required: true,
-                            description: "UUID du client",
+                            required: false,
+                            description: "UUID du client (requis si prestation_uuid non fourni)",
                         },
                         id_contrat: {
                             type: "string",
@@ -14960,8 +14965,8 @@
                         },
                         type_prestation_uuid: {
                             type: "uuid",
-                            required: true,
-                            description: "UUID du type de prestation",
+                            required: false,
+                            description: "UUID du type de prestation (requis si prestation_uuid non fourni)",
                         },
                         rdv_uuid: {
                             type: "uuid",

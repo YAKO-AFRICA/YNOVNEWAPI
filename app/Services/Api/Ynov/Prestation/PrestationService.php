@@ -594,68 +594,138 @@ class PrestationService
     }
 
     /**
-     * Créer une prestation
+     * Créer ou mettre à jour une prestation
      */
     public function createPrestation(array $data, string $creatorUuid): array
     {
         $assignation = null;
         $prestationData = null;
+        $isUpdate = !empty($data['prestation_uuid']);
 
-        DB::transaction(function () use ($data, $creatorUuid, &$assignation, &$prestationData) {
-            $prestation = Prestation::create([
-                'uuid_prestation' => (string) Str::uuid(),
-                'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
-                'client_uuid' => $data['client_uuid'] ?? $creatorUuid,
-                'type_prestation_uuid' => $data['type_prestation_uuid'],
-                'id_contrat' => $data['id_contrat'],
-                'rdv_uuid' => $data['rdv_uuid'] ?? null,
-                'montant' => (float) $data['montant'] ?? 0,
-                'mode_paiement' => $data['mode_paiement'] ?? null,
-                'operateur_mobile' => $data['operateur_mobile'] ?? null,
-                'tel_paiement_1' => $data['tel_paiement_1'] ?? null,
-                'tel_paiement_2' => $data['tel_paiement_2'] ?? null,
-                'code_banque' => $data['code_banque'] ?? null,
-                'code_guichet' => $data['code_guichet'] ?? null,
-                'numero_compte' => $data['numero_compte'] ?? null,
-                'cle_rib' => $data['cle_rib'] ?? null,
-                'ville_declaration' => $data['ville_declaration'] ?? null,
-                'partner_uuid' => $data['partner_uuid'] ?? null,
-                'status' => $data['status'] ?? 'en_attente',
-                'notes' => $data['notes'] ?? null,
-                'created_by' => $creatorUuid,
-            ]);
+        DB::transaction(function () use ($data, $creatorUuid, &$assignation, &$prestationData, $isUpdate) {
+            if ($isUpdate) {
+                // Mode mise à jour
+                $prestation = Prestation::where('uuid_prestation', $data['prestation_uuid'])->firstOrFail();
+                
+                $oldValues = $prestation->toArray();
+                
+                $prestation->update([
+                    'client_uuid' => $data['client_uuid'] ?? $prestation->client_uuid,
+                    'type_prestation_uuid' => $data['type_prestation_uuid'] ?? $prestation->type_prestation_uuid,
+                    'id_contrat' => $data['id_contrat'] ?? $prestation->id_contrat,
+                    'rdv_uuid' => $data['rdv_uuid'] ?? $prestation->rdv_uuid,
+                    'montant' => isset($data['montant']) ? (float) $data['montant'] : $prestation->montant,
+                    'mode_paiement' => $data['mode_paiement'] ?? $prestation->mode_paiement,
+                    'operateur_mobile' => $data['operateur_mobile'] ?? $prestation->operateur_mobile,
+                    'tel_paiement_1' => $data['tel_paiement_1'] ?? $prestation->tel_paiement_1,
+                    'tel_paiement_2' => $data['tel_paiement_2'] ?? $prestation->tel_paiement_2,
+                    'code_banque' => $data['code_banque'] ?? $prestation->code_banque,
+                    'code_guichet' => $data['code_guichet'] ?? $prestation->code_guichet,
+                    'numero_compte' => $data['numero_compte'] ?? $prestation->numero_compte,
+                    'cle_rib' => $data['cle_rib'] ?? $prestation->cle_rib,
+                    'ville_declaration' => $data['ville_declaration'] ?? $prestation->ville_declaration,
+                    'partner_uuid' => $data['partner_uuid'] ?? $prestation->partner_uuid,
+                    'status' => $data['status'] ?? $prestation->status,
+                    'notes' => $data['notes'] ?? $prestation->notes,
+                    'updated_by' => $creatorUuid,
+                ]);
 
-            if (!empty($data['documents'] ?? [])) {
-                $this->savePrestationDocuments($prestation, $data, $creatorUuid);
+                if (!empty($data['documents'] ?? [])) {
+                    $this->savePrestationDocuments($prestation, $data, $creatorUuid);
+                }
+
+                ActivityLog::log([
+                    'user_uuid' => $creatorUuid,
+                    'action' => 'update',
+                    'action_type' => 'crud',
+                    'module' => 'prestations',
+                    'description' => "Mise à jour de la prestation {$prestation->code}",
+                    'resource_type' => 'prestation',
+                    'resource_id' => $prestation->uuid_prestation,
+                    'old_values' => $oldValues,
+                    'new_values' => $prestation->toArray(),
+                    'level' => 'info',
+                ]);
+
+                // Notification au client
+                $this->notificationService->create([
+                    'user_uuid' => $prestation->client_uuid,
+                    'group_notif_uuid' => $this->getPrestationGroupUuid(),
+                    'title' => '📋 Prestation mise à jour. Code : ' . $prestation->code,
+                    'body' => "Votre prestation N° {$prestation->code} a été mise à jour avec succès.",
+                    'type' => 'PRESTATION',
+                    'metadata' => [
+                        'prestation_uuid' => $prestation->uuid_prestation,
+                        'prestation_code' => $prestation->code,
+                        'action' => 'update',
+                    ],
+                    'channel' => 'database',
+                    'created_by' => $creatorUuid,
+                ]);
+
+                $code = 'PRESTATION_UPDATED';
+                $message = 'Prestation mise à jour avec succès. Code : ' . $prestation->code;
+
+            } else {
+                // Mode création
+                $prestation = Prestation::create([
+                    'uuid_prestation' => (string) Str::uuid(),
+                    'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
+                    'client_uuid' => $data['client_uuid'] ?? $creatorUuid,
+                    'type_prestation_uuid' => $data['type_prestation_uuid'],
+                    'id_contrat' => $data['id_contrat'],
+                    'rdv_uuid' => $data['rdv_uuid'] ?? null,
+                    'montant' => (float) $data['montant'] ?? 0,
+                    'mode_paiement' => $data['mode_paiement'] ?? null,
+                    'operateur_mobile' => $data['operateur_mobile'] ?? null,
+                    'tel_paiement_1' => $data['tel_paiement_1'] ?? null,
+                    'tel_paiement_2' => $data['tel_paiement_2'] ?? null,
+                    'code_banque' => $data['code_banque'] ?? null,
+                    'code_guichet' => $data['code_guichet'] ?? null,
+                    'numero_compte' => $data['numero_compte'] ?? null,
+                    'cle_rib' => $data['cle_rib'] ?? null,
+                    'ville_declaration' => $data['ville_declaration'] ?? null,
+                    'partner_uuid' => $data['partner_uuid'] ?? null,
+                    'status' => $data['status'] ?? 'en_attente',
+                    'notes' => $data['notes'] ?? null,
+                    'created_by' => $creatorUuid,
+                ]);
+
+                if (!empty($data['documents'] ?? [])) {
+                    $this->savePrestationDocuments($prestation, $data, $creatorUuid);
+                }
+
+                ActivityLog::log([
+                    'user_uuid' => $creatorUuid,
+                    'action' => 'create',
+                    'action_type' => 'crud',
+                    'module' => 'prestations',
+                    'description' => "Création de la prestation {$prestation->code} pour le client {$prestation->client_uuid}",
+                    'resource_type' => 'prestation',
+                    'resource_id' => $prestation->uuid_prestation,
+                    'new_values' => $prestation->toArray(),
+                    'level' => 'info',
+                ]);
+
+                // Notification au client
+                $this->notificationService->create([
+                    'user_uuid' => $prestation->client_uuid,
+                    'group_notif_uuid' => $this->getPrestationGroupUuid(),
+                    'title' => '📋 Nouvelle prestation créée. Code : ' . $prestation->code,
+                    'body' => "Votre prestation N° {$prestation->code} a été créée avec succès. Elle est en attente de validation. Vous allez recevoir un message de confirmation après validation.",
+                    'type' => 'PRESTATION',
+                    'metadata' => [
+                        'prestation_uuid' => $prestation->uuid_prestation,
+                        'prestation_code' => $prestation->code,
+                        'action' => 'creation',
+                    ],
+                    'channel' => 'database',
+                    'created_by' => $creatorUuid,
+                ]);
+
+                $code = 'PRESTATION_CREATED';
+                $message = 'Prestation créée avec succès. Code : ' . $prestation->code;
             }
-
-            ActivityLog::log([
-                'user_uuid' => $creatorUuid,
-                'action' => 'create',
-                'action_type' => 'crud',
-                'module' => 'prestations',
-                'description' => "Création de la prestation {$prestation->code} pour le client {$prestation->client_uuid}",
-                'resource_type' => 'prestation',
-                'resource_id' => $prestation->uuid_prestation,
-                'new_values' => $prestation->toArray(),
-                'level' => 'info',
-            ]);
-
-            // Notification au client
-            $this->notificationService->create([
-                'user_uuid' => $prestation->client_uuid,
-                'group_notif_uuid' => $this->getPrestationGroupUuid(),
-                'title' => '📋 Nouvelle prestation créée. Code : ' . $prestation->code,
-                'body' => "Votre prestation N° {$prestation->code} a été créée avec succès. Elle est en attente de validation. Vous allez recevoir un message de confirmation après validation.",
-                'type' => 'PRESTATION',
-                'metadata' => [
-                    'prestation_uuid' => $prestation->uuid_prestation,
-                    'prestation_code' => $prestation->code,
-                    'action' => 'creation',
-                ],
-                'channel' => 'database',
-                'created_by' => $creatorUuid,
-            ]);
 
             $prestationData = $prestation->load([
                 'client',
@@ -667,14 +737,13 @@ class PrestationService
             ]);
 
             DB::afterCommit(function () use ($prestation, &$assignation) {
-               
                 $assignation = $this->routingService->assignerAutomatiquement($prestation);
             });
 
             return [
                 'success' => true,
-                'code' => 'PRESTATION_CREATED',
-                'message' => 'Prestation créée avec succès. Code : ' . $prestation->code,
+                'code' => $code,
+                'message' => $message,
                 'data' => $prestationData,
                 'assignation_automatique' => null,
             ];
@@ -682,8 +751,8 @@ class PrestationService
 
         return [
             'success' => true,
-            'code' => 'PRESTATION_CREATED',
-            'message' => 'Prestation créée avec succès.',
+            'code' => $isUpdate ? 'PRESTATION_UPDATED' : 'PRESTATION_CREATED',
+            'message' => $isUpdate ? 'Prestation mise à jour avec succès.' : 'Prestation créée avec succès.',
             'data' => $prestationData ?? null,
             'assignation_automatique' => $assignation,
         ];

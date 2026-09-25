@@ -13,6 +13,8 @@ class AssignGestionnairePrestationPermissionsSeeder extends Seeder
         'prestations.afficher',
         'prestations.creer',
         'prestations.modifier',
+        'prestations.traiter',
+        'prestations.annuler',
 
          // ============================================================
         // AUTHENTIFICATION - Sécurité de base
