@@ -36,7 +36,18 @@ class PrestationResource extends JsonResource
             'status_label' => $this->getPrestationStatusLabel(),
             'is_migrated' => (bool) $this->is_migrated,
             'migration_date' => $this->migration_date?->format('Y-m-d H:i:s'),
-            'motif_traitement' => $this->motif_traitement,
+            'motif_traitement' => $this->getMotifsTraitement(),
+            'motifs_par_type' => [
+                'traitement' => $this->getMotifsByType('traitement'),
+                'rejet' => $this->getMotifsByType('rejet'),
+                'annulation' => $this->getMotifsByType('annulation'),
+            ],
+            'motifs_traitement_details' => $this->when(fn () => !empty($this->motif_traitement), fn () => $this->getMotifsTraitementDetails()),
+            'has_motifs' => [
+                'traitement' => $this->hasMotifsType('traitement'),
+                'rejet' => $this->hasMotifsType('rejet'),
+                'annulation' => $this->hasMotifsType('annulation'),
+            ],
             'observation' => $this->observation,
 
             'client' => $this->whenLoaded('client', function () {

@@ -193,7 +193,7 @@ class EncaissementBisService
         $contisationQuinzePourcent = $cumulCotisationTerme * 0.15;
 
         // calculer montant maximum disponible pour une prestation
-        $montantMax = $NbrencConfirmer * 0.5;
+        $montantMax = $TotalEncaissement * 0.5;
         $data['details'][0]['montantMaxSouhaitePrestation'] = $montantMax;
 
         $data['details'][0]['DureeCotisationMois'] = $Duree;

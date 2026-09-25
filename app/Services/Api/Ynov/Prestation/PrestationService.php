@@ -3,21 +3,27 @@
 
 namespace App\Services\Api\Ynov\Prestation;
 
-use App\Models\Api\Ynov\Prestation;
+use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
+use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\ProduitPrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
-use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
-use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\Prestation;
 use App\Services\Api\Ynov\Documents\DocumentService;
-use Illuminate\Http\UploadedFile;
+use App\Services\Api\Ynov\NotificationService;
+use App\Services\Api\Ynov\Prestation\PrestationRoutingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PrestationService
 {
+     public function __construct(
+        private PrestationRoutingService $routingService,
+        private NotificationService $notificationService
+    ) {}
     /**
      * Créer une catégorie de prestation
      */
@@ -456,6 +462,7 @@ class PrestationService
             'gestionnaire',
             'partner',
             'documents',
+            'traiterPar',
         ]);
 
         if (isset($filters['status'])) {
@@ -486,7 +493,63 @@ class PrestationService
             $query->search($filters['search']);
         }
 
-        return $query->orderByDesc('created_at')->paginate($perPage);
+        // Filtrer par date spécifique
+        if (isset($filters['date'])) {
+            $query->whereDate('created_at', $filters['date']);
+        }
+
+        // Filtrer par plage de dates
+        if (isset($filters['date_debut'])) {
+            $query->whereDate('created_at', '>=', $filters['date_debut']);
+        }
+
+        if (isset($filters['date_fin'])) {
+            $query->whereDate('created_at', '<=', $filters['date_fin']);
+        }
+
+        // Filtrer par type de motif si spécifié
+        if (isset($filters['motif_type'])) {
+            $motifType = $filters['motif_type'];
+            $query->whereJsonContains('motif_traitement', [$motifType]);
+        }
+
+        // Filtrer par présence de motifs (non vide)
+        if (isset($filters['has_motifs']) && $filters['has_motifs']) {
+            $query->whereNotNull('motif_traitement')->where('motif_traitement', '!=', '[]');
+        }
+
+        // Filtrer par absence de motifs
+        if (isset($filters['has_motifs']) && !$filters['has_motifs']) {
+            $query->whereNull('motif_traitement')->orWhere('motif_traitement', '[]');
+        }
+
+        // Filtrer par motifs automatiques uniquement
+        if (isset($filters['automatic_only']) && $filters['automatic_only']) {
+            $query->whereJsonContains('motif_traitement', 'automatique');
+        }
+
+        // Filtrer par motifs manuels uniquement (sans automatique)
+        if (isset($filters['manual_only']) && $filters['manual_only']) {
+            $query->whereJsonLength('motif_traitement', '>', 0)
+                  ->whereJsonDoesntContain('motif_traitement', 'automatique');
+        }
+
+        // Gestion du tri
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
+
+        // Validation du champ de tri
+        $allowedSortFields = ['created_at', 'date_transmission', 'date_traitement', 'status', 'code'];
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'created_at';
+        }
+
+        // Validation de l'ordre de tri
+        if (!in_array($sortOrder, ['asc', 'desc'])) {
+            $sortOrder = 'desc';
+        }
+
+        return $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
     }
 
     /**
@@ -501,6 +564,7 @@ class PrestationService
             'gestionnaire',
             'partner',
             'documents',
+            'traiterPar',
         ])->where('uuid_prestation', $uuid)->firstOrFail();
     }
 
@@ -532,10 +596,12 @@ class PrestationService
     /**
      * Créer une prestation
      */
-    public function createPrestation(array $data, string $creatorUuid): Prestation
+    public function createPrestation(array $data, string $creatorUuid): array
     {
-        return DB::transaction(function () use ($data, $creatorUuid) {
+        $assignation = null;
+        $prestationData = null;
 
+        DB::transaction(function () use ($data, $creatorUuid, &$assignation, &$prestationData) {
             $prestation = Prestation::create([
                 'uuid_prestation' => (string) Str::uuid(),
                 'code' => RefgenerateCode(Prestation::class, 'PREST-', 'code'),
@@ -575,11 +641,23 @@ class PrestationService
                 'level' => 'info',
             ]);
 
-            // Assignation automatique différée (sera traitée par le cron job)
-            // On ne fait pas l'assignation immédiate pour laisser le temps au système
-            // L'assignation sera faite via l'endpoint public autoAssign
+            // Notification au client
+            $this->notificationService->create([
+                'user_uuid' => $prestation->client_uuid,
+                'group_notif_uuid' => $this->getPrestationGroupUuid(),
+                'title' => '📋 Nouvelle prestation créée. Code : ' . $prestation->code,
+                'body' => "Votre prestation N° {$prestation->code} a été créée avec succès. Elle est en attente de validation. Vous allez recevoir un message de confirmation après validation.",
+                'type' => 'PRESTATION',
+                'metadata' => [
+                    'prestation_uuid' => $prestation->uuid_prestation,
+                    'prestation_code' => $prestation->code,
+                    'action' => 'creation',
+                ],
+                'channel' => 'database',
+                'created_by' => $creatorUuid,
+            ]);
 
-            return $prestation->fresh()->load([
+            $prestationData = $prestation->load([
                 'client',
                 'typePrestation.category',
                 'rdv',
@@ -587,7 +665,28 @@ class PrestationService
                 'partner',
                 'documents',
             ]);
+
+            DB::afterCommit(function () use ($prestation, &$assignation) {
+               
+                $assignation = $this->routingService->assignerAutomatiquement($prestation);
+            });
+
+            return [
+                'success' => true,
+                'code' => 'PRESTATION_CREATED',
+                'message' => 'Prestation créée avec succès. Code : ' . $prestation->code,
+                'data' => $prestationData,
+                'assignation_automatique' => null,
+            ];
         });
+
+        return [
+            'success' => true,
+            'code' => 'PRESTATION_CREATED',
+            'message' => 'Prestation créée avec succès.',
+            'data' => $prestationData ?? null,
+            'assignation_automatique' => $assignation,
+        ];
     }
 
     /**
@@ -753,24 +852,60 @@ class PrestationService
 
         $prestations = $query->get();
 
+        // Séparer les motifs TECH et les autres
+        $motifsTech = [];
+        $autresMotifs = [];
+
+        foreach ($prestations as $prestation) {
+            $motifData = [
+                'uuid_type_prestation' => $prestation->uuid_type_prestation,
+                'code' => $prestation->code,
+                'libelle' => $prestation->libelle,
+                'description' => $prestation->description,
+                'impact' => $prestation->impact,
+                'impact_label' => $prestation->getImpactLabel(),
+                'category' => $prestation->category ? [
+                    'uuid' => $prestation->category->uuid_category_type_prestations,
+                    'code' => $prestation->category->code,
+                    'libelle' => $prestation->category->libelle,
+                ] : null,
+            ];
+
+            // Si la catégorie est TECH, l'ajouter directement dans motifsTech
+            if ($prestation->category && $prestation->category->code === 'TECH') {
+                $motifsTech[] = $motifData;
+            } else {
+                // Sinon, l'ajouter dans autresMotifs
+                $autresMotifs[] = $motifData;
+            }
+        }
+
+        // Construire le résultat
+        $result = $motifsTech;
+
+        // Ajouter la section "Autres motifs" si elle contient des éléments
+        if (!empty($autresMotifs)) {
+            $result[] = [
+                'uuid_type_prestation' => 'autre',
+                'code' => 'autre',
+                'libelle' => 'Autres motifs',
+                'impact' => 0,
+                'impact_label' => 'Autres motifs',
+                'description' => "Motifs de prestations pour demander une modification, une correction, un ajout etc... sur vos informations personnelles, de votre contrat et bien d'autres ...",
+                'category' => [
+                    'uuid' =>  'autre',
+                    'code' => 'autre',
+                    'libelle' => 'Autres categries de motifs',
+                ],
+                'motifs' => $autresMotifs,
+            ];
+        }
+
         return [
             'success' => true,
             'code' => 'MOTIFS_WITH_MAX_AMOUNT',
             'message' => 'Motifs récupérés avec montant maximum',
-            'motifs' => $prestations->map(function ($prestation) {
-                return [
-                    'uuid_type_prestation' => $prestation->uuid_type_prestation,
-                    'code' => $prestation->code,
-                    'libelle' => $prestation->libelle,
-                    'description' => $prestation->description,
-                    'impact' => $prestation->impact,
-                    'impact_label' => $prestation->getImpactLabel(),
-                    'category' => $prestation->category ? [
-                        'uuid' => $prestation->category->uuid_category_type_prestations,
-                        'libelle' => $prestation->category->libelle,
-                    ] : null,
-                ];
-            })->toArray(),
+            'motifs' => $result,
             'montant_max' => $maxAmountData['montant_max'] ?? 0,
             'details_montant' => $maxAmountData['details'] ?? [],
         ];
@@ -1283,6 +1418,15 @@ class PrestationService
                 'impact' => $typePrestation->impact,
             ],
         ];
+    }
+
+    /**
+     * Obtenir l'UUID du groupe de notifications pour les prestations
+     */
+    private function getPrestationGroupUuid(): ?string
+    {
+        $group = GroupNotif::where('code', 'prestations')->first();
+        return $group?->uuid_group_notif;
     }
 
 }

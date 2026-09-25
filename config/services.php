@@ -64,6 +64,12 @@ return [
         'doc_path' => env('DOC_PATH'),
     ],
 
+    'webdav' => [
+        'url' => env('WEBDAV_URL'),
+        'username' => env('WEBDAV_USERNAME'),
+        'password' => env('WEBDAV_PASSWORD'),
+    ],
+
     'signature' => [
         'api_webhook_key' => env('API_SIGN_WIDGET_WEBHOOK_KEY'),
         'allowed_document_hosts' => [
