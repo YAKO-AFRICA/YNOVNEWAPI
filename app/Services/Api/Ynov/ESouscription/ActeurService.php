@@ -11,7 +11,7 @@ class ActeurService
 {
     public function getActeurs(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Acteur::query();
+        $query = Acteur::query()->with('RelationContrat');
 
         foreach (['uuid_acteur', 'idClient', 'code', 'email', 'nni'] as $field) {
             if (!empty($filters[$field])) {
@@ -52,8 +52,8 @@ class ActeurService
     public function create(array $data): Acteur
     {
         return DB::transaction(function () use ($data): Acteur {
-            $data['uuid_acteur'] = (string) Str::uuid();
-            $data['code'] = Refgenerate(Acteur::class, 'AC', 'code');
+            // $data['integration_key'] = now()->format('Ymdhis');
+            $data['code'] = Refgenerate(Acteur::class, 'ACT', 'code');
 
             return Acteur::create($data);
         });

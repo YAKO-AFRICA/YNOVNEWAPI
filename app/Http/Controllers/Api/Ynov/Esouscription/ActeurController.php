@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 use App\Http\Controllers\Controller;
 use App\Services\Api\Ynov\Esouscription\ActeurService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Throwable;
 
 class ActeurController extends Controller
@@ -112,6 +113,8 @@ class ActeurController extends Controller
             'integration_key' => 'nullable|string|max:255',
             'created_by' => 'nullable|uuid',
         ]);
+
+        $validatedData['uuid_acteur'] = Str::uuid();
 
         try {
             $acteur = $this->acteurService->create($validatedData);

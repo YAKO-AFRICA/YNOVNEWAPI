@@ -65,6 +65,18 @@ return [
             'throw'      => false,
         ],
 
+        'ftp_remote' => [
+            'driver'   => 'ftp',
+            'host'     => env('FTP_HOST'),
+            'username' => env('FTP_USERNAME'),
+            'password' => env('FTP_PASSWORD'),
+            'port'     => (int) env('FTP_PORT', 21),
+            'root'     => env('FTP_ROOT', ''),
+            'passive'  => true,
+            'ssl'      => false,
+            'timeout'  => 30,
+        ],
+
     ],
 
     /*

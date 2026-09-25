@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Ynov\DeviceController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
+use App\Http\Controllers\Api\Ynov\Esouscription\ContratActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
 use App\Http\Controllers\Api\Ynov\Esouscription\PropositionController;
@@ -66,7 +67,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
+
 
 Route::prefix('esousciption')->group(function () {
     Route::get('index', function () {
@@ -1003,6 +1004,14 @@ Route::prefix('v1')->middleware([
         Route::get('restore-sante/{uuid}', [SanteController::class, 'restoreSante']);
         Route::get('get-trashed-sante', [SanteController::class, 'getTrashedSante']);
 
+        // crud relations contrat-acteur
+        Route::get('get-contrats-acteurs', [ContratActeurController::class, 'index']);
+        Route::post('store-contrat-acteur', [ContratActeurController::class, 'store']);
+        Route::get('show-contrat-acteur/{uuid}', [ContratActeurController::class, 'show']);
+        Route::put('update-contrat-acteur/{uuid}', [ContratActeurController::class, 'update']);
+        Route::delete('delete-contrat-acteur/{uuid}', [ContratActeurController::class, 'destroy']);
+        Route::get('restore-contrat-acteur/{uuid}', [ContratActeurController::class, 'restore']);
+
         // CRUD DOCUMENTS
         Route::get('get-documents', [DocumentController::class, 'getDocuments']);
         Route::post('store-document', [DocumentController::class, 'storeDocument']);
@@ -1019,6 +1028,7 @@ Route::prefix('v1')->middleware([
         Route::get('get-trashed-documents', [DocumentController::class, 'getTrashedDocuments']);
 
         // GESTION STORE CONTRAT
+        Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         
 
 

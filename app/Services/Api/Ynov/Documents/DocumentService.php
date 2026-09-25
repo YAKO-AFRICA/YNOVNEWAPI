@@ -125,6 +125,8 @@ class DocumentService
         $files = [];
         $labelsByFile = [];
 
+        // Log::info('data aaaaaaaaaa documenttttttt', $data['documents']);
+
 
         foreach ($data['documents'] as $entry) {
             if (!is_array($entry)) {
@@ -156,6 +158,7 @@ class DocumentService
                     }
 
                     $resultat = $this->traiter($uploadedFile);
+                    Log::info($resultat);
                     $cheminRelatif = $resultat['chemin_relatif'] ?? null;
 
                     if ($cheminRelatif) {
@@ -197,6 +200,7 @@ class DocumentService
                 return count($documentsCrees) === 1 ? $documentsCrees[0] : $documentsCrees;
             });
         } catch (\Throwable $e) {
+            Log::info('erreur de transaction', $e->getMessage());
             foreach ($createdPaths as $path) {
                 if (is_string($path) && $path !== '') {
                     $this->supprimer($path);

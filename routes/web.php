@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -30,6 +31,32 @@ use RealRashid\SweetAlert\Facades\Alert;
 Route::get('/', function () {
     return view('documentation.index');
 });
+
+Route::get('/get-doc-test', function () {
+
+    $path = '2023080908171171.jpg';
+
+
+    if (!Storage::disk('ftp_remote')->exists($path)) {
+        Log::warning('Fichier introuvable sur le FTP', [
+            'path' => $path,
+        ]);
+
+        return response()->json([
+            'message' => 'Fichier introuvable',
+        ], 404);
+    }
+
+    $fichier = Storage::disk('ftp_remote')->get($path);
+
+    return Response::make($fichier, 200, [
+        'Content-Type' => 'image/jpeg',
+        'Content-Disposition' => 'inline',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
+
+
 
 Route::get('storage/documents/{file}', function ($file) {
     // Nettoyer le nom du fichier

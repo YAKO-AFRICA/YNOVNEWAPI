@@ -72,6 +72,11 @@ class Acteur extends Model
         'deleted_at' => 'datetime',
     ];
 
+    public function RelationContrat()
+    {
+        return $this->hasMany(ContratActeur::class, 'acteur_uuid', 'uuid_acteur');
+    }
+
 
 
 }
