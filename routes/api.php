@@ -267,12 +267,11 @@ Route::prefix('v1')->middleware([
     Route::put('profile', [ProfileController::class, 'update']);
     Route::delete('profile/photo', [ProfileController::class, 'deletePhoto']);
 
-    Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
     Route::group(['middleware' => 'permission:users.afficher'], function () {
         Route::get('users', [UserController::class, 'index']);
         Route::get('users/{uuid_user}', [UserController::class, 'show']);
     });
-
+        
     Route::prefix('users/{uuid}')->group(function () {
         Route::post('freeze', [FreezeController::class, 'freeze'])->middleware('permission:users.geler');
         Route::group(['middleware' => 'permission:users.degeler'], function () {
@@ -280,11 +279,12 @@ Route::prefix('v1')->middleware([
             Route::get('freeze-status', [FreezeController::class, 'status']);
         });
     });
-
-
-
+                
+    
+    
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
+    Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
 
     // Gestion des agences pour un utilisateur
     Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
