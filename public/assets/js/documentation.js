@@ -2973,6 +2973,81 @@
                 ],
             },
 
+            {
+                id: "users-by-contrat",
+                module: "users",
+                name: "Récupérer un client par ID contrat",
+                description:
+                    "Récupère les informations complètes d'un client à partir de son ID de contrat. Retourne les informations du client ainsi que les détails du contrat (numéro client, produit, formule, etc.).",
+                method: "GET",
+                path: "/users/by-contrat/{id_contrat}",
+                isProtected: true,
+                // permissionsRequired: ["users.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        id_contrat: {
+                            type: "integer",
+                            required: true,
+                            description: "ID du contrat",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Informations du client trouvées",
+                        example: {
+                            success: true,
+                            message: "Informations du client récupérées avec succès.",
+                            code: "CLIENT_FOUND",
+                            data: {
+                                uuid_user: "...",
+                                email: "client@example.com",
+                                login: "client123",
+                                role: {},
+                                details: {},
+                                partner: {},
+                                reseau: {},
+                                agences: [],
+                                groupNotifs: [],
+                                userContrats: [],
+                            },
+                            contrat_info: {
+                                uuid_user_contrat: "...",
+                                contrat_id: 12345,
+                                client_number: "CLT001",
+                                code_produit: "SANT01",
+                                libelle_produit: "Santé Famille",
+                                code_produit_formule: "SFM01",
+                                libelle_produit_formule: "Formule Standard",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Contrat non trouvé",
+                        example: {
+                            success: false,
+                            message: "Contrat non trouvé.",
+                            code: "CONTRAT_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Utilisateur non trouvé pour ce contrat",
+                        example: {
+                            success: false,
+                            message: "Utilisateur non trouvé pour ce contrat.",
+                            code: "USER_NOT_FOUND",
+                        },
+                    },
+                ],
+            },
+
             // {
             //     id: 'users-create',
             //     module: 'users',

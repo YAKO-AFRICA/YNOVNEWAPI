@@ -267,6 +267,7 @@ Route::prefix('v1')->middleware([
     Route::put('profile', [ProfileController::class, 'update']);
     Route::delete('profile/photo', [ProfileController::class, 'deletePhoto']);
 
+    Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
     Route::group(['middleware' => 'permission:users.afficher'], function () {
         Route::get('users', [UserController::class, 'index']);
         Route::get('users/{uuid_user}', [UserController::class, 'show']);
@@ -804,7 +805,7 @@ Route::prefix('v1')->middleware([
         Route::delete('categories/{uuid_category}', [PrestationController::class, 'deleteCategory'])
             ->middleware('permission:prestations.supprimer');
 
-            
+        
         Route::get('types/{uuid_type}', [PrestationController::class, 'showType'])
             ->middleware('permission:prestations.afficher');
 

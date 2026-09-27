@@ -539,7 +539,7 @@ class BordereauRdvService
             }
         }
 
-        $data['status'] = 'en_attente';
+        // $data['status'] = 'en_attente';
         $data['created_by'] = $rdv->created_by ?? $lot->created_by ?? null;
 
         return $data;
