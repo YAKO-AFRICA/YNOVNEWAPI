@@ -733,6 +733,36 @@ Route::prefix('v1')->middleware([
         Route::get('dashboard/evolution', [PrestationDashboardController::class, 'evolution'])
             ->middleware('permission:prestations.afficher');
 
+        
+
+        // ============================================================
+        // CRUD PRESTATIONS
+        // ============================================================
+        Route::get('', [PrestationController::class, 'index'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::post('', [PrestationController::class, 'store'])
+            ->middleware('permission:prestations.creer');
+
+        // ============================================================
+        // CATÉGORIES DE PRESTATIONS
+        // ============================================================
+        Route::get('categories', [PrestationController::class, 'categories']);
+
+        Route::post('categories', [PrestationController::class, 'storeCategory'])
+            ->middleware('permission:prestations.creer');
+
+        // ============================================================
+        // TYPES DE PRESTATIONS
+        // ============================================================
+        Route::get('types', [PrestationController::class, 'types'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::post('types', [PrestationController::class, 'storeType'])
+            ->middleware('permission:prestations.creer');
+
+
+
         // ============================================================
         // ASSIGNATION ET ROUTAGE
         // ============================================================
@@ -754,14 +784,7 @@ Route::prefix('v1')->middleware([
         Route::get('{uuid_prestation}/historique', [PrestationTraitementController::class, 'historique'])
             ->middleware('permission:prestations.afficher');
 
-        // ============================================================
-        // CRUD PRESTATIONS
-        // ============================================================
-        Route::get('', [PrestationController::class, 'index'])
-            ->middleware('permission:prestations.afficher');
-
-        Route::post('', [PrestationController::class, 'store'])
-            ->middleware('permission:prestations.creer');
+        
 
         Route::get('{uuid_prestation}', [PrestationController::class, 'show'])
             ->middleware('permission:prestations.afficher');
@@ -772,14 +795,6 @@ Route::prefix('v1')->middleware([
         Route::delete('{uuid_prestation}', [PrestationController::class, 'destroy'])
             ->middleware('permission:prestations.supprimer');
 
-        // ============================================================
-        // CATÉGORIES DE PRESTATIONS
-        // ============================================================
-        Route::get('categories', [PrestationController::class, 'categories']);
-
-        Route::post('categories', [PrestationController::class, 'storeCategory'])
-            ->middleware('permission:prestations.creer');
-
         Route::get('categories/{uuid_category}', [PrestationController::class, 'showCategory'])
             ->middleware('permission:prestations.afficher');
 
@@ -789,15 +804,7 @@ Route::prefix('v1')->middleware([
         Route::delete('categories/{uuid_category}', [PrestationController::class, 'deleteCategory'])
             ->middleware('permission:prestations.supprimer');
 
-        // ============================================================
-        // TYPES DE PRESTATIONS
-        // ============================================================
-        Route::get('types', [PrestationController::class, 'types'])
-            ->middleware('permission:prestations.afficher');
-
-        Route::post('types', [PrestationController::class, 'storeType'])
-            ->middleware('permission:prestations.creer');
-
+            
         Route::get('types/{uuid_type}', [PrestationController::class, 'showType'])
             ->middleware('permission:prestations.afficher');
 
@@ -806,7 +813,6 @@ Route::prefix('v1')->middleware([
 
         Route::delete('types/{uuid_type}', [PrestationController::class, 'deleteType'])
             ->middleware('permission:prestations.supprimer');
-
         // ============================================================
         // STATISTIQUES
         // ============================================================

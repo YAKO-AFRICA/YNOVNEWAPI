@@ -192,8 +192,8 @@ class Prestation extends Model
             // Recherche dans le partenaire
             $q->orWhereHas('partner', function ($partnerQuery) use ($search) {
                 $partnerQuery->where('code', 'like', "%{$search}%")
-                    ->orWhere('designation', 'like', "%{$search}%")
-                    ->orWhere('sigle', 'like', "%{$search}%");
+                    ->orWhere('designation', 'like', "%{$search}%");
+                    // ->orWhere('sigle', 'like', "%{$search}%");
             });
 
             // Recherche dans le RDV associé
