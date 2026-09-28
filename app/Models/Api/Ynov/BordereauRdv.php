@@ -78,7 +78,7 @@ class BordereauRdv extends Model
      */
     public static function isDateCloturee($date): bool
     {
-        return static::where('status', 'transfere')->where('periode_1', '<=', $date)
+        return static::whereIn('status', ['transfere', 'cloture'])->where('periode_1', '<=', $date)
             ->where('periode_2', '>=', $date)
             ->exists();
     }
@@ -88,7 +88,7 @@ class BordereauRdv extends Model
      */
     public static function isPeriodeCloturee($dateDebut, $dateFin): bool
     {
-        return static::where('status', 'transfere')->where(function ($query) use ($dateDebut, $dateFin) {
+        return static::whereIn('status', ['transfere', 'cloture'])->where(function ($query) use ($dateDebut, $dateFin) {
                 $query->whereBetween('periode_1', [$dateDebut, $dateFin])
                       ->orWhereBetween('periode_2', [$dateDebut, $dateFin])
                       ->orWhere(function ($q) use ($dateDebut, $dateFin) {
