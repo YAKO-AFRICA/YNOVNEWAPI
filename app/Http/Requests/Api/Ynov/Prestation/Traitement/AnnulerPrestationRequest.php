@@ -23,7 +23,7 @@ class AnnulerPrestationRequest extends FormRequest
     {
         return [
             'motif_traitements' => ['nullable', 'array'],
-            'motif_traitements.*' => ['string', 'exists:motif_traitements,uuid_motif_traitement'],
+            'motif_traitements.*' => ['string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }

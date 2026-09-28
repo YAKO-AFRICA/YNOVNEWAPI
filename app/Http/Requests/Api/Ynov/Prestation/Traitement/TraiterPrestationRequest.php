@@ -5,7 +5,7 @@ namespace App\Http\Requests\Api\Ynov\Prestation\Traitement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Validation\ValidationException;
+// use Illuminate\Validation\ValidationException;
 
 class TraiterPrestationRequest extends FormRequest
 {
@@ -25,7 +25,7 @@ class TraiterPrestationRequest extends FormRequest
         return [
             'action' => ['required', 'string', 'in:accepter,rejeter'],
             'motif_traitements' => ['nullable', 'array'],
-            'motif_traitements.*' => ['string', 'exists:motif_traitements,uuid_motif_traitement'],
+            'motif_traitements.*' => ['string', 'exists:motif_traitements,uuid_motif_traitements'],
             'observation' => ['nullable', 'string', 'max:1000'],
         ];
     }
