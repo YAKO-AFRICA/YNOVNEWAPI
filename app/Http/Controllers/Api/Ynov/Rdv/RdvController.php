@@ -199,7 +199,7 @@ class RdvController extends Controller
             $data = $request->getRdvData();
 
             // Ajouter l'utilisateur a partir de son $request["id_contrat"]
-            $userContrat = UserContrat::where('id_contrat', $data['id_contrat'])->first();
+            $userContrat = UserContrat::where('contrat_id', $data['id_contrat'])->first();
 
             $user = User::where('uuid_user', $userContrat->user_uuid)->first();
 
