@@ -118,7 +118,7 @@ class TraitementService
             $oldValues = $rdv->toArray();
 
             // Vérifier que le RDV peut être reporté
-            if (!in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
+            if (in_array($rdv->status, ['traite', 'annule', 'rejete'])) {
                 return [
                     'success' => false,
                     'message' => 'Ce rendez-vous ne peut pas être reporté. Car il est actuellement ' . $rdv->status . '.',
