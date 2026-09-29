@@ -56,7 +56,6 @@ class OtpService
         OtpCode::create([
             'user_uuid' => $user->uuid_user,
             'code' => Hash::make($code),
-            // 'code_plain' => $code,
             'channel' => $channel,
             'purpose' => $purpose,
             'length' => 6,
@@ -156,7 +155,7 @@ class OtpService
         }
 
         if ($channel === 'sms') {
-            $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
+            $phone = preg_replace('/\D/', '', $data['tel'] ?? $data['login'] ??  $user->details?->mobile_1 ?? '');
             $phone = substr($phone, -10);
 
             if (strlen($phone) !== 10) {
@@ -192,7 +191,7 @@ class OtpService
             ];
         }
 
-        $phone = preg_replace('/\D/', '', $user->details?->mobile_1 ?? $data['tel'] ?? $data['login'] ?? '');
+        $phone = preg_replace('/\D/', '', $data['tel'] ?? $data['login'] ??  $user->details?->mobile_1 ?? '');
         $phone = substr($phone, -10);
 
         if (strlen($phone) !== 10) {

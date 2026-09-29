@@ -37,44 +37,32 @@ use Illuminate\Support\Str;
  *   qui authentifie la requête du widget.
  * - Aucun paramètre de configuration (webhook_url, api_key…) n'est surchargeable par query string.
  */
+
+
 class SignatureService
 {
-    /**
-     * Marqueur spécial utilisé UNIQUEMENT par la route de démonstration.
-     *
-     * Un `webhook_url` réel entraîne un véritable appel HTTP sortant. Or la démo
-     * s'auto-appelle (Laravel -> Laravel) : sur un serveur mono-thread comme
-     * `php artisan serve`, la requête sortante attend un processus déjà occupé
-     * à traiter la requête entrante -> blocage jusqu'au timeout. Ce marqueur
-     * court-circuite l'appel réseau pour ne simuler QUE la livraison, sans
-     * jamais toucher au flux réel (voir deliverToHost()).
-     */
+
+    protected string $api_webhook_key;
+    public function __construct()
+    {
+        $this->api_webhook_key = config('services.signature.api_webhook_key') ?? '';
+    }
     public const INTERNAL_ECHO_MARKER = 'internal-echo';
 
-    /** Longueur du token public. */
-    public const TOKEN_LENGTH = 64;
-
-    /** Contrainte de route — garantit un token URL-safe (pas de « | » à encoder/décoder). */
+    public const TOKEN_LENGTH  = 64;
     public const TOKEN_PATTERN = '[A-Za-z0-9]{64}';
 
-    /** Taille max acceptée pour la signature base64 (~2 Mo). */
     private const MAX_SIGNATURE_BYTES = 2 * 1024 * 1024;
 
-    /** Durée de validité par défaut d'un lien (1 h). */
     public const DEFAULT_EXPIRES_IN = 3600;
+
+    /** Purpose OTP par défaut pour le flux signature. */
+    public const DEFAULT_OTP_PURPOSE = 'signature';
 
     // =====================================================================
     // TOKEN
     // =====================================================================
 
-    /**
-     * Normalise et valide un token reçu de l'extérieur.
-     *
-     * Le token est volontairement alphanumérique pur : il traverse des URL, des QR codes,
-     * des SMS et des aperçus de liens WhatsApp sans jamais être ré-encodé. On se contente
-     * d'un rawurldecode défensif (au cas où une couche intermédiaire aurait encodé la chaîne)
-     * puis d'une validation stricte du format.
-     */
     public static function normalizeToken(?string $token): ?string
     {
         if ($token === null) {
@@ -90,7 +78,6 @@ class SignatureService
         return $normalized;
     }
 
-    /** Génère un token public unique. */
     private function generateUniqueToken(): string
     {
         do {
@@ -107,53 +94,61 @@ class SignatureService
     /**
      * Générer un lien de signature à usage unique.
      *
-     * @param string|null $documentUrl         URL HTTP(S) du document (optionnel : signature sans document)
-     * @param string|null $documentDescription Description affichée au signataire
-     * @param string      $webhookUrl          Webhook de l'app hôte qui recevra la signature
-     * @param string      $apiKey              Secret partagé — reste côté serveur
-     * @param string|null $successRedirectUrl  Redirection après signature réussie
-     * @param string|null $cancelRedirectUrl   Redirection en cas d'annulation
-     * @param bool        $enableAutoPolling   Polling automatique (scénario agence grand écran)
-     * @param int         $expiresIn           Durée de validité en secondes
+     * @param array $options Options OTP optionnelles :
+     *   - signer_login        (string|null)
+     *   - signer_user_uuid    (string|null)
+     *   - signer_email        (string|null)
+     *   - signer_phone        (string|null)
+     *   - otp_purpose         (string|null)   défaut : 'signature'
+     *   - otp_qr_url_template (string|null)
      */
     public function generateSignatureLink(
         ?string $documentUrl,
         ?string $documentDescription,
         string $webhookUrl,
-        string $apiKey,
         ?string $successRedirectUrl = null,
         ?string $cancelRedirectUrl = null,
         bool $enableAutoPolling = false,
-        int $expiresIn = self::DEFAULT_EXPIRES_IN
+        int $expiresIn = self::DEFAULT_EXPIRES_IN,
+        array $options = []
     ): array {
         return DB::transaction(function () use (
             $documentUrl,
             $documentDescription,
             $webhookUrl,
-            $apiKey,
             $successRedirectUrl,
             $cancelRedirectUrl,
             $enableAutoPolling,
-            $expiresIn
+            $expiresIn,
+            $options
         ) {
             $token     = $this->generateUniqueToken();
             $expiresAt = now()->addSeconds($expiresIn);
 
+            $metadata = [
+                'created_by'           => 'system',
+                'success_redirect_url' => $successRedirectUrl,
+                'cancel_redirect_url'  => $cancelRedirectUrl,
+                'enable_auto_polling'  => $enableAutoPolling,
+                // Options OTP (facultatives)
+                'signer_login'         => $options['signer_login']        ?? null,
+                'signer_user_uuid'     => $options['signer_user_uuid']    ?? null,
+                'signer_email'         => $options['signer_email']        ?? null,
+                'signer_phone'         => $options['signer_phone']        ?? null,
+                'otp_purpose'          => $options['otp_purpose']         ?? self::DEFAULT_OTP_PURPOSE,
+                'otp_qr_url_template'  => $options['otp_qr_url_template'] ?? null,
+            ];
+
             $signatureRequest = SignatureRequest::create([
                 'uuid_signature_request' => (string) Str::uuid(),
                 'token'                  => $token,
-                'document_url'           => $documentUrl,   // URL uniquement, jamais le contenu
+                'document_url'           => $documentUrl,
                 'document_description'   => $documentDescription,
                 'webhook_url'            => $webhookUrl,
-                'api_key'                => $apiKey,
+                'api_key'                => $this->api_webhook_key,
                 'expires_at'             => $expiresAt,
                 'delivery_status'        => SignatureRequest::DELIVERY_PENDING,
-                'metadata'               => [
-                    'created_by'           => 'system',
-                    'success_redirect_url' => $successRedirectUrl,
-                    'cancel_redirect_url'  => $cancelRedirectUrl,
-                    'enable_auto_polling'  => $enableAutoPolling,
-                ],
+                'metadata'               => $metadata,
             ]);
 
             return [
@@ -168,11 +163,12 @@ class SignatureService
                 'success_redirect_url'     => $successRedirectUrl,
                 'cancel_redirect_url'      => $cancelRedirectUrl,
                 'enable_auto_polling'      => $enableAutoPolling,
+                'otp_purpose'              => $metadata['otp_purpose'],
+                'has_otp_qr_url_template'  => !empty($metadata['otp_qr_url_template']),
             ];
         });
     }
 
-    /** URL publique du widget pour un token donné. */
     public function widgetUrl(string $token): string
     {
         return url('/signature/widget/' . $token);
@@ -182,11 +178,6 @@ class SignatureService
     // AFFICHAGE DU WIDGET
     // =====================================================================
 
-    /**
-     * Données nécessaires à l'initialisation du widget.
-     *
-     * N'expose NI webhook_url NI api_key : ces valeurs restent côté serveur.
-     */
     public function getWidgetData(string $token): ?array
     {
         $token = self::normalizeToken($token);
@@ -210,6 +201,13 @@ class SignatureService
             'success_redirect_url' => $metadata['success_redirect_url'] ?? null,
             'cancel_redirect_url'  => $metadata['cancel_redirect_url'] ?? null,
             'enable_auto_polling'  => (bool) ($metadata['enable_auto_polling'] ?? false),
+            // Nouveaux champs OTP (facultatif)
+            'signer_login'         => $metadata['signer_login']        ?? null,
+            'signer_user_uuid'     => $metadata['signer_user_uuid']    ?? null,
+            'signer_email'         => $metadata['signer_email']        ?? null,
+            'signer_phone'         => $metadata['signer_phone']        ?? null,
+            'otp_purpose'          => $metadata['otp_purpose']         ?? self::DEFAULT_OTP_PURPOSE,
+            'otp_qr_url_template'  => $metadata['otp_qr_url_template'] ?? null,
         ];
     }
 
@@ -218,16 +216,12 @@ class SignatureService
     // =====================================================================
 
     /**
-     * Traiter la signature envoyée par le widget.
-     *
-     * Le token seul authentifie l'appel. Aucun header X-Api-Key n'est attendu du navigateur.
-     *
-     * Point important : le token est marqué comme utilisé MÊME si le webhook de l'app hôte
-     * échoue. Sinon un hôte momentanément indisponible bloquerait indéfiniment le poste
-     * desktop en polling alors que le client a bel et bien signé. L'état de livraison est
-     * exposé séparément via delivery_status.
+     * @param array $context Contexte optionnel :
+     *   - method : 'handwritten' | 'otp_qr'  (défaut : 'handwritten')
+     *   - otp    : [channel, contact, purpose, ip_address, user_agent, used_at]
+     *   - geo    : [lat, lng]
      */
-    public function processSignature(string $signatureBase64, string $token): array
+    public function processSignature(string $signatureBase64, string $token, array $context = []): array
     {
         $token = self::normalizeToken($token);
 
@@ -243,8 +237,11 @@ class SignatureService
             );
         }
 
-        // Verrouillage pessimiste : deux soumissions simultanées ne peuvent pas
-        // relayer deux fois la même signature.
+        $method = $context['method'] ?? 'handwritten';
+        if (!in_array($method, ['handwritten', 'otp_qr'], true)) {
+            return $this->failure('Méthode de signature invalide.', 'INVALID_METHOD', 422);
+        }
+
         $claim = DB::transaction(function () use ($token) {
             $signatureRequest = SignatureRequest::where('token', $token)->lockForUpdate()->first();
 
@@ -260,7 +257,6 @@ class SignatureService
                 return $this->failure('Token expiré.', 'EXPIRED_TOKEN', 410);
             }
 
-            // Marquage immédiat : la signature n'est PAS stockée.
             $signatureRequest->markAsUsed();
 
             return ['success' => true, 'request' => $signatureRequest];
@@ -273,7 +269,7 @@ class SignatureService
         /** @var SignatureRequest $signatureRequest */
         $signatureRequest = $claim['request'];
 
-        $delivery = $this->deliverToHost($signatureRequest, $signatureBase64);
+        $delivery = $this->deliverToHost($signatureRequest, $signatureBase64, $method, $context);
 
         $signatureRequest->forceFill([
             'delivery_status' => $delivery['delivered']
@@ -283,8 +279,6 @@ class SignatureService
         ])->save();
 
         if (!$delivery['delivered']) {
-            // La signature est perdue volontairement (aucune persistance).
-            // L'app hôte devra relancer une demande de signature.
             return [
                 'success' => false,
                 'message' => "La signature n'a pas pu être transmise à l'application hôte.",
@@ -294,6 +288,7 @@ class SignatureService
                     'signature_request_uuid' => $signatureRequest->uuid_signature_request,
                     'webhook_status'         => $delivery['status'],
                     'token_consumed'         => true,
+                    'method'                 => $method,
                 ],
             ];
         }
@@ -306,6 +301,7 @@ class SignatureService
                 'signature_request_uuid' => $signatureRequest->uuid_signature_request,
                 'webhook_response'       => $delivery['body'],
                 'token_consumed'         => true,
+                'method'                 => $method,
             ],
         ];
     }
@@ -313,10 +309,12 @@ class SignatureService
     /**
      * Relaie la signature au webhook de l'app hôte, avec l'api_key lue en base.
      */
-    private function deliverToHost(SignatureRequest $signatureRequest, string $signatureBase64): array
-    {
-        // Court-circuit réservé à la page de démonstration : voir INTERNAL_ECHO_MARKER.
-        // Ne concerne jamais un webhook_url réel fourni par une app hôte.
+    private function deliverToHost(
+        SignatureRequest $signatureRequest,
+        string $signatureBase64,
+        string $method = 'handwritten',
+        array $context = []
+    ): array {
         if ($signatureRequest->webhook_url === self::INTERNAL_ECHO_MARKER) {
             return [
                 'delivered' => true,
@@ -325,7 +323,40 @@ class SignatureService
                     'success'     => true,
                     'received_at' => now()->toIso8601String(),
                     'simulated'   => true,
+                    'method'      => $method,
                 ],
+            ];
+        }
+
+        $payload = [
+            'success'                => true,
+            'status'                 => 200,
+            'signature'              => $signatureBase64,
+            'method'                 => $method,
+            'token'                  => $signatureRequest->token,
+            'document_url'           => $signatureRequest->document_url,
+            'signature_request_uuid' => $signatureRequest->uuid_signature_request,
+            'signed_at'              => optional($signatureRequest->signed_at)->toIso8601String()
+                                        ?? now()->toIso8601String(),
+            'timestamp'              => now()->toIso8601String(),
+        ];
+
+        if ($method === 'otp_qr') {
+            $otp = $context['otp'] ?? [];
+            $geo = $context['geo'] ?? [];
+
+            $payload['otp'] = [
+                'channel'    => $otp['channel']    ?? null,
+                'contact'    => $otp['contact']    ?? null,
+                'purpose'    => $otp['purpose']    ?? null,
+                'ip_address' => $otp['ip_address'] ?? null,
+                'user_agent' => $otp['user_agent'] ?? null,
+                'used_at'    => $otp['used_at']    ?? null,
+            ];
+
+            $payload['geo'] = [
+                'lat' => $geo['lat'] ?? null,
+                'lng' => $geo['lng'] ?? null,
             ];
         }
 
@@ -336,22 +367,13 @@ class SignatureService
                 ])
                 ->timeout(15)
                 ->retry(2, 500, throw: false)
-                ->post($signatureRequest->webhook_url, [
-                    'success'                => true,
-                    'status'                 => 200,
-                    'signature'              => $signatureBase64,
-                    'token'                  => $signatureRequest->token,
-                    'document_url'           => $signatureRequest->document_url,
-                    'signature_request_uuid' => $signatureRequest->uuid_signature_request,
-                    'signed_at'              => optional($signatureRequest->signed_at)->toIso8601String()
-                                                ?? now()->toIso8601String(),
-                    'timestamp'              => now()->toIso8601String(),
-                ]);
+                ->post($signatureRequest->webhook_url, $payload);
 
             if (!$response->successful()) {
                 Log::warning('[Signature] Webhook hôte en échec', [
                     'uuid'   => $signatureRequest->uuid_signature_request,
                     'status' => $response->status(),
+                    'method' => $method,
                 ]);
 
                 return ['delivered' => false, 'status' => $response->status(), 'body' => null];
@@ -363,17 +385,16 @@ class SignatureService
                 'body'      => $response->json(),
             ];
         } catch (\Throwable $e) {
-            // On ne logge jamais le contenu de la signature.
             Log::error('[Signature] Exception lors de la livraison au webhook hôte', [
                 'uuid'    => $signatureRequest->uuid_signature_request,
                 'message' => $e->getMessage(),
+                'method'  => $method,
             ]);
 
             return ['delivered' => false, 'status' => null, 'body' => null];
         }
     }
 
-    /** Valide le format de la signature sans la conserver. */
     private function isValidSignaturePayload(string $signatureBase64): bool
     {
         if (strlen($signatureBase64) > self::MAX_SIGNATURE_BYTES) {
@@ -384,7 +405,7 @@ class SignatureService
     }
 
     // =====================================================================
-    // STATUT (polling desktop)
+    // STATUT
     // =====================================================================
 
     public function checkTokenStatus(string $token): ?array
@@ -415,10 +436,9 @@ class SignatureService
     }
 
     // =====================================================================
-    // ENVOI DU LIEN (Email / SMS / WhatsApp)
+    // ENVOI DU LIEN
     // =====================================================================
 
-    /** Récupère une demande de signature encore valide, ou null. */
     private function activeRequest(?string $token): ?SignatureRequest
     {
         $token = self::normalizeToken($token);
@@ -519,7 +539,6 @@ class SignatureService
         );
     }
 
-    /** Appel générique à l'API Infobip. */
     private function sendViaInfobip(
         string $path,
         array $payload,

@@ -151,6 +151,10 @@ class PrestationResource extends JsonResource
 
             'documents' => $this->whenLoaded('documents', function () {
                 return $this->documents->map(function ($document) {
+                     // On reconstruit l'URL publique à la volée
+                    $base   = rtrim((string) url('/'), '/');
+                    $prefix = '/' . trim((string) config('documents.url_prefix', '/docnumerises/PROD'), '/');
+                    $url    = $base . $prefix . '/' . ltrim($document->chemin, '/');
                     return [
                         'uuid_document' => $document->uuid_document,
                         'reference_uuid' => $document->reference_uuid,
@@ -163,6 +167,9 @@ class PrestationResource extends JsonResource
                         'mime_type' => $document->mime_type,
                         'statut' => $document->statut,
                         'url' => url('preview/doc/' . $document->nom_fichier),
+                        // 'url' => url('storage/doc/' . $document->chemin),
+                        // 'preview_url'    => url('preview/doc/' . $document->nom_fichier),
+
                         'created_at' => $document->created_at?->format('Y-m-d H:i:s'),
                     ];
                 })->values()->all();

@@ -148,25 +148,61 @@ POST https://votre-domaine.com/api/signature-webhook   (l'URL que VOUS avez donn
 Content-Type: application/json
 X-Api-Key: <le secret que vous avez fourni à generate-link>
 
+// --- Mode Handwritten (signature manuscrite) ---
 {
   "success": true,
   "status": 200,
+  "method": "handwritten",
   "signature": "data:image/png;base64,iVBORw0KGgo…",
   "token": "aB3xY…",
   "document_url": "https://docs.yakoafrica.ci/contrats/ABC123.pdf",
   "signature_request_uuid": "0f9c…",
   "signed_at": "2026-09-21T14:52:11+00:00"
 }
+
+// --- Mode OTP (avec données utilisateur essentielles) ---
+{
+  "success": true,
+  "status": 200,
+  "method": "otp_qr",
+  "signature": "data:image/png;base64,iVBORw0KGgo…", // QR code de preuve
+  "token": "aB3xY…",
+  "document_url": "https://docs.yakoafrica.ci/contrats/ABC123.pdf",
+  "signature_request_uuid": "0f9c…",
+  "signed_at": "2026-09-21T14:52:11+00:00",
+  "otp": {
+    "user_uuid": "9f8c-...",
+    "login": "client.dupont",
+    "email": "client@exemple.ci",
+    "nom": "DUPONT",
+    "prenoms": "Jean Pierre",
+    "mobile_1": "0700000000",
+    "adresse_complete": "123 Rue de la République, Cocody",
+    "channel": "sms",
+    "contact": "0700000000",
+    "purpose": "signature",
+    "ip_address": "41.207.xx.xx",    // autoritaire (serveur)
+    "user_agent": "Mozilla/5.0 …",   // autoritaire (serveur)
+    "used_at": "2026-09-21T14:52:09+00:00"
+  },
+  "geo": { "lat": 5.359952, "lng": -4.008256 } // déclaratif (navigateur)
+}
 ```
 
 | Champ | À quoi il sert |
 |---|---|
-| `signature` | L'image PNG de la signature manuscrite, encodée en base64. C'est la donnée finale. |
+| `method` | Mode de signature : `handwritten` (canvas) ou `otp_qr` (OTP + QR). |
+| `signature` | L'image PNG (canvas ou QR code), encodée en base64. C'est la donnée finale. |
 | `X-Api-Key` (en-tête) | Le secret que **vous** avez choisi et transmis à `generate-link`. Sert à vérifier que l'appel vient bien de Laravel et pas d'un tiers. |
 | `signature_request_uuid` | Identifiant unique de cette demande — le plus fiable pour retrouver votre dossier. |
 | `token` | Le même token que celui du lien envoyé au client. Utile si vous l'aviez déjà associé à votre dossier au moment de `generate-link`. |
 | `document_url` | Rappel de l'URL du document, telle que vous l'aviez fournie. |
 | `signed_at` | Horodatage de la signature. |
+| `otp` (mode otp_qr) | Objet contenant les données essentielles du signataire (user_uuid, login, email, nom, prenoms, mobile_1, adresse_complete). |
+| `otp.ip_address` | IP autoritaire (récupérée côté serveur, donc fiable juridiquement). |
+| `otp.user_agent` | User-Agent autoritaire (récupéré côté serveur). |
+| `otp.used_at` | Horodatage autoritaire de la vérification OTP. |
+| `geo` (mode otp_qr) | Géolocalisation déclarative (navigateur, peut être refusée). À traiter comme information complémentaire, pas preuve principale. |
 
 #### Ce que votre backend doit faire, dans l'ordre
 
@@ -176,9 +212,13 @@ X-Api-Key: <le secret que vous avez fourni à generate-link>
 2. **Retrouver votre dossier métier** (le contrat, la souscription…) grâce à
    `signature_request_uuid` ou `token` — vous devez les avoir mémorisés au moment où
    vous avez appelé `generate-link` pour ce dossier précis.
-3. **Décoder et apposer** la signature sur votre document, puis **l'enregistrer chez vous**.
-   C'est le seul endroit du système entier où la signature est persistée.
-4. **Répondre `2xx`**. N'importe quel autre code (ou une absence de réponse) est interprété
+3. **Traiter selon le mode de signature** :
+   - **Mode `otp_qr`** : Utiliser les données essentielles du champ `otp` pour la traçabilité
+     (user_uuid, login, email, nom, prenoms, mobile_1, adresse_complete). Les données techniques `ip_address`,
+     `user_agent`, `used_at` sont **autoritaires** (côté serveur), la géoloc est **déclarative**.
+   - **Mode `handwritten`** : Décoder et apposer la signature sur votre document.
+4. **Enregistrer chez vous**. C'est le seul endroit du système entier où la signature est persistée.
+5. **Répondre `2xx`**. N'importe quel autre code (ou une absence de réponse) est interprété
    par Laravel comme un échec de livraison.
 
 ```php

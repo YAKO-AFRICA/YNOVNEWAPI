@@ -63,6 +63,16 @@ return [
     'documents' => [
         'doc_path' => env('DOC_PATH'),
     ],
+
+    'signature' => [
+        'api_webhook_key' => env('API_SIGN_WIDGET_WEBHOOK_KEY'),
+        'allowed_document_hosts' => [
+            'web.yakoafricassur.com',
+            'yakoafricassur.com',
+            'apimain.yakoafricassur.com',
+        ],
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

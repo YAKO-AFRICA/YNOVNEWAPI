@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Document;
+use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\DocumentUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

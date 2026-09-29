@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ContratActeurController;
+use App\Http\Controllers\Api\Ynov\Esouscription\ContratController;
 use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
 use App\Http\Controllers\Api\Ynov\Esouscription\PropositionController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationRoutingController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
 use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
@@ -93,14 +95,16 @@ Route::prefix('v1')->group(function () {
 
     Route::post('auth/otp/send', [OtpController::class, 'sendOtp'])
         ->middleware('throttle:5,10');
+
+    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
+        ->middleware('throttle:5,10');
+
     Route::post('auth/otp/resend', [OtpController::class, 'resendOtp'])
         ->middleware('throttle:5,10');
 
     Route::post('auth/otp/verify-code', [OtpController::class, 'verifyOtp'])
         ->middleware('throttle:5,10');
 
-    Route::post('auth/otp/verify', [OtpController::class, 'verifyOtp'])
-        ->middleware('throttle:5,10');
 
     // Routes 2FA/OTP avec token temporaire (auth:sanctum mais pas de check status)
     Route::post('auth/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])
@@ -157,36 +161,32 @@ Route::prefix('v1')->group(function () {
     });
 
     // ============================================================
+    // SIGNATURE ÉLECTRONIQUE
     // ============================================================
-    // SIGNATURE ÉLECTRONIQUE - Widget dans api.php
-    // ============================================================
-    // Widget JS embarquable consolidé (version unique avec documentation complète)
-
     Route::prefix('signature')->group(function () {
- 
-        // Widget JS embarquable
+
         Route::get('signature-widget.js', function () {
             return response()->file(public_path('assets/js/signature-widget.js'), [
                 'Content-Type'  => 'application/javascript',
                 'Cache-Control' => 'public, max-age=3600',
             ]);
         });
-    
-        // --- Réservé à l'application hôte (à protéger !) ---
-        // Sans authentification ni throttling, n'importe qui peut générer des liens
-        // de signature et faire émettre des SMS/WhatsApp à vos frais.
+
+        // --- Réservé à l'application hôte ---
         Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
-            Route::post('generate-link',  [SignatureController::class, 'generateLink']);
-            Route::post('send/email',     [SignatureController::class, 'sendByEmail']);
-            Route::post('send/sms',       [SignatureController::class, 'sendBySms']);
-            Route::post('send/whatsapp',  [SignatureController::class, 'sendByWhatsapp']);
+            Route::post('generate-link', [SignatureController::class, 'generateLink']);
         });
-    
-        // --- Appelé par le widget (authentifié par le token lui-même) ---
+
+        // --- Appelé par le widget ---
         Route::post('webhook', [SignatureController::class, 'receiveSignature'])
             ->middleware('throttle:20,1');
-    
-        // --- Polling du poste desktop ---
+
+        // --- Passerelle OTP signature (nouveau) ---
+        // Réutilise OtpService::verify, renvoie des données autoritaires.
+        Route::post('otp/verify', [SignatureController::class, 'verifySignatureOtp'])
+            ->middleware('throttle:10,1');
+
+        // --- Polling ---
         Route::get('token/{token}/status', [SignatureController::class, 'checkTokenStatus'])
             ->where('token', SignatureService::TOKEN_PATTERN)
             ->middleware('throttle:240,1');
@@ -195,11 +195,16 @@ Route::prefix('v1')->group(function () {
     Route::prefix('/rdvs/auto')->group(function () {
         // Assignation automatique des RDV (appelé par front-end 3 min après création)
         Route::post('assign', [RoutingController::class, 'autoAssign']);
-        
+
         // Gestion des RDV expirés (appelé par front-end tous les jours)
         Route::post('expires', [RoutingController::class, 'gererExpires']);
     });
-    
+
+    Route::prefix('/prestations/auto')->group(function () {
+        // Assignation automatique des prestations (appelé par front-end quelques minutes après création)
+        Route::post('assign', [PrestationRoutingController::class, 'autoAssign']);
+    });
+
 });
 
 /*
@@ -698,7 +703,18 @@ Route::prefix('v1')->middleware([
         // vérifier si un motif de prestations necessite une prise de rendez-vous
         Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
-        
+
+        // vérifier l'éligibilité d'une prestation selon les règles métier
+        Route::post('check-eligibility', [PrestationController::class, 'checkEligibility'])
+            ->middleware('permission:prestations.creer');
+
+        // Routage et assignation des prestations
+        Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
+            ->middleware('permission:prestations.modifier');
+
+        Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
+            ->middleware('permission:prestations.modifier');
+
         // Prestations CRUD
         Route::get('', [PrestationController::class, 'index'])
             ->middleware('permission:prestations.afficher');
@@ -1012,6 +1028,14 @@ Route::prefix('v1')->middleware([
         Route::delete('delete-contrat-acteur/{uuid}', [ContratActeurController::class, 'destroy']);
         Route::get('restore-contrat-acteur/{uuid}', [ContratActeurController::class, 'restore']);
 
+        // crud contrats
+        Route::get('get-contrats', [ContratController::class, 'index']);
+        Route::post('store-contrat', [ContratController::class, 'store']);
+        Route::get('show-contrat/{uuid}', [ContratController::class, 'show']);
+        Route::put('update-contrat/{uuid}', [ContratController::class, 'update']);
+        Route::delete('delete-contrat/{uuid}', [ContratController::class, 'destroy']);
+        Route::get('restore-contrat/{uuid}', [ContratController::class, 'restore']);
+
         // CRUD DOCUMENTS
         Route::get('get-documents', [DocumentController::class, 'getDocuments']);
         Route::post('store-document', [DocumentController::class, 'storeDocument']);
@@ -1029,6 +1053,7 @@ Route::prefix('v1')->middleware([
 
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
+        Route::post('store-contrat', [ContratController::class, 'store']);
         
 
 

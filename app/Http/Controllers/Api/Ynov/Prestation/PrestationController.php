@@ -6,12 +6,10 @@ namespace App\Http\Controllers\Api\Ynov\Prestation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Prestation\StorePrestationRequest;
 use App\Http\Requests\Api\Ynov\Prestation\UpdatePrestationRequest;
-use App\Http\Requests\Api\Ynov\Rdv\MotifsRequest;
 use App\Http\Resources\Api\Ynov\PrestationResource;
 use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
 use App\Services\Api\Ynov\Prestation\PrestationService;
-use App\Services\Api\Ynov\Rdv\RdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +18,6 @@ class PrestationController extends Controller
 {
     public function __construct(
         private PrestationService $prestationService,
-        private RdvService $rdvService
     ) {}
 
     // ============================================================
@@ -113,11 +110,11 @@ class PrestationController extends Controller
 
         if (!$category) {
             return response()->json([
-                'success' => true,
-                'message' => 'Aucun details de catégorie trouvée.',
-                'code' => 'CATEGORIES_EMPTY',
-                'data' => $category,
-            ]);
+                'success' => false,
+                'message' => 'Catégorie non trouvée.',
+                'code' => 'CATEGORY_NOT_FOUND',
+                'data' => null,
+            ], 404);
         }
 
         return response()->json([
@@ -601,5 +598,34 @@ class PrestationController extends Controller
             'code' => 'PRESTATION_STATS',
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Vérifier l'éligibilité d'une prestation selon les règles métier
+     */
+    public function checkEligibility(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'code_produit' => ['required', 'string'],
+                'id_contrat' => ['required', 'integer'],
+                'type_prestation_uuid' => ['required', 'string', 'exists:type_prestations,uuid_type_prestation'],
+            ]);
+
+            $result = $this->prestationService->checkPrestationEligibility(
+                $validated['code_produit'],
+                $validated['id_contrat'],
+                $validated['type_prestation_uuid']
+            );
+
+            return response()->json($result);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'errors' => $e->errors(),
+                'code' => 'VALIDATION_ERROR',
+            ], 422);
+        }
     }
 }
