@@ -18476,7 +18476,7 @@
                                         garantie_surete: 0,
                                         conservation_capital: 0,
                                         observation: "Traitement validé",
-                                        soumis_a_gestionnaire_prestation_uuid: "2a4d0bce-7e67-4e2d-9b32-99b3b8cb42d1",
+                                        gestionnaire_prestation_uuid: "2a4d0bce-7e67-4e2d-9b32-99b3b8cb42d1",
                                         created_at: "2026-09-01 09:15:00",
                                         updated_at: "2026-09-01 09:20:00",
                                     },

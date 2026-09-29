@@ -35,7 +35,7 @@ class DetailBordereauRdvResource extends JsonResource
             'garantie_surete' => $this->garantie_surete,
             'conservation_capital' => $this->conservation_capital,
             'observation' => $this->observation,
-            'soumis_a' => $this->soumis_a_gestionnaire_prestation_uuid,
+            'soumis_a' => $this->gestionnaire_prestation_uuid,
             'soumisAgestionnairePrestation' => $this->whenLoaded('soumisAgestionnairePrestation', function () {
                 return [
                     'uuid_user' => $this->soumisAgestionnairePrestation->uuid_user,
