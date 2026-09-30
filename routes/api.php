@@ -988,6 +988,7 @@ Route::prefix('v1')->middleware([
     // });
 
 
+
     // groupe de route pour les paramètres de configuration
 
     Route::prefix('param')->group(function () {
@@ -995,6 +996,10 @@ Route::prefix('v1')->middleware([
         Route::post('store-product-reseau', [ParamController::class, 'storeReseauProduct']);
         Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
+
+        // gestion des villes 
+        Route::get('get-villes-nsil', [ParamController::class, 'getNsilVilles']);
+        Route::get('get-professions-nsil', [ParamController::class, 'getNsilProfession']);
     });
 
     // groupe de route enregistrement du contrat et ces acteurs
@@ -1054,6 +1059,9 @@ Route::prefix('v1')->middleware([
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         Route::post('store-contrat', [ContratController::class, 'store']);
+
+
+        
         
 
 

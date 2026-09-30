@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\ReseauProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -224,6 +226,61 @@ class ParamController extends Controller
                 'success' => false,
                 'message' => 'Une erreur est survenue lors de la suppression du produit',
                 'code' => 500,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // gestion des villes NSIL
+
+    public function getNsilVilles()
+    {
+        try {
+            $response = Http::timeout(15)
+                ->get('https://api.yakoafricassur.com/enov/villes');
+
+
+            if ($response->successful()) {
+                
+                return $response->json();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de récupérer les villes.',
+                'status' => $response->status(),
+            ], $response->status());
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la connexion au service des villes.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function getNsilProfession()
+    {
+        try {
+            $response = Http::timeout(15)
+                ->get('https://api.yakoafricassur.com/enov/professions');
+
+
+            if ($response->successful()) {
+
+                return $response->json();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de récupérer les professions.',
+                'status' => $response->status(),
+            ], $response->status());
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la connexion au service des professions.',
                 'error' => $e->getMessage(),
             ], 500);
         }
