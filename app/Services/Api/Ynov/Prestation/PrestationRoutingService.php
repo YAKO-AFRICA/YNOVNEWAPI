@@ -47,14 +47,6 @@ class PrestationRoutingService
             ];
         }
 
-        // Vérifier si le client a déjà des prestations avec un gestionnaire
-        $gestionnaireExistant = $this->getGestionnaireExistantPourClient($prestation);
-
-        if ($gestionnaireExistant) {
-            // Assigner au même gestionnaire
-            return $this->assignerAuGestionnaire($prestation, $gestionnaireExistant);
-        }
-
         // Distribution équitable
         $gestionnaireChoisi = $this->getGestionnaireParDistributionEquitable($prestation, $gestionnaires);
         if (!$gestionnaireChoisi) {
@@ -155,25 +147,6 @@ class PrestationRoutingService
     }
 
     /**
-     * Vérifier si le client a déjà des prestations avec un gestionnaire
-     */
-    private function getGestionnaireExistantPourClient(Prestation $prestation): ?string
-    {
-        if (!$prestation->client_uuid) {
-            return null;
-        }
-
-        $prestationExistante = Prestation::where('client_uuid', $prestation->client_uuid)
-            ->where('uuid_prestation', '!=', $prestation->uuid_prestation)
-            ->whereNotNull('gestionnaire_uuid')
-            ->whereNotIn('status', ['annule', 'rejete'])
-            ->where('created_at', '>=', now()->subDays(30)) // Derniers 30 jours
-            ->first();
-
-        return $prestationExistante?->gestionnaire_uuid;
-    }
-
-    /**
      * Récupérer les gestionnaires de prestations disponibles
      */
     private function getGestionnairesDisponibles(): array
@@ -270,7 +243,7 @@ class PrestationRoutingService
             $nouveauGestionnaireUuid = $data['gestionnaire_uuid'];
 
             // Vérifier que le nouveau gestionnaire existe
-            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->first();
+            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->with('details')->first();
             if (!$gestionnaire) {
                 return [
                     'success' => false,
@@ -279,6 +252,13 @@ class PrestationRoutingService
                     'status' => 422,
                 ];
             }
+
+            // Notification au client
+            $gestionnaireNom = $gestionnaire?->details?->nom ?? null;
+            $gestionnairePrenoms = $gestionnaire?->details?->prenoms ?? null;
+            $gestionnaireLabel = $gestionnaireNom || $gestionnairePrenoms 
+                ? trim(($gestionnaireNom ?? '') . ' ' . ($gestionnairePrenoms ?? '')) 
+                : ($gestionnaire?->email ?? '');
 
             // Vérifier que le gestionnaire a le rôle requis
             if (!$gestionnaire->hasRole('gestionnaire_prestation')) {
@@ -350,7 +330,7 @@ class PrestationRoutingService
                     'user_uuid' => $oldGestionnaireUuid,
                     'group_notif_uuid' => $this->getPrestationGroupUuid(),
                     'title' => '📋 Prestation réassignée',
-                    'body' => "La prestation {$prestation->code} a été réassignée à un autre gestionnaire.",
+                    'body' => "La prestation {$prestation->code} a été réassignée à un autre gestionnaire. \n\n Nouveau gestionnaire : {$gestionnaireLabel}",
                     'type' => 'PRESTATION',
                     'metadata' => [
                         'prestation_uuid' => $prestation->uuid_prestation,

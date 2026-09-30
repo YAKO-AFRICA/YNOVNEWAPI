@@ -291,7 +291,7 @@ class RoutingService
     {
         $dateActuelle = now()->startOfDay();
 
-        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte'])
+        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte', 'expire'])
             ->where(function ($q) use ($dateActuelle) {
                 $q->whereDate('date_rdv_effective', '<', $dateActuelle)
                     ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
@@ -336,19 +336,22 @@ class RoutingService
                 continue;
             }
 
-            $rdv->update([
-                'status' => 'expire',
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
-                'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
-                'updated_by' => 'system',
-            ]);
+            // Ne passer au statut 'expire' que si ce n'est pas déjà le cas
+            if ($rdv->status !== 'expire') {
+                $rdv->update([
+                    'status' => 'expire',
+                    'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
+                    'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
+                    'updated_by' => 'system',
+                ]);
 
-            $results['expires']++;
-            $results['details'][] = [
-                'rdv_code' => $rdv->code,
-                'status' => 'expire',
-                'jours_restants' => max(0, 3 - $joursDepuis),
-            ];
+                $results['expires']++;
+                $results['details'][] = [
+                    'rdv_code' => $rdv->code,
+                    'status' => 'expire',
+                    'jours_restants' => max(0, 3 - $joursDepuis),
+                ];
+            }
         }
 
         return $results;

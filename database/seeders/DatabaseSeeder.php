@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             DefaultGroupNotifSeeder::class,
             YakoAgenceSeeder::class,
             SecurityQuestionSeeder::class,
+            AssignNonTechPrestationsToAllProductsSeeder::class
         ]);
     }
 }

@@ -15,9 +15,10 @@ class StorePrestationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_uuid' => ['required', 'exists:users,uuid_user'],
+            'prestation_uuid' => ['nullable', 'string', 'exists:prestations,uuid_prestation'],
+            'client_uuid' => ['required_without:prestation_uuid', 'exists:users,uuid_user'],
             'id_contrat' => ['nullable', 'string', 'max:55'],
-            'type_prestation_uuid' => ['required', 'exists:type_prestations,uuid_type_prestation'],
+            'type_prestation_uuid' => ['required_without:prestation_uuid', 'exists:type_prestations,uuid_type_prestation'],
             'rdv_uuid' => ['nullable', 'exists:rdvs,uuid_rdvs'],
             'notes' => ['nullable', 'string'],
             'montant' => ['nullable', 'numeric', 'min:0'],
@@ -41,9 +42,10 @@ class StorePrestationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'client_uuid.required' => 'Le client est obligatoire.',
+            'prestation_uuid.exists' => 'La prestation sélectionnée est introuvable.',
+            'client_uuid.required_without' => 'Le client est obligatoire (sauf si prestation_uuid est fourni).',
             'client_uuid.exists' => 'Le client sélectionné est introuvable.',
-            'type_prestation_uuid.required' => 'Le type de prestation est obligatoire.',
+            'type_prestation_uuid.required_without' => 'Le type de prestation est obligatoire (sauf si prestation_uuid est fourni).',
             'type_prestation_uuid.exists' => 'Le type de prestation sélectionné est introuvable.',
             'rdv_uuid.exists' => 'Le rendez-vous auquel est lie cette prestation est introuvable.',
             'montant.numeric' => 'Le montant doit être un nombre valide.',

@@ -155,7 +155,7 @@ class BordereauDashboardController extends Controller
                         'garantie_surete' => $detail->garantie_surete,
                         'conservation_capital' => $detail->conservation_capital,
                         'observation' => $detail->observation,
-                        'soumis_a_gestionnaire_prestation_uuid' => $detail->soumis_a_gestionnaire_prestation_uuid,
+                        'gestionnaire_prestation_uuid' => $detail->gestionnaire_prestation_uuid,
                         'created_at' => $detail->created_at?->format('Y-m-d H:i:s'),
                         'updated_at' => $detail->updated_at?->format('Y-m-d H:i:s'),
                     ];

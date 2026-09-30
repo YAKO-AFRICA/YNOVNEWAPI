@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Api\Ynov\Prestation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Prestation\PrestationListRequest;
 use App\Http\Requests\Api\Ynov\Prestation\StorePrestationRequest;
 use App\Http\Requests\Api\Ynov\Prestation\UpdatePrestationRequest;
 use App\Http\Resources\Api\Ynov\PrestationResource;
@@ -372,19 +373,20 @@ class PrestationController extends Controller
     /**
      * Liste des prestations
      */
-    public function index(Request $request): JsonResponse
+    public function index(PrestationListRequest $request): JsonResponse
     {
-        $filters = $request->only([
-            'search',
-            'status',
-            'client_uuid',
-            'type_prestation_uuid',
-            'gestionnaire_uuid',
-            'partner_uuid',
-            'is_migrated',
-        ]);
+        $filters = $request->getFilters();
+        $perPage = $request->getPerPage();
 
-        $perPage = $request->integer('per_page', 20);
+        $user = $request->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_prestation')) {
+            $filters['gestionnaire_uuid'] = $user->uuid_user;
+        }
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('client')) {
+            $filters['client_uuid'] = $user->uuid_user;
+        }
+
         $prestations = $this->prestationService->getPrestations($filters, $perPage);
 
         if ($prestations->isEmpty()) {
@@ -398,7 +400,8 @@ class PrestationController extends Controller
                     'per_page' => $perPage,
                     'total' => 0,
                     'last_page' => 1,
-                ]
+                ],
+                'filters_disponibles' => $request->getAvailableFilters(),
             ]);
         }
 
@@ -413,6 +416,7 @@ class PrestationController extends Controller
                 'total' => $prestations->total(),
                 'last_page' => $prestations->lastPage(),
             ],
+            'filters_disponibles' => $request->getAvailableFilters(),
         ]);
     }
 
@@ -421,24 +425,25 @@ class PrestationController extends Controller
      */
     public function store(StorePrestationRequest $request): JsonResponse
     {
-        $prestation = $this->prestationService->createPrestation(
+        $result = $this->prestationService->createPrestation(
             $request->validated(),
             $request->user()->uuid_user
         );
 
-        if (!$prestation) {
+        if (!$result['success']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erreur lors de la création de la prestation.',
-                'code' => 'PRESTATION_CREATION_ERROR',
+                'message' => $result['message'] ?? 'Erreur lors de la création de la prestation.',
+                'code' => $result['code'] ?? 'PRESTATION_CREATION_ERROR',
             ], 500);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Prestation créée avec succès.',
-            'code' => 'PRESTATION_CREATED',
-            'data' => new PrestationResource($prestation),
+            'message' => $result['message'] ?? 'Prestation créée avec succès.',
+            'code' => $result['code'] ?? 'PRESTATION_CREATED',
+            'data' => new PrestationResource($result['data']),
+            'assignation_automatique' => $result['assignation_automatique'] ?? null,
         ], 201);
     }
 

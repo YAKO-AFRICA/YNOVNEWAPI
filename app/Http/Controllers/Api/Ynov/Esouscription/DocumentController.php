@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Document;
 use App\Services\Api\Ynov\Documents\DocumentService;
+use App\Services\Api\Ynov\Documents\WebDavService;
 use App\Services\DocumentUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -20,10 +19,13 @@ class DocumentController extends Controller
 {
 
     protected DocumentUploadService $uploadService;
+    protected WebDavService $webDav;
 
-    public function __construct(DocumentUploadService $uploadService)
+    public function __construct(DocumentUploadService $uploadService, WebDavService $webDav)
     {
         $this->uploadService = $uploadService;
+        $this->webDav = $webDav;
+
     }
     /**
      * Liste tous les documents (avec pagination et filtres).
@@ -51,7 +53,7 @@ class DocumentController extends Controller
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('nom_fichier', 'like', "%{$search}%")
-                      ->orWhere('libelle', 'like', "%{$search}%");
+                        ->orWhere('libelle', 'like', "%{$search}%");
                 });
             }
 
@@ -124,7 +126,7 @@ class DocumentController extends Controller
                 'statut' => 'actif',
             ]);
 
-            
+
 
             DB::commit();
 
@@ -143,7 +145,7 @@ class DocumentController extends Controller
             ], 500);
         }
     }
-    
+
     public function uploadDoc(Request $request): JsonResponse
     {
         // --- 1. Validation de la requête ---
@@ -199,7 +201,7 @@ class DocumentController extends Controller
                 // 'nom_fichier'    => $file->getClientOriginalName(),
                 'nom_fichier'    => $resultat['nom_stocke'] ?? $file->getClientOriginalName(),
                 'libelle'        => $request->input('libelle')
-                                    ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                    ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                 'source'         => $request->input('source'),
                 'chemin'         => $resultat['url_publique'],
                 'type_document'  => $typeDocument,
@@ -227,7 +229,6 @@ class DocumentController extends Controller
                     'url_publique'   => $resultat['url_publique'],
                 ],
             ], 201);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -318,7 +319,7 @@ class DocumentController extends Controller
                         'reference_uuid' => $referenceUuid,
                         'nom_fichier'    => $resultat['nom_stocke'] ?? $file->getClientOriginalName(),
                         'libelle'        => $fichierData['libelle']
-                                            ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                            ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                         'source'         => $source,
                         'chemin'         => $resultat['url_publique'],
                         'type_document'  => $typeDocument,
@@ -351,7 +352,6 @@ class DocumentController extends Controller
                 'total'   => count($documentsCrees),
                 'data'    => $documentsCrees,
             ], 201);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -433,7 +433,6 @@ class DocumentController extends Controller
                 'data' => $document,
                 'preview_url' => $url,
             ], 200);
-
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -629,7 +628,6 @@ class DocumentController extends Controller
                 'success' => true,
                 'message' => 'Document supprimé définitivement.',
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -693,6 +691,31 @@ class DocumentController extends Controller
             'count'   => $documents->count(),
             'data'    => $documents,
         ], 200);
-    }  
+    }
 
+
+
+
+    
+    /** * Lire un fichier depuis WebDAV */ 
+    public function read()
+    {
+        try {
+            $content = $this->webDav->get('docnumerises/test.txt');
+            return response($content, 200)->header('Content-Type', 'text/plain');
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(),], 500);
+        }
+    }
+    /** * Envoyer un fichier sur WebDAV */ 
+    public function upload()
+    {
+        try {
+            $content = "Voici le contenu à envoyer sur le serveur WebDAV.";
+            $this->webDav->put('docnumerises/test.txt', $content);
+            return response()->json(['success' => true, 'message' => 'Fichier téléversé avec succès.',]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(),], 500);
+        }
+    }
 }

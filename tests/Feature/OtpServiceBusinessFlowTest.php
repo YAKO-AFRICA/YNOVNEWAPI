@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\Api\Ynov\parameter\OtpCode;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\OtpService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class OtpServiceBusinessFlowTest extends TestCase
 {
-    use RefreshDatabase;
+    // use RefreshDatabase;
 
     public function test_it_generates_and_verifies_an_otp_for_business_operations(): void
     {

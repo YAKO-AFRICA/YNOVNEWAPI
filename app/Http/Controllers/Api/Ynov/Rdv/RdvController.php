@@ -12,7 +12,9 @@ use App\Http\Requests\Api\Ynov\Rdv\StoreRdvRequest;
 use App\Http\Requests\Api\Ynov\Rdv\UpdateRdvStatusRequest;
 use App\Http\Requests\Api\Ynov\Rdv\VerifierDateRequest;
 use App\Http\Resources\Api\Ynov\RdvResource;
+use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
+use App\Models\Api\Ynov\UserContrat;
 use App\Services\Api\Ynov\Rdv\RdvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -196,9 +198,14 @@ class RdvController extends Controller
         try {
             $data = $request->getRdvData();
 
+            // Ajouter l'utilisateur a partir de son $request["id_contrat"]
+            $userContrat = UserContrat::where('contrat_id', $data['id_contrat'])->first();
+
+            $user = User::where('uuid_user', $userContrat->user_uuid)->first();
+
             $rdv = $this->rdvService->create(
                 $data,
-                $request->user(),
+                $user,
                 $request->user()->uuid_user
             );
 
