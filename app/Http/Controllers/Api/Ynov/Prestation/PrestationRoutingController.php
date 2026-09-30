@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Prestation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Ynov\Prestation\ReassignerMultipleGestionnaireRequest;
 use App\Models\Api\Ynov\Prestation;
 use App\Services\Api\Ynov\Prestation\PrestationRoutingService;
 use Illuminate\Http\JsonResponse;
@@ -94,7 +95,7 @@ class PrestationRoutingController extends Controller
     {
         try {
             $prestation = Prestation::where('uuid_prestation', $uuid_prestation)->firstOrFail();
-            
+
             $result = $this->prestationRoutingService->assignerAutomatiquement($prestation);
 
             return response()->json($result);
@@ -104,6 +105,41 @@ class PrestationRoutingController extends Controller
                 'message' => 'Prestation non trouvée.',
                 'code' => 'PRESTATION_NOT_FOUND',
             ], 404);
+        }
+    }
+
+    /**
+     * Réassigner manuellement plusieurs prestations à un autre gestionnaire
+     * avec une seule notification groupée
+     */
+    public function reassignMultiple(ReassignerMultipleGestionnaireRequest $request): JsonResponse
+    {
+        try {
+            $validated = $request->validated();
+
+            $result = $this->prestationRoutingService->reassignerManuellementMultiple(
+                $validated['prestation_uuids'],
+                $validated['gestionnaire_uuid'],
+                $validated,
+                $request->user()->uuid_user
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'REASSIGN_ERROR',
+                ], $result['status'] ?? 422);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la réassignation multiple.',
+                'error' => $e->getMessage(),
+                'code' => 'REASSIGN_ERROR',
+            ], 500);
         }
     }
 }

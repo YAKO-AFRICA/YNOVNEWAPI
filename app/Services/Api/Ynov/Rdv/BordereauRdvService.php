@@ -194,6 +194,79 @@ class BordereauRdvService
         }
     }
 
+    public function updateDetail(string $uuidDetailBordereauRdv, array $data): array
+    {
+        $detail = DetailBordereauRdv::query()
+            ->where('uuid_detail_bordereau_rdv', $uuidDetailBordereauRdv)
+            ->first();
+
+        if (!$detail) {
+            return [
+                'success' => false,
+                'code' => 'DETAIL_BORDEREAU_NOT_FOUND',
+                'message' => 'Ligne de bordereau introuvable.',
+            ];
+        }
+
+        $authorizedFields = [
+            'date_effet',
+            'date_echeance',
+            'duree_contrat',
+            'type_operation',
+            'produit',
+            'cumul_rachats_partiels',
+            'cumul_avances',
+            'provision_nette',
+            'valeur_rachat',
+            'valeur_max_rachat',
+            'valeur_max_avance',
+            'montant_transformation',
+            'garantie_surete',
+            'conservation_capital',
+            'observation',
+            'gestionnaire_prestation_uuid',
+            'status',
+        ];
+
+        $payload = [];
+        foreach ($authorizedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $payload[$field] = $data[$field];
+            }
+        }
+
+        if ($payload === []) {
+            return [
+                'success' => true,
+                'code' => 'DETAIL_BORDEREAU_UNCHANGED',
+                'message' => 'Aucune donnée à mettre à jour.',
+                'data' => $detail->fresh()->load([
+                    'bordereauRdv',
+                    'rdv.client.details',
+                    'rdv.motif',
+                    'rdv.gestionnaire.details',
+                    'soumisAgestionnairePrestation',
+                ]),
+            ];
+        }
+
+        $detail->fill($payload);
+        $detail->save();
+
+        return [
+            'success' => true,
+            'code' => 'DETAIL_BORDEREAU_UPDATED',
+            'message' => 'La ligne du bordereau a bien été mise à jour.',
+            'data' => $detail->fresh()->load([
+                'bordereauRdv',
+                'rdv.client.details',
+                'rdv.motif',
+                'rdv.gestionnaire.details',
+                'soumisAgestionnairePrestation',
+            ]),
+        ];
+    }
+
     /**
      * Importe le détail d'un bordereau à partir d'un fichier Excel.
      * Le fichier doit contenir une colonne "Numero du rendez-vous" (ou "Numero")

@@ -98,7 +98,7 @@ class EncaissementBisService
         $CapitalRente = (float) ($data['details'][0]['CapitalRente'] ?? 0);
         $DureeCotisationAns = (float) ($data['details'][0]['DureeCotisationAns'] ?? 0);
 
-        $data['details'][0]['CapitalSouscrit'] = $CapitalSouscrit ?? $CapitalRente;
+        $data['details'][0]['CapitalSouscrit'] = $CapitalSouscrit > 0 ? $CapitalSouscrit : $CapitalRente;
         $data['details'][0]['CapitalRente'] = $CapitalRente;
         $data['details'][0]['DureeCotisationAns'] = $DureeCotisationAns;
         $data['details'][0]['TotalPrime'] = $prime;
@@ -193,7 +193,8 @@ class EncaissementBisService
         $contisationQuinzePourcent = $cumulCotisationTerme * 0.15;
 
         // calculer montant maximum disponible pour une prestation
-        $montantMax = $TotalEncaissement * 0.5;
+        $montantMax = $CapitalSouscrit > 0 ? $CapitalSouscrit : $cumulCotisationTerme;
+        // $montantMax = $TotalEncaissement * 0.5;
         $data['details'][0]['montantMaxSouhaitePrestation'] = $montantMax;
 
         $data['details'][0]['DureeCotisationMois'] = $Duree;

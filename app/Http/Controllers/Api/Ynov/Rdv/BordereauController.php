@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\TransmettreRdvParEmailRequest;
+use App\Http\Requests\Api\Ynov\Rdv\UpdateDetailBordereauRdvRequest;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
 use App\Services\Api\Ynov\NotificationService;
@@ -244,6 +245,27 @@ class BordereauController extends Controller
             'code' => $result['code'],
             'data' => $result['data'] ?? null,
         ], $result['status'] ?? 200);
+    }
+
+    /**
+     * Mettre à jour une ligne de détail de bordereau.
+     */
+    public function updateDetail(UpdateDetailBordereauRdvRequest $request, string $uuidDetailBordereauRdv): JsonResponse
+    {
+        $payload = $request->getUpdatableData();
+
+        $result = $this->bordereauRdvService->updateDetail($uuidDetailBordereauRdv, $payload);
+
+        if (!$result['success']) {
+            return response()->json($result, 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'code' => $result['code'],
+            'data' => new DetailBordereauRdvResource($result['data']),
+        ]);
     }
 
     /**
