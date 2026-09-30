@@ -847,12 +847,6 @@ Route::prefix('v1')->middleware([
         Route::get('details', [BordereauController::class, 'indexDetails'])
             ->middleware('permission:rdvs.afficher');
 
-        Route::put('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
-            ->middleware('permission:rdvs.afficher');
-
-        Route::patch('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
-            ->middleware('permission:rdvs.afficher');
-
         Route::post('details/import', [BordereauController::class, 'importDetails'])
                 ->middleware('permission:rdvs.import_bordereau_final');
 
@@ -865,6 +859,12 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:rdvs.afficher');
 
         Route::get('dashboard/{uuid_bordereau}', [BordereauDashboardController::class, 'show'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::put('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::patch('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
             ->middleware('permission:rdvs.afficher');
     });
 
