@@ -89,6 +89,13 @@ class BordereauDashboardService
             });
         }
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('admin_prestation')) {
+            // $filters['status'] = 'transfere';
+            $query->whereIn('status', ['transfere', 'cloture']);
+        }
+
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }

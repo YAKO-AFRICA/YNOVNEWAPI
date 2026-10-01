@@ -22,6 +22,7 @@ class BordereauDashboardController extends Controller
         $filters = $request->only([
             'status',
             'search',
+            'user',
             'date_debut',
             'date_fin',
             'per_page',
@@ -29,6 +30,8 @@ class BordereauDashboardController extends Controller
             'sort_order',
         ]);
 
+        $user = $request->user();
+        $filters['user'] = $user;
         $overview = $this->service->getOverview($filters);
         $recentLots = $this->service->getLots($filters, (int) ($request->per_page ?? 10));
 
