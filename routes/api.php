@@ -763,18 +763,19 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:prestations.creer');
 
 
-
         // ============================================================
         // ASSIGNATION ET ROUTAGE
         // ============================================================
-        Route::post('reassign-multiple', [PrestationRoutingController::class, 'reassignMultiple'])
-            ->middleware('permission:prestations.retransmettre');
-            
-        Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
-            ->middleware('permission:prestations.retransmettre');
+        // Route::prefix('routing')->group(function () {
+            Route::post('reassign-multiple', [PrestationRoutingController::class, 'reassignMultiple'])
+                ->middleware('permission:prestations.retransmettre');
 
-        Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
-            ->middleware('permission:prestations.modifier');
+            Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
+                ->middleware('permission:prestations.retransmettre');
+
+            Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
+                ->middleware('permission:prestations.modifier');
+        // });
 
         // ============================================================
         // TRAITEMENT

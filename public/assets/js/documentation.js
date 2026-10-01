@@ -14204,7 +14204,7 @@
                 description:
                     "Réassigne manuellement plusieurs prestations à un autre gestionnaire en une seule opération avec une notification groupée. Vérifie que le nouveau gestionnaire existe et a le rôle 'gestionnaire_prestation'. Envoie une seule notification groupée au nouveau gestionnaire avec la liste des prestations.",
                 method: "POST",
-                path: "/prestations/routing/reassign-multiple",
+                path: "/prestations/reassign-multiple",
                 isProtected: true,
                 permissionsRequired: ["prestations.retransmettre"],
                 headers: {
