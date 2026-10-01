@@ -18937,7 +18937,7 @@
                 name: "[Bordereaux] Modifier une ligne de détail",
                 description:
                     "Met à jour une ligne de détail de bordereau existante. Seuls les champs métier autorisés peuvent être modifiés. Si un champ n’est pas fourni dans la requête, la valeur actuelle est conservée. Cette route permet notamment de corriger la date d’effet, l’échéance, la durée du contrat, le type d’opération, le produit, les montants, l’observation ou le statut de la ligne.",
-                method: "PUT",
+                method: "PATCH",
                 path: "/bordereaux/details/{uuid_detail_bordereau_rdv}",
                 isProtected: true,
                 permissionsRequired: ["rdvs.afficher"],
