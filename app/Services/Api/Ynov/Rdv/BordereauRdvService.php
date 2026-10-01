@@ -838,6 +838,23 @@ class BordereauRdvService
         return $dateLimite;
     }
 
+    /**
+     * Vérifie si le lot doit être transféré (3 jours ouvrés avant RDV OU 60 RDV atteints)
+     */
+    protected function shouldTransferLot(BordereauRdv $lot): bool
+    {
+        // Condition 1 : 3 jours ouvrés avant le RDV
+        $dateEffective = Carbon::parse($lot->periode_1);
+        $dateLimite = $this->calculateTransferDate($dateEffective);
+        $conditionDate = now()->startOfDay()->gte($dateLimite);
+
+        // Condition 2 : 60 RDV dans le lot
+        $rdvCount = $lot->details()->count();
+        $conditionCount = $rdvCount >= 60;
+
+        return $conditionDate || $conditionCount;
+    }
+
     protected function computeLotStatus(Carbon $dateEffective): string
     {
         return now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))
@@ -845,14 +862,14 @@ class BordereauRdvService
             : 'en_attente';
     }
 
+    //
     protected function syncLotStatus(BordereauRdv $lot): void
     {
         if ($lot->status !== 'en_attente') {
             return;
         }
 
-        $dateEffective = Carbon::parse($lot->periode_1);
-        if (now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))) {
+        if ($this->shouldTransferLot($lot)) {
             $lot->update([
                 'status' => 'transfere',
                 'updated_by' => $lot->created_by ?? null,
