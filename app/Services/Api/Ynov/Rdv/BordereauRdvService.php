@@ -100,8 +100,15 @@ class BordereauRdvService
             });
         }
 
+        $user = $filters['user'] ?? null;
+
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('admin_prestation')) {
+            // $filters['status'] = 'transfere';
+            $query->whereIn('status', ['transfere', 'cloture']);
         }
 
         if (!empty($filters['reference'])) {

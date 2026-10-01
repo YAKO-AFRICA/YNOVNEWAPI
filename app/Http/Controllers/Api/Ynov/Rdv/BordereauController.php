@@ -27,6 +27,7 @@ class BordereauController extends Controller
      */
     public function indexLots(Request $request): JsonResponse
     {
+        $user = $request->user();
         $filters = $request->only([
             'search',
             'status',
@@ -36,21 +37,19 @@ class BordereauController extends Controller
             'reference',
             'agence_uuid',
             'gestionnaire_uuid',
+            'user',
             'motif_uuid',
             'sort_by',
             'sort_order',
             'per_page',
         ]);
 
-        $user = $request->user();
+        $filters['user'] = $user;
+        
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
         // if ($user && $user->hasRole('gestionnaire_rdv')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
             $filters['status'] = 'cloture';
-        }
-
-        if ($user && method_exists($user, 'hasRole') && $user->hasRole('admin_prestation')) {
-            $filters['status'] = 'transfere';
         }
 
         $lots = $this->bordereauRdvService->listLots($filters);
