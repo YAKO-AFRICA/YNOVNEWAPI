@@ -163,6 +163,13 @@ class PrestationDashboardService
             )
             ->groupBy('type_prestations.uuid_type_prestation', 'type_prestations.libelle', 'type_prestations.code');
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('prestations.created_by', $user->uuid_user);
+        }
+
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('prestations.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }

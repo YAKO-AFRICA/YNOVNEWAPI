@@ -32,7 +32,7 @@ class AssignAdminPrestationPermissionsSeeder extends Seeder
         'notifications.afficher',
 
         'prestations.afficher',
-        // 'prestations.creer',
+        'prestations.creer', // à retirer
         'prestations.modifier',
         'prestations.supprimer',
         'prestations.retransmettre',

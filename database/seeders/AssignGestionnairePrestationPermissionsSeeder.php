@@ -11,7 +11,7 @@ class AssignGestionnairePrestationPermissionsSeeder extends Seeder
 {
     private const PERMISSIONS = [
         'prestations.afficher',
-        // 'prestations.creer',
+        'prestations.creer', // à retirer
         'prestations.modifier',
         'prestations.traiter',
         // 'prestations.annuler',
