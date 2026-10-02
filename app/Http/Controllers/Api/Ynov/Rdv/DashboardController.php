@@ -22,6 +22,8 @@ class DashboardController extends Controller
     {
         $filters = $this->getFilters($request);
 
+        $filters['user'] = $request->user();
+
         // Mettre à jour automatiquement les RDV expirés avant de calculer les statistiques
         $this->routingService->gererRdvsExpires();
 

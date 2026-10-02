@@ -465,6 +465,13 @@ class PrestationService
             'traiterPar',
         ]);
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('created_by', $user->uuid_user);
+        }
+
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }

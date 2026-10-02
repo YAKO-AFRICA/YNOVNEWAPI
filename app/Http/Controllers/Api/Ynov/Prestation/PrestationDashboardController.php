@@ -21,6 +21,7 @@ class PrestationDashboardController extends Controller
         $filters = $this->getFilters($request);
 
         $user = $request->user();
+        $filters['user'] = $user;
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_prestation')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
         }

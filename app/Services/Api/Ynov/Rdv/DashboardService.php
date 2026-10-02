@@ -16,6 +16,15 @@ class DashboardService
     {
         $query = Rdv::query();
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('created_by', $user->uuid_user);
+        }
+
         // Filtre par agence
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
@@ -66,6 +75,15 @@ class DashboardService
     public function getStatsByStatus(array $filters = []): array
     {
         $query = Rdv::query();
+
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('created_by', $user->uuid_user);
+        };
 
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_effective_uuid', $filters['agence_uuid'])->orWhere('agence_souhaiter_uuid', $filters['agence_uuid']);
@@ -135,6 +153,15 @@ class DashboardService
             )
             ->groupBy('type_prestations.uuid_type_prestation', 'type_prestations.libelle', 'type_prestations.code');
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('rdvs.agence_effective_uuid', [$agences, null]);
+            $query->where('rdvs.created_by', $user->uuid_user);
+        }
+
         if (isset($filters['agence_uuid'])) {
             $query->where('rdvs.agence_effective_uuid', $filters['agence_uuid'])->orWhere('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
         }
@@ -188,6 +215,15 @@ class DashboardService
             ->whereNotNull('rdvs.gestionnaire_uuid')
             ->groupBy('users.uuid_user', 'users.email', 'user_details.nom', 'user_details.prenoms');
 
+            $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('rdvs.agence_effective_uuid', [$agences, null]);
+            $query->where('rdvs.created_by', $user->uuid_user);
+        }
+
         if (isset($filters['agence_uuid'])) {
             $query->where('rdvs.agence_effective_uuid', $filters['agence_uuid'])->orWhere('rdvs.agence_souhaiter_uuid', $filters['agence_uuid']);
         }
@@ -238,6 +274,15 @@ class DashboardService
 
         // Log::debug('Récupération de la file d\'attente avec les filtres : ' . json_encode($filters) . ' et limite : ' . $limit);
         // Log::debug('Requête SQL générée : ' . $query->toSql());
+
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('rdvs.created_by', $user->uuid_user);
+        }
 
         if (isset($filters['agence_uuid'])) {
             $query->where('agence_effective_uuid', $filters['agence_uuid']);

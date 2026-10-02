@@ -1201,6 +1201,7 @@ class RdvService
         
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
             $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('created_by', $user->uuid_user);
         }
 
         if (!empty($filters['search'])) {
@@ -1341,6 +1342,7 @@ class RdvService
         
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
             $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('created_by', $user->uuid_user);
         }
 
         if (!empty($filters['search'])) {
