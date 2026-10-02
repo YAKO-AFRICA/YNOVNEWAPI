@@ -111,6 +111,15 @@ class BordereauRdvService
             $query->whereIn('status', ['transfere', 'cloture']);
         }
 
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        // if ($user && $user->hasRole('gestionnaire_rdv')) {
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $filters['agence_uuid'] = $agences ?? null;
+            $query->whereHas('details.rdv', function ($q) use ($filters) {
+                $q->whereIn('agence_effective_uuid', [$filters['agence_uuid'], null]);
+            });
+        }
+
         if (!empty($filters['reference'])) {
             $query->where('reference', 'like', "%{$filters['reference']}%");
         }

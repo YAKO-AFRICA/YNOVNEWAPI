@@ -95,6 +95,13 @@ class BordereauDashboardService
             // $filters['status'] = 'transfere';
             $query->whereIn('status', ['transfere', 'cloture']);
         }
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $filters['agence_uuid'] = $agences ?? null;
+            $query->whereHas('details.rdv', function ($q) use ($filters) {
+                $q->whereIn('agence_effective_uuid', [$filters['agence_uuid'], null]);
+            });
+        }
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);

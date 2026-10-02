@@ -20,6 +20,15 @@ class PrestationDashboardController extends Controller
     {
         $filters = $this->getFilters($request);
 
+        $user = $request->user();
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_prestation')) {
+            $filters['gestionnaire_uuid'] = $user->uuid_user;
+        }
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $filters['partner_uuid'] = $user->partner_uuid;
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Tableau de bord des prestations récupéré avec succès.',

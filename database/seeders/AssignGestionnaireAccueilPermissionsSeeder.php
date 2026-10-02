@@ -7,16 +7,32 @@ use App\Models\Api\Ynov\parameter\RolePermission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
-class AssignGestionnairePrestationPermissionsSeeder extends Seeder
+class AssignGestionnaireAccueilPermissionsSeeder extends Seeder
 {
     private const PERMISSIONS = [
-        'prestations.afficher',
-        // 'prestations.creer',
-        'prestations.modifier',
-        'prestations.traiter',
-        // 'prestations.annuler',
+        // ============================================================
+        // RDV - Consultation et création limitée
+        // ============================================================
+        'rdvs.afficher',
+        'rdvs.creer',
+        // 'rdvs.modifier', // Pas de modification pour gestionnaire accueil
+        // 'rdvs.annuler', // Pas d'annulation pour gestionnaire accueil
+        // 'rdvs.traiter', // Pas de traitement pour gestionnaire accueil
+        // 'rdvs.reporter', // Pas de report pour gestionnaire accueil
+        'rdvs.calendrier',
+        // 'rdvs.retransmettre', // Réassignation limitée
 
-         // ============================================================
+        // ============================================================
+        // PRESTATIONS - Consultation et création limitée
+        // ============================================================
+        'prestations.afficher',
+        'prestations.creer',
+        // 'prestations.modifier', // Pas de modification pour gestionnaire accueil
+        // 'prestations.annuler', // Pas d'annulation pour gestionnaire accueil
+        // 'prestations.traiter', // Pas de traitement pour gestionnaire accueil
+
+
+        // ============================================================
         // AUTHENTIFICATION - Sécurité de base
         // ============================================================
         'auth.change_password',
@@ -24,25 +40,35 @@ class AssignGestionnairePrestationPermissionsSeeder extends Seeder
         'auth.devices',
         'auth.login_attempts',
         'auth.2fa',
-        
+
         // ============================================================
         // PROFIL - Gestion du profil
         // ============================================================
         'profile.afficher',
         'profile.modifier',
-        
+
         // ============================================================
         // NOTIFICATIONS - Consultation des notifications
         // ============================================================
         'notifications.afficher',
+
+        // ============================================================
+        // AGENCES - Consultation des agences
+        // ============================================================
+        'agences.afficher',
+
+        // ============================================================
+        // PRODUITS - Consultation des produits
+        // ============================================================
+        'produits.afficher',
     ];
 
     public function run(): void
     {
-        $role = Role::where('code', 'gestionnaire_prestation')->first();
+        $role = Role::where('code', 'gestionnaire_accueil')->first();
 
         if (!$role) {
-            $this->command->warn('⚠️  Le rôle "gestionnaire_prestation" n\'existe pas. Exécutez d\'abord le seeder des rôles.');
+            $this->command->warn('⚠️  Le rôle "gestionnaire_accueil" n\'existe pas. Exécutez d\'abord le seeder des rôles.');
             return;
         }
 
@@ -73,7 +99,7 @@ class AssignGestionnairePrestationPermissionsSeeder extends Seeder
                     'metadata' => [
                         'assigned_by_seeder' => true,
                         'assigned_at' => now()->toDateTimeString(),
-                        'role_type' => 'gestionnaire_prestation',
+                        'role_type' => 'gestionnaire_accueil',
                     ],
                 ]);
                 $assigned++;
@@ -82,7 +108,7 @@ class AssignGestionnairePrestationPermissionsSeeder extends Seeder
             }
         }
 
-        $this->command->info("✅ {$assigned} permissions assignées pour le rôle gestionnaire_prestation");
+        $this->command->info("✅ {$assigned} permissions assignées pour le rôle gestionnaire_accueil");
         if ($skipped > 0) {
             $this->command->info("⏭️  {$skipped} permissions déjà existantes (ignorées)");
         }

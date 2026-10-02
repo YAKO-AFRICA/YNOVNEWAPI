@@ -1195,6 +1195,14 @@ class RdvService
                 },
             ]);
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
@@ -1326,6 +1334,14 @@ class RdvService
                 'gestionnaire.details',
                 'contrat',
             ]);
+
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+        }
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];

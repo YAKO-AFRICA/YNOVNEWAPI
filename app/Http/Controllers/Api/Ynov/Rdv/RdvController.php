@@ -747,6 +747,7 @@ class RdvController extends Controller
 
         $date = $request->date ?? now()->format('Y-m-d');
         $user = $request->user();
+        $filters['user'] = $user;
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
         }
@@ -776,6 +777,7 @@ class RdvController extends Controller
         $perPage = $request->getPerPage();
 
         $user = $request->user();
+        $filters['user'] = $user;
         // if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
         if ($user && $user->hasRole('gestionnaire_rdv')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
