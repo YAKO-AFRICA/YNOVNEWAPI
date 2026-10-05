@@ -45,6 +45,7 @@ class RdvListRequest extends FormRequest
     public function getFilters(): array
     {
         $filters = $this->only([
+            'user',
             'search',
             'status',
             'date',

@@ -33,13 +33,13 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
 
 
         'rdvs.afficher',
-        'rdvs.creer',
+        'rdvs.creer', // à retirer
         'rdvs.modifier',
         'rdvs.supprimer',
         'rdvs.annuler',
-        'rdvs.traiter',
+        // 'rdvs.traiter',
         'rdvs.rejeter',
-        'rdvs.reporter',
+        // 'rdvs.reporter',
         'rdvs.retransmettre',
         'rdvs.expirer',
         'rdvs.export',

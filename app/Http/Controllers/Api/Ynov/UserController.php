@@ -190,6 +190,7 @@ use App\Http\Requests\Api\Ynov\SetPrimaryAgenceRequest;
 use App\Http\Requests\Api\Ynov\StoreUserRequest;
 use App\Http\Requests\Api\Ynov\UpdateUserRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
+use App\Models\Api\Ynov\UserContrat;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\UserService;
@@ -631,6 +632,63 @@ class UserController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Utilisateur débloqué.']);
+    }
+
+    /**
+     * Récupérer les informations d'un client à partir de son id_contrat
+     */
+    public function getClientByContratId(Request $request, int $id_contrat): JsonResponse
+    {
+        try {
+            $userContrat = UserContrat::where('contrat_id', $id_contrat)
+                ->with('user')
+                ->firstOrFail();
+
+            if (!$userContrat->user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non trouvé pour ce contrat.',
+                    'code' => 'USER_NOT_FOUND',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Informations du client récupérées avec succès.',
+                'code' => 'CLIENT_FOUND',
+                'data' => new UserResource($userContrat->user->load([
+                    'role.permissions.group',
+                    'details',
+                    'partner',
+                    'reseau',
+                    'agences',
+                    'groupNotifs',
+                    'userContrats'
+                ])),
+                'contrat_info' => [
+                    'uuid_user_contrat' => $userContrat->uuid_user_contrat,
+                    'contrat_id' => $userContrat->contrat_id,
+                    'client_number' => $userContrat->client_number,
+                    'code_produit' => $userContrat->code_produit,
+                    'libelle_produit' => $userContrat->libelle_produit,
+                    'code_produit_formule' => $userContrat->code_produit_formule,
+                    'libelle_produit_formule' => $userContrat->libelle_produit_formule,
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contrat non trouvé.',
+                'code' => 'CONTRAT_NOT_FOUND',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des informations du client.',
+                'code' => 'RETRIEVAL_ERROR',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
 

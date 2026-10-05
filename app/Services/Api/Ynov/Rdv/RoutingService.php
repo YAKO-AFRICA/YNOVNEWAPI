@@ -291,7 +291,7 @@ class RoutingService
     {
         $dateActuelle = now()->startOfDay();
 
-        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte'])
+        $rdvs = Rdv::whereIn('status', ['en_attente', 'transmis', 'reporte', 'expire'])
             ->where(function ($q) use ($dateActuelle) {
                 $q->whereDate('date_rdv_effective', '<', $dateActuelle)
                     ->orWhereDate('date_rdv_souhaiter', '<', $dateActuelle);
@@ -336,19 +336,22 @@ class RoutingService
                 continue;
             }
 
-            $rdv->update([
-                'status' => 'expire',
-                'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
-                'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
-                'updated_by' => 'system',
-            ]);
+            // Ne passer au statut 'expire' que si ce n'est pas déjà le cas
+            if ($rdv->status !== 'expire') {
+                $rdv->update([
+                    'status' => 'expire',
+                    'motif_traitement' => array_merge($rdv->motif_traitement ?? [], ['expiration' => ['automatique']]),
+                    'observation' => "Le RDV a expiré le {$dateRdv->format('d/m/Y')}",
+                    'updated_by' => 'system',
+                ]);
 
-            $results['expires']++;
-            $results['details'][] = [
-                'rdv_code' => $rdv->code,
-                'status' => 'expire',
-                'jours_restants' => max(0, 3 - $joursDepuis),
-            ];
+                $results['expires']++;
+                $results['details'][] = [
+                    'rdv_code' => $rdv->code,
+                    'status' => 'expire',
+                    'jours_restants' => max(0, 3 - $joursDepuis),
+                ];
+            }
         }
 
         return $results;
@@ -603,6 +606,219 @@ class RoutingService
                 'code' => 'RDV_REASSIGNE',
                 'status' => 200,
                 'data' => $rdv->fresh()->load(['gestionnaire', 'client']),
+            ];
+        });
+    }
+
+    /**
+     * Réassigner manuellement plusieurs RDV à un autre gestionnaire
+     * avec une seule notification groupée
+     */
+    public function reassignerManuellementMultiple(array $rdvUuids, string $nouveauGestionnaireUuid, array $data, string $userUuid): array
+    {
+        return DB::transaction(function () use ($rdvUuids, $nouveauGestionnaireUuid, $data, $userUuid) {
+            // Vérifier que le nouveau gestionnaire existe
+            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->first();
+            if (!$gestionnaire) {
+                return [
+                    'success' => false,
+                    'message' => 'Le gestionnaire n\'existe pas.',
+                    'code' => 'GESTIONNAIRE_NOT_FOUND',
+                    'status' => 422,
+                ];
+            }
+
+            // Récupérer les RDV
+            $rdvs = Rdv::whereIn('uuid_rdvs', $rdvUuids)->get();
+
+            if ($rdvs->isEmpty()) {
+                return [
+                    'success' => false,
+                    'message' => 'Aucun RDV trouvé.',
+                    'code' => 'RDVS_NOT_FOUND',
+                    'status' => 404,
+                ];
+            }
+
+            // Préparer les données de mise à jour communes
+            $updateData = [
+                'gestionnaire_uuid' => $nouveauGestionnaireUuid,
+                'observation' => $data['observation'] ?? null,
+                'updated_by' => $userUuid,
+            ];
+
+            // Mise à jour optionnelle de l'agence effective
+            if (!empty($data['agence_effective_uuid'])) {
+                $updateData['agence_effective_uuid'] = $data['agence_effective_uuid'];
+            }
+
+            // Mise à jour optionnelle de la date RDV effective
+            if (!empty($data['date_rdv_effective'])) {
+                $updateData['date_rdv_effective'] = Carbon::parse($data['date_rdv_effective']);
+            }
+
+            $results = [
+                'total' => $rdvs->count(),
+                'reassignees' => 0,
+                'echecs' => 0,
+                'details' => [],
+                'rdv_codes' => [],
+            ];
+
+            foreach ($rdvs as $rdv) {
+                $oldGestionnaireUuid = $rdv->gestionnaire_uuid;
+                $oldStatus = $rdv->status;
+
+                // Vérifier que le gestionnaire appartient à l'agence du RDV
+                if (!$gestionnaire->belongsToAgence($rdv->agence_effective_uuid ?? $rdv->agence_souhaiter_uuid)) {
+                    $results['echecs']++;
+                    $results['details'][] = [
+                        'rdv_code' => $rdv->code,
+                        'status' => 'echec',
+                        'raison' => 'Le gestionnaire n\'appartient pas à cette agence',
+                    ];
+                    continue;
+                }
+
+                // Vérifier que ce n'est pas le même gestionnaire
+                if ($rdv->gestionnaire_uuid === $nouveauGestionnaireUuid) {
+                    $results['echecs']++;
+                    $results['details'][] = [
+                        'rdv_code' => $rdv->code,
+                        'status' => 'ignore',
+                        'raison' => 'Déjà assigné à ce gestionnaire',
+                    ];
+                    continue;
+                }
+
+                // Fusionner les motifs de réassignation avec les motifs existants
+                $motifsActuels = $rdv->motif_traitement ?? [];
+                $nouveauxMotifs = $data['motif_reassignations'] ?? [];
+
+                // Stocker les UUID des motifs dans un tableau sous la clé 'reassignation'
+                $motifsReassignation = $motifsActuels['reassignation'] ?? [];
+                $motifsReassignation = array_merge($motifsReassignation, $nouveauxMotifs);
+                $motifsReassignation = array_unique($motifsReassignation);
+
+                // Mettre à jour le RDV
+                $rdvUpdateData = array_merge($updateData, [
+                    'motif_traitement' => array_merge($motifsActuels, ['reassignation' => $motifsReassignation]),
+                ]);
+
+                $rdv->update($rdvUpdateData);
+
+                // Si le RDV était en attente, le passer en transmis
+                if ($rdv->status === 'en_attente') {
+                    $rdv->update([
+                        'status' => 'transmis',
+                        'date_transmission' => now(),
+                        'transmis_par' => $userUuid,
+                    ]);
+                }
+
+                // Log individuel
+                ActivityLog::log([
+                    'user_uuid' => $userUuid,
+                    'action' => 'reassignation_manuelle_multiple',
+                    'action_type' => 'routing',
+                    'module' => 'rdvs',
+                    'description' => "Réassignation manuelle du RDV {$rdv->code} du gestionnaire {$oldGestionnaireUuid} vers {$nouveauGestionnaireUuid}",
+                    'resource_type' => 'rdv',
+                    'resource_id' => $rdv->uuid_rdvs,
+                    'old_values' => ['gestionnaire_uuid' => $oldGestionnaireUuid, 'status' => $oldStatus],
+                    'new_values' => ['gestionnaire_uuid' => $nouveauGestionnaireUuid, 'status' => $rdv->status],
+                    'level' => 'info',
+                ]);
+
+                $results['reassignees']++;
+                $results['details'][] = [
+                    'rdv_code' => $rdv->code,
+                    'status' => 'reassignee',
+                    'ancien_gestionnaire' => $oldGestionnaireUuid,
+                ];
+                $results['rdv_codes'][] = $rdv->code;
+            }
+
+            // Notification groupée au nouveau gestionnaire (une seule notification)
+            if ($results['reassignees'] > 0) {
+                $gestionnaireNom = $gestionnaire->details?->nom ?? '';
+                $gestionnairePrenoms = $gestionnaire->details?->prenoms ?? '';
+                $gestionnaireLabel = trim($gestionnaireNom . ' ' . $gestionnairePrenoms) ?: ($gestionnaire->email ?? '');
+
+                $rdvCodesList = implode(', ', $results['rdv_codes']);
+                $rdvCount = count($results['rdv_codes']);
+
+                $this->notificationService->create([
+                    'user_uuid' => $nouveauGestionnaireUuid,
+                    'group_notif_uuid' => $this->getRdvGroupUuid(),
+                    'title' => '📋 Réassignation groupée de RDV',
+                    'body' => "{$rdvCount} rendez-vous vous ont été réassignés : {$rdvCodesList}",
+                    'type' => 'RENDEZ-VOUS',
+                    'metadata' => [
+                        'rdv_uuids' => $rdvUuids,
+                        'rdv_codes' => $results['rdv_codes'],
+                        'action' => 'reassignation_manuelle_multiple',
+                        'count' => $rdvCount,
+                    ],
+                    'channel' => 'database',
+                    'created_by' => $userUuid,
+                ]);
+
+                // Notifications groupées aux clients (une notification par client avec ses RDV)
+                $rdvsReassignes = Rdv::whereIn('uuid_rdvs', $rdvUuids)
+                    ->where('gestionnaire_uuid', $nouveauGestionnaireUuid)
+                    ->with('client.details')
+                    ->get();
+
+                // Grouper les RDV par client
+                $rdvsByClient = $rdvsReassignes->groupBy('client_uuid');
+
+                foreach ($rdvsByClient as $clientUuid => $clientRdvs) {
+                    $client = $clientRdvs->first()->client;
+                    $clientNom = $client->details?->nom ?? '';
+                    $clientPrenoms = $client->details?->prenoms ?? '';
+                    $clientLabel = trim($clientNom . ' ' . $clientPrenoms) ?: ($client->email ?? '');
+
+                    $clientRdvCodes = $clientRdvs->pluck('code')->toArray();
+                    $clientRdvCodesList = implode(', ', $clientRdvCodes);
+                    $clientRdvCount = count($clientRdvCodes);
+
+                    // Récupérer les informations d'agence et date pour le premier RDV
+                    $firstRdv = $clientRdvs->first();
+                    $agenceLabel = $firstRdv->agenceEffective?->libelle ?? $firstRdv->agenceSouhaitee?->libelle ?? '';
+                    $dateRdv = $firstRdv->date_rdv_effective ? Carbon::parse($firstRdv->date_rdv_effective) : Carbon::parse($firstRdv->date_rdv_souhaiter);
+
+                    $this->notificationService->create([
+                        'user_uuid' => $clientUuid,
+                        'group_notif_uuid' => $this->getRdvGroupUuid(),
+                        'title' => '📋 Réassignation de vos RDV',
+                        'body' => "Bonjour {$clientLabel}, {$clientRdvCount} de vos rendez-vous ont été réassignés : {$clientRdvCodesList}. \n\n Nouveau gestionnaire : {$gestionnaireLabel} \n Lieu : {$agenceLabel} \n\n Date : " . $dateRdv->locale('fr')->translatedFormat('l d F Y'),
+                        'type' => 'RENDEZ-VOUS',
+                        'metadata' => [
+                            'rdv_uuids' => $clientRdvs->pluck('uuid_rdvs')->toArray(),
+                            'rdv_codes' => $clientRdvCodes,
+                            'action' => 'reassignation_manuelle_multiple',
+                            'count' => $clientRdvCount,
+                            'nouveau_gestionnaire' => $nouveauGestionnaireUuid,
+                        ],
+                        'channel' => 'database',
+                        'created_by' => $userUuid,
+                    ]);
+                }
+            }
+
+            return [
+                'success' => true,
+                'code' => 'RDVS_REASSIGNES',
+                'message' => "{$results['reassignees']} RDV réassigné(s) avec succès.",
+                'data' => [
+                    'total' => $results['total'],
+                    'reassignees' => $results['reassignees'],
+                    'echecs' => $results['echecs'],
+                    'details' => $results['details'],
+                    'gestionnaire_uuid' => $nouveauGestionnaireUuid,
+                    'gestionnaire_label' => trim(($gestionnaire->details?->nom ?? '') . ' ' . ($gestionnaire->details?->prenoms ?? '')) ?: $gestionnaire->email,
+                ]
             ];
         });
     }

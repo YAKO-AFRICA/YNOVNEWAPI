@@ -286,7 +286,7 @@ class NotificationService
                     if ($detail) {
                         $detail->update([
                             'status' => 'soumis',
-                            'soumis_a_gestionnaire_prestation_uuid' => $data['gestionnaire_uuid'],
+                            'gestionnaire_prestation_uuid' => $data['gestionnaire_uuid'],
                         ]);
                         $detailsUpdates++;
                     }

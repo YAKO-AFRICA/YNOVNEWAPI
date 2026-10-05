@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AssignAdminRdvPermissionsSeeder::class,
             AssignGestionnairePrestationPermissionsSeeder::class,
             AssignGestionnaireRdvPermissionsSeeder::class,
+            AssignGestionnaireAccueilPermissionsSeeder::class,
             SuperAdminUserSeeder::class,
             FaqCategorySeeder::class,
             FaqSeeder::class,
@@ -32,6 +33,7 @@ class DatabaseSeeder extends Seeder
             DefaultGroupNotifSeeder::class,
             YakoAgenceSeeder::class,
             SecurityQuestionSeeder::class,
+            AssignNonTechPrestationsToAllProductsSeeder::class
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\Traitement\ReassignerGestionnaireRequest;
+use App\Http\Requests\Api\Ynov\Rdv\Traitement\ReassignerMultipleGestionnaireRequest;
 use App\Models\Api\Ynov\Rdv;
 use App\Services\Api\Ynov\Rdv\RoutingService;
 use Illuminate\Http\JsonResponse;
@@ -112,5 +113,40 @@ class RoutingController extends Controller
             'code' => $result['code'],
             'data' => $result['data'] ?? null,
         ], $result['status'] ?? 200);
+    }
+
+    /**
+     * Réassigner manuellement plusieurs RDV à un autre gestionnaire
+     * avec une seule notification groupée
+     */
+    public function reassignerMultiple(ReassignerMultipleGestionnaireRequest $request): JsonResponse
+    {
+        try {
+            $validated = $request->validated();
+
+            $result = $this->routingService->reassignerManuellementMultiple(
+                $validated['rdv_uuids'],
+                $validated['gestionnaire_uuid'],
+                $validated,
+                $request->user()->uuid_user
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                    'code' => $result['code'] ?? 'REASSIGN_ERROR',
+                ], $result['status'] ?? 422);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la réassignation multiple.',
+                'error' => $e->getMessage(),
+                'code' => 'REASSIGN_ERROR',
+            ], 500);
+        }
     }
 }

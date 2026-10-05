@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
+use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
 use App\Http\Controllers\Api\Ynov\Rdv\RdvController;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -21,5 +22,12 @@ class PrestationRouteTest extends TestCase
         $route = $this->app['router']->getRoutes()->match(Request::create('/api/v1/rdvs/123e4567-e89b-12d3-a456-426614174000/detail-rdv'));
 
         $this->assertSame(RdvController::class . '@showDetailAdmin', $route->getActionName());
+    }
+
+    public function test_bordereau_detail_update_route_exists(): void
+    {
+        $route = $this->app['router']->getRoutes()->match(Request::create('/api/v1/bordereaux/details/123e4567-e89b-12d3-a456-426614174000', 'PUT'));
+
+        $this->assertSame(BordereauController::class . '@updateDetail', $route->getActionName());
     }
 }

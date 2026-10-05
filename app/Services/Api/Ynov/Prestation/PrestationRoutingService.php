@@ -47,14 +47,6 @@ class PrestationRoutingService
             ];
         }
 
-        // Vérifier si le client a déjà des prestations avec un gestionnaire
-        $gestionnaireExistant = $this->getGestionnaireExistantPourClient($prestation);
-
-        if ($gestionnaireExistant) {
-            // Assigner au même gestionnaire
-            return $this->assignerAuGestionnaire($prestation, $gestionnaireExistant);
-        }
-
         // Distribution équitable
         $gestionnaireChoisi = $this->getGestionnaireParDistributionEquitable($prestation, $gestionnaires);
         if (!$gestionnaireChoisi) {
@@ -155,25 +147,6 @@ class PrestationRoutingService
     }
 
     /**
-     * Vérifier si le client a déjà des prestations avec un gestionnaire
-     */
-    private function getGestionnaireExistantPourClient(Prestation $prestation): ?string
-    {
-        if (!$prestation->client_uuid) {
-            return null;
-        }
-
-        $prestationExistante = Prestation::where('client_uuid', $prestation->client_uuid)
-            ->where('uuid_prestation', '!=', $prestation->uuid_prestation)
-            ->whereNotNull('gestionnaire_uuid')
-            ->whereNotIn('status', ['annule', 'rejete'])
-            ->where('created_at', '>=', now()->subDays(30)) // Derniers 30 jours
-            ->first();
-
-        return $prestationExistante?->gestionnaire_uuid;
-    }
-
-    /**
      * Récupérer les gestionnaires de prestations disponibles
      */
     private function getGestionnairesDisponibles(): array
@@ -270,7 +243,7 @@ class PrestationRoutingService
             $nouveauGestionnaireUuid = $data['gestionnaire_uuid'];
 
             // Vérifier que le nouveau gestionnaire existe
-            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->first();
+            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->with('details')->first();
             if (!$gestionnaire) {
                 return [
                     'success' => false,
@@ -279,6 +252,13 @@ class PrestationRoutingService
                     'status' => 422,
                 ];
             }
+
+            // Notification au client
+            $gestionnaireNom = $gestionnaire?->details?->nom ?? null;
+            $gestionnairePrenoms = $gestionnaire?->details?->prenoms ?? null;
+            $gestionnaireLabel = $gestionnaireNom || $gestionnairePrenoms 
+                ? trim(($gestionnaireNom ?? '') . ' ' . ($gestionnairePrenoms ?? '')) 
+                : ($gestionnaire?->email ?? '');
 
             // Vérifier que le gestionnaire a le rôle requis
             if (!$gestionnaire->hasRole('gestionnaire_prestation')) {
@@ -350,7 +330,7 @@ class PrestationRoutingService
                     'user_uuid' => $oldGestionnaireUuid,
                     'group_notif_uuid' => $this->getPrestationGroupUuid(),
                     'title' => '📋 Prestation réassignée',
-                    'body' => "La prestation {$prestation->code} a été réassignée à un autre gestionnaire.",
+                    'body' => "La prestation {$prestation->code} a été réassignée à un autre gestionnaire. \n\n Nouveau gestionnaire : {$gestionnaireLabel}",
                     'type' => 'PRESTATION',
                     'metadata' => [
                         'prestation_uuid' => $prestation->uuid_prestation,
@@ -367,6 +347,150 @@ class PrestationRoutingService
                 'code' => 'PRESTATION_REASSIGNEE',
                 'message' => 'Prestation réassignée avec succès.',
                 'data' => $prestation->fresh()->load(['gestionnaire', 'client'])
+            ];
+        });
+    }
+
+    /**
+     * Réassigner manuellement plusieurs prestations à un autre gestionnaire
+     * avec une seule notification groupée
+     */
+    public function reassignerManuellementMultiple(array $prestationUuids, string $nouveauGestionnaireUuid, array $data, string $userUuid): array
+    {
+        return DB::transaction(function () use ($prestationUuids, $nouveauGestionnaireUuid, $data, $userUuid) {
+            // Vérifier que le nouveau gestionnaire existe
+            $gestionnaire = User::where('uuid_user', $nouveauGestionnaireUuid)->with('details')->first();
+            if (!$gestionnaire) {
+                return [
+                    'success' => false,
+                    'message' => 'Le gestionnaire n\'existe pas.',
+                    'code' => 'GESTIONNAIRE_NOT_FOUND',
+                    'status' => 422,
+                ];
+            }
+
+            // Vérifier que le gestionnaire a le rôle requis
+            if (!$gestionnaire->hasRole('gestionnaire_prestation')) {
+                return [
+                    'success' => false,
+                    'message' => 'Cet utilisateur n\'est pas un gestionnaire de prestation.',
+                    'code' => 'NOT_GESTIONNAIRE_PRESTATION',
+                    'status' => 422,
+                ];
+            }
+
+            // Récupérer les prestations
+            $prestations = Prestation::whereIn('uuid_prestation', $prestationUuids)->get();
+
+            if ($prestations->isEmpty()) {
+                return [
+                    'success' => false,
+                    'message' => 'Aucune prestation trouvée.',
+                    'code' => 'PRESTATIONS_NOT_FOUND',
+                    'status' => 404,
+                ];
+            }
+
+            // Préparer les données de mise à jour
+            $updateData = [
+                'gestionnaire_uuid' => $nouveauGestionnaireUuid,
+                'observation' => $data['observation'] ?? null,
+                'updated_by' => $userUuid,
+            ];
+
+            // Mise à jour optionnelle du statut
+            if (!empty($data['status'])) {
+                $updateData['status'] = $data['status'];
+            }
+
+            $results = [
+                'total' => $prestations->count(),
+                'reassignees' => 0,
+                'echecs' => 0,
+                'details' => [],
+                'prestation_codes' => [],
+            ];
+
+            foreach ($prestations as $prestation) {
+                $oldGestionnaireUuid = $prestation->gestionnaire_uuid;
+
+                // Vérifier que ce n'est pas le même gestionnaire
+                if ($prestation->gestionnaire_uuid === $nouveauGestionnaireUuid) {
+                    $results['echecs']++;
+                    $results['details'][] = [
+                        'prestation_code' => $prestation->code,
+                        'status' => 'ignore',
+                        'raison' => 'Déjà assignée à ce gestionnaire',
+                    ];
+                    continue;
+                }
+
+                // Mettre à jour la prestation
+                $prestation->update($updateData);
+
+                // Log individuel
+                ActivityLog::log([
+                    'user_uuid' => $userUuid,
+                    'action' => 'reassignation_manuelle_multiple',
+                    'action_type' => 'routing',
+                    'module' => 'prestations',
+                    'description' => "Réassignation manuelle de la prestation {$prestation->code} du gestionnaire {$oldGestionnaireUuid} vers {$nouveauGestionnaireUuid}",
+                    'resource_type' => 'prestation',
+                    'resource_id' => $prestation->uuid_prestation,
+                    'old_values' => ['gestionnaire_uuid' => $oldGestionnaireUuid],
+                    'new_values' => ['gestionnaire_uuid' => $nouveauGestionnaireUuid],
+                    'level' => 'info',
+                ]);
+
+                $results['reassignees']++;
+                $results['details'][] = [
+                    'prestation_code' => $prestation->code,
+                    'status' => 'reassignee',
+                    'ancien_gestionnaire' => $oldGestionnaireUuid,
+                ];
+                $results['prestation_codes'][] = $prestation->code;
+            }
+
+            // Notification groupée au nouveau gestionnaire (une seule notification)
+            if ($results['reassignees'] > 0) {
+                $gestionnaireNom = $gestionnaire?->details?->nom ?? null;
+                $gestionnairePrenoms = $gestionnaire?->details?->prenoms ?? null;
+                $gestionnaireLabel = $gestionnaireNom || $gestionnairePrenoms
+                    ? trim(($gestionnaireNom ?? '') . ' ' . ($gestionnairePrenoms ?? ''))
+                    : ($gestionnaire?->email ?? '');
+
+                $prestationCodesList = implode(', ', $results['prestation_codes']);
+                $prestationCount = count($results['prestation_codes']);
+
+                $this->notificationService->create([
+                    'user_uuid' => $nouveauGestionnaireUuid,
+                    'group_notif_uuid' => $this->getPrestationGroupUuid(),
+                    'title' => '📋 Réassignation groupée de prestations',
+                    'body' => "{$prestationCount} prestation(s) vous ont été réassignées : {$prestationCodesList}",
+                    'type' => 'PRESTATION',
+                    'metadata' => [
+                        'prestation_uuids' => $prestationUuids,
+                        'prestation_codes' => $results['prestation_codes'],
+                        'action' => 'reassignation_manuelle_multiple',
+                        'count' => $prestationCount,
+                    ],
+                    'channel' => 'database',
+                    'created_by' => $userUuid,
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'code' => 'PRESTATIONS_REASSIGNEES',
+                'message' => "{$results['reassignees']} prestation(s) réassignée(s) avec succès.",
+                'data' => [
+                    'total' => $results['total'],
+                    'reassignees' => $results['reassignees'],
+                    'echecs' => $results['echecs'],
+                    'details' => $results['details'],
+                    'gestionnaire_uuid' => $nouveauGestionnaireUuid,
+                    'gestionnaire_label' => $gestionnaire?->details?->nom . ' ' . $gestionnaire?->details?->prenoms ?? $gestionnaire?->email,
+                ]
             ];
         });
     }

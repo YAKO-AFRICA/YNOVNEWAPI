@@ -30,7 +30,9 @@ use App\Http\Controllers\Api\Ynov\PaymentController;
 use App\Http\Controllers\Api\Ynov\PermissionController;
 use App\Http\Controllers\Api\Ynov\PermissionGroupController;
 use App\Http\Controllers\Api\Ynov\Prestation\PrestationController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationDashboardController;
 use App\Http\Controllers\Api\Ynov\Prestation\PrestationRoutingController;
+use App\Http\Controllers\Api\Ynov\Prestation\PrestationTraitementController;
 use App\Http\Controllers\Api\Ynov\ProduitController;
 use App\Http\Controllers\Api\Ynov\ProfileController;
 use App\Http\Controllers\Api\Ynov\Rdv\BordereauController;
@@ -84,6 +86,10 @@ Route::prefix('esousciption')->group(function () {
 
 
 Route::prefix('v1')->group(function () {
+
+    Route::get('/webdav/read', [DocumentController::class, 'read']);
+    Route::put('/webdav/upload', [DocumentController::class, 'upload']);
+
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
@@ -270,7 +276,7 @@ Route::prefix('v1')->middleware([
         Route::get('users', [UserController::class, 'index']);
         Route::get('users/{uuid_user}', [UserController::class, 'show']);
     });
-
+        
     Route::prefix('users/{uuid}')->group(function () {
         Route::post('freeze', [FreezeController::class, 'freeze'])->middleware('permission:users.geler');
         Route::group(['middleware' => 'permission:users.degeler'], function () {
@@ -278,11 +284,12 @@ Route::prefix('v1')->middleware([
             Route::get('freeze-status', [FreezeController::class, 'status']);
         });
     });
-
-
-
+                
+    
+    
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
+    Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
 
     // Gestion des agences pour un utilisateur
     Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
@@ -696,40 +703,107 @@ Route::prefix('v1')->middleware([
     // ============================================================
     Route::prefix('prestations')->group(function () {
 
-        // Rrecupérer les motifs de prestations pour un produit avec le montant maximum de prestation
+        // ============================================================
+        // VÉRIFICATIONS ET ÉLIGIBILITÉ
+        // ============================================================
         Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount'])
             ->middleware('permission:prestations.creer');
 
-        // vérifier si un motif de prestations necessite une prise de rendez-vous
         Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
 
-        // vérifier l'éligibilité d'une prestation selon les règles métier
         Route::post('check-eligibility', [PrestationController::class, 'checkEligibility'])
             ->middleware('permission:prestations.creer');
 
-        // Routage et assignation des prestations
-        Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
-            ->middleware('permission:prestations.modifier');
+        // ============================================================
+        // DASHBOARD PRESTATIONS
+        // ============================================================
+        Route::get('dashboard', [PrestationDashboardController::class, 'dashboard'])
+            ->middleware('permission:prestations.afficher');
 
-        Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
-            ->middleware('permission:prestations.modifier');
+        Route::get('dashboard/stats', [PrestationDashboardController::class, 'stats'])
+            ->middleware('permission:prestations.afficher');
 
-        // Prestations CRUD
+        Route::get('dashboard/stats-by-type', [PrestationDashboardController::class, 'statsByType'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::get('dashboard/stats-by-gestionnaire', [PrestationDashboardController::class, 'statsByGestionnaire'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::get('dashboard/stats-by-partner', [PrestationDashboardController::class, 'statsByPartner'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::get('dashboard/file-attente', [PrestationDashboardController::class, 'fileAttente'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::get('dashboard/evolution', [PrestationDashboardController::class, 'evolution'])
+            ->middleware('permission:prestations.afficher');
+
+        
+
+        // ============================================================
+        // CRUD PRESTATIONS
+        // ============================================================
         Route::get('', [PrestationController::class, 'index'])
             ->middleware('permission:prestations.afficher');
 
         Route::post('', [PrestationController::class, 'store'])
             ->middleware('permission:prestations.creer');
 
-        Route::get('stats-prestations', [PrestationController::class, 'prestationStats'])
-            ->middleware('permission:prestations.afficher');
-
-        // Catégories
+        // ============================================================
+        // CATÉGORIES DE PRESTATIONS
+        // ============================================================
         Route::get('categories', [PrestationController::class, 'categories']);
 
         Route::post('categories', [PrestationController::class, 'storeCategory'])
             ->middleware('permission:prestations.creer');
+
+        // ============================================================
+        // TYPES DE PRESTATIONS
+        // ============================================================
+        Route::get('types', [PrestationController::class, 'types'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::post('types', [PrestationController::class, 'storeType'])
+            ->middleware('permission:prestations.creer');
+
+
+        // ============================================================
+        // ASSIGNATION ET ROUTAGE
+        // ============================================================
+        // Route::prefix('routing')->group(function () {
+            Route::post('reassign-multiple', [PrestationRoutingController::class, 'reassignMultiple'])
+                ->middleware('permission:prestations.retransmettre');
+
+            Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
+                ->middleware('permission:prestations.retransmettre');
+
+            Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
+                ->middleware('permission:prestations.modifier');
+        // });
+
+        // ============================================================
+        // TRAITEMENT
+        // ============================================================
+        Route::post('{uuid_prestation}/traiter', [PrestationTraitementController::class, 'traiter'])
+            ->middleware('permission:prestations.traiter');
+
+        Route::post('{uuid_prestation}/annuler', [PrestationTraitementController::class, 'annuler'])
+            ->middleware('permission:prestations.annuler');
+
+        Route::get('{uuid_prestation}/historique', [PrestationTraitementController::class, 'historique'])
+            ->middleware('permission:prestations.afficher');
+
+        
+
+        Route::get('{uuid_prestation}', [PrestationController::class, 'show'])
+            ->middleware('permission:prestations.afficher');
+
+        Route::put('{uuid_prestation}', [PrestationController::class, 'update'])
+            ->middleware('permission:prestations.modifier');
+
+        Route::delete('{uuid_prestation}', [PrestationController::class, 'destroy'])
+            ->middleware('permission:prestations.supprimer');
 
         Route::get('categories/{uuid_category}', [PrestationController::class, 'showCategory'])
             ->middleware('permission:prestations.afficher');
@@ -740,32 +814,21 @@ Route::prefix('v1')->middleware([
         Route::delete('categories/{uuid_category}', [PrestationController::class, 'deleteCategory'])
             ->middleware('permission:prestations.supprimer');
 
-        // Types de prestations
-        Route::get('types', [PrestationController::class, 'types'])
-            ->middleware('permission:prestations.afficher');
-
-        Route::post('types', [PrestationController::class, 'storeType'])
-            ->middleware('permission:prestations.creer');
-
+        
         Route::get('types/{uuid_type}', [PrestationController::class, 'showType'])
             ->middleware('permission:prestations.afficher');
 
         Route::put('types/{uuid_type}', [PrestationController::class, 'updateType'])
             ->middleware('permission:prestations.modifier');
 
-        Route::get('{uuid_prestation}', [PrestationController::class, 'show'])
-            ->middleware('permission:prestations.afficher');
-
-        Route::put('{uuid_prestation}', [PrestationController::class, 'update'])
-            ->middleware('permission:prestations.modifier');
-
-        Route::delete('{uuid_prestation}', [PrestationController::class, 'destroy'])
-            ->middleware('permission:prestations.supprimer');
-        
         Route::delete('types/{uuid_type}', [PrestationController::class, 'deleteType'])
             ->middleware('permission:prestations.supprimer');
-        
-        // Statistiques
+        // ============================================================
+        // STATISTIQUES
+        // ============================================================
+        Route::get('stats-prestations', [PrestationController::class, 'prestationStats'])
+            ->middleware('permission:prestations.afficher');
+
         Route::get('stats', [PrestationController::class, 'stats'])
             ->middleware('permission:prestations.afficher');
     });
@@ -802,6 +865,12 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:rdvs.afficher');
 
         Route::get('dashboard/{uuid_bordereau}', [BordereauDashboardController::class, 'show'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::put('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::patch('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
             ->middleware('permission:rdvs.afficher');
     });
 
@@ -868,15 +937,20 @@ Route::prefix('v1')->middleware([
         
         Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
-        // Recuperer les produits de tranformation pour un RDV
-        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
-
+        
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
+
+        // Réassigner plusieurs RDV manuellement avec notification groupée
+        Route::post('reassigner-multiple', [RoutingController::class, 'reassignerMultiple'])->middleware('permission:rdvs.retransmettre');
+
         
         // Réassigner un RDV manuellement
         Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner'])->middleware('permission:rdvs.retransmettre');
         
+        // Recuperer les produits de tranformation pour un RDV
+        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
+
         // Traiter un RDV (effectuer le traitement)
         Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter'])->middleware('permission:rdvs.traiter');
         
