@@ -858,10 +858,11 @@ class BordereauRdvService
         $conditionDate = now()->startOfDay()->gte($dateLimite);
 
         // Condition 2 : 60 RDV dans le lot
-        $rdvCount = $lot->details()->count();
-        $conditionCount = $rdvCount >= 60;
+        // $rdvCount = $lot->details()->count();
+        // $conditionCount = $rdvCount >= 60;
 
-        return $conditionDate || $conditionCount;
+        return $conditionDate;
+        // return $conditionDate || $conditionCount;
     }
 
     protected function computeLotStatus(Carbon $dateEffective): string

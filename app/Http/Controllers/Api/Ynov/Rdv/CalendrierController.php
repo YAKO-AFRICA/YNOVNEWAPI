@@ -35,7 +35,7 @@ class CalendrierController extends Controller
         $annee = $request->annee ?? now()->year;
         $agenceUuid = $request->agence_uuid;
 
-        $calendrier = $this->calendrierService->getCalendrierMois($mois, $annee, $agenceUuid, $gestionnaireUuid);
+        $calendrier = $this->calendrierService->getCalendrierMois($user, $mois, $annee, $agenceUuid, $gestionnaireUuid);
 
         if (!$calendrier['success']) {
             return response()->json([

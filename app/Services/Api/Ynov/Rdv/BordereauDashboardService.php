@@ -100,6 +100,7 @@ class BordereauDashboardService
             $filters['agence_uuid'] = $agences ?? null;
             $query->whereHas('details.rdv', function ($q) use ($filters) {
                 $q->whereIn('agence_effective_uuid', [$filters['agence_uuid'], null]);
+                $q->where('created_by', $filters['user']->uuid_user);
             });
         }
 
