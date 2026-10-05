@@ -469,7 +469,7 @@ class PrestationService
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
         
-            $query->where('created_by', $user->uuid_user);
+            $query->where('created_by', $user->uuid_user)->orWhere('status', 'inacheve');
         }
 
         if (isset($filters['status'])) {
