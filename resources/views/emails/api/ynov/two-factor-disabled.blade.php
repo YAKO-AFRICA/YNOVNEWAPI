@@ -111,7 +111,7 @@
         <tr>
             <td style="padding-right:12px;">
                 @include('emails.api.ynov.partials.button', [
-                    'url' => $securityUrl ?? config('app.frontend_url') . '/profile/security',
+                    'url' => $securityUrl ?? config('app.frontend_url'),
                     'label' => '🔐 Réactiver la 2FA',
                     'color' => '#096835',
                     'hoverColor' => '#06471f'
@@ -119,7 +119,7 @@
             </td>
             <td>
                 @include('emails.api.ynov.partials.button', [
-                    'url' => config('app.frontend_url') . '/reset-password',
+                    'url' => config('app.frontend_url'),
                     'label' => '🔑 Changer mon mot de passe',
                     'color' => '#F7A400',
                     'hoverColor' => '#d68b00'

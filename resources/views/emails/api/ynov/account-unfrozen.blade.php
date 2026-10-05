@@ -94,7 +94,7 @@
             </td>
             <td>
                 @include('emails.api.ynov.partials.button', [
-                    'url' => config('app.frontend_url') . '/profile/security',
+                    'url' => config('app.frontend_url'),
                     'label' => '🔒 Sécuriser mon compte',
                     'color' => '#F7A400',
                     'hoverColor' => '#d68b00'

@@ -41,7 +41,7 @@ class AccountUnblockedMail extends Mailable implements ShouldQueue
                 'fullName' => $details ? trim($details->prenoms . ' ' . $details->nom) : $this->user->login,
                 'unblockedAt' => now()->format('d/m/Y à H:i'),
                 'unblockedBy' => $this->unblockedByName ?? 'Administrateur',
-                'loginUrl' => config('app.frontend_url') . '/login',
+                'loginUrl' => config('app.frontend_url') . '/',
             ],
         );
     }

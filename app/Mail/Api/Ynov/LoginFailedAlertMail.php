@@ -45,7 +45,7 @@ class LoginFailedAlertMail extends Mailable implements ShouldQueue
                 'ipAddress' => $this->ipAddress ?? '—',
                 'location' => $this->location ?? 'Non déterminée',
                 'attemptedAt' => now()->format('d/m/Y à H:i'),
-                'securityUrl' => config('app.frontend_url') . '/profile/security',
+                'securityUrl' => config('app.frontend_url'),
             ],
         );
     }

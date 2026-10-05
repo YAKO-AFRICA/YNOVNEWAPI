@@ -41,7 +41,7 @@ class NewDeviceMail extends Mailable implements ShouldQueue
                 'ipAddress' => $this->device->ip_address,
                 'location' => $this->device->location ?? 'Non déterminée',
                 'loginAt' => now()->format('d/m/Y à H:i'),
-                'securityUrl' => config('app.frontend_url') . '/profile/devices',
+                'securityUrl' => config('app.frontend_url'),
             ],
         );
     }

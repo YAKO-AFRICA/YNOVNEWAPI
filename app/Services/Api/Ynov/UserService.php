@@ -428,8 +428,8 @@ class UserService
                     . "à votre espace client.\n\n"
                     . "Login : {$user->login}\n"
                     . "Mot de passe : {$password}\n"
-                    . "Lien de connexion : "
-                    . config('app.frontend_url');
+                    . "Lien de connexion : https://espace-client.yakoafricassur.com";
+                    // . config('app.frontend_url');
     
                 $response = $this->SMSService->sendSms(
                     $userDetails->mobile_1,

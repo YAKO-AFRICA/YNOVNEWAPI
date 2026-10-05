@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /vendor
+/front-end-apimain_test
 .env
 .env.testing
 .htaccess
