@@ -133,7 +133,7 @@
         <tr>
             <td style="padding-right:12px;">
                 @include('emails.api.ynov.partials.button', [
-                    'url' => config('app.frontend_url') . '/profile/security',
+                    'url' => config('app.frontend_url'),
                     'label' => '🔐 Gérer ma sécurité',
                     'color' => '#096835',
                     'hoverColor' => '#06471f'
@@ -141,7 +141,7 @@
             </td>
             <td>
                 @include('emails.api.ynov.partials.button', [
-                    'url' => config('app.frontend_url') . '/profile/security',
+                    'url' => config('app.frontend_url'),
                     'label' => '📋 Voir mes codes',
                     'color' => '#F7A400',
                     'hoverColor' => '#d68b00'

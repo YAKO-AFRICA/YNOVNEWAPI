@@ -41,7 +41,7 @@ class TwoFactorDisabledMail extends Mailable implements ShouldQueue
                 'fullName' => $details ? trim($details->prenoms . ' ' . $details->nom) : $this->user->login,
                 'disabledAt' => now()->format('d/m/Y à H:i'),
                 'ipAddress' => $this->ipAddress ?? '—',
-                'securityUrl' => config('app.frontend_url') . '/profile/security',
+                'securityUrl' => config('app.frontend_url'),
             ],
         );
     }

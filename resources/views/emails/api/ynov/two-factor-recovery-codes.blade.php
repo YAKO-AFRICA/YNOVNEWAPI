@@ -123,7 +123,7 @@
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0;">
         <tr>
             <td style="border-radius:6px; background-color:#096835;">
-                <a href="{{ config('app.frontend_url') ?? '#' }}/profile/security" 
+                <a href="{{ config('app.frontend_url') ?? '#' }}" 
                    target="_blank"
                    style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:6px;">
                    🔒 Accéder à la gestion 2FA

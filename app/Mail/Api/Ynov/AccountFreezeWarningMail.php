@@ -41,7 +41,7 @@ class AccountFreezeWarningMail extends Mailable
                 'level' => $this->level,
                 'attemptCount' => $this->attemptCount,
                 'remainingAttempts' => $this->remainingAttempts,
-                'securityUrl' => config('app.frontend_url') . '/profile/security',
+                'securityUrl' => config('app.frontend_url'),
             ]
         );
     }
