@@ -545,7 +545,7 @@ class CustomerController extends Controller
         } catch (\Throwable $e) {
             Log::error('Erreur lors de l\'ajout du contrat', [
                 'user_uuid' => $request->user()?->uuid_user,
-                'contrat_id' => $request->idcontrat,
+                'contrat_id'=> $request->idcontrat,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

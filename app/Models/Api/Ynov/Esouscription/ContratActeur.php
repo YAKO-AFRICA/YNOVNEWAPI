@@ -11,8 +11,10 @@ class ContratActeur extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $connection = 'mysql';
+    
 
+    protected $connection = 'mysql';
+    public $incrementing = false;
     protected $table = 'contrat_acteurs';
 
     public $timestamps = true;
@@ -39,4 +41,14 @@ class ContratActeur extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function contrat()
+    {
+        return $this->belongsTo(Contrat::class, 'contrat_uuid', 'uuid_contrat');
+    }
+
+    public function acteur()
+    {
+        return $this->belongsTo(Acteur::class, 'acteur_uuid', 'uuid_acteur');
+    }
 }

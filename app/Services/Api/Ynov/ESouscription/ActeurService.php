@@ -4,8 +4,9 @@ namespace App\Services\Api\Ynov\Esouscription;
 
 use App\Models\Api\Ynov\Esouscription\Acteur;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ActeurService
 {
@@ -61,6 +62,8 @@ class ActeurService
 
     public function update(Acteur $acteur, array $data): Acteur
     {
+
+
         return DB::transaction(function () use ($acteur, $data): Acteur {
             $acteur->update($data);
 

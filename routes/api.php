@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\Ynov\LoginAttemptController;
 use App\Http\Controllers\Api\Ynov\MotifTraitementController;
 use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
+use App\Http\Controllers\Api\Ynov\Param\ProfessionController;
+use App\Http\Controllers\Api\Ynov\Param\VilleController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
 use App\Http\Controllers\Api\Ynov\PaymentController;
@@ -419,11 +421,11 @@ Route::prefix('v1')->middleware([
     // ============================================================
     Route::group(['middleware' => 'permission:partners.afficher'], function () {
         Route::get('partners', [PartnerController::class, 'index']);
-        Route::get('partners/{uuid_partner}', [PartnerController::class, 'show']);
+        Route::get('partners/{uuid_partner}', [PartnerController::class, 'showPartenaire']);
         Route::get('partners/{uuid_partner}/reseaux', [PartnerController::class, 'reseaux']);
     });
 
-    Route::post('partners', [PartnerController::class, 'store'])->middleware('permission:partners.creer');
+    Route::post('partners', [PartnerController::class, 'store']);
     Route::put('partners/{uuid_partner}', [PartnerController::class, 'update'])->middleware('permission:partners.modifier');
     Route::delete('partners/{uuid_partner}', [PartnerController::class, 'destroy'])->middleware('permission:partners.supprimer');
 
@@ -1057,8 +1059,19 @@ Route::prefix('v1')->middleware([
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
 
         // gestion des villes 
+        Route::get('villes', [VilleController::class, 'indexVilles']);
+        Route::post('villes', [VilleController::class, 'storeVille']);
+        Route::get('villes/{uuid_ville}', [VilleController::class, 'show']);
+        Route::put('villes/{uuid_ville}', [VilleController::class, 'update']);
+        Route::delete('villes/{uuid_ville}', [VilleController::class, 'destroy']);
         Route::get('get-villes-nsil', [ParamController::class, 'getNsilVilles']);
-        Route::get('get-professions-nsil', [ParamController::class, 'getNsilProfession']);
+        Route::get('get-professions-nsil', [ParamController::class, 'getNsilProfession']); 
+
+        // gestion des professions
+        Route::get('professions', [ProfessionController::class, 'indexProfession']);
+        Route::post('professions', [ProfessionController::class, 'storeProfession']);
+        Route::put('professions/{uuid_profession}', [ProfessionController::class, 'updateProfession']);
+        Route::delete('professions/{uuid_profession}', [ProfessionController::class, 'destroy']);
     });
 
     // groupe de route enregistrement du contrat et ces acteurs
@@ -1066,6 +1079,7 @@ Route::prefix('v1')->middleware([
 
         // get personne by nni endpoint
         Route::post('get-personne-by-NNI', [CheckController::class, 'getPersonByNni']);
+        Route::post('get-personne-by-idclient', [CheckController::class, 'getPersonByIdClient']);
 
         // crud acteurs
         Route::get('get-acteurs', [ActeurController::class, 'getActeurs']);
@@ -1118,6 +1132,7 @@ Route::prefix('v1')->middleware([
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         Route::post('store-contrat', [ContratController::class, 'store']);
+        Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
 
 
         

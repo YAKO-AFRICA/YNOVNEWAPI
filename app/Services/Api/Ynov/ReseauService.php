@@ -20,11 +20,10 @@ class ReseauService
                 'code' => $data['code'],
                 'libelle' => $data['libelle'],
                 'description' => $data['description'] ?? null,
+                'code_branche' => $data['code_branche'] ?? null,
                 'partner_uuid' => $data['partner_uuid'] ?? null,
                 'email' => $data['email'] ?? null,
                 'telephone' => $data['telephone'] ?? null,
-                'config' => $data['config'] ?? null,
-                'metadata' => $data['metadata'] ?? null,
                 'status' => $data['status'] ?? 'actif',
                 'created_by' => $creatorUuid,
             ]);
@@ -52,16 +51,17 @@ class ReseauService
     {
         return DB::transaction(function () use ($reseau, $data, $updaterUuid) {
             $oldValues = $reseau->toArray();
+
+           
             
             $reseau->update([
                 'code' => $data['code'] ?? $reseau->code,
                 'libelle' => $data['libelle'] ?? $reseau->libelle,
                 'description' => $data['description'] ?? $reseau->description,
                 'partner_uuid' => $data['partner_uuid'] ?? $reseau->partner_uuid,
+                'code_branche' => $data['code_branche'] ?? $reseau->code_branche,
                 'email' => $data['email'] ?? $reseau->email,
                 'telephone' => $data['telephone'] ?? $reseau->telephone,
-                'config' => $data['config'] ?? $reseau->config,
-                'metadata' => $data['metadata'] ?? $reseau->metadata,
                 'status' => $data['status'] ?? $reseau->status,
                 'updated_by' => $updaterUuid,
             ]);

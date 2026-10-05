@@ -170,6 +170,11 @@
                 icon: "fa-user-tie",
             },
 
+            souscription: { // souscription DOc
+                label: "E-Souscription",
+                icon: "fa-pen-fancy",
+            },
+
             jeko_widget: {
                 label: "Widget Jeko Payment",
                 icon: "fa-credit-card",
@@ -178,6 +183,7 @@
                 label: "Widget Signature",
                 icon: "fa-pen-fancy",
             },
+            
             errors: {
                 label: "Codes HTTP & Erreurs",
                 icon: "fa-bug",
@@ -200,6 +206,66 @@
                 isHome: true,
             },
 
+            {
+                id: "get-personne-by-NNI",
+                module: "souscription",
+                name: "Vérifier un contrat avant inscription",
+                description:
+                    "Permet de vérifier les informations d'un contrat avant l'inscription d'un client. Vérifie que le contrat existe, que la date de naissance correspond, et que le contrat n'est pas arrêté. Retourne les informations complètes du contrat.",
+                method: "POST",
+                path: "/esouscription/get-personne-by-NNI",
+                isProtected: true,
+                rateLimit: "throttle:6,1 (6 tentatives / minute)",
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        nni: {
+                            type: "string",
+                            required: true,
+                            description:
+                                "nni",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    nni: "PROP2024001",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Contrat trouvé et valide",
+                        example: {
+                            success: true,
+                            message: "Contrat trouvé.",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Contrat arrêté",
+                        example: {
+                            success: false,
+                            code: "CONTRACT_FROZEN",
+                            message: "Ce contrat est arreté.",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Date de naissance incorrecte",
+                        example: {
+                            success: false,
+                            code: "DATE_OF_BIRTH_MISMATCH",
+                            message:
+                                "La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.",
+                        },
+                    },
+                ],
+            },
+        
             // ============================================================
             // 3.2 AUTHENTIFICATION — PUBLIQUES
             // ============================================================

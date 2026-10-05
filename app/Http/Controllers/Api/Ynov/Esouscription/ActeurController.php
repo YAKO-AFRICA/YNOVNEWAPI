@@ -5,7 +5,11 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 use App\Http\Controllers\Controller;
 use App\Services\Api\Ynov\Esouscription\ActeurService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 class ActeurController extends Controller
@@ -85,8 +89,12 @@ class ActeurController extends Controller
     /**
      * Créer un acteur
      */
+
     public function storeActeur(Request $request)
     {
+
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa    avant ');
+
         $validatedData = $request->validate([
 
             'civilite' => 'nullable|string|max:25',
@@ -111,8 +119,11 @@ class ActeurController extends Controller
             'lieuresidence_code' => 'nullable|string|max:100',
             'pays_code' => 'nullable|string|max:50',
             'integration_key' => 'nullable|string|max:255',
-            'created_by' => 'nullable|uuid',
+            'created_by' => 'nullable|string|max:255',
         ]);
+
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        Log::info($validatedData);
 
         $validatedData['uuid_acteur'] = Str::uuid();
 
@@ -127,6 +138,7 @@ class ActeurController extends Controller
             ], 201);
 
         } catch (Throwable $e) {
+            Log::error("Error de creation de l'acteur: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la création de l’acteur',
@@ -137,10 +149,13 @@ class ActeurController extends Controller
     }
 
 
+
+
+
     /**
      * Modifier un acteur
      */
-    public function update(Request $request, $uuid)
+    public function updateActeur(Request $request, $uuid)
     {
         $acteur = $this->acteurService->findByUuid($uuid);
 
@@ -180,8 +195,11 @@ class ActeurController extends Controller
 
             'integration_key' => 'sometimes|nullable|string|max:255',
 
-            'updated_by' => 'sometimes|nullable|uuid',
+            'updated_by' => 'sometimes|nullable|string|max:255',
         ]);
+
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        Log::info($validatedData);
 
         try {
             $acteur = $this->acteurService->update($acteur, $validatedData);

@@ -631,6 +631,46 @@ class PermissionService
             ],
 
             // ============================================================
+            // VILLES
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'villes',
+                    'libelle' => 'Villes',
+                    'description' => 'Gestion des villes',
+                    'icone' => 'map-marker-alt',
+                    'color' => '#16a085',
+                    'ordre' => 22,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les villes',
+                        'description' => 'Permet de consulter la liste et le détail des villes'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer une ville',
+                        'description' => 'Permet de créer une ville'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier une ville',
+                        'description' => 'Permet de modifier une ville'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer une ville',
+                        'description' => 'Permet de supprimer une ville'
+                    ],
+                ]
+            ],
+
+            // ============================================================
             // AGENCES
             // ============================================================
             [

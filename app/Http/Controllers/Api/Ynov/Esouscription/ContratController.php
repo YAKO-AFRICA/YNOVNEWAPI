@@ -32,7 +32,9 @@ class ContratController extends Controller
                     'etat',
                 ]),
                 (int) $request->input('per_page', 15)
-            );
+                );
+
+
 
             return response()->json([
                 'success' => true,
@@ -64,7 +66,7 @@ class ContratController extends Controller
         }
     }
 
-    public function show(string $uuid)
+    public function showContrat(string $uuid)
     {
         try {
             $contrat = $this->contratService->findByUuid($uuid);
@@ -73,11 +75,32 @@ class ContratController extends Controller
                 return $this->notFoundResponse();
             }
 
+            // S'assurer que la relation est chargée
+            $contrat->loadMissing('contratActeurs');
+
+            // Collection d'Eloquent
+            $contratActeurs = $contrat->contratActeurs;
+
+            // Groupement par type d'acteur
+            $adherent      = $contratActeurs->firstWhere('type_acteur', 'ADH');
+            $beneficiaires = $contratActeurs->where('type_acteur', 'BEN')->values();
+            $assures       = $contratActeurs->where('type_acteur', 'ASS')->values();
+
+            // On garde $contratActeurs groupé dans une variable dédiée
+            $acteursGroupes = [
+                'adherent'      => $adherent,
+                'beneficiaires' => $beneficiaires,
+                'assures'       => $assures,
+            ];
+
             return response()->json([
                 'success' => true,
                 'message' => 'Contrat récupéré avec succès',
-                'code' => 200,
-                'data' => $contrat,
+                'code'    => 200,
+                'data'    => [
+                    'contrat'        => $contrat,
+                    'contratActeurs' => $acteursGroupes,
+                ],
             ]);
         } catch (Throwable $e) {
             return $this->errorResponse('Erreur lors de la récupération du contrat', $e);

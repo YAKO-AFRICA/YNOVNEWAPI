@@ -25,44 +25,20 @@ class Partner extends Model
     protected $fillable = [
         'uuid_partner',
         'code',
+        'code_contractant',
         'designation',
-        'sigle',
         'description',
         'logo',
-        'code_branche',
-        'email',
-        'email_2',
-        'telephone',
-        'telephone_2',
-        'adresse',
-        'ville',
-        'pays',
-        'site_web',
-        'latitude',
-        'longitude',
-        'type',
-        'secteur_activite',
-        'categorie',
-        'config',
-        'metadata',
         'is_active',
         'status',
-        'date_agrement',
-        'date_expiration',
         'created_by',
         'updated_by',
         'deleted_by',
+        'created_at',
+        'updated_at',
+        'deleted_at',
     ];
-    
-    protected $casts = [
-        'config' => 'array',
-        'metadata' => 'array',
-        'is_active' => 'boolean',
-        'date_agrement' => 'date',
-        'date_expiration' => 'date',
-        'latitude' => 'decimal:8',
-        'longitude' => 'decimal:8',
-    ];
+
 
     protected static function booted(): void
     {

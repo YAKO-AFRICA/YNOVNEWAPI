@@ -2,10 +2,13 @@
 
 namespace App\Models\Api\Ynov\Esouscription;
 
+use App\Models\Api\Ynov\Esouscription\Acteur;
 use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\Partner;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User;
 
@@ -25,21 +28,23 @@ class Contrat extends Model
      *
      * @var string
      */
-    protected $primaryKey = 'id';
+
+    public $incrementing = false; 
+    protected $primaryKey = 'uuid_contrat';
 
     /**
      * Indique si la clé primaire est auto-incrémentée.
      *
      * @var bool
      */
-    public $incrementing = true;
+    protected $keyType = 'string';
 
     /**
      * Le type de la clé primaire.
      *
      * @var string
      */
-    protected $keyType = 'int';
+    // protected $keyType = 'int';
 
     /**
      * Les attributs qui sont assignables en masse.
@@ -176,7 +181,7 @@ class Contrat extends Model
      * @var array<int, string>
      */
     protected $hidden = [
-        // Ajoutez ici les champs sensibles si nécessaire
+        // les champs sensibles si nécessaire
     ];
 
     // =====================================================
@@ -197,6 +202,14 @@ class Contrat extends Model
     public function partner()
     {
         return $this->belongsTo(Partner::class, 'partner_uuid', 'uuid_partner');
+    }
+
+
+    // Dans Contrat
+    public function contratActeurs()
+    {
+        return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
+                    ->with('acteur');   // eager loading imbriqué
     }
 
     // =====================================================
