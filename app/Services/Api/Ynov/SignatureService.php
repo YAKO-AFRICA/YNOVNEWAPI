@@ -45,7 +45,7 @@ class SignatureService
     protected string $api_webhook_key;
     public function __construct()
     {
-        $this->api_webhook_key = config('services.signature.api_webhook_key');
+        $this->api_webhook_key = config('services.signature.api_webhook_key') ?? '';
     }
     public const INTERNAL_ECHO_MARKER = 'internal-echo';
 

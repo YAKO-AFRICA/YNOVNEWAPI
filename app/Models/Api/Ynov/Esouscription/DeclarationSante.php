@@ -48,6 +48,7 @@ class DeclarationSante extends Model
      */
     protected $fillable = [
         // Clés étrangères
+        'uuid_declaration_santes',
         'contrat_uuid',
         'assure_uuid',
         

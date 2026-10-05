@@ -10,6 +10,7 @@ use App\Models\Api\Ynov\parameter\Reseau;
 use App\Services\Api\Ynov\ReseauService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ReseauController extends Controller
 {
@@ -70,6 +71,8 @@ class ReseauController extends Controller
             ->with(['partner', 'agences', 'agences.horaires', 'users'])
             ->firstOrFail();
 
+        Log::info("Found reseau: " . json_encode($reseau->toArray()));
+
         return response()->json([
             'success' => true,
             'message' => 'Détails du réseau.',
@@ -83,7 +86,17 @@ class ReseauController extends Controller
      */
     public function update(UpdateReseauRequest $request, string $uuid_reseau): JsonResponse
     {
-        $reseau = Reseau::where('uuid_reseau', $uuid_reseau)->firstOrFail();
+
+        Log::info("Updating reseau with UUID: $uuid_reseau");
+        $reseau = Reseau::where('uuid_reseau', $uuid_reseau)->first();
+
+         if (!$reseau) {
+            return response()->json([
+                'success' => false,
+                'message' => ' uuid renseigné n\'existe pas pour un reseau . Réseau non trouvé.',
+                'code' => 'RESEAU_NOT_FOUND',
+            ], 404);
+        }
         
         $updated = $this->reseauService->update(
             $reseau,

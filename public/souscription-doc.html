@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testeur - Yako Africa Assur (eNov)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        aside {
+            width: 300px;
+            background: #1e2a3a;
+            color: #ecf0f1;
+            padding: 20px 0;
+            overflow-y: auto;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        aside h2 {
+            padding: 0 20px 15px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #2c3e50;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .menu-section {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7f8c8d;
+            margin-top: 15px;
+        }
+
+        .menu-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #2c3e50;
+            border-left-color: #3498db;
+        }
+
+        .menu-item.active {
+            background: #2c3e50;
+            border-left-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        main {
+            flex: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: #1e2a3a;
+        }
+
+        header p {
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .endpoint-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+            display: none;
+        }
+
+        .endpoint-card.active {
+            display: block;
+        }
+
+        .endpoint-card h2 {
+            font-size: 1.3rem;
+            color: #1e2a3a;
+            margin-bottom: 5px;
+        }
+
+        .endpoint-card .description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .method-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .method {
+            background: #27ae60;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .url {
+            color: #2c3e50;
+        }
+
+        /* ===== CONTROLS ===== */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* ===== PARAMS ===== */
+        .params-section {
+            margin-bottom: 20px;
+        }
+
+        .params-section h3 {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .param-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .param-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .param-row input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        /* ===== RESPONSE ===== */
+        .response-section {
+            margin-top: 20px;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .response-header h3 {
+            font-size: 0.95rem;
+            color: #2c3e50;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        pre {
+            background: #1e2a3a;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .response-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bdc3c7;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ================= SIDEBAR ================= -->
+<aside>
+    <h2>🔧 API eNov</h2>
+
+    <div class="menu-section">Paramétrage</div>
+    <div class="menu-item active" data-target="professions">📋 Professions</div>
+    <div class="menu-item" data-target="villes">🏙️ Villes</div>
+
+    <!-- Futurs endpoints à ajouter ici -->
+    <div class="menu-section">À venir</div>
+    <div class="menu-item" style="opacity:0.4; cursor:not-allowed;">➕ Autres endpoints...</div>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<main>
+    <header>
+        <h1>Testeur d'API Yako Africa Assur</h1>
+        <p>Base URL : <code>http://127.0.0.1:8000/api/v1</code></p>
+    </header>
+
+    <div class="params-section p-4">
+        <div class="input-group">
+            <span>URL de l'API :</span>
+            <input type="text" id="apiUrl" value="http://127.0.0.1:8000/api/v1" class="form-control">
+        </div>
+        <div class="input-group">
+            <span>Tokken :</span>
+            <input type="text" id="apiTokken" value="http://127.0.0.1:8000/api/v1" class="form-control">
+        </div>
+    </div>
+
+    <!-- ===== ENDPOINT : PROFESSIONS ===== -->
+    <section id="professions" class="endpoint-card active">
+        <h2>Professions</h2>
+        <p class="description">Récupère la liste complète des professions enregistrées.</p>
+
+        <div class="method-line">
+            <span class="method">GET</span>
+            <span class="url"><span class="url-prefix"></span><span class="url-path"></span>/professions</span>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="callApi('professions')">▶ Exécuter</button>
+            <button class="btn-secondary" onclick="copyUrl('professions')">📋 Copier l'URL</button>
+            <button class="btn-danger" onclick="clearResponse('professions')">✖ Effacer</button>
+        </div>
+
+        <div class="response-section">
+            <div class="response-header">
+                <h3>Réponse</h3>
+                <span id="status-professions" class="status-badge" style="display:none;"></span>
+            </div>
+            <div id="meta-professions" class="response-meta" style="display:none;"></div>
+            <pre id="response-professions"><div class="empty-state">Cliquez sur « Exécuter » pour lancer la requête.</div></pre>
+        </div>
+    </section>
+
+    <!-- ===== ENDPOINT : VILLES ===== -->
+    <section id="villes" class="endpoint-card">
+        <h2>Villes</h2>
+        <p class="description">Récupère la liste complète des villes enregistrées.</p>
+
+        <div class="method-line">
+            <span class="method">GET</span>
+            <span class="url"><span class="url-prefix"></span><span class="url-path"></span>/villes</span>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="callApi('villes')">▶ Exécuter</button>
+            <button class="btn-secondary" onclick="copyUrl('villes')">📋 Copier l'URL</button>
+            <button class="btn-danger" onclick="clearResponse('villes')">✖ Effacer</button>
+        </div>
+
+        <div class="response-section">
+            <div class="response-header">
+                <h3>Réponse</h3>
+                <span id="status-villes" class="status-badge" style="display:none;"></span>
+            </div>
+            <div id="meta-villes" class="response-meta" style="display:none;"></div>
+            <pre id="response-villes"><div class="empty-state">Cliquez sur « Exécuter » pour lancer la requête.</div></pre>
+        </div>
+    </section>
+</main>
+
+<script>
+/* ================= CONFIG ================= */
+const BASE_URL = document.getElementById('apiUrl').value ||'http://127.0.0.1:8000/api/v1';
+const TOKKEN = document.getElementById('apiTokken').value;
+
+const ENDPOINTS = {
+    professions: { url: `${BASE_URL}/param/get-professions-nsil`, method: 'GET' },
+    villes:      { url: `${BASE_URL}/param/get-villes-nsil`,      method: 'GET' }
+};
+
+/* ================= NAVIGATION ================= */
+document.querySelectorAll('.menu-item[data-target]').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.endpoint-card').forEach(c => c.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById(item.dataset.target).classList.add('active');
+    });
+});
+
+/* ================= APPEL API ================= */
+async function callApi(key) {
+    const endpoint = ENDPOINTS[key];
+    const statusEl = document.getElementById(`status-${key}`);
+    const metaEl   = document.getElementById(`meta-${key}`);
+    const respEl   = document.getElementById(`response-${key}`);
+
+    // État : chargement
+    statusEl.style.display = 'inline-block';
+    statusEl.className = 'status-badge status-loading';
+    statusEl.textContent = '⏳ Chargement...';
+    metaEl.style.display = 'none';
+    respEl.innerHTML = '<div class="empty-state">Requête en cours...</div>';
+
+    const startTime = performance.now();
+
+    try {
+        const res = await fetch(endpoint.url, {
+            method: endpoint.method,
+            headers: { 
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${TOKKEN}`
+             }
+        });
+
+        const duration = Math.round(performance.now() - startTime);
+        const text = await res.text();
+        let data;
+
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = text;
+        }
+
+        // Statut
+        if (res.ok) {
+            statusEl.className = 'status-badge status-success';
+            statusEl.textContent = `✔ ${res.status} ${res.statusText}`;
+        } else {
+            statusEl.className = 'status-badge status-error';
+            statusEl.textContent = `✖ ${res.status} ${res.statusText}`;
+        }
+
+        // Meta
+        metaEl.style.display = 'flex';
+        const count = Array.isArray(data) ? data.length : 'N/A';
+        metaEl.innerHTML = `
+            <span>⏱ ${duration} ms</span>
+            <span>📦 ${count} élément(s)</span>
+            <span>📄 ${res.headers.get('content-type') || 'N/A'}</span>
+        `;
+
+        // Réponse formatée
+        respEl.textContent = JSON.stringify(data, null, 2);
+
+    } catch (err) {
+        const duration = Math.round(performance.now() - startTime);
+        statusEl.className = 'status-badge status-error';
+        statusEl.textContent = '✖ Erreur réseau';
+        metaEl.style.display = 'flex';
+        metaEl.innerHTML = `<span>⏱ ${duration} ms</span><span>❌ ${err.message}</span>`;
+        respEl.textContent = `Erreur : ${err.message}\n\nVérifiez la console ou la connectivité réseau.`;
+    }
+}
+
+
+/* ================= COPIER URL ================= */
+function copyUrl(key) {
+    const url = ENDPOINTS[key].url;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = event.target;
+        const original = btn.textContent;
+        btn.textContent = '✔ Copié !';
+        setTimeout(() => btn.textContent = original, 1500);
+    });
+}
+
+/* ================= EFFACER ================= */
+function clearResponse(key) {
+    const statusEl = document.getElementById(`status-${key}`);
+    const metaEl   = document.getElementById(`meta-${key}`);
+    const respEl   = document.getElementById(`response-${key}`);
+    statusEl.style.display = 'none';
+    metaEl.style.display = 'none';
+    respEl.innerHTML = '<div class="empty-state">Cliquez sur « Exécuter » pour lancer la requête.</div>';
+}
+</script>
+
+
+
+</body>
+</html>

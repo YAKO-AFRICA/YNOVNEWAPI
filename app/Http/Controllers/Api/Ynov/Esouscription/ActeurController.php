@@ -3,65 +3,32 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Models\Api\Ynov\Esouscription\Acteur;
+use App\Services\Api\Ynov\Esouscription\ActeurService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 class ActeurController extends Controller
 {
+    public function __construct(private ActeurService $acteurService)
+    {
+
+    }
+
     /**
      * Liste des acteurs
      */
     public function getActeurs(Request $request)
     {
         try {
-            $query = Acteur::query();
-
-            // Filtres
-            if ($request->filled('uuid_acteur')) {
-                $query->where('uuid_acteur', $request->uuid_acteur);
-            }
-
-            if ($request->filled('idClient')) {
-                $query->where('idClient', $request->idClient);
-            }
-
-            if ($request->filled('code')) {
-                $query->where('code', $request->code);
-            }
-
-            if ($request->filled('nom')) {
-                $query->where('nom', 'like', '%' . $request->nom . '%');
-            }
-
-            if ($request->filled('prenoms')) {
-                $query->where('prenoms', 'like', '%' . $request->prenoms . '%');
-            }
-
-            if ($request->filled('email')) {
-                $query->where('email', $request->email);
-            }
-
-            if ($request->filled('nni')) {
-                $query->where('nni', $request->nni);
-            }
-
-            if ($request->filled('etat')) {
-                if ($request->etat === 'actif') {
-                    $query->whereNull('deleted_at');
-                }
-
-                if ($request->etat === 'supprime') {
-                    $query->onlyTrashed();
-                }
-            }
-
-            $acteurs = $query
-                ->orderBy('created_at', 'desc')
-                ->paginate($request->input('per_page', 10));
+            $acteurs = $this->acteurService->getActeurs(
+                $request->only(['uuid_acteur', 'idClient', 'code', 'nom', 'prenoms', 'email', 'nni', 'etat']),
+                (int) $request->input('per_page', 10)
+            );
 
             return response()->json([
                 'success' => true,
@@ -90,7 +57,7 @@ class ActeurController extends Controller
     {
         try {
 
-            $acteur = Acteur::where('uuid_acteur', $uuid)->first();
+            $acteur = $this->acteurService->findByUuid($uuid);
 
             if (!$acteur) {
                 return response()->json([
@@ -122,10 +89,12 @@ class ActeurController extends Controller
     /**
      * Créer un acteur
      */
+
     public function storeActeur(Request $request)
     {
 
-        Log::info('storeActeur request: ' . json_encode($request->all()));
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa    avant ');
+
         $validatedData = $request->validate([
 
             'civilite' => 'nullable|string|max:25',
@@ -149,46 +118,17 @@ class ActeurController extends Controller
 
             'lieuresidence_code' => 'nullable|string|max:100',
             'pays_code' => 'nullable|string|max:50',
+            'integration_key' => 'nullable|string|max:255',
+            'created_by' => 'nullable|string|max:255',
         ]);
 
-        Log::info('storeActeur request vbalidation: ' . json_encode($validatedData));
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        Log::info($validatedData);
 
-        DB::beginTransaction();
+        $validatedData['uuid_acteur'] = Str::uuid();
 
         try {
-
-            $code = Refgenerate(Acteur::class, 'AC', 'code');
-
-            Log::info('debut insertion code : ' . $code);
-
-            $acteur = Acteur::create([
-                'uuid_acteur' => Str::uuid(),
-                'code' => $code,
-                
-                'civilite' => $validatedData['civilite'] ?? null,
-                'genre' => $validatedData['genre'] ?? null,
-                'nom' => $validatedData['nom'] ?? null,
-                'prenoms' => $validatedData['prenoms'] ?? null,
-                'date_naissance' => $validatedData['date_naissance'] ?? null,
-                'lieunaissance_code' => $validatedData['lieunaissance_code'] ?? null,
-                'email' => $validatedData['email'] ?? null,
-                'mobile' => $validatedData['mobile'] ?? null,
-                'telephone' => $validatedData['telephone'] ?? null,
-                'numero_piece' => $validatedData['numero_piece'] ?? null,
-                'nni' => $validatedData['nni'] ?? null,
-                'nature_piece' => $validatedData['nature_piece'] ?? null,
-                'situation_matrimoniale' => $validatedData['situation_matrimoniale'] ?? null,
-                'profession_code' => $validatedData['profession_code'] ?? null,
-                'employeur' => $validatedData['employeur'] ?? null,
-                'lieuresidence_code' => $validatedData['lieuresidence_code'] ?? null,
-                'pays_code' => $validatedData['pays_code'] ?? null,
-                'integration_key' => $validatedData['integration_key'] ?? null,
-                'created_by' => $validatedData['created_by'] ?? null,
-            ]);
-
-            Log::info('fin insertion code : ');
-
-            DB::commit();
+            $acteur = $this->acteurService->create($validatedData);
 
             return response()->json([
                 'success' => true,
@@ -198,10 +138,7 @@ class ActeurController extends Controller
             ], 201);
 
         } catch (Throwable $e) {
-            Log::error('Erreur lors de la création de l’acteur: ' . $e->getMessage());
-
-            DB::rollBack();
-
+            Log::error("Error de creation de l'acteur: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la création de l’acteur',
@@ -212,12 +149,15 @@ class ActeurController extends Controller
     }
 
 
+
+
+
     /**
      * Modifier un acteur
      */
-    public function update(Request $request, $uuid)
+    public function updateActeur(Request $request, $uuid)
     {
-        $acteur = Acteur::where('uuid_acteur', $uuid)->first();
+        $acteur = $this->acteurService->findByUuid($uuid);
 
         if (!$acteur) {
             return response()->json([
@@ -255,16 +195,14 @@ class ActeurController extends Controller
 
             'integration_key' => 'sometimes|nullable|string|max:255',
 
-            'updated_by' => 'sometimes|nullable|uuid',
+            'updated_by' => 'sometimes|nullable|string|max:255',
         ]);
 
-        DB::beginTransaction();
+        Log::info('validatedDataaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        Log::info($validatedData);
 
         try {
-
-            $acteur->update($validatedData);
-
-            DB::commit();
+            $acteur = $this->acteurService->update($acteur, $validatedData);
 
             return response()->json([
                 'success' => true,
@@ -274,9 +212,6 @@ class ActeurController extends Controller
             ], 200);
 
         } catch (Throwable $e) {
-
-            DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la mise à jour de l’acteur',
@@ -298,9 +233,7 @@ class ActeurController extends Controller
      */
     public function destroy(Request $request, $uuid)
     {
-        $acteur = Acteur::withTrashed()
-            ->where('uuid_acteur', $uuid)
-            ->first();
+        $acteur = $this->acteurService->findWithTrashedByUuid($uuid);
 
         if (!$acteur) {
             return response()->json([
@@ -310,19 +243,15 @@ class ActeurController extends Controller
             ], 404);
         }
 
-        DB::beginTransaction();
-
         try {
+            $isForceDelete = $request->input('deleting') === 'full';
+            $this->acteurService->delete(
+                $acteur,
+                $isForceDelete,
+                $request->input('deleted_by')
+            );
 
-            /*
-             * Suppression définitive
-             */
-            if ($request->input('deleting') === 'full') {
-
-                $acteur->forceDelete();
-
-                DB::commit();
-
+            if ($isForceDelete) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Acteur supprimé définitivement',
@@ -330,17 +259,6 @@ class ActeurController extends Controller
                     'data' => null,
                 ], 200);
             }
-
-            /*
-             * Suppression logique
-             */
-            $acteur->update([
-                'deleted_by' => $request->input('deleted_by'),
-            ]);
-
-            $acteur->delete();
-
-            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -350,9 +268,6 @@ class ActeurController extends Controller
             ], 200);
 
         } catch (Throwable $e) {
-
-            DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la suppression de l’acteur',
@@ -368,9 +283,7 @@ class ActeurController extends Controller
      */
     public function restoreActeur($uuid)
     {
-        $acteur = Acteur::onlyTrashed()
-            ->where('uuid_acteur', $uuid)
-            ->first();
+        $acteur = $this->acteurService->findTrashedByUuid($uuid);
 
         if (!$acteur) {
             return response()->json([
@@ -380,17 +293,8 @@ class ActeurController extends Controller
             ], 404);
         }
 
-        DB::beginTransaction();
-
         try {
-
-            $acteur->restore();
-
-            $acteur->update([
-                'deleted_by' => null,
-            ]);
-
-            DB::commit();
+            $acteur = $this->acteurService->restore($acteur);
 
             return response()->json([
                 'success' => true,
@@ -400,9 +304,6 @@ class ActeurController extends Controller
             ], 200);
 
         } catch (Throwable $e) {
-
-            DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la restauration de l’acteur',

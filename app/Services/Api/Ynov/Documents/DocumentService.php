@@ -145,6 +145,7 @@ class DocumentService
                 return count($documentsCrees) === 1 ? $documentsCrees[0] : $documentsCrees;
             });
         } catch (\Throwable $e) {
+            Log::info('erreur de transaction', $e->getMessage());
             foreach ($createdPaths as $path) {
                 if (is_string($path) && $path !== '') {
                     $this->supprimer($path);

@@ -6,16 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StorePartnerRequest;
 use App\Http\Requests\Api\Ynov\UpdatePartnerRequest;
 use App\Http\Resources\Api\Ynov\PartnerResource;
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Partner;
+use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\PartnerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PartnerController extends Controller
 {
     public function __construct(
-        private PartnerService $partnerService
+        private PartnerService $partnerService,
+        private DocumentService $documentService,
     ) {}
+
+
 
     /**
      * Liste des partenaires
@@ -46,35 +54,107 @@ class PartnerController extends Controller
     /**
      * Créer un partenaire
      */
-    public function store(StorePartnerRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
+        Log::info('PartnerController@store - données reçues', $request->all());
+
+        $validator = Validator::make($request->all(), [
+            'code'        => 'required|string|max:55|unique:partners,code',
+            'code_contractant' => 'required|string|max:255',
+            'designation' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'logo' => 'nullable|file|max:' . config('documents.max_size'),
+            'is_active' => 'nullable|boolean',
+            'status' => 'nullable|string|max:100',
+            'created_by' => 'nullable|string|max:255',
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
         $partner = $this->partnerService->create(
-            $request->validated(),
+            $validator->validated(),
             $request->user()->uuid_user
         );
+
+        if ($partner) {
+            // ==================== 4. Documents ====================
+
+            $DocumentDatas = [
+                [
+                    'file'    => $request->file('logo'),  
+                    'libelle' => 'Logo_' . $partner->code,
+                ]
+            ];
+
+            Log::info('Données des documents', $DocumentDatas);
+
+            $payload = [
+                'reference_uuid' => $partner->uuid_partner,
+                'source'         => 'E-SOUSCRIPTION',
+                'created_by'     => $request->user()->uuid_user,
+                'documents'      => $DocumentDatas,
+            ];
+
+            $documentStore = $this->documentService->createDocument($payload);
+
+            Log::info('[DocumentService] copieDirecte tttttttt', $documentStore);
+
+            if (!$documentStore) {
+                throw new \Exception("Échec de l'enregistrement des documents.");
+            }
+
+            $chemin = $documentStore['chemin_relatif']
+                ?? $documentStore['copieDirecte'][0]['chemin_relatif']
+                ?? $documentStore['copieDirecte']['chemin_relatif']
+                ?? null;
+
+            $partner->logo = $chemin;
+            $partner->save();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Partenaire créé avec succès.',
-            'code' => 'PARTNER_CREATED',
-            'data' => new PartnerResource($partner),
+            'code'    => 'PARTNER_CREATED',
+            'data'    => new PartnerResource($partner),
         ], 201);
     }
+
+    
 
     /**
      * Détails d'un partenaire
      */
-    public function show(string $uuid_partner): JsonResponse
+    public function showPartenaire(string $uuid_partner): JsonResponse
     {
         $partner = Partner::where('uuid_partner', $uuid_partner)
             ->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users'])
             ->firstOrFail();
+
+            $document = Document::withoutTrashed()->where('reference_uuid', $uuid_partner)->first();
+
+            if (!$document) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Document introuvable.',
+                ], 404);
+            }
+
+            $url = url('preview/doc/' . $document->nom_fichier);
 
         return response()->json([
             'success' => true,
             'message' => 'Détails du partenaire.',
             'code' => 'PARTNER_FOUND',
             'data' => new PartnerResource($partner),
+            'document_url' => $url,
         ]);
     }
 

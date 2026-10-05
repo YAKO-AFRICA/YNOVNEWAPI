@@ -32,6 +32,32 @@ Route::get('/', function () {
     return view('documentation.index');
 });
 
+Route::get('/get-doc-test', function () {
+
+    $path = '2023080908171171.jpg';
+
+
+    if (!Storage::disk('ftp_remote')->exists($path)) {
+        Log::warning('Fichier introuvable sur le FTP', [
+            'path' => $path,
+        ]);
+
+        return response()->json([
+            'message' => 'Fichier introuvable',
+        ], 404);
+    }
+
+    $fichier = Storage::disk('ftp_remote')->get($path);
+
+    return Response::make($fichier, 200, [
+        'Content-Type' => 'image/jpeg',
+        'Content-Disposition' => 'inline',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+});
+
+
+
 Route::get('storage/documents/{file}', function ($file) {
     // Nettoyer le nom du fichier
     $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);

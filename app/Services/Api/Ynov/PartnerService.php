@@ -2,10 +2,11 @@
 // app/Services/Api/Ynov/PartnerService.php
 namespace App\Services\Api\Ynov;
 
-use App\Models\Api\Ynov\parameter\Partner;
 use App\Models\Api\Ynov\parameter\ActivityLog;
-use Illuminate\Support\Str;
+use App\Models\Api\Ynov\parameter\Partner;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PartnerService
 {
@@ -14,35 +15,20 @@ class PartnerService
      */
     public function create(array $data, string $creatorUuid): Partner
     {
+
+        Log::info('Creating partner with data with service partenaire : ' . json_encode($data));
         return DB::transaction(function () use ($data, $creatorUuid) {
             $partner = Partner::create([
                 'uuid_partner' => (string) Str::uuid(),
                 'code' => $data['code'],
+                'code_contractant' => $data['code_contractant'] ?? null,
                 'designation' => $data['designation'],
-                'sigle' => $data['sigle'] ?? null,
                 'description' => $data['description'] ?? null,
                 'logo' => $data['logo'] ?? null,
-                'code_branche' => $data['code_branche'] ?? null,
-                'email' => $data['email'] ?? null,
-                'email_2' => $data['email_2'] ?? null,
-                'telephone' => $data['telephone'] ?? null,
-                'telephone_2' => $data['telephone_2'] ?? null,
-                'adresse' => $data['adresse'] ?? null,
-                'ville' => $data['ville'] ?? null,
-                'pays' => $data['pays'] ?? null,
-                'site_web' => $data['site_web'] ?? null,
-                'latitude' => $data['latitude'] ?? null,
-                'longitude' => $data['longitude'] ?? null,
-                'type' => $data['type'] ?? null,
-                'secteur_activite' => $data['secteur_activite'] ?? null,
-                'categorie' => $data['categorie'] ?? null,
-                'config' => $data['config'] ?? null,
-                'metadata' => $data['metadata'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
                 'status' => $data['status'] ?? 'actif',
-                'date_agrement' => $data['date_agrement'] ?? null,
-                'date_expiration' => $data['date_expiration'] ?? null,
-                'created_by' => $creatorUuid,
+                'created_by' => $data['created_by'] ?? $creatorUuid,
+                
             ]);
 
             ActivityLog::log([
@@ -72,30 +58,13 @@ class PartnerService
             $partner->update([
                 'code' => $data['code'] ?? $partner->code,
                 'designation' => $data['designation'] ?? $partner->designation,
-                'sigle' => $data['sigle'] ?? $partner->sigle,
+                'code_contractant' => $data['code_contractant'] ?? $partner->code_contractant,
                 'description' => $data['description'] ?? $partner->description,
                 'logo' => $data['logo'] ?? $partner->logo,
-                'code_branche' => $data['code_branche'] ?? $partner->code_branche,
-                'email' => $data['email'] ?? $partner->email,
-                'email_2' => $data['email_2'] ?? $partner->email_2,
-                'telephone' => $data['telephone'] ?? $partner->telephone,
-                'telephone_2' => $data['telephone_2'] ?? $partner->telephone_2,
-                'adresse' => $data['adresse'] ?? $partner->adresse,
-                'ville' => $data['ville'] ?? $partner->ville,
-                'pays' => $data['pays'] ?? $partner->pays,
-                'site_web' => $data['site_web'] ?? $partner->site_web,
-                'latitude' => $data['latitude'] ?? $partner->latitude,
-                'longitude' => $data['longitude'] ?? $partner->longitude,
-                'type' => $data['type'] ?? $partner->type,
-                'secteur_activite' => $data['secteur_activite'] ?? $partner->secteur_activite,
-                'categorie' => $data['categorie'] ?? $partner->categorie,
-                'config' => $data['config'] ?? $partner->config,
-                'metadata' => $data['metadata'] ?? $partner->metadata,
                 'is_active' => $data['is_active'] ?? $partner->is_active,
                 'status' => $data['status'] ?? $partner->status,
-                'date_agrement' => $data['date_agrement'] ?? $partner->date_agrement,
-                'date_expiration' => $data['date_expiration'] ?? $partner->date_expiration,
-                'updated_by' => $updaterUuid,
+                'created_by' => $data['created_by'] ?? $partner->created_by,
+                
             ]);
 
             ActivityLog::log([
