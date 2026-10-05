@@ -45,6 +45,47 @@ class ParamController extends Controller
         ]);
     }
 
+    // function show reseau product
+    public function showReseauProduct($uuid_reseau)
+    {
+
+        if (!$uuid_reseau) {
+            return response()->json([
+                'success' => false,
+                'code' => 'RESEAU_UUID_REQUIRED',
+                'message' => 'UUid du reseau requis pour récupérer le produit par réseau',
+            ], 400);
+        }
+
+        try {
+            
+            $productByReseau = ReseauProduct::with('produit','reseau')->where('reseau_uuid', $uuid_reseau)->first();
+
+            if (!$productByReseau) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'RESEAU_PRODUCT_NOT_FOUND',
+                    'message' => 'Produit par réseau introuvable',
+                ], 404);
+            }
+
+
+            return response()->json([
+                'success' => true,
+                'code' => 'RESEAU_PRODUCT_SUCCESS',
+                'message' => 'Liste des produits par réseau récupérée avec succès',
+                'data' => $productByReseau,
+            ],200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'code' => 'RESEAU_PRODUCT_ERROR',
+                'message' => $e->errors(),
+            ], 500);
+        }
+    }
+
     /**
      * Ajouter un produit à un réseau
      */

@@ -1069,6 +1069,7 @@ Route::prefix('v1')->middleware([
 
     Route::prefix('param')->group(function () {
         Route::get('get-reseau-product', [ParamController::class, 'getReseauProducts']);
+        Route::get('get-reseau-product/{uuid_reseau}', [ParamController::class, 'showReseauProduct']);
         Route::post('store-product-reseau', [ParamController::class, 'storeReseauProduct']);
         Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
