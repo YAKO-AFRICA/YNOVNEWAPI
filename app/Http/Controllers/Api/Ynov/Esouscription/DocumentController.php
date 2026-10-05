@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Document;
-use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\Documents\WebDavService;
 use App\Services\DocumentUploadService;
 use Illuminate\Http\JsonResponse;
@@ -167,7 +166,7 @@ class DocumentController extends Controller
         }
 
         /** @var \Illuminate\Http\UploadedFile $file */
-        $file      = $request->file('fichier');
+        $file      = $validator->validated()['fichier'];
         $extension = strtolower($file->getClientOriginalExtension());
 
         // --- 2. Vérification de l'extension (whitelist) ---
@@ -415,7 +414,7 @@ class DocumentController extends Controller
     public function showDocument(string $uuid): JsonResponse
     {
         try {
-            $document = Document::withTrashed()->find($uuid);
+            $document = Document::withTrashed()->where('uuid_document', $uuid)->first();
 
             if (!$document) {
                 return response()->json([
@@ -466,7 +465,7 @@ class DocumentController extends Controller
         DB::beginTransaction();
 
         try {
-            $document = Document::find($uuid);
+            $document = Document::where('uuid_document', $uuid)->first();
 
             if (!$document) {
                 return response()->json([
@@ -507,7 +506,7 @@ class DocumentController extends Controller
         DB::beginTransaction();
 
         try {
-            $document = Document::find($uuid);
+            $document = Document::where('uuid_document', $uuid)->first();
 
             if (!$document) {
                 return response()->json([
@@ -545,7 +544,7 @@ class DocumentController extends Controller
         DB::beginTransaction();
 
         try {
-            $document = Document::onlyTrashed()->find($uuid);
+            $document = Document::onlyTrashed()->where('uuid_document', $uuid)->first();
 
             if (!$document) {
                 return response()->json([
@@ -582,7 +581,7 @@ class DocumentController extends Controller
         DB::beginTransaction();
 
         try {
-            $document = Document::withTrashed()->find($uuid);
+            $document = Document::withTrashed()->where('uuid_document', $uuid)->first();
 
             if (!$document) {
                 return response()->json([
