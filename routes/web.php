@@ -797,51 +797,24 @@ Route::prefix('signature')->group(function () {
     // })->name('signature.demo.proof');
 });
 
-// Route::get('preview/doc/{file}', function ($file) {
-//     $doc = Document::where('nom_fichier', $file)->first();
-//     if (!$doc) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Document introuvable .',
-//         ]);
-//     }
-//     $path = base_path($doc->chemin);
+// Route::get('storage/doc/{file}', function ($file) {
+//     // Nettoyer le nom du fichier
+//     $path = base_path(env('DOC_PATH') . $file);
+
+
+//     // Si toujours pas trouvé
 //     if (!file_exists($path)) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Le fichier nom_fichier ' . $doc->nom_fichier . ' n\'existe pas dans le repertoire.',
-//         ]);
+//         abort(404, 'Fichier non trouvé: ' . $file);
 //     }
+
 //     $fileContents = file_get_contents($path);
 //     $mimeType = mime_content_type($path);
-//     return Response::make(
-//         $fileContents,
-//         200,
-//         [
-//             'Content-Type' => $mimeType,
-//             'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
-//         ]
-//     );
-// })->where('file', '.*');
 
-Route::get('storage/doc/{file}', function ($file) {
-    // Nettoyer le nom du fichier
-    $path = base_path(env('DOC_PATH') . $file);
-
-
-    // Si toujours pas trouvé
-    if (!file_exists($path)) {
-        abort(404, 'Fichier non trouvé: ' . $file);
-    }
-
-    $fileContents = file_get_contents($path);
-    $mimeType = mime_content_type($path);
-
-    return Response::make($fileContents, 200, [
-        'Content-Type' => $mimeType,
-        'Cache-Control' => 'public, max-age=86400',
-    ]);
-})->where('file', '.*')->name('storage.documents');
+//     return Response::make($fileContents, 200, [
+//         'Content-Type' => $mimeType,
+//         'Cache-Control' => 'public, max-age=86400',
+//     ]);
+// })->where('file', '.*')->name('storage.documents');
 
 Route::get('preview/doc/{file}', function ($file) {
     $doc = Document::where('nom_fichier', $file)->first();

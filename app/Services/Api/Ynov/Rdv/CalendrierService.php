@@ -2,6 +2,7 @@
 
 namespace App\Services\Api\Ynov\Rdv;
 
+use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\Rdv;
 use Carbon\Carbon;
 
@@ -10,7 +11,7 @@ class CalendrierService
     /**
      * Obtenir le calendrier des rendez-vous pour un mois donné
      */
-    public function getCalendrierMois(int $mois, int $annee, ?string $agenceUuid = null, ?string $gestionnaireUuid = null): array
+    public function getCalendrierMois(User $user, int $mois, int $annee, ?string $agenceUuid = null, ?string $gestionnaireUuid = null): array
     {
         $dateDebut = Carbon::create($annee, $mois, 1)->startOfDay();
         $dateFin = Carbon::create($annee, $mois, 1)->endOfMonth()->endOfDay();
@@ -19,6 +20,12 @@ class CalendrierService
         $query = Rdv::whereBetween('date_rdv_effective', [$dateDebut, $dateFin])
             ->whereIn('status', ['transmis', 'reporte', 'traite', 'expire', 'en_attente']);
 
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->where('created_by', $user->uuid_user);
+        }
         
 
         if ($agenceUuid) {
