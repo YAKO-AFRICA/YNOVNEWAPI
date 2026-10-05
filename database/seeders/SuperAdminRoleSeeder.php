@@ -123,6 +123,23 @@ class SuperAdminRoleSeeder extends Seeder
                 'status' => 'actif',
             ]
         );
+
+        // ============================================================
+        // Rôle Gestionnaire accueil client
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'gestionnaire_accueil'],
+            [
+                'libelle' => 'Gestionnaire Accueil',
+                'description' => "Rôle gestionnaire accueil disposant de droits étendus pour l'accueil des clients.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 7,
+                'priority' => 7,
+                'status' => 'actif',
+            ]
+        );
     }
 }
 

@@ -379,12 +379,18 @@ class PrestationController extends Controller
         $perPage = $request->getPerPage();
 
         $user = $request->user();
+        $filters['user'] = $user;
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_prestation')) {
             $filters['gestionnaire_uuid'] = $user->uuid_user;
         }
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('client')) {
             $filters['client_uuid'] = $user->uuid_user;
+        }
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $filters['partner_uuid'] = $user->partner_uuid;
         }
 
         $prestations = $this->prestationService->getPrestations($filters, $perPage);

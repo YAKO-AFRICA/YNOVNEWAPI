@@ -770,15 +770,19 @@ Route::prefix('v1')->middleware([
             ->middleware('permission:prestations.creer');
 
 
-
         // ============================================================
         // ASSIGNATION ET ROUTAGE
         // ============================================================
-        Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
-            ->middleware('permission:prestations.retransmettre');
+        // Route::prefix('routing')->group(function () {
+            Route::post('reassign-multiple', [PrestationRoutingController::class, 'reassignMultiple'])
+                ->middleware('permission:prestations.retransmettre');
 
-        Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
-            ->middleware('permission:prestations.modifier');
+            Route::post('{uuid_prestation}/reassign', [PrestationRoutingController::class, 'reassign'])
+                ->middleware('permission:prestations.retransmettre');
+
+            Route::post('{uuid_prestation}/assign', [PrestationRoutingController::class, 'assignSingle'])
+                ->middleware('permission:prestations.modifier');
+        // });
 
         // ============================================================
         // TRAITEMENT
@@ -864,6 +868,12 @@ Route::prefix('v1')->middleware([
 
         Route::get('dashboard/{uuid_bordereau}', [BordereauDashboardController::class, 'show'])
             ->middleware('permission:rdvs.afficher');
+
+        Route::put('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
+            ->middleware('permission:rdvs.afficher');
+
+        Route::patch('details/{uuid_detail_bordereau_rdv}', [BordereauController::class, 'updateDetail'])
+            ->middleware('permission:rdvs.afficher');
     });
 
     Route::prefix('rdvs')->group(function () {
@@ -929,15 +939,20 @@ Route::prefix('v1')->middleware([
         
         Route::get('get-motifs-traitement/', [MotifTraitementController::class, 'index']);
 
-        // Recuperer les produits de tranformation pour un RDV
-        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
-
+        
         // Rééquilibrer la charge des gestionnaires
         Route::post('reequilibrer', [RoutingController::class, 'reequilibrer']);
+
+        // Réassigner plusieurs RDV manuellement avec notification groupée
+        Route::post('reassigner-multiple', [RoutingController::class, 'reassignerMultiple'])->middleware('permission:rdvs.retransmettre');
+
         
         // Réassigner un RDV manuellement
         Route::post('{uuid_rdvs}/reassigner', [RoutingController::class, 'reassigner'])->middleware('permission:rdvs.retransmettre');
         
+        // Recuperer les produits de tranformation pour un RDV
+        Route::get('{uuid_rdvs}/produits-transformation', [RdvController::class, 'getProduitsTransformation']);
+
         // Traiter un RDV (effectuer le traitement)
         Route::post('{uuid_rdvs}/traiter', [TraitementController::class, 'traiter'])->middleware('permission:rdvs.traiter');
         

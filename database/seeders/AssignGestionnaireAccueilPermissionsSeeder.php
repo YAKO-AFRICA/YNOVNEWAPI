@@ -7,9 +7,30 @@ use App\Models\Api\Ynov\parameter\RolePermission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
-class AssignAdminRdvPermissionsSeeder extends Seeder
+class AssignGestionnaireAccueilPermissionsSeeder extends Seeder
 {
     private const PERMISSIONS = [
+        // ============================================================
+        // RDV - Consultation et création limitée
+        // ============================================================
+        'rdvs.afficher',
+        'rdvs.creer',
+        // 'rdvs.modifier', // Pas de modification pour gestionnaire accueil
+        // 'rdvs.annuler', // Pas d'annulation pour gestionnaire accueil
+        // 'rdvs.traiter', // Pas de traitement pour gestionnaire accueil
+        // 'rdvs.reporter', // Pas de report pour gestionnaire accueil
+        'rdvs.calendrier',
+        // 'rdvs.retransmettre', // Réassignation limitée
+
+        // ============================================================
+        // PRESTATIONS - Consultation et création limitée
+        // ============================================================
+        'prestations.afficher',
+        'prestations.creer',
+        // 'prestations.modifier', // Pas de modification pour gestionnaire accueil
+        // 'prestations.annuler', // Pas d'annulation pour gestionnaire accueil
+        // 'prestations.traiter', // Pas de traitement pour gestionnaire accueil
+
 
         // ============================================================
         // AUTHENTIFICATION - Sécurité de base
@@ -19,40 +40,35 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
         'auth.devices',
         'auth.login_attempts',
         'auth.2fa',
-        
+
         // ============================================================
         // PROFIL - Gestion du profil
         // ============================================================
         'profile.afficher',
         'profile.modifier',
-        
+
         // ============================================================
         // NOTIFICATIONS - Consultation des notifications
         // ============================================================
         'notifications.afficher',
 
+        // ============================================================
+        // AGENCES - Consultation des agences
+        // ============================================================
+        'agences.afficher',
 
-        'rdvs.afficher',
-        'rdvs.creer', // à retirer
-        'rdvs.modifier',
-        'rdvs.supprimer',
-        'rdvs.annuler',
-        // 'rdvs.traiter',
-        'rdvs.rejeter',
-        // 'rdvs.reporter',
-        'rdvs.retransmettre',
-        'rdvs.expirer',
-        'rdvs.export',
-        'rdvs.gerer_notifications',
-        'rdvs.calendrier',
+        // ============================================================
+        // PRODUITS - Consultation des produits
+        // ============================================================
+        'produits.afficher',
     ];
 
     public function run(): void
     {
-        $role = Role::where('code', 'admin_rdv')->first();
+        $role = Role::where('code', 'gestionnaire_accueil')->first();
 
         if (!$role) {
-            $this->command->warn('⚠️  Le rôle "admin_rdv" n\'existe pas. Exécutez d\'abord le seeder des rôles.');
+            $this->command->warn('⚠️  Le rôle "gestionnaire_accueil" n\'existe pas. Exécutez d\'abord le seeder des rôles.');
             return;
         }
 
@@ -83,7 +99,7 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
                     'metadata' => [
                         'assigned_by_seeder' => true,
                         'assigned_at' => now()->toDateTimeString(),
-                        'role_type' => 'admin_rdv',
+                        'role_type' => 'gestionnaire_accueil',
                     ],
                 ]);
                 $assigned++;
@@ -92,7 +108,7 @@ class AssignAdminRdvPermissionsSeeder extends Seeder
             }
         }
 
-        $this->command->info("✅ {$assigned} permissions assignées pour le rôle admin_rdv");
+        $this->command->info("✅ {$assigned} permissions assignées pour le rôle gestionnaire_accueil");
         if ($skipped > 0) {
             $this->command->info("⏭️  {$skipped} permissions déjà existantes (ignorées)");
         }

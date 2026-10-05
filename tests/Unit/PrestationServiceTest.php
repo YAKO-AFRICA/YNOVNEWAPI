@@ -2,14 +2,16 @@
 
 namespace Tests\Unit;
 
-use Tests\TestCase;
-use App\Services\Api\Ynov\Prestation\PrestationService;
 use App\Models\Api\Ynov\parameter\CategoryTypePrestation;
 use App\Models\Api\Ynov\parameter\TypePrestation;
+use App\Services\Api\Ynov\Prestation\PrestationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class PrestationServiceTest extends TestCase
 {
+    use RefreshDatabase;
     private PrestationService $prestationService;
 
     protected function setUp(): void

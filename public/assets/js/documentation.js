@@ -14264,6 +14264,135 @@
                 ],
             },
             {
+                id: "prestations-reassign-multiple",
+                module: "prestations",
+                name: "Réassigner manuellement plusieurs prestations",
+                description:
+                    "Réassigne manuellement plusieurs prestations à un autre gestionnaire en une seule opération avec une notification groupée. Vérifie que le nouveau gestionnaire existe et a le rôle 'gestionnaire_prestation'. Envoie une seule notification groupée au nouveau gestionnaire avec la liste des prestations.",
+                method: "POST",
+                path: "/prestations/reassign-multiple",
+                isProtected: true,
+                permissionsRequired: ["prestations.retransmettre"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        prestation_uuids: {
+                            type: "array",
+                            required: true,
+                            description: "Liste des UUIDs des prestations à réassigner",
+                            items: {
+                                type: "uuid",
+                            },
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du nouveau gestionnaire",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            description: "Observation sur la réassignation",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "transmis", "accepte", "rejete", "annule"],
+                            description: "Nouveau statut des prestations",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    prestation_uuids: [
+                        "550e8400-e29b-41d4-a716-446655440003",
+                        "550e8400-e29b-41d4-a716-446655440004",
+                        "550e8400-e29b-41d4-a716-446655440005",
+                    ],
+                    gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    observation: "Réassignation groupée pour optimisation",
+                    status: "transmis",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Prestations réassignées avec succès",
+                        example: {
+                            success: true,
+                            code: "PRESTATIONS_REASSIGNEES",
+                            message: "3 prestation(s) réassignée(s) avec succès.",
+                            data: {
+                                total: 3,
+                                reassignees: 3,
+                                echecs: 0,
+                                details: [
+                                    {
+                                        prestation_code: "PREST-001",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440001",
+                                    },
+                                    {
+                                        prestation_code: "PREST-002",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440001",
+                                    },
+                                    {
+                                        prestation_code: "PREST-003",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440001",
+                                    },
+                                ],
+                                gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                gestionnaire_label: "Jean Dupont",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Gestionnaire non trouvé",
+                        example: {
+                            success: false,
+                            message: "Le gestionnaire n'existe pas.",
+                            code: "GESTIONNAIRE_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Pas un gestionnaire de prestation",
+                        example: {
+                            success: false,
+                            message: "Cet utilisateur n'est pas un gestionnaire de prestation.",
+                            code: "NOT_GESTIONNAIRE_PRESTATION",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucune prestation trouvée",
+                        example: {
+                            success: false,
+                            message: "Aucune prestation trouvée.",
+                            code: "PRESTATIONS_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                prestation_uuids: ["La liste des prestations est requise."],
+                                gestionnaire_uuid: ["Le gestionnaire est requis."],
+                            },
+                            code: "VALIDATION_ERROR",
+                        },
+                    },
+                ],
+            },
+            {
                 id: "prestations-assign-single",
                 module: "prestations",
                 name: "Assigner automatiquement une prestation spécifique",
@@ -18866,6 +18995,170 @@
                 ],
             },
             // ============================================================
+            // 30. MODIFIER UNE LIGNE DE DETAIL DE BORDEAU
+            // ============================================================
+            {
+                id: "bordereaux-details-update",
+                module: "rdvs",
+                name: "[Bordereaux] Modifier une ligne de détail",
+                description:
+                    "Met à jour une ligne de détail de bordereau existante. Seuls les champs métier autorisés peuvent être modifiés. Si un champ n’est pas fourni dans la requête, la valeur actuelle est conservée. Cette route permet notamment de corriger la date d’effet, l’échéance, la durée du contrat, le type d’opération, le produit, les montants, l’observation ou le statut de la ligne.",
+                method: "PATCH",
+                path: "/bordereaux/details/{uuid_detail_bordereau_rdv}",
+                isProtected: true,
+                permissionsRequired: ["rdvs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_detail_bordereau_rdv: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la ligne de détail de bordereau à mettre à jour.",
+                        },
+                    },
+                    body: {
+                        date_effet: {
+                            type: "date",
+                            required: false,
+                            description: "Nouvelle date d’effet du contrat.",
+                        },
+                        date_echeance: {
+                            type: "date",
+                            required: false,
+                            description: "Nouvelle date d’échéance du contrat.",
+                        },
+                        duree_contrat: {
+                            type: "string",
+                            required: false,
+                            description: "Durée du contrat (ex. 12, 24, 36).",
+                        },
+                        type_operation: {
+                            type: "string",
+                            required: false,
+                            description: "Type d’opération associée à la ligne.",
+                        },
+                        produit: {
+                            type: "string",
+                            required: false,
+                            description: "Produit concerné par la ligne.",
+                        },
+                        cumul_rachats_partiels: {
+                            type: "number",
+                            required: false,
+                            description: "Cumul des rachats partiels.",
+                        },
+                        cumul_avances: {
+                            type: "number",
+                            required: false,
+                            description: "Cumul des avances.",
+                        },
+                        provision_nette: {
+                            type: "number",
+                            required: false,
+                            description: "Provision nette.",
+                        },
+                        valeur_rachat: {
+                            type: "number",
+                            required: false,
+                            description: "Valeur de rachat.",
+                        },
+                        valeur_max_rachat: {
+                            type: "number",
+                            required: false,
+                            description: "Valeur maximale de rachat.",
+                        },
+                        valeur_max_avance: {
+                            type: "number",
+                            required: false,
+                            description: "Valeur maximale d’avance.",
+                        },
+                        montant_transformation: {
+                            type: "number",
+                            required: false,
+                            description: "Montant de transformation.",
+                        },
+                        garantie_surete: {
+                            type: "number",
+                            required: false,
+                            description: "Garantie de sécurité.",
+                        },
+                        conservation_capital: {
+                            type: "number",
+                            required: false,
+                            description: "Montant de conservation du capital.",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 2000,
+                            description: "Observation ou commentaire sur la ligne.",
+                        },
+                        gestionnaire_prestation_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du gestionnaire prestation associé.",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            enum: ["en_attente", "soumis", "traite"],
+                            description: "Nouveau statut de la ligne.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    date_effet: "2026-10-01",
+                    observation: "Correction du montant suite à validation",
+                    status: "soumis",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Ligne de détail mise à jour avec succès.",
+                        example: {
+                            success: true,
+                            message: "La ligne du bordereau a bien été mise à jour.",
+                            code: "DETAIL_BORDEREAU_UPDATED",
+                            data: {
+                                uuid_detail_bordereau_rdv: "a3f9d9a1-17e0-4c75-a254-3210a71ba2fa",
+                                bordereau_rdv_uuid: "1d2e234b-aa10-49e1-8aa0-cc0d9f5f4371",
+                                rdv_uuid: "0d3f7c0e-1f17-4d8b-8a73-3948f7642e4d",
+                                status: "soumis",
+                                date_effet: "2026-10-01",
+                                date_echeance: "2027-10-01",
+                                duree_contrat: "12",
+                                produit: "Assurance Vie",
+                                observation: "Correction du montant suite à validation",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Ligne de bordereau introuvable.",
+                        example: {
+                            success: false,
+                            message: "Ligne de bordereau introuvable.",
+                            code: "DETAIL_BORDEREAU_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation sur un champ non autorisé ou invalide.",
+                        example: {
+                            success: false,
+                            message: "Les données fournies ne sont pas valides.",
+                            errors: {
+                                status: ["Le statut doit être l’un des suivants : en_attente, soumis, traite."],
+                            },
+                        },
+                    },
+                ],
+            },
+            // ============================================================
             // 30. TRANSMETTRE RDV PAR EMAIL
             // ============================================================
             {
@@ -19410,6 +19703,162 @@
                         },
                     },
                 ],
+            },
+
+            // ============================================================
+            // 16.5. TRAITEMENT - RÉASSIGNER PLUSIEURS GESTIONNAIRES
+            // ============================================================
+            {
+                id: "rdv-traitement-reassigner-multiple",
+                module: "rdvs",
+                name: "[Traitement] Réassigner plusieurs RDV manuellement",
+                description:
+                    "Réassigne manuellement plusieurs rendez-vous à un autre gestionnaire en une seule opération avec une notification groupée. Vérifie que le nouveau gestionnaire existe et appartient à l'agence des RDV. Envoie une seule notification groupée au nouveau gestionnaire avec la liste des RDV.",
+                method: "POST",
+                path: "/rdvs/traitement/reassigner-multiple",
+                isProtected: true,
+                permissionsRequired: ["rdvs.retransmettre"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        rdv_uuids: {
+                            type: "array",
+                            required: true,
+                            min: 1,
+                            description: "Tableau des UUID des RDV à réassigner",
+                            items: {
+                                type: "uuid",
+                                description: "UUID du rendez-vous (doit exister dans la table rdvs)",
+                            },
+                        },
+                        gestionnaire_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du nouveau gestionnaire",
+                        },
+                        motif_reassignations: {
+                            type: "array",
+                            required: true,
+                            min: 1,
+                            description: "Tableau des UUID des motifs de réassignation",
+                            items: {
+                                type: "uuid",
+                                description: "UUID du motif de traitement (doit exister dans la table motif_traitements)",
+                            },
+                        },
+                        agence_effective_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID de la nouvelle agence effective (optionnel)",
+                        },
+                        date_rdv_effective: {
+                            type: "date",
+                            required: false,
+                            description: "Nouvelle date du RDV effective (optionnel)",
+                        },
+                        observation: {
+                            type: "string",
+                            required: false,
+                            max: 1000,
+                            description: "Observation",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    rdv_uuids: [
+                        "550e8400-e29b-41d4-a716-446655440010",
+                        "550e8400-e29b-41d4-a716-446655440011",
+                        "550e8400-e29b-41d4-a716-446655440012"
+                    ],
+                    gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440021",
+                    motif_reassignations: [
+                        "550e8400-e29b-41d4-a716-446655440003",
+                        "550e8400-e29b-41d4-a716-446655440004"
+                    ],
+                    agence_effective_uuid: "550e8400-e29b-41d4-a716-446655440005",
+                    date_rdv_effective: "2026-09-15",
+                    observation: "Réassignation groupée pour optimisation de la charge",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "RDV réassignés avec succès",
+                        example: {
+                            success: true,
+                            code: "RDVS_REASSIGNES",
+                            message: "3 RDV réassigné(s) avec succès.",
+                            data: {
+                                total: 3,
+                                reassignees: 3,
+                                echecs: 0,
+                                details: [
+                                    {
+                                        rdv_code: "RDV-20260706-AbC12345",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440020"
+                                    },
+                                    {
+                                        rdv_code: "RDV-20260706-AbC12346",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440020"
+                                    },
+                                    {
+                                        rdv_code: "RDV-20260706-AbC12347",
+                                        status: "reassignee",
+                                        ancien_gestionnaire: "550e8400-e29b-41d4-a716-446655440020"
+                                    }
+                                ],
+                                gestionnaire_uuid: "550e8400-e29b-41d4-a716-446655440021",
+                                gestionnaire_label: "Konan Blaise"
+                            }
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: "Gestionnaire non trouvé",
+                        example: {
+                            success: false,
+                            message: "Le gestionnaire n'existe pas.",
+                            code: "GESTIONNAIRE_NOT_FOUND"
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: "Gestionnaire n'appartient pas à l'agence",
+                        example: {
+                            success: false,
+                            message: "Le gestionnaire n'appartient pas à cette agence.",
+                            code: "GESTIONNAIRE_NOT_IN_AGENCE"
+                        }
+                    },
+                    {
+                        status: 404,
+                        description: "Aucun RDV trouvé",
+                        example: {
+                            success: false,
+                            message: "Aucun RDV trouvé.",
+                            code: "RDVS_NOT_FOUND"
+                        }
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                rdv_uuids: ["La liste des RDV est requise."],
+                                gestionnaire_uuid: ["Le nouveau gestionnaire est requis."],
+                                motif_reassignations: ["Au moins un motif de réassignation est requis."]
+                            },
+                            code: "VALIDATION_ERROR"
+                        }
+                    }
+                ]
             },
 
             // ============================================================

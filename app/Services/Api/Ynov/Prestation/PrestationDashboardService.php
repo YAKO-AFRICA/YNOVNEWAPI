@@ -15,6 +15,13 @@ class PrestationDashboardService
     {
         $query = Prestation::query();
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('created_by', $user->uuid_user);
+        }
+
         // Filtre par gestionnaire
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
@@ -74,6 +81,12 @@ class PrestationDashboardService
     public function getStatsByStatus(array $filters = []): array
     {
         $query = Prestation::query();
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('created_by', $user->uuid_user);
+        }
 
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);
@@ -150,6 +163,13 @@ class PrestationDashboardService
             )
             ->groupBy('type_prestations.uuid_type_prestation', 'type_prestations.libelle', 'type_prestations.code');
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('prestations.created_by', $user->uuid_user);
+        }
+
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('prestations.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
@@ -192,6 +212,7 @@ class PrestationDashboardService
      */
     public function getStatsByGestionnaire(array $filters = []): array
     {
+
         $query = Prestation::query()
             ->join('users', 'prestations.gestionnaire_uuid', '=', 'users.uuid_user')
             ->join('user_details', 'users.uuid_user', '=', 'user_details.user_uuid')
@@ -208,6 +229,12 @@ class PrestationDashboardService
             ->whereNotNull('prestations.gestionnaire_uuid')
             ->groupBy('users.uuid_user', 'users.email', 'user_details.nom', 'user_details.prenoms');
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('prestations.created_by', $user->uuid_user);
+        }
         if (isset($filters['client_uuid'])) {
             $query->where('prestations.client_uuid', $filters['client_uuid']);
         }
@@ -263,6 +290,13 @@ class PrestationDashboardService
             ->whereIn('status', ['en_attente', 'transmis'])
             ->with(['client.details', 'typePrestation.category'])
             ->orderBy('created_at', 'asc');
+
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('prestations.created_by', $user->uuid_user);
+        }
 
         if (isset($filters['client_uuid'])) {
             $query->where('client_uuid', $filters['client_uuid']);
@@ -337,6 +371,13 @@ class PrestationDashboardService
             ->whereNotNull('prestations.partner_uuid')
             ->groupBy('partners.uuid_partner', 'partners.designation', 'partners.code');
 
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('prestations.created_by', $user->uuid_user);
+        }
+
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('prestations.gestionnaire_uuid', $filters['gestionnaire_uuid']);
         }
@@ -380,6 +421,13 @@ class PrestationDashboardService
     public function getEvolution(array $filters = [], string $period = 'daily'): array
     {
         $query = Prestation::query();
+
+        $user = $filters['user'] ?? null;
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        
+            $query->where('created_by', $user->uuid_user);
+        }
 
         if (isset($filters['gestionnaire_uuid'])) {
             $query->where('gestionnaire_uuid', $filters['gestionnaire_uuid']);

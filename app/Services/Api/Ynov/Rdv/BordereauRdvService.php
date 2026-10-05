@@ -100,8 +100,24 @@ class BordereauRdvService
             });
         }
 
+        $user = $filters['user'] ?? null;
+
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('admin_prestation')) {
+            // $filters['status'] = 'transfere';
+            $query->whereIn('status', ['transfere', 'cloture']);
+        }
+
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
+        // if ($user && $user->hasRole('gestionnaire_rdv')) {
+            $agences = $user->agences()->pluck('uuid_agence')->toArray();
+            $filters['agence_uuid'] = $agences ?? null;
+            $query->whereHas('details.rdv', function ($q) use ($filters) {
+                $q->whereIn('agence_effective_uuid', [$filters['agence_uuid'], null]);
+            });
         }
 
         if (!empty($filters['reference'])) {
@@ -192,6 +208,79 @@ class BordereauRdvService
                 $q->where('motif_rdv', $filters['motif_uuid']);
             });
         }
+    }
+
+    public function updateDetail(string $uuidDetailBordereauRdv, array $data): array
+    {
+        $detail = DetailBordereauRdv::query()
+            ->where('uuid_detail_bordereau_rdv', $uuidDetailBordereauRdv)
+            ->first();
+
+        if (!$detail) {
+            return [
+                'success' => false,
+                'code' => 'DETAIL_BORDEREAU_NOT_FOUND',
+                'message' => 'Ligne de bordereau introuvable.',
+            ];
+        }
+
+        $authorizedFields = [
+            'date_effet',
+            'date_echeance',
+            'duree_contrat',
+            'type_operation',
+            'produit',
+            'cumul_rachats_partiels',
+            'cumul_avances',
+            'provision_nette',
+            'valeur_rachat',
+            'valeur_max_rachat',
+            'valeur_max_avance',
+            'montant_transformation',
+            'garantie_surete',
+            'conservation_capital',
+            'observation',
+            'gestionnaire_prestation_uuid',
+            'status',
+        ];
+
+        $payload = [];
+        foreach ($authorizedFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $payload[$field] = $data[$field];
+            }
+        }
+
+        if ($payload === []) {
+            return [
+                'success' => true,
+                'code' => 'DETAIL_BORDEREAU_UNCHANGED',
+                'message' => 'Aucune donnée à mettre à jour.',
+                'data' => $detail->fresh()->load([
+                    'bordereauRdv',
+                    'rdv.client.details',
+                    'rdv.motif',
+                    'rdv.gestionnaire.details',
+                    'soumisAgestionnairePrestation',
+                ]),
+            ];
+        }
+
+        $detail->fill($payload);
+        $detail->save();
+
+        return [
+            'success' => true,
+            'code' => 'DETAIL_BORDEREAU_UPDATED',
+            'message' => 'La ligne du bordereau a bien été mise à jour.',
+            'data' => $detail->fresh()->load([
+                'bordereauRdv',
+                'rdv.client.details',
+                'rdv.motif',
+                'rdv.gestionnaire.details',
+                'soumisAgestionnairePrestation',
+            ]),
+        ];
     }
 
     /**
@@ -758,6 +847,23 @@ class BordereauRdvService
         return $dateLimite;
     }
 
+    /**
+     * Vérifie si le lot doit être transféré (3 jours ouvrés avant RDV OU 60 RDV atteints)
+     */
+    protected function shouldTransferLot(BordereauRdv $lot): bool
+    {
+        // Condition 1 : 3 jours ouvrés avant le RDV
+        $dateEffective = Carbon::parse($lot->periode_1);
+        $dateLimite = $this->calculateTransferDate($dateEffective);
+        $conditionDate = now()->startOfDay()->gte($dateLimite);
+
+        // Condition 2 : 60 RDV dans le lot
+        $rdvCount = $lot->details()->count();
+        $conditionCount = $rdvCount >= 60;
+
+        return $conditionDate || $conditionCount;
+    }
+
     protected function computeLotStatus(Carbon $dateEffective): string
     {
         return now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))
@@ -765,14 +871,14 @@ class BordereauRdvService
             : 'en_attente';
     }
 
+    //
     protected function syncLotStatus(BordereauRdv $lot): void
     {
         if ($lot->status !== 'en_attente') {
             return;
         }
 
-        $dateEffective = Carbon::parse($lot->periode_1);
-        if (now()->startOfDay()->gte($this->calculateTransferDate($dateEffective))) {
+        if ($this->shouldTransferLot($lot)) {
             $lot->update([
                 'status' => 'transfere',
                 'updated_by' => $lot->created_by ?? null,

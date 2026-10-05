@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Rdv;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\Rdv\TransmettreRdvParEmailRequest;
+use App\Http\Requests\Api\Ynov\Rdv\UpdateDetailBordereauRdvRequest;
 use App\Http\Resources\Api\Ynov\BordereauRdvResource;
 use App\Http\Resources\Api\Ynov\DetailBordereauRdvResource;
 use App\Services\Api\Ynov\NotificationService;
@@ -26,6 +27,7 @@ class BordereauController extends Controller
      */
     public function indexLots(Request $request): JsonResponse
     {
+        $user = $request->user();
         $filters = $request->only([
             'search',
             'status',
@@ -35,11 +37,20 @@ class BordereauController extends Controller
             'reference',
             'agence_uuid',
             'gestionnaire_uuid',
+            'user',
             'motif_uuid',
             'sort_by',
             'sort_order',
             'per_page',
         ]);
+
+        $filters['user'] = $user;
+        
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
+        // if ($user && $user->hasRole('gestionnaire_rdv')) {
+            $filters['gestionnaire_uuid'] = $user->uuid_user;
+            $filters['status'] = 'cloture';
+        }
 
         $lots = $this->bordereauRdvService->listLots($filters);
 
@@ -63,47 +74,6 @@ class BordereauController extends Controller
      * Liste des lignes de détail de bordereau avec pagination et filtres.
      * En passant bordereau_rdv_uuid, on récupère le détail complet du lot.
      */
-    // public function indexDetails(Request $request): JsonResponse
-    // {
-    //     $filters = $request->only([
-    //         'search',
-    //         'status',
-    //         'date',
-    //         'date_debut',
-    //         'date_fin',
-    //         'bordereau_rdv_uuid',
-    //         'rdv_uuid',
-    //         'agence_uuid',
-    //         'gestionnaire_uuid',
-    //         'motif_uuid',
-    //         'sort_by',
-    //         'sort_order',
-    //         'per_page',
-    //     ]);
-
-    //     $user = $request->user();
-    //     if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_rdv')) {
-    //         // $filters['gestionnaire_uuid'] = $user->uuid_user;
-    //         // $filters['status'] = 'transmis';
-    //     }
-
-    //     $details = $this->bordereauRdvService->listDetails($bordereauRdvUuid,$filters);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Lignes de bordereau récupérées avec succès.',
-    //         'code' => 'BORDEAU_DETAILS_LISTED',
-    //         'data' => DetailBordereauRdvResource::collection($details),
-    //         'meta' => [
-    //             'current_page' => $details->currentPage(),
-    //             'per_page' => $details->perPage(),
-    //             'total' => $details->total(),
-    //             'last_page' => $details->lastPage(),
-    //             'filters' => $filters,
-    //         ],
-    //         'filters_disponibles' => $this->getDetailFiltersAvailable(),
-    //     ]);
-    // }
 
     public function indexDetails(Request $request): JsonResponse
     {
@@ -244,6 +214,27 @@ class BordereauController extends Controller
             'code' => $result['code'],
             'data' => $result['data'] ?? null,
         ], $result['status'] ?? 200);
+    }
+
+    /**
+     * Mettre à jour une ligne de détail de bordereau.
+     */
+    public function updateDetail(UpdateDetailBordereauRdvRequest $request, string $uuidDetailBordereauRdv): JsonResponse
+    {
+        $payload = $request->getUpdatableData();
+
+        $result = $this->bordereauRdvService->updateDetail($uuidDetailBordereauRdv, $payload);
+
+        if (!$result['success']) {
+            return response()->json($result, 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'code' => $result['code'],
+            'data' => new DetailBordereauRdvResource($result['data']),
+        ]);
     }
 
     /**

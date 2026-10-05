@@ -53,6 +53,7 @@ class PrestationListRequest extends FormRequest
     public function getFilters(): array
     {
         $filters = $this->only([
+            'user',
             'search',
             'status',
             'client_uuid',

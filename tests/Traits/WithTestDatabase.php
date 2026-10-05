@@ -2,12 +2,12 @@
 
 namespace Tests\Traits;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
 trait WithTestDatabase
 {
-    use RefreshDatabase;
+    // use RefreshDatabase;
 
     /**
      * Setup the test database
@@ -19,9 +19,9 @@ trait WithTestDatabase
             'database.default' => 'mysql',
             'database.connections.mysql.host' => env('DB_HOST', '51.255.64.8'),
             'database.connections.mysql.port' => env('DB_PORT', '3306'),
-            'database.connections.mysql.database' => env('DB_DATABASE', 'laloyale_bdynovtest'),
-            'database.connections.mysql.username' => env('DB_USERNAME', 'tyeeézrygerueazrgyazeza'),
-            'database.connections.mysql.password' => env('DB_PASSWORD', 'zaryztguzerfbuzy'),
+            'database.connections.mysql.database' => env('DB_DATABASE'),
+            'database.connections.mysql.username' => env('DB_USERNAME'),
+            'database.connections.mysql.password' => env('DB_PASSWORD'),
         ]);
 
         // Run migrations
