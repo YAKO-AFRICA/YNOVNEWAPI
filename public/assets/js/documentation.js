@@ -206,12 +206,14 @@
                 isHome: true,
             },
 
+            // doc check personne by NNI
+
             {
                 id: "get-personne-by-NNI",
                 module: "souscription",
-                name: "Vérifier un contrat avant inscription",
+                name: "Rechercher une personne par NNI",
                 description:
-                    "Permet de vérifier les informations d'un contrat avant l'inscription d'un client. Vérifie que le contrat existe, que la date de naissance correspond, et que le contrat n'est pas arrêté. Retourne les informations complètes du contrat.",
+                    "Permet de rechercher une personne par son NNI en utilisant l'api de l'ONECI.",
                 method: "POST",
                 path: "/esouscription/get-personne-by-NNI",
                 isProtected: true,
@@ -232,39 +234,127 @@
                     },
                 },
                 exampleRequest: {
-                    nni: "PROP2024001",
+                    nni: "11954244238",
                 },
                 responses: [
                     {
                         status: 200,
-                        description: "Contrat trouvé et valide",
+                        description: "Personne trouvée et valide",
                         example: {
                             success: true,
-                            message: "Contrat trouvé.",
+                            code: "CHECK_PERSON_BY_NNI_SUCCESS",
+                            message: "Personne trouvée.",
                             data: {},
                         },
                     },
                     {
-                        status: 422,
-                        description: "Contrat arrêté",
+                        status: 400,
+                        description: "Le NNI doit contenir 11 chiffre obligatoire",
                         example: {
                             success: false,
-                            code: "CONTRACT_FROZEN",
-                            message: "Ce contrat est arreté.",
+                            code: "CHECK_PERSON_BY_NNI_ERROR",
+                            message: "Le NNI doit contenir 11 chiffres.",
+                            data: {},
                         },
                     },
                     {
-                        status: 422,
-                        description: "Date de naissance incorrecte",
+                        status: 500,
+                        description: "Impossible de vérifier le NNI.",
                         example: {
                             success: false,
-                            code: "DATE_OF_BIRTH_MISMATCH",
-                            message:
-                                "La date de naissance saisie ne correspond pas à celle enregistrée dans le contrat.",
+                            code: "CHECK_PERSON_BY_NNI_ERROR",
+                            message: "Impossible de vérifier le NNI.",
                         },
-                    },
+                    }
+                    
                 ],
             },
+
+            // check adherent by idClient
+
+            {
+                id: "get-personne-by-idclient",
+                module: "souscription",
+                name: "Rechercher un adherent exisant en base par ID client",
+                description:
+                    "Permet de rechercher un adherent existant en base par son ID client.",
+                method: "POST",
+                path: "/esouscription/get-personne-by-idclient",
+                isProtected: true,
+                rateLimit: "throttle:6,1 (6 tentatives / minute)",
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        id_client: {
+                            type: "string",
+                            required: true,
+                            description:
+                                "id_client",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    id_client: "1102678526",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Adherent trouvé et valide",
+                        example: {
+                            success: true,
+                            code: "CHECK_ADHERENT_BY_IDCLIENT_SUCCESS",
+                            message: "Adherent trouvée.",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "IDCLIENT non valide ou null",
+                        example: {
+                            success: false,
+                            code: "CHECK_ADHERENT_BY_IDCLIENT_INCONNU",
+                            message: "Le parametre id_client est obligatoire ",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Adherent inexistant",
+                        example: {
+                            success: false,
+                            code: "CHECK_ADHERENT_BY_IDCLIENT_ERROR",
+                            message: "l'Adherent avec cet ID n'existe pas",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 500,
+                        description: "Impossible de vérifier le ID.",
+                        example: {
+                            success: false,
+                            code: "CHECK_ADHERENT_BY_IDCLIENT_ERROR",
+                            message: "Impossible de vérifier le ID.",
+                        },
+                    }
+                ],
+            },
+
+
+            
+
+            
+
+
+
+
+
+
+
+
         
             // ============================================================
             // 3.2 AUTHENTIFICATION — PUBLIQUES

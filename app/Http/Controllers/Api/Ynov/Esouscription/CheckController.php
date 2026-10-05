@@ -8,6 +8,7 @@ use App\Models\Api\Ynov\Esouscription\ContratActeur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class CheckController extends Controller
 {
@@ -28,9 +29,41 @@ class CheckController extends Controller
                 ->timeout(15)
                 ->get($url);
 
-            return response()->json($response->json(), $response->status());
+                
+                // Log du contenu brut pour debug
+                Log::info("RNPP API status: " . $response->status());
+                Log::info("RNPP API body: " . $response->body());
+
+                $data = $response->json();
+
+                if ($response->status() === 400) {
+                    return response()->json([
+                        'success' => false,
+                        'code'    => 'CHECK_PERSON_BY_NNI_ERROR',
+                        'message' => $data['message'] ?? 'Erreur de validation RNPP',
+                    ], 400);
+                }
+
+                if ($response->failed()) {
+                    return response()->json([
+                        'success' => false,
+                        'code'    => 'RNPP_API_ERROR',
+                        'message' => $data['message'] ?? 'Erreur API RNPP',
+                    ], $response->status());
+                }
+
+
+            return response()->json([
+                'success' => true,
+                'code' => 'CHECK_PERSON_BY_NNI_SUCCESS',
+                'message' => 'Personne trouvée avec le NNI ' . $validated['nni'] . '.',
+                'data' => $response->json(),
+            ],200);
+            
         } catch (\Throwable $th) {
             return response()->json([
+                'success' => false,
+                'code' => 'CHECK_PERSON_BY_NNI_ERROR',
                 'message' => 'Impossible de vérifier le NNI.',
             ], 500);
         }
@@ -38,15 +71,19 @@ class CheckController extends Controller
 
     public function getPersonByIdClient(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'id_client' => ['required', 'string'],
         ]);
 
-        if(!$request->has('id_client')){
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Le parametre id_client est obligatoire.',
-            ], 404);
+                'success' => false,
+                'code'    => 'CHECK_ADHERENT_BY_IDCLIENT_INCONNU',
+                'message' => 'Le parametre id_client est obligatoire',
+            ], 400);
         }
+
+        $validated = $validator->validated();
 
         try {
 
@@ -54,12 +91,15 @@ class CheckController extends Controller
 
             if(!$clienTrouver){
                 return response()->json([
-                    'message' => 'Le client n\'existe pas.',
+                    'success' => false,
+                    'code' => 'CHECK_ADHERENT_BY_IDCLIENT_ERROR',
+                    'message' => 'L\'adherent avec ID ' . $validated['id_client'] . ' n\'existe pas.',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
+                'code' => 'CHECK_ADHERENT_BY_IDCLIENT_SUCCESS',
                 'message' => 'Le client avec l\'id ' . $validated['id_client'] . ' est trouvée.',
                 'data' => $clienTrouver,
             ]);
@@ -68,8 +108,10 @@ class CheckController extends Controller
             Log::error("Error de recuperation du client: " . $th->getMessage());
 
             return response()->json([
-                'message' => 'Le client n\'existe pas.',
-            ], 404);
+                'success' => false,
+                'code' => 'CHECK_ADHERENT_BY_IDCLIENT_ERROR',
+                'message' => 'Erreur de recuperation du client.',
+            ], 500);
         }
     }
 }
