@@ -351,6 +351,7 @@ class PropositionController extends Controller
                     'observation'                   => $contratData['observation'] ?? null,
                     'bulletin_num'                  => $contratData['bulletin_num'] ?? null,
                     'formule'                       => $contratData['formule'] ?? null,
+                    'source_data'                   => $contratData['source_data'] ?? null,
                     'integration_key'               => $keyIntegration,
                     'created_by'                    => $contratData['created_by'] ?? $createdBy,
                 ];

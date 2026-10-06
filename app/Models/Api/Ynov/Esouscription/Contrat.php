@@ -139,6 +139,7 @@ class Contrat extends Model
         'bulletin_num',
         'formule',
         'integration_key',
+        'source_data',
 
         // Traçabilité
         'created_by',
