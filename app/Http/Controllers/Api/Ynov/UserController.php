@@ -103,7 +103,7 @@ class UserController extends Controller
         // ================================================================
         // VÉRIFICATION D'ACCÈS AVEC LA POLICY
         // ================================================================
-        if (!$request->user()->can('view', $user)) {
+        if (!$request->user()->can('afficher', $user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'avez pas accès à cet utilisateur.',
@@ -136,7 +136,7 @@ class UserController extends Controller
         // ================================================================
         // VÉRIFICATION D'ACCÈS AVEC LA POLICY
         // ================================================================
-        if (!$request->user()->can('update', $user)) {
+        if (!$request->user()->can('modifier', $user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'avez pas le droit de modifier cet utilisateur.',
@@ -346,7 +346,7 @@ class UserController extends Controller
         // ================================================================
         // VÉRIFICATION D'ACCÈS AVEC LA POLICY
         // ================================================================
-        if (!$request->user()->can('delete', $user)) {
+        if (!$request->user()->can('supprimer', $user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'avez pas le droit de supprimer cet utilisateur.',
