@@ -2,6 +2,7 @@
 
 namespace App\Models\Api\Ynov\parameter;
 
+use App\Models\Api\Ynov\parameter\Produit;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,9 +29,5 @@ class ReseauProduct extends Model
     public function reseau()
     {
         return $this->belongsTo(Reseau::class, 'reseau_uuid', 'uuid_reseau');
-    }
-    public function produit()
-    {
-        return $this->belongsTo(Produit::class, 'product_uuid', 'uuid_produit');
     }
 }
