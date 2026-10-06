@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\Ynov\AgenceController;
 use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
+use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
+use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
@@ -91,6 +93,8 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/webdav/read', [DocumentController::class, 'read']);
     Route::put('/webdav/upload', [DocumentController::class, 'upload']);
+
+   
 
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
@@ -1148,6 +1152,14 @@ Route::prefix('v1')->middleware([
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
+
+
+        // simulateur de prime 
+         Route::post('simulateurs/doihoo', [DoihooSimulatorController::class, 'simulate'])
+        ->middleware('throttle:30,1');
+
+        Route::post('simulateurs/lprevo', [LprevoSimulatorController::class, 'simulate'])
+            ->middleware('throttle:30,1');
 
 
         
