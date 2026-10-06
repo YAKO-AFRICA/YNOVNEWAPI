@@ -11,7 +11,7 @@ class AssignGestionnaireRdvPermissionsSeeder extends Seeder
 {
     private const PERMISSIONS = [
         'rdvs.afficher',
-        'rdvs.creer', // à retirer
+        // 'rdvs.creer', // à retirer
         'rdvs.modifier',
         // 'rdvs.annuler',
         'rdvs.traiter',

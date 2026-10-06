@@ -50,13 +50,13 @@ class RoutingService
             ];
         }
 
-        // Vérifier si le client a déjà des RDV le même jour
-        $gestionnaireExistant = $this->getGestionnaireExistantPourClient($rdv);
+        // // Vérifier si le client a déjà des RDV le même jour
+        // $gestionnaireExistant = $this->getGestionnaireExistantPourClient($rdv);
 
-        if ($gestionnaireExistant) {
-            // Assigner au même gestionnaire
-            return $this->assignerAuGestionnaire($rdv, $gestionnaireExistant);
-        }
+        // if ($gestionnaireExistant) {
+        //     // Assigner au même gestionnaire
+        //     return $this->assignerAuGestionnaire($rdv, $gestionnaireExistant);
+        // }
 
         // Distribution équitable par agence et par jour
         $gestionnaireChoisi = $this->getGestionnaireParDistributionEquitable($rdv, $gestionnaires);
