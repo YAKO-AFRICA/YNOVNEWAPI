@@ -23,77 +23,6 @@ class UserService
         private readonly SMSService $SMSService,
         private NotificationService $notificationService,
     ) {}
-    // public function create(array $data, string $creatorUuid): User
-    // {
-    //     return DB::transaction(function () use ($data, $creatorUuid) {
-    //         $user = User::create([
-    //             'uuid_user' => (string) Str::uuid(),
-    //             'email' => $data['email'],
-    //             'login' => $data['login'] ?? null,
-    //             'password' => Hash::make($data['password']),
-    //             'role_uuid' => $data['role_uuid'],
-    //             'user_type' => $data['user_type'],
-    //             'partner_uuid' => $data['partner_uuid'] ?? null,
-    //             'reseau_uuid' => $data['reseau_uuid'] ?? null,
-    //             'status' => 'actif',
-    //             'is_first_login' => true,
-    //             'password_expires_at' => now()->addDays(90),
-    //         ]);
-
-    //         UserDetails::create([
-    //             'uuid_user_details' => (string) Str::uuid(),
-    //             'user_uuid' => $user->uuid_user,
-    //             'code_agent' => $data['code_agent'] ?? null,
-    //             'matricule' => $data['matricule'] ?? null,
-    //             'nom' => $data['nom'],
-    //             'prenoms' => $data['prenoms'],
-    //             'fonction' => $data['fonction'] ?? null,
-    //             'service' => $data['service'] ?? null,
-    //             'departement' => $data['departement'] ?? null,
-    //             'mobile_1' => $data['mobile_1'] ?? null,
-    //             'mobile_2' => $data['mobile_2'] ?? null,
-    //             'email_pro' => $data['email_pro'] ?? null,
-    //             'date_naissance' => $data['date_naissance'] ?? null,
-    //             'lieu_naissance' => $data['lieu_naissance'] ?? null,
-    //             'genre' => $data['genre'] ?? null,
-    //             'civilite' => $data['civilite'] ?? null,
-    //             'ville' => $data['ville'] ?? null,
-    //             'pays' => $data['pays'] ?? null,
-    //             'created_by' => $creatorUuid,
-    //         ]);
-
-    //         if (!empty($data['agence_uuid'])) {
-    //             $user->agences()->attach($data['agence_uuid'], [
-    //                 'uuid_user_agence' => (string) Str::uuid(),
-    //                 'is_primary' => true,
-    //                 'is_active' => true,
-    //                 'assigned_at' => now(),
-    //             ]);
-    //         }
-
-    //         // Créer une notification pour le nouvel utilisateur
-    //         $this->notificationService->create([
-    //             'user_uuid' => $user->uuid_user,
-    //             'group_notif_uuid' => $this->getWelcomeGroupUuid(),
-    //             'title' => '👋 Bienvenue sur YNOV',
-    //             'body' => 'Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
-    //             'type' => 'account',
-    //             'metadata' => [
-    //                 'created_at' => now()->toISOString(),
-    //             ],
-    //             'channel' => 'database',
-    //             'created_by' => $creatorUuid,
-    //         ]);
-
-    //         if ($user->email){
-    //             Mail::to($user->email)->queue(new WelcomeMail($user->fresh('details'), $data['password']));
-    //         }
-
-    //         return $user;
-    //     });
-    // }
-
-
 
     /**
      * Créer un utilisateur
@@ -453,50 +382,6 @@ class UserService
         }
 
     }
-
-    // public function update(User $user, array $data, string $updaterUuid): User
-    // {
-    //     return DB::transaction(function () use ($user, $data, $updaterUuid) {
-    //         $user->update([
-    //             'email' => $data['email'] ?? $user->email,
-    //             'login' => $data['login'] ?? $user->login,
-    //             'role_uuid' => $data['role_uuid'] ?? $user->role_uuid,
-    //             'user_type' => $data['user_type'] ?? $user->user_type,
-    //             'partner_uuid' => $data['partner_uuid'] ?? $user->partner_uuid,
-    //             'reseau_uuid' => $data['reseau_uuid'] ?? $user->reseau_uuid,
-    //             'status' => $data['status'] ?? $user->status,
-    //         ]);
-
-    //         if ($user->details) {
-    //             $user->details->update([
-    //                 'nom' => $data['nom'] ?? $user->details->nom,
-    //                 'prenoms' => $data['prenoms'] ?? $user->details->prenoms,
-    //                 'fonction' => $data['fonction'] ?? $user->details->fonction,
-    //                 'mobile_1' => $data['mobile_1'] ?? $user->details->mobile_1,
-    //                 'mobile_2' => $data['mobile_2'] ?? $user->details->mobile_2,
-    //                 'ville' => $data['ville'] ?? $user->details->ville,
-    //                 'updated_by' => $updaterUuid,
-    //             ]);
-    //         }
-
-    //         // Créer une notification pour la mise à jour du profil
-    //         $this->notificationService->create([
-    //             'user_uuid' => $user->uuid_user,
-    //             'group_notif_uuid' => $this->getAccountGroupUuid(),
-    //             'title' => '📝 Profil mis à jour',
-    //             'body' => 'Vos informations de profil ont été mises à jour avec succès.',
-    //             'type' => 'account',
-    //             'metadata' => [
-    //                 'updated_by' => $updaterUuid,
-    //                 'updated_at' => now()->toISOString(),
-    //             ],
-    //             'channel' => 'database',
-    //             'created_by' => $updaterUuid,
-    //         ]);
-
-    //         return $user->fresh();
-    //     });
-    // }
 
 
     /**

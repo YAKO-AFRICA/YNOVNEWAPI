@@ -24,7 +24,6 @@ class StoreUserRequest extends FormRequest
             'reseau_uuid' => ['nullable', 'exists:reseaux,uuid_reseau'],
             'agence_uuids' => ['nullable', 'array'],
             'agence_uuids.*' => ['exists:agences,uuid_agence'],
-            'agence_uuid' => ['nullable', 'exists:agences,uuid_agence'],
             'nom' => ['required', 'string', 'max:55'],
             'prenoms' => ['required', 'string', 'max:255'],
             'fonction' => ['nullable', 'string', 'max:55'],

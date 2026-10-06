@@ -3204,191 +3204,6 @@
                 ],
             },
 
-            // {
-            //     id: 'users-create',
-            //     module: 'users',
-            //     name: 'Créer un utilisateur',
-            //     description: 'Crée un nouvel utilisateur interne/partenaire/admin avec ses détails. Envoie un email de bienvenue.',
-            //     method: 'POST',
-            //     path: '/users',
-            //     isProtected: true,
-            //     permissionsRequired: ['users.creer'],
-            //     headers: {
-            //         'Authorization': 'Bearer {token}',
-            //         'Content-Type': 'application/json',
-            //         'Accept': 'application/json'
-            //     },
-            //     requestParams: {
-            //         body: {
-            //             email: {
-            //                 type: 'email',
-            //                 required: true,
-            //                 description: 'Email (unique)'
-            //             },
-            //             login: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 100,
-            //                 description: 'Identifiant (unique)'
-            //             },
-            //             password: {
-            //                 type: 'string',
-            //                 required: true,
-            //                 min: 12,
-            //                 description: 'Mot de passe'
-            //             },
-            //             role_uuid: {
-            //                 type: 'uuid',
-            //                 required: true,
-            //                 description: 'UUID du rôle'
-            //             },
-            //             user_type: {
-            //                 type: 'string',
-            //                 required: true,
-            //                 enum: ['client', 'user_interne', 'user_partner', 'admin'],
-            //                 description: 'Type'
-            //             },
-            //             partner_uuid: {
-            //                 type: 'uuid',
-            //                 required: false,
-            //                 description: 'UUID du partenaire'
-            //             },
-            //             reseau_uuid: {
-            //                 type: 'uuid',
-            //                 required: false,
-            //                 description: 'UUID du réseau'
-            //             },
-            //             agence_uuid: {
-            //                 type: 'uuid',
-            //                 required: false,
-            //                 description: 'UUID de l\'agence'
-            //             },
-            //             nom: {
-            //                 type: 'string',
-            //                 required: true,
-            //                 max: 55,
-            //                 description: 'Nom'
-            //             },
-            //             prenoms: {
-            //                 type: 'string',
-            //                 required: true,
-            //                 max: 255,
-            //                 description: 'Prénoms'
-            //             },
-            //             fonction: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 55,
-            //                 description: 'Fonction'
-            //             },
-            //             mobile_1: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 25,
-            //                 description: 'Téléphone'
-            //             }
-            //         }
-            //     },
-            //     exampleRequest: {
-            //         email: 'nouveau@ynov.ci',
-            //         login: 'nouveau',
-            //         password: 'Password123!',
-            //         role_uuid: 'role-uuid',
-            //         user_type: 'user_interne',
-            //         nom: 'Dupont',
-            //         prenoms: 'Jean'
-            //     },
-            //     responses: [{
-            //         status: 201,
-            //         description: 'Utilisateur créé',
-            //         example: {
-            //             success: true,
-            //             message: 'Utilisateur créé.',
-            //             data: {}
-            //         }
-            //     }]
-            // },
-
-            // {
-            //     id: 'users-update',
-            //     module: 'users',
-            //     name: 'Modifier un utilisateur',
-            //     description: 'Met à jour les informations d\'un utilisateur.',
-            //     method: 'PUT',
-            //     path: '/users/{uuid_user}',
-            //     isProtected: true,
-            //     permissionsRequired: ['users.modifier'],
-            //     headers: {
-            //         'Authorization': 'Bearer {token}',
-            //         'Content-Type': 'application/json',
-            //         'Accept': 'application/json'
-            //     },
-            //     requestParams: {
-            //         path: {
-            //             uuid_user: {
-            //                 type: 'uuid',
-            //                 required: true,
-            //                 description: 'UUID de l\'utilisateur'
-            //             }
-            //         },
-            //         body: {
-            //             email: {
-            //                 type: 'email',
-            //                 required: false,
-            //                 description: 'Email (unique)'
-            //             },
-            //             login: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 100,
-            //                 description: 'Identifiant'
-            //             },
-            //             role_uuid: {
-            //                 type: 'uuid',
-            //                 required: false,
-            //                 description: 'UUID du rôle'
-            //             },
-            //             user_type: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 enum: ['client', 'user_interne', 'user_partner', 'admin'],
-            //                 description: 'Type'
-            //             },
-            //             status: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 enum: ['actif', 'inactif', 'gele', 'bloque'],
-            //                 description: 'Statut'
-            //             },
-            //             nom: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 55,
-            //                 description: 'Nom'
-            //             },
-            //             prenoms: {
-            //                 type: 'string',
-            //                 required: false,
-            //                 max: 255,
-            //                 description: 'Prénoms'
-            //             }
-            //         }
-            //     },
-            //     exampleRequest: {
-            //         email: 'jean.updated@ynov.ci',
-            //         status: 'actif'
-            //     },
-            //     responses: [{
-            //         status: 200,
-            //         description: 'Utilisateur mis à jour',
-            //         example: {
-            //             success: true,
-            //             message: 'Utilisateur mis à jour.',
-            //             data: {}
-            //         }
-            //     }]
-            // },
-
             // ============================================================
             // UTILISATEURS - CRÉATION
             // ============================================================
@@ -3397,7 +3212,7 @@
                 module: "users",
                 name: "Créer un utilisateur",
                 description:
-                    "Crée un nouvel utilisateur interne/partenaire/admin avec ses détails. L'utilisateur doit être assigné à au moins une agence. Envoie un email de bienvenue.",
+                    "Crée un nouvel utilisateur avec ses détails. Gère les utilisateurs internes, partenaires, clients et administrateurs. Le mot de passe doit respecter les exigences de sécurité (min 12 caractères, majuscule, minuscule, chiffre, symbole). L'utilisateur peut être assigné à des agences via agence_uuids.",
                 method: "POST",
                 path: "/users",
                 isProtected: true,
@@ -3412,24 +3227,24 @@
                         email: {
                             type: "email",
                             required: true,
-                            description: "Email (unique)",
+                            description: "Email (unique et valide)",
                         },
                         login: {
                             type: "string",
                             required: false,
                             max: 100,
-                            description: "Identifiant (unique)",
+                            description: "Identifiant de connexion (unique, optionnel)",
                         },
                         password: {
                             type: "string",
                             required: true,
                             min: 12,
-                            description: "Mot de passe",
+                            description: "Mot de passe (min 12 caractères, au moins 1 majuscule, 1 minuscule, 1 chiffre, 1 symbole, non compromis)",
                         },
                         role_uuid: {
                             type: "uuid",
                             required: true,
-                            description: "UUID du rôle",
+                            description: "UUID du rôle (doit exister dans la table roles)",
                         },
                         user_type: {
                             type: "string",
@@ -3440,80 +3255,61 @@
                                 "user_partner",
                                 "admin",
                             ],
-                            description: "Type d'utilisateur",
+                            description: "Type d'utilisateur (client, user_interne, user_partner, admin)",
                         },
                         partner_uuid: {
                             type: "uuid",
                             required: false,
                             description:
-                                "UUID du partenaire (requis si user_type = user_partner)",
+                                "UUID du partenaire (requis si user_type = user_partner, doit exister dans la table partners)",
                         },
                         reseau_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "UUID du réseau",
+                            description: "UUID du réseau (doit exister dans la table reseaux)",
                         },
                         agence_uuids: {
                             type: "array",
-                            required: true,
-                            items: "uuid",
-                            minItems: 1,
-                            description:
-                                "Liste des UUIDs des agences (au moins une)",
-                        },
-                        agence_uuid: {
-                            type: "uuid",
                             required: false,
+                            items: "uuid",
                             description:
-                                "UUID de l'agence (déprécié, utiliser agence_uuids)",
+                                "Liste des UUIDs des agences (chaque UUID doit exister dans la table agences)",
                         },
                         nom: {
                             type: "string",
                             required: true,
                             max: 55,
-                            description: "Nom",
+                            description: "Nom de l'utilisateur",
                         },
                         prenoms: {
                             type: "string",
                             required: true,
                             max: 255,
-                            description: "Prénoms",
+                            description: "Prénoms de l'utilisateur",
                         },
                         fonction: {
                             type: "string",
                             required: false,
                             max: 55,
-                            description: "Fonction",
-                        },
-                        service: {
-                            type: "string",
-                            required: false,
-                            max: 100,
-                            description: "Service",
-                        },
-                        departement: {
-                            type: "string",
-                            required: false,
-                            max: 100,
-                            description: "Département",
+                            description: "Fonction ou poste occupé",
                         },
                         mobile_1: {
                             type: "string",
                             required: false,
                             max: 25,
-                            description: "Téléphone principal",
+                            description: "Numéro de téléphone principal",
                         },
-                        mobile_2: {
+                        genre: {
                             type: "string",
                             required: false,
-                            max: 25,
-                            description: "Téléphone secondaire",
+                            enum: ["M", "F"],
+                            description: "Genre (M pour Masculin, F pour Féminin)",
                         },
-                        email_pro: {
-                            type: "email",
+                        civilite: {
+                            type: "string",
                             required: false,
-                            max: 255,
-                            description: "Email professionnel",
+                            max: 20,
+                            description: "Civilité (M., Mme, Mlle, etc.)",
                         },
                         date_naissance: {
                             type: "date",
@@ -3524,46 +3320,38 @@
                         lieu_naissance: {
                             type: "string",
                             required: false,
-                            max: 255,
+                            max: 55,
                             description: "Lieu de naissance",
                         },
-                        genre: {
+                        lieu_residence: {
                             type: "string",
                             required: false,
-                            enum: ["M", "F"],
-                            description: "Genre",
+                            max: 255,
+                            description: "Lieu de résidence",
                         },
-                        civilite: {
-                            type: "string",
+                        photo: {
+                            type: "file",
                             required: false,
-                            enum: ["M.", "Mme", "Mlle"],
-                            description: "Civilité",
-                        },
-                        ville: {
-                            type: "string",
-                            required: false,
-                            max: 100,
-                            description: "Ville",
-                        },
-                        pays: {
-                            type: "string",
-                            required: false,
-                            max: 100,
-                            description: "Pays",
+                            max: 2048,
+                            description: "Photo de profil (image, max 2Mo)",
                         },
                     },
                 },
                 exampleRequest: {
                     email: "nouveau@ynov.ci",
                     login: "nouveau",
-                    password: "Password123!",
+                    password: "MonPassword123!",
                     role_uuid: "550e8400-e29b-41d4-a716-446655440000",
                     user_type: "user_interne",
                     nom: "Dupont",
                     prenoms: "Jean",
                     fonction: "Développeur",
-                    service: "IT",
                     mobile_1: "+2250701020304",
+                    genre: "M",
+                    civilite: "M.",
+                    date_naissance: "1990-05-15",
+                    lieu_naissance: "Abidjan",
+                    lieu_residence: "Cocody",
                     agence_uuids: [
                         "550e8400-e29b-41d4-a716-446655440001",
                         "550e8400-e29b-41d4-a716-446655440002",
@@ -3575,7 +3363,7 @@
                         description: "Utilisateur créé avec succès",
                         example: {
                             success: true,
-                            message: "Utilisateur créé avec succès.",
+                            message: "Utilisateur créé.",
                             data: {
                                 uuid_user:
                                     "550e8400-e29b-41d4-a716-446655440003",
@@ -3586,6 +3374,7 @@
                                 user_type: "user_interne",
                                 status: "actif",
                                 is_first_login: true,
+                                is_online: false,
                                 created_at: "2024-01-15T10:30:00.000000Z",
                                 details: {
                                     uuid_user_details:
@@ -3593,8 +3382,12 @@
                                     nom: "Dupont",
                                     prenoms: "Jean",
                                     fonction: "Développeur",
-                                    service: "IT",
                                     mobile_1: "+2250701020304",
+                                    genre: "M",
+                                    civilite: "M.",
+                                    date_naissance: "1990-05-15",
+                                    lieu_naissance: "Abidjan",
+                                    lieu_residence: "Cocody",
                                     created_by:
                                         "550e8400-e29b-41d4-a716-446655440005",
                                 },
@@ -3646,10 +3439,26 @@
                             message: "Erreur de validation.",
                             errors: {
                                 email: ["L'email est déjà utilisé."],
-                                agence_uuids: [
-                                    "Au moins une agence doit être sélectionnée.",
+                                password: [
+                                    "Le mot de passe doit contenir au moins 12 caractères.",
+                                    "Le mot de passe doit contenir au moins une majuscule et une minuscule.",
+                                    "Le mot de passe doit contenir au moins un chiffre.",
+                                    "Le mot de passe doit contenir au moins un symbole (+, *, #, etc...).",
                                 ],
+                                role_uuid: ["Le role n'existe pas."],
+                                partner_uuid: ["Le partenaire n'existe pas."],
+                                agence_uuids: ["Une ou plusieurs agences n'existent pas."],
+                                nom: ["Le nom est requis."],
+                                prenoms: ["Les prénoms sont requis."],
                             },
+                        },
+                    },
+                    {
+                        status: 403,
+                        description: "Permission refusée",
+                        example: {
+                            success: false,
+                            message: "Vous n'avez pas la permission de créer des utilisateurs.",
                         },
                     },
                 ],
@@ -3663,7 +3472,7 @@
                 module: "users",
                 name: "Modifier un utilisateur",
                 description:
-                    "Met à jour les informations d'un utilisateur. Les agences peuvent être ajoutées ou remplacées selon le paramètre replace.",
+                    "Met à jour les informations d'un utilisateur existant. Tous les champs sont optionnels. Les agences peuvent être mises à jour via des endpoints dédiés (assign, sync, etc.). Vérifie les droits d'accès via la Policy.",
                 method: "PUT",
                 path: "/users/{uuid_user}",
                 isProtected: true,
@@ -3678,25 +3487,25 @@
                         uuid_user: {
                             type: "uuid",
                             required: true,
-                            description: "UUID de l'utilisateur",
+                            description: "UUID de l'utilisateur à modifier",
                         },
                     },
                     body: {
                         email: {
                             type: "email",
                             required: false,
-                            description: "Email (unique)",
+                            description: "Email (doit être unique, ignoré si inchangé)",
                         },
                         login: {
                             type: "string",
                             required: false,
                             max: 100,
-                            description: "Identifiant",
+                            description: "Identifiant de connexion (doit être unique, ignoré si inchangé)",
                         },
                         role_uuid: {
                             type: "uuid",
                             required: false,
-                            description: "UUID du rôle",
+                            description: "UUID du nouveau rôle (doit exister dans la table roles)",
                         },
                         user_type: {
                             type: "string",
@@ -3707,45 +3516,49 @@
                                 "user_partner",
                                 "admin",
                             ],
-                            description: "Type",
+                            description: "Type d'utilisateur",
+                        },
+                        partner_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du partenaire (doit exister dans la table partners)",
+                        },
+                        reseau_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "UUID du réseau (doit exister dans la table reseaux)",
                         },
                         status: {
                             type: "string",
                             required: false,
                             enum: ["actif", "inactif", "gele", "bloque"],
-                            description: "Statut",
+                            description: "Statut du compte (actif, inactif, gele, bloque)",
                         },
                         agence_uuids: {
                             type: "array",
                             required: false,
                             items: "uuid",
                             minItems: 1,
-                            description: "Liste des UUIDs des agences",
+                            description: "Liste des UUIDs des agences (chaque UUID doit exister dans la table agences)",
                         },
-                        replace: {
-                            type: "boolean",
-                            required: false,
-                            default: false,
-                            description:
-                                "Si true, remplace toutes les agences. Si false, ajoute les nouvelles agences.",
-                        },
+                        
                         nom: {
                             type: "string",
                             required: false,
                             max: 55,
-                            description: "Nom",
+                            description: "Nom de l'utilisateur",
                         },
                         prenoms: {
                             type: "string",
                             required: false,
                             max: 255,
-                            description: "Prénoms",
+                            description: "Prénoms de l'utilisateur",
                         },
                         fonction: {
                             type: "string",
                             required: false,
                             max: 55,
-                            description: "Fonction",
+                            description: "Fonction ou poste occupé",
                         },
                         service: {
                             type: "string",
@@ -3763,13 +3576,13 @@
                             type: "string",
                             required: false,
                             max: 25,
-                            description: "Téléphone principal",
+                            description: "Numéro de téléphone principal",
                         },
                         mobile_2: {
                             type: "string",
                             required: false,
                             max: 25,
-                            description: "Téléphone secondaire",
+                            description: "Numéro de téléphone secondaire",
                         },
                         email_pro: {
                             type: "email",
@@ -3780,7 +3593,7 @@
                         date_naissance: {
                             type: "date",
                             required: false,
-                            description: "Date de naissance",
+                            description: "Date de naissance (format YYYY-MM-DD)",
                         },
                         lieu_naissance: {
                             type: "string",
@@ -3792,13 +3605,13 @@
                             type: "string",
                             required: false,
                             enum: ["M", "F"],
-                            description: "Genre",
+                            description: "Genre (M pour Masculin, F pour Féminin)",
                         },
                         civilite: {
                             type: "string",
                             required: false,
                             enum: ["M.", "Mme", "Mlle"],
-                            description: "Civilité",
+                            description: "Civilité (M., Mme, Mlle)",
                         },
                         ville: {
                             type: "string",
@@ -3816,14 +3629,26 @@
                 },
                 exampleRequest: {
                     email: "jean.updated@ynov.ci",
+                    login: "jean.dupont",
+                    role_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                    user_type: "user_interne",
                     status: "actif",
                     fonction: "Lead Développeur",
                     service: "IT",
+                    departement: "Développement",
+                    mobile_1: "+2250701020304",
+                    mobile_2: "+2250701020305",
+                    email_pro: "jean.dupont@ynov.ci",
+                    date_naissance: "1990-05-15",
+                    lieu_naissance: "Abidjan",
+                    genre: "M",
+                    civilite: "M.",
+                    ville: "Abidjan",
+                    pays: "Côte d'Ivoire",
                     agence_uuids: [
                         "550e8400-e29b-41d4-a716-446655440001",
                         "550e8400-e29b-41d4-a716-446655440003",
                     ],
-                    replace: true,
                 },
                 responses: [
                     {
@@ -3831,14 +3656,14 @@
                         description: "Utilisateur mis à jour avec succès",
                         example: {
                             success: true,
-                            message: "Utilisateur mis à jour avec succès.",
+                            message: "Utilisateur mis à jour.",
                             data: {
                                 uuid_user:
                                     "550e8400-e29b-41d4-a716-446655440003",
                                 email: "jean.updated@ynov.ci",
-                                login: "nouveau",
+                                login: "jean.dupont",
                                 role_uuid:
-                                    "550e8400-e29b-41d4-a716-446655440000",
+                                    "550e8400-e29b-41d4-a716-446655440001",
                                 user_type: "user_interne",
                                 status: "actif",
                                 updated_at: "2024-01-15T14:20:00.000000Z",
@@ -3847,7 +3672,23 @@
                                     prenoms: "Jean",
                                     fonction: "Lead Développeur",
                                     service: "IT",
+                                    departement: "Développement",
                                     mobile_1: "+2250701020304",
+                                    mobile_2: "+2250701020305",
+                                    email_pro: "jean.dupont@ynov.ci",
+                                    date_naissance: "1990-05-15",
+                                    lieu_naissance: "Abidjan",
+                                    genre: "M",
+                                    civilite: "M.",
+                                    ville: "Abidjan",
+                                    pays: "Côte d'Ivoire",
+                                },
+                                role: {
+                                    uuid_role:
+                                        "550e8400-e29b-41d4-a716-446655440001",
+                                    libelle: "Lead Développeur",
+                                    code: "LEAD_DEV",
+                                    is_super_admin: false,
                                 },
                                 agences: [
                                     {
@@ -3871,11 +3712,38 @@
                         },
                     },
                     {
+                        status: 403,
+                        description: "Accès refusé par la Policy",
+                        example: {
+                            success: false,
+                            message: "Vous n'avez pas le droit de modifier cet utilisateur.",
+                            code: "ACCESS_DENIED",
+                        },
+                    },
+                    {
                         status: 404,
                         description: "Utilisateur non trouvé",
                         example: {
                             success: false,
                             message: "Utilisateur non trouvé.",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                email: ["L'email est déjà utilisé."],
+                                login: ["Le login est déjà utilisé."],
+                                role_uuid: ["Le role n'existe pas."],
+                                partner_uuid: ["Le partenaire n'existe pas."],
+                                reseau_uuid: ["Le réseau n'existe pas."],
+                                status: ["Le statut est incorrect."],
+                                agence_uuids: ["Une ou plusieurs agences n'existent pas."],
+                                user_type: ["Le type d'utilisateur est incorrect."],
+                            },
                         },
                     },
                 ],
