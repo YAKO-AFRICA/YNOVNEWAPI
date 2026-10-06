@@ -4,8 +4,6 @@ use App\Http\Controllers\Api\Ynov\AgenceController;
 use App\Http\Controllers\Api\Ynov\AuditLogController;
 use App\Http\Controllers\Api\Ynov\AuthController;
 use App\Http\Controllers\Api\Ynov\DeviceController;
-use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
-use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
 use App\Http\Controllers\Api\Ynov\EmailVerificationController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
@@ -51,6 +49,8 @@ use App\Http\Controllers\Api\Ynov\RoleController;
 use App\Http\Controllers\Api\Ynov\SecurityQuestionController;
 use App\Http\Controllers\Api\Ynov\SessionController;
 use App\Http\Controllers\Api\Ynov\SignatureController;
+use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
+use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
@@ -1073,7 +1073,8 @@ Route::prefix('v1')->middleware([
 
     Route::prefix('param')->group(function () {
         Route::get('get-reseau-product', [ParamController::class, 'getReseauProducts']);
-        Route::get('get-reseau-product/{uuid_reseau}', [ParamController::class, 'showReseauProduct']);
+        Route::post('get-product-by-reseau', [ParamController::class, 'getProductByReseau']);
+        Route::post('get-product-by-partner', [ParamController::class, 'getProductByPartner']);
         Route::post('store-product-reseau', [ParamController::class, 'storeReseauProduct']);
         Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);

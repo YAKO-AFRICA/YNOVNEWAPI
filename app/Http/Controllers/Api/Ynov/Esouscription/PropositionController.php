@@ -33,6 +33,7 @@ class PropositionController extends Controller
 
                 $contratUuid = Str::uuid()->toString();
                 $keyIntegration = now()->format('Ymdh');
+                
 
                 $adherentData      = $request->adherentData ?? [];
                 $assurerDatas      = $request->assurerDatas ?? [];

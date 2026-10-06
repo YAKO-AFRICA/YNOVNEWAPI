@@ -95,6 +95,7 @@ class Produit extends Model
         return $this->hasMany(ProduitFormule::class, 'produit_uuid', 'uuid_produit');
     }
 
+
     /**
      * Relation avec les garanties du produit
      */
