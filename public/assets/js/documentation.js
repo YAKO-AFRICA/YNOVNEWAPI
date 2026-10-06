@@ -348,10 +348,482 @@
                 ],
             },
 
+            {
+                id: "reseau-products-list",
+                module: "souscription",
+                name: "Lister les produits associés aux réseaux",
+                description:
+                    "Récupère les associations entre réseaux, produits et formules. Les résultats sont paginés par 10.",
+                method: "GET",
+                path: "/param/get-reseau-product",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        reseau_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par UUID du réseau",
+                        },
+                        product_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par UUID du produit",
+                        },
+                        formule_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par UUID de la formule",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Associations récupérées avec succès",
+                        example: {
+                            success: true,
+                            message:
+                                "Liste des produits par réseau récupérée avec succès",
+                            code: 200,
+                            total: 1,
+                            data: {
+                                current_page: 1,
+                                data: [],
+                                per_page: 10,
+                                total: 1,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "reseau-products-by-network",
+                module: "souscription",
+                name: "Lister les produits d'un réseau",
+                description:
+                    "Récupère le réseau, ses produits et les détails des associations correspondantes.",
+                method: "POST",
+                path: "/param/get-product-by-reseau",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        reseau_uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID du réseau",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    reseau_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Produits du réseau récupérés",
+                        example: {
+                            success: true,
+                            code: "GET_RESEAU_PRODUCT_SUCCESS",
+                            message:
+                                "Liste des produits par réseau récupérée avec succès",
+                            data: {
+                                reseau: {},
+                                products: [],
+                                details_reseau_product: [],
+                            },
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "L'UUID du réseau est obligatoire",
+                        example: {
+                            success: false,
+                            code: "RESEAU_UUID_REQUIRED",
+                            message:
+                                "Le parametre reseau_uuid est obligatoire",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Réseau introuvable",
+                        example: {
+                            success: false,
+                            code: "RESEAU_NOT_FOUND",
+                            message: "Reseau introuvable",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "partner-products-list",
+                module: "souscription",
+                name: "Lister les produits d'un partenaire",
+                description:
+                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés par ce réseau.",
+                method: "POST",
+                path: "/param/get-product-by-partner",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_partner: {
+                            type: "string",
+                            required: true,
+                            description: "Code du partenaire/contractant",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    code_partner: "PARTNER001",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Produits du partenaire récupérés",
+                        example: {
+                            success: true,
+                            code: "GET_RESEAU_PRODUCT_SUCCESS",
+                            message:
+                                "Liste des produits par réseau récupérée avec succès",
+                            data: {
+                                reseau: {},
+                                products: [],
+                                details_reseau_product: [],
+                            },
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "Le code partenaire est obligatoire",
+                        example: {
+                            success: false,
+                            code: "CODE_PARTNER_REQUIRED",
+                            message:
+                                "Le parametre code_partner est obligatoire",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description:
+                            "Partenaire ou réseau associé introuvable",
+                    },
+                ],
+            },
+
+            {
+                id: "reseau-products-create",
+                module: "souscription",
+                name: "Associer un produit à un réseau",
+                description:
+                    "Crée une association entre un réseau, un produit et une formule. L'association est créée avec l'état « actif ».",
+                method: "POST",
+                path: "/param/store-product-reseau",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        reseau_uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID du réseau",
+                        },
+                        product_uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID du produit",
+                        },
+                        formule_uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID de la formule",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    reseau_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                    product_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    formule_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Produit associé au réseau",
+                        example: {
+                            success: true,
+                            message: "Produit ajouté au réseau avec succès",
+                            code: 201,
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Données obligatoires absentes ou invalides",
+                    },
+                ],
+            },
+
+            {
+                id: "reseau-products-update",
+                module: "souscription",
+                name: "Modifier une association produit-réseau",
+                description:
+                    "Modifie les UUID du réseau, du produit ou de la formule. Tous les champs sont facultatifs ; seuls les champs transmis sont mis à jour.",
+                method: "PUT",
+                path: "/param/update-product-reseau/{uuid}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID de l'association à modifier",
+                        },
+                    },
+                    body: {
+                        reseau_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Nouvel UUID du réseau",
+                        },
+                        product_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Nouvel UUID du produit",
+                        },
+                        formule_uuid: {
+                            type: "string",
+                            required: false,
+                            description: "Nouvel UUID de la formule",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    product_uuid: "550e8400-e29b-41d4-a716-446655440004",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Association mise à jour",
+                        example: {
+                            success: true,
+                            message:
+                                "Produit du réseau mis à jour avec succès",
+                            code: 200,
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Association produit-réseau introuvable",
+                        example: {
+                            success: false,
+                            message: "Produit du réseau introuvable",
+                            code: 404,
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Données invalides",
+                    },
+                ],
+            },
+
+            {
+                id: "reseau-products-delete",
+                module: "souscription",
+                name: "Désactiver ou supprimer une association produit-réseau",
+                description:
+                    "Désactive l'association en la passant à l'état « inactif ». Pour la supprimer définitivement, transmettre deleting=full.",
+                method: "DELETE",
+                path: "/param/delete-product-reseau/{uuid}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "string",
+                            required: true,
+                            description: "UUID de l'association à supprimer",
+                        },
+                    },
+                    query: {
+                        deleting: {
+                            type: "string",
+                            required: false,
+                            enum: ["full"],
+                            description:
+                                "Utiliser « full » pour une suppression définitive ; sans ce paramètre, l'association est désactivée",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description:
+                            "Association désactivée ou supprimée définitivement",
+                        example: {
+                            success: true,
+                            message:
+                                "Produit du réseau désactivé avec succès",
+                            code: 200,
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Association produit-réseau introuvable",
+                        example: {
+                            success: false,
+                            message: "Produit du réseau introuvable",
+                            code: 404,
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Valeur deleting invalide",
+                    },
+                ],
+            },
+
+            {
+                id: "villes-list",
+                module: "souscription",
+                name: "Lister les villes",
+                description:
+                    "Récupère les villes triées par libellé avec pagination. La recherche porte sur le code, le libellé et le pays.",
+                method: "GET",
+                path: "/param/villes",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description:
+                                "Rechercher dans le code, le libellé ou le pays",
+                        },
+                        code_pays: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par code du pays",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description:
+                                "Nombre de résultats par page (entre 1 et 100)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste paginée des villes",
+                        example: {
+                            success: true,
+                            message: "Liste des villes récupérée.",
+                            code: "VILLES_LISTED",
+                            data: {
+                                current_page: 1,
+                                data: [],
+                                per_page: 20,
+                                total: 0,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "professions-list",
+                module: "souscription",
+                name: "Lister les professions",
+                description:
+                    "Récupère les professions triées par libellé avec pagination. La recherche porte sur le code et le libellé.",
+                method: "GET",
+                path: "/param/professions",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description:
+                                "Rechercher dans le code ou le libellé",
+                        },
+                        code_profession: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par code de profession",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description:
+                                "Nombre de résultats par page (entre 1 et 100)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste paginée des professions",
+                        example: {
+                            success: true,
+                            message: "Liste des professions récupérée.",
+                            code: "PROFESSIONS_LISTED",
+                            data: {
+                                current_page: 1,
+                                data: [],
+                                per_page: 20,
+                                total: 0,
+                            },
+                        },
+                    },
+                ],
+            },
+
+
 
             
 
-            
 
 
 

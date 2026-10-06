@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\Partner;
+use App\Models\Api\Ynov\parameter\Produit;
+use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\ReseauProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -43,6 +47,78 @@ class ParamController extends Controller
             'total' => $productByReseau->total(),
             'data' => $productByReseau,
         ]);
+    }
+
+    // function pour avoir tout les produit commercialisé dans un reseau 
+    public function getProductByReseau(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'reseau_uuid' => ['required', 'string'],
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'RESEAU_UUID_REQUIRED',
+                'message' => 'Le parametre reseau_uuid est obligatoire',
+            ], 400);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            $reseau = Reseau::where('uuid_reseau', $validated['reseau_uuid'])->first();
+
+            if (!$reseau) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'RESEAU_NOT_FOUND',
+                    'message' => 'Reseau introuvable',
+                ], 404);
+            }
+            
+            $productByReseau = ReseauProduct::where('reseau_uuid', $validated['reseau_uuid'])->get();
+
+            if (!$productByReseau) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'RESEAU_PRODUCT_NOT_FOUND',
+                    'message' => 'Paramettrage des produits pour le réseau est introuvable',
+                ], 404);
+            }
+
+            $pluckedProductUuids = $productByReseau->pluck('product_uuid')->toArray();
+
+            $products = Produit::whereIn('uuid_produit', $pluckedProductUuids)->get();
+
+            if (!$products) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'PRODUCT_NOT_FOUND',
+                    'message' => 'Aucun produit correspondant aux paramètres trouvés pour le réseau',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'code' => 'GET_RESEAU_PRODUCT_SUCCESS',
+                'message' => 'Liste des produits par réseau récupérée avec succès',
+                'data' => [
+                    'reseau' => $reseau,
+                    'products' => $products,
+                    'details_reseau_product' => $productByReseau,
+                ]
+            ],200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'code' => 'RESEAU_PRODUCT_ERROR',
+                'message' => $e->errors(),
+            ], 500);
+        }
     }
 
     /**
@@ -227,6 +303,89 @@ class ParamController extends Controller
                 'message' => 'Une erreur est survenue lors de la suppression du produit',
                 'code' => 500,
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function getProductByPartner(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'code_partner' => ['required', 'string'],
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'CODE_PARTNER_REQUIRED',
+                'message' => 'Le parametre code_partner est obligatoire',
+            ], 400);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+
+            $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
+
+            if (!$partner) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'PARTNER_NOT_FOUND',
+                    'message' => 'Partenaire introuvable',
+                ], 404);
+            }
+
+            $reseau = Reseau::where('partner_uuid', $partner->uuid_partner)->first();
+
+            if (!$reseau) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'RESEAU_NOT_FOUND',
+                    'message' => 'Reseau introuvable',
+                ], 404);
+            }
+            
+            $productByReseau = ReseauProduct::where('reseau_uuid', $reseau->uuid_reseau)->get();
+
+            if (!$productByReseau) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'RESEAU_PRODUCT_NOT_FOUND',
+                    'message' => 'Paramettrage des produits pour le réseau est introuvable',
+                ], 404);
+            }
+
+            $pluckedProductUuids = $productByReseau->pluck('product_uuid')->toArray();
+
+            $products = Produit::whereIn('uuid_produit', $pluckedProductUuids)->get();
+
+            if (!$products) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'PRODUCT_NOT_FOUND',
+                    'message' => 'Aucun produit correspondant aux paramètres trouvés pour le réseau',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'code' => 'GET_RESEAU_PRODUCT_SUCCESS',
+                'message' => 'Liste des produits par réseau récupérée avec succès',
+                'data' => [
+                    'reseau' => $reseau,
+                    'products' => $products,
+                    'details_reseau_product' => $productByReseau,
+                ]
+            ],200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'code' => 'RESEAU_PRODUCT_ERROR',
+                'message' => $e->errors(),
             ], 500);
         }
     }
