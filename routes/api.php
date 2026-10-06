@@ -97,6 +97,7 @@ Route::prefix('v1')->group(function () {
    
 
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner'])->middleware('throttle:login');
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
 
@@ -1079,6 +1080,8 @@ Route::prefix('v1')->middleware([
         Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
 
+        
+
         // gestion des villes 
         Route::get('villes', [VilleController::class, 'indexVilles']);
         Route::post('villes', [VilleController::class, 'storeVille']);
@@ -1162,11 +1165,6 @@ Route::prefix('v1')->middleware([
 
         Route::post('simulateurs/lprevo', [LprevoSimulatorController::class, 'simulate'])
             ->middleware('throttle:30,1');
-
-
-        
-        
-
 
     });
 });
