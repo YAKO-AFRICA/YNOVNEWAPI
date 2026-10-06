@@ -114,4 +114,6 @@ class CheckController extends Controller
             ], 500);
         }
     }
+
+ 
 }

@@ -155,6 +155,11 @@
                 icon: "fa-boxes",
             },
 
+            simulateurs: {
+                label: "Simulateurs",
+                icon: "fa-calculator",
+            },
+
             prestations: {
                 label: "Prestations & Catégories",
                 icon: "fa-clipboard-list",
@@ -11913,6 +11918,261 @@
                             message:
                                 "Ce type de produit est associé à des produits et ne peut pas être supprimé.",
                             code: "TYPE_PRODUIT_IN_USE",
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
+            // SIMULATEURS
+            // ============================================================
+            {
+                id: "simulateur-doihoo",
+                module: "simulateurs",
+                name: "Simuler le produit Doihoo",
+                description:
+                    "Calcule la prime de chaque garantie Doihoo, le cumul des primes, les frais d’adhésion et le montant total à payer. La périodicité doit être un code reconnu par le service de tarification. Les montants de l’exemple de réponse sont illustratifs.",
+                method: "POST",
+                path: "/esouscription/simulateurs/doihoo",
+                isProtected: false,
+                rateLimit: "throttle:30,1 (30 simulations / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        CodeProduit: {
+                            type: "string",
+                            required: true,
+                            enum: ["DOIHOO_2020_IND"],
+                            description: "Code de la formule Doihoo individuelle",
+                        },
+                        CodePeriodicite: {
+                            type: "string",
+                            required: true,
+                            description:
+                                "Code de périodicité utilisé par le service de tarification (ex. M pour mensuel)",
+                        },
+                        Capital: {
+                            type: "number",
+                            required: true,
+                            min: 0.01,
+                            description: "Capital à assurer, strictement positif",
+                        },
+                        AgeAssure: {
+                            type: "integer",
+                            required: true,
+                            min: 18,
+                            max: 99,
+                            description: "Âge de l’assuré (de 18 à 99 ans)",
+                        },
+                        Duree: {
+                            type: "integer",
+                            required: true,
+                            enum: [8],
+                            description: "Durée du contrat Doihoo, fixée à 8 ans",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    CodeProduit: "DOIHOO",
+                    CodePeriodicite: "M",
+                    Capital: 1000000,
+                    AgeAssure: 35,
+                    Duree: 8,
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Simulation calculée avec succès",
+                        example: {
+                            success: true,
+                            message: "Simulation Doihoo calculée avec succès.",
+                            code: "DOIHOO_SIMULATION_SUCCESS",
+                            data: {
+                                garantieData: [
+                                    {
+                                        codeGarantie: "INV_2020",
+                                        libelle: "INVEST",
+                                        capital: 1000000,
+                                        prime: 12000,
+                                    },
+                                    {
+                                        codeGarantie: "DOI_2020",
+                                        libelle: "DOIHOO",
+                                        capital: 1000000,
+                                        prime: 2500,
+                                    },
+                                ],
+                                infoSimulation: {
+                                    codeProduit: "DOIHOO_2020_IND",
+                                    periodicite: "M",
+                                    capital: 1000000,
+                                    primepricipale: 14500,
+                                    age: 35,
+                                    duree: 8,
+                                    fraisAdhesion: 7500,
+                                    primeFinale: 22000,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Paramètres de simulation invalides",
+                        example: {
+                            message:
+                                "The AgeAssure field must be between 18 and 99.",
+                            errors: {
+                                AgeAssure: [
+                                    "The AgeAssure field must be between 18 and 99.",
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        status: 502,
+                        description:
+                            "Le service de tarification ne répond pas ou retourne des données invalides",
+                        example: {
+                            success: false,
+                            message:
+                                "Le service de tarification est indisponible. Veuillez réessayer.",
+                            code: "DOIHOO_TARIFF_UNAVAILABLE",
+                        },
+                    },
+                    {
+                        status: 503,
+                        description:
+                            "La configuration du service de tarification est absente",
+                        example: {
+                            success: false,
+                            message:
+                                "Le service de tarification est indisponible. Veuillez réessayer.",
+                            code: "DOIHOO_TARIFF_UNAVAILABLE",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "simulateur-lprevo",
+                module: "simulateurs",
+                name: "Simuler le produit LPREVO",
+                description:
+                    "Calcule la prime de base selon le capital sélectionné, ajoute 5 500 FCFA par pathologie déclarée et 5 500 FCFA de frais d’adhésion. Ce simulateur reproduit le calcul local fourni et n’appelle pas de service externe.",
+                method: "POST",
+                path: "/esouscription/simulateurs/lprevo",
+                isProtected: false,
+                rateLimit: "throttle:30,1 (30 simulations / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        CodeProduit: {
+                            type: "string",
+                            required: true,
+                            enum: ["LPREVO"],
+                            description: "Code du produit",
+                        },
+                        Capital: {
+                            type: "integer",
+                            required: true,
+                            enum: [100000, 250000, 500000],
+                            description:
+                                "Capital souscrit : 100 000, 250 000 ou 500 000 FCFA",
+                        },
+                        BonneSante: {
+                            type: "boolean",
+                            required: true,
+                            description:
+                                "Indique si l’assuré déclare être en bonne santé",
+                        },
+                        Pathologies: {
+                            type: "array",
+                            required: true,
+                            enum: [
+                                "Diabète",
+                                "AVC",
+                                "Cancer",
+                                "Insuffisance Rénale",
+                                "Hypertension",
+                            ],
+                            description:
+                                "Tableau des pathologies déclarées. Utiliser [] en l’absence de pathologie.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    CodeProduit: "LPREVO",
+                    Capital: 250000,
+                    BonneSante: false,
+                    Pathologies: ["Diabète", "Hypertension"],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Simulation LPREVO calculée",
+                        example: {
+                            success: true,
+                            message: "Simulation LPREVO calculée avec succès.",
+                            code: "LPREVO_SIMULATION_SUCCESS",
+                            data: {
+                                garantieData: [
+                                    {
+                                        codeGarantie: "DTC/IAD",
+                                        prime: 2500,
+                                        capital: 250000,
+                                        libelle:
+                                            "DECES TOUTES CAUSES INVALIDITE ABSOLUE ET DEFINITIVE",
+                                    },
+                                ],
+                                pathologies: ["Diabète", "Hypertension"],
+                                infoSimulation: {
+                                    isAssure: "oui",
+                                    primeFinal: 19000,
+                                    primepricipale: 2500,
+                                    primePathologies: 11000,
+                                    codeProduit: "LPREVO",
+                                    periodicite: "A",
+                                    duree: 1,
+                                    surprime: 11000,
+                                    capital: 250000,
+                                    fraisadhesion: 5500,
+                                    bonneSante: false,
+                                    pathologies: ["Diabète", "Hypertension"],
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description:
+                            "Capital invalide, pathologie non reconnue ou déclaration de santé incohérente",
+                        example: {
+                            success: false,
+                            message:
+                                "Les paramètres de simulation LPREVO sont invalides.",
+                            code: "LPREVO_SIMULATION_INVALID",
+                            errors: {
+                                Capital: [
+                                    "The selected Capital is invalid.",
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        status: 503,
+                        description:
+                            "Garantie obligatoire LPREVO non configurée",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur LPREVO ne peut pas être exécuté actuellement.",
+                            code: "LPREVO_SIMULATION_UNAVAILABLE",
                         },
                     },
                 ],

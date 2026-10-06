@@ -24,4 +24,13 @@ class ReseauProduct extends Model
         'formule_uuid',
         'etat',
     ];
+
+    public function reseau()
+    {
+        return $this->belongsTo(Reseau::class, 'reseau_uuid', 'uuid_reseau');
+    }
+    public function produit()
+    {
+        return $this->belongsTo(Produit::class, 'product_uuid', 'uuid_produit');
+    }
 }
