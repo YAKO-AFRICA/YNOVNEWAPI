@@ -56,7 +56,7 @@ class PartnerService
             $oldValues = $partner->toArray();
             
             $partner->update([
-                'code' => $data['code'] ?? $partner->code,
+                // 'code' => $data['code'] ?? $partner->code,
                 'designation' => $data['designation'] ?? $partner->designation,
                 'code_contractant' => $data['code_contractant'] ?? $partner->code_contractant,
                 'description' => $data['description'] ?? $partner->description,

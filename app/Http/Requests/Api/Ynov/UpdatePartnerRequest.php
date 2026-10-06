@@ -18,7 +18,7 @@ class UpdatePartnerRequest extends FormRequest
         $uuid = $partner ? $partner->uuid_partner : null;
 
         return [
-            'code' => ['sometimes', 'string', 'max:55', Rule::unique('partners', 'code')->ignore($uuid, 'uuid_partner')],
+            // 'code' => ['sometimes', 'string', 'max:55', Rule::unique('partners', 'code')->ignore($uuid, 'uuid_partner')],
             'designation' => ['sometimes', 'string', 'max:100'],
             'sigle' => ['nullable', 'string', 'max:20'],
             'description' => ['nullable', 'string'],
