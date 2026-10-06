@@ -18,7 +18,7 @@ class UpdateReseauRequest extends FormRequest
         $uuid = $reseau ? $reseau->uuid_reseau : null;
 
         return [
-            'code' => ['sometimes', 'string', 'max:55', Rule::unique('reseaux', 'code')->ignore($uuid, 'uuid_reseau')],
+            // 'code' => ['sometimes', 'string', 'max:55', Rule::unique('reseaux', 'code')->ignore($uuid, 'uuid_reseau')],
             'libelle' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'partner_uuid' => ['nullable', 'exists:partners,uuid_partner'],

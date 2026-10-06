@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminRoleSeeder::class,
             PermissionSeeder::class,
             AssignSuperAdminPermissionsSeeder::class,
+            AssignAdminPermissionsSeeder::class,
             AssignClientPermissionsSeeder::class,
             AssignAdminPrestationPermissionsSeeder::class,
             AssignAdminRdvPermissionsSeeder::class,

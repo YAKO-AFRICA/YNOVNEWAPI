@@ -17,7 +17,7 @@ class ReseauService
         return DB::transaction(function () use ($data, $creatorUuid) {
             $reseau = Reseau::create([
                 'uuid_reseau' => (string) Str::uuid(),
-                'code' => $data['code'],
+                'code' => $data['code'] ? $data['code'] : Refgenerate(Reseau::class, 'RES', 'code'),
                 'libelle' => $data['libelle'],
                 'description' => $data['description'] ?? null,
                 'code_branche' => $data['code_branche'] ?? null,
@@ -55,7 +55,7 @@ class ReseauService
            
             
             $reseau->update([
-                'code' => $data['code'] ?? $reseau->code,
+                // 'code' => $data['code'] ?? $reseau->code,
                 'libelle' => $data['libelle'] ?? $reseau->libelle,
                 'description' => $data['description'] ?? $reseau->description,
                 'partner_uuid' => $data['partner_uuid'] ?? $reseau->partner_uuid,
