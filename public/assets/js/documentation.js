@@ -349,6 +349,392 @@
             },
 
             {
+                id: "store-proposition",
+                module: "souscription",
+                name: "Créer une proposition de souscription",
+                description:
+                    "Crée en une seule transaction un contrat complet avec adhérent, assurés, bénéficiaires, documents et données de santé. La structure affichée est indicative : envoyer les champs imbriqués et les fichiers en multipart/form-data, avec des noms comme adherentData[nom], assurerDatas[0][info][nom] et documentDatas[0][file]. Laisser le client HTTP définir automatiquement le Content-Type et sa boundary.",
+                method: "POST",
+                path: "/esouscription/store-propositition",
+                isProtected: true,
+                rateLimit: "throttle:6,1 (6 tentatives / minute)",
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        adherentData: {
+                            type: "object",
+                            required: true,
+                            description: "Objet adherentData : civilite, genre (M/F), nom, prenoms, date_naissance (AAAA-MM-JJ), lieunaissance_code, email, mobile, telephone, numero_piece, nni, nature_piece, situation_matrimoniale, profession_code, employeur, lieuresidence_code, pays_code et created_by. idClient, s’il est envoyé, n’est pas repris : le serveur le génère.",
+                        },
+                        assurerDatas: {
+                            type: "array",
+                            required: true,
+                            description: "Liste d’objets {is_adherent, info, sante}. is_adherent doit être exactement « oui » pour réutiliser l’adhérent déclaré dans adherentData (aucun nouvel acteur n’est créé), ou « non » pour créer un autre assuré. Même pour is_adherent: « oui », envoyer toutes les informations personnelles dans info et toutes les données de santé dans sante. Si la clé est absente ou différente de « oui », le serveur crée un nouvel acteur.",
+                        },
+                        BeneficiaireDatas: {
+                            type: "array",
+                            required: true,
+                            description: "Liste d’objets contenant les informations personnelles du bénéficiaire : civilite, genre, nom, prenoms, date_naissance, lieunaissance_code, email, mobile, telephone, numero_piece, nni, nature_piece, situation_matrimoniale, profession_code, employeur, lieuresidence_code, pays_code et éventuellement created_by. is_adherent: « oui » rattache l’adhérent existant ; « non » crée un autre acteur. Si la clé est absente, le serveur traite le bénéficiaire comme une autre personne.",
+                        },
+                        documentDatas: {
+                            type: "array",
+                            required: true,
+                            description: "Tableau de fichiers joints en multipart/form-data. Pour chaque élément, envoyer documentDatas[n][file] (fichier binaire) et documentDatas[n][libelle]. Les champs type et created_by peuvent aussi être présents dans les données reçues, mais le service utilise le fichier et le libelle : le type enregistré est déduit du fichier et created_by est repris depuis adherentData.created_by. Au moins un fichier doit être joint.",
+                        },
+                        contratData: {
+                            type: "object",
+                            required: true,
+                            description: "Objet contratData. Champs pris en charge : date_effet, mode_paiement, organisme, duree, code_periodicite, prime, prime_principale, sur_prime, capital, frais_adhesion, montant_rente, periodicite_rente, duree_rente, code_banque, code_guichet, rib, numero_compte, numecompte_complet, agence_uuid, code_produit, libelle_produit, formule_produit_code, contact_personne_nom, contact_personne_mobile, contact_personne_nom_2, contact_personne_mobile_2, branch_code, partner_uuid, conseiller_uuid, is_paid, observation, bulletin_num, formule, source_data et created_by. source_data accepte uniquement user, ocr ou oneci.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    adherentData: {
+                        civilite: "Mme",
+                        genre: "M",
+                        nom: "Nom de l’adhérent",
+                        prenoms: "Prénom de l’adhérent",
+                        date_naissance: "1990-07-16",
+                        lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                        email: "adherent@example.com",
+                        mobile: "0700000000",
+                        telephone: "0100000000",
+                        numero_piece: "NUMERO_PIECE",
+                        nni: "NNI",
+                        nature_piece: "CNI",
+                        situation_matrimoniale: "C",
+                        profession_code: "CODE_PROFESSION",
+                        employeur: "Employeur",
+                        lieuresidence_code: "CODE_RESIDENCE",
+                        pays_code: "CODE_PAYS",
+                        created_by: "identifiant-utilisateur"
+                    },
+                    assurerDatas: [
+                        {
+                            is_adherent: "oui",
+                            info: {
+                                created_by: "identifiant-utilisateur",
+                                civilite: "Mme",
+                                genre: "M",
+                                nom: "Nom de l’adhérent",
+                                prenoms: "Prénom de l’adhérent",
+                                date_naissance: "1990-07-16",
+                                lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                                email: "adherent@example.com",
+                                mobile: "0700000000",
+                                telephone: "0100000000",
+                                numero_piece: "NUMERO_PIECE",
+                                nni: "NNI",
+                                nature_piece: "CNI",
+                                situation_matrimoniale: "C",
+                                profession_code: "CODE_PROFESSION",
+                                employeur: "Employeur",
+                                lieuresidence_code: "CODE_RESIDENCE",
+                                pays_code: "CODE_PAYS"
+                            },
+                            sante: {
+                                taille: "43",
+                                poids: "71",
+                                tension_min: "94",
+                                tension_max: "98",
+                                tabagisme: "0",
+                                alcool: "1",
+                                sport: "0",
+                                accident: "0",
+                                traitement: "0",
+                                transfusion_sanguine: "0",
+                                intervention_chirurgicale: "1",
+                                prochaine_intervention_chirurgicale: "1",
+                                diabete: "1",
+                                hypertension: "1",
+                                drepanocytose: "1",
+                                cirrhose_foie: "0",
+                                maladie_pulmonaire: "0",
+                                cancer: "0",
+                                anemie: "0",
+                                insuffisance_renale: "0",
+                                avc: "0"
+                            }
+                        },
+                        {
+                            is_adherent: "non",
+                            info: {
+                                created_by: "identifiant-utilisateur",
+                                civilite: "Mlle",
+                                genre: "F",
+                                nom: "Nom d’un autre assuré",
+                                prenoms: "Prénom d’un autre assuré",
+                                date_naissance: "2000-10-29",
+                                lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                                email: "assure@example.com",
+                                mobile: "0700000001",
+                                telephone: "0100000001",
+                                numero_piece: "NUMERO_PIECE",
+                                nni: "NNI",
+                                nature_piece: "CNI",
+                                situation_matrimoniale: "C",
+                                profession_code: "CODE_PROFESSION",
+                                employeur: "Employeur",
+                                lieuresidence_code: "CODE_RESIDENCE",
+                                pays_code: "CODE_PAYS"
+                            },
+                            sante: {
+                                taille: "43",
+                                poids: "71",
+                                tension_min: "94",
+                                tension_max: "98",
+                                tabagisme: "0",
+                                alcool: "1",
+                                sport: "0",
+                                accident: "0",
+                                traitement: "0",
+                                transfusion_sanguine: "0",
+                                intervention_chirurgicale: "1",
+                                prochaine_intervention_chirurgicale: "1",
+                                diabete: "1",
+                                hypertension: "1",
+                                drepanocytose: "1",
+                                cirrhose_foie: "0",
+                                maladie_pulmonaire: "0",
+                                cancer: "0",
+                                anemie: "0",
+                                insuffisance_renale: "0",
+                                avc: "0"
+                            }
+                        }
+                    ],
+                    BeneficiaireDatas: [
+                        {
+                            is_adherent: "non",
+                            created_by: "identifiant-utilisateur",
+                            civilite: "M",
+                            genre: "M",
+                            nom: "Nom du bénéficiaire 1",
+                            prenoms: "Prénom du bénéficiaire 1",
+                            date_naissance: "1988-01-01",
+                            lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                            email: "beneficiaire1@example.com",
+                            mobile: "0700000002",
+                            telephone: "0100000002",
+                            numero_piece: "NUMERO_PIECE",
+                            nni: "NNI",
+                            nature_piece: "CNI",
+                            situation_matrimoniale: "M",
+                            profession_code: "CODE_PROFESSION",
+                            employeur: "Employeur",
+                            lieuresidence_code: "CODE_RESIDENCE",
+                            pays_code: "CODE_PAYS"
+                        },
+                        {
+                            is_adherent: "non",
+                            created_by: "identifiant-utilisateur",
+                            civilite: "M",
+                            genre: "F",
+                            nom: "Nom du bénéficiaire 2",
+                            prenoms: "Prénom du bénéficiaire 2",
+                            date_naissance: "1971-05-24",
+                            lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                            email: "beneficiaire2@example.com",
+                            mobile: "0700000003",
+                            telephone: "0100000003",
+                            numero_piece: "NUMERO_PIECE",
+                            nni: "NNI",
+                            nature_piece: "CNI",
+                            situation_matrimoniale: "M",
+                            profession_code: "CODE_PROFESSION",
+                            employeur: "Employeur",
+                            lieuresidence_code: "CODE_RESIDENCE",
+                            pays_code: "CODE_PAYS"
+                        }
+                    ],
+                    documentDatas: [
+                        {
+                            type: "CNI",
+                            libelle: "cni recto",
+                            created_by: "identifiant-utilisateur",
+                            file: "[fichier binaire : cni_recto.jpg]"
+                        },
+                        {
+                            type: "PASSEPORT",
+                            libelle: "passeport",
+                            created_by: "identifiant-utilisateur",
+                            file: "[fichier binaire : passeport.pdf]"
+                        }
+                    ],
+                    contratData: {
+                        created_by: "user-123",
+                        source_data: "user",
+                        date_effet: "2026-10-06",
+                        mode_paiement: "VIREMENT",
+                        organisme: "YAKO AFRICA",
+                        duree: 12,
+                        code_periodicite: "MENSUEL",
+                        prime: 150000,
+                        prime_principale: 150000,
+                        sur_prime: 0,
+                        capital: 5000000,
+                        frais_adhesion: 2500,
+                        montant_rente: 0,
+                        periodicite_rente: null,
+                        duree_rente: null,
+                        code_banque: "SN001",
+                        code_guichet: "0001",
+                        rib: "12345678901234567890",
+                        numero_compte: "00012345678",
+                        numecompte_complet: "SN00100012345678",
+                        agence_uuid: "7f3f2ed6-c94d-4ddb-9d3d-d4ea0d1fe2ca",
+                        code_produit: "PROD-001",
+                        libelle_produit: "Assurance Vie",
+                        formule_produit_code: "FORM-01",
+                        contact_personne_nom: "M. Ba",
+                        contact_personne_mobile: "771234567",
+                        contact_personne_nom_2: "Mme Ba",
+                        contact_personne_mobile_2: "771234568",
+                        branch_code: "BRANCH-01",
+                        partner_uuid: "7a21d7df-4ca2-4d32-b7de-8b78d2557c91",
+                        conseiller_uuid: "c70d9d5e-0002-4627-976b-69b87358d111",
+                        is_paid: true,
+                        observation: "Souscription initiale",
+                        bulletin_num: "BUL-2026-001",
+                        formule: "FORMULE_STANDARD"
+                    }
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Souscription créée avec succès.",
+                        example: {
+                            success: true,
+                            message: "Souscription créée avec succès",
+                            code: 200,
+                            key_integration: "2026100614",
+                            contrat_uuid: "1c9db7b8-6d5a-4d5c-bd1a-7fcec6a08ab1",
+                            data: {
+                                reference_uuid: "1c9db7b8-6d5a-4d5c-bd1a-7fcec6a08ab1",
+                                source: "E-SOUSCRIPTION",
+                                created_by: "user-123",
+                                documents: [
+                                    {
+                                        nom: "piece_identite.pdf"
+                                    }
+                                ]
+                            }
+                        },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur pendant la création de la proposition.",
+                        example: {
+                            success: false,
+                            message: "Erreur lors de la création de la souscription : ...",
+                            code: 500,
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "upload-doc",
+                module: "souscription",
+                name: "Téléverser un document",
+                description:
+                    "Téléverse un fichier et crée le document associé à une référence. La requête doit être envoyée en multipart/form-data. Les extensions autorisées sont pdf, doc, docx, xls, xlsx, csv, ppt, pptx, jpg, jpeg, png, gif, webp, zip, rar et txt ; la taille maximale est de 50 Mo. Si type_document est omis, le type est déduit du fichier.",
+                method: "POST",
+                path: "/esouscription/upload-doc",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        fichier: {
+                            type: "file",
+                            required: true,
+                            description: "Fichier à téléverser (50 Mo maximum, extensions autorisées indiquées ci-dessus).",
+                        },
+                        reference_uuid: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Référence UUID à laquelle rattacher le document.",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Libellé du document. Par défaut, le nom du fichier sans extension.",
+                        },
+                        source: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Source du document.",
+                        },
+                        type_document: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Type du document. Déduit automatiquement du fichier si absent.",
+                        },
+                        created_by: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Identifiant de l'utilisateur ayant créé le document.",
+                        },
+                    },
+                },
+                exampleRequest:
+                    "Cette requête utilise multipart/form-data. Envoyez les champs avec FormData et laissez le navigateur définir le Content-Type et sa boundary :\n\nconst formData = new FormData();\nformData.append('fichier', fileInput.files[0]);\nformData.append('reference_uuid', '550e8400-e29b-41d4-a716-446655440000');\nformData.append('libelle', 'Pièce justificative'); // Optionnel\nformData.append('source', 'E-SOUSCRIPTION');\nformData.append('type_document', 'IDENTITE'); // Optionnel\nformData.append('created_by', 'user-123');\n\nfetch('/api/v1/esouscription/upload-doc', {\n  method: 'POST',\n  headers: { 'Authorization': '******', 'Accept': 'application/json' },\n  body: formData\n});",
+                responses: [
+                    {
+                        status: 201,
+                        description: "Fichier téléversé et document créé avec succès.",
+                        example: {
+                            success: true,
+                            message: "Fichier uploadé et document créé avec succès.",
+                            data: {
+                                document: {},
+                                nom_original: "piece_identite.pdf",
+                                nom_stocke: "document-stocke.pdf",
+                                extension: "pdf",
+                                mime_type: "application/pdf",
+                                taille: 102400,
+                                compresse: false,
+                                dimensions: null,
+                                chemin_relatif: "documents/document-stocke.pdf",
+                                url_publique: "https://api.example.com/docnumerises/PROD/document-stocke.pdf",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation ou extension de fichier non autorisée.",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                fichier: ["Le champ fichier est obligatoire."],
+                            },
+                        },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur lors du téléversement ou de la création du document.",
+                        example: {
+                            success: false,
+                            message: "Erreur lors de l'upload du document.",
+                            error: "Détail de l'erreur",
+                        },
+                    },
+                ],
+            },
+
+            {
                 id: "reseau-products-list",
                 module: "souscription",
                 name: "Lister les produits associés aux réseaux",
@@ -960,6 +1346,83 @@
                             code: "SERVER_ERROR",
                             message:
                                 "Une erreur interne est survenue. Veuillez réessayer.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "check-user-by-partner",
+                module: "auth",
+                name: "Connexion utilisateur par code partenaire",
+                description:
+                    "Retrouve le partenaire à partir de son code contractant, puis le premier utilisateur associé à ce partenaire. Révoque les tokens Sanctum existants de cet utilisateur et retourne un nouveau token de type Bearer.",
+                method: "POST",
+                path: "/check/user-by-partner",
+                isProtected: false,
+                rateLimit: "throttle:login",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_partner: {
+                            type: "string",
+                            required: true,
+                            description:
+                                "Code contractant du partenaire (champ code_contractant).",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    code_partner: "PARTNER001",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description:
+                            "Partenaire et utilisateur trouvés ; un nouveau token Sanctum est créé.",
+                        example: {
+                            success: true,
+                            code: "CHECK_USER_BY_PARTNER_SUCCESS",
+                            message: "Utilisateur connecté avec succès",
+                            data: {
+                                user: {},
+                                partner: {},
+                                access_token: "1|token-sanctum",
+                                token_type: "Bearer",
+                            },
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "Le code partenaire est absent ou invalide.",
+                        example: {
+                            success: false,
+                            code: "CODE_PARTNER_REQUIRED",
+                            message:
+                                "Le parametre code_partner est obligatoire",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucun partenaire ne correspond au code.",
+                        example: {
+                            success: false,
+                            code: "PARTNER_NOT_FOUND",
+                            message: "Partenaire introuvable",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description:
+                            "Aucun utilisateur n'est associé au partenaire.",
+                        example: {
+                            success: false,
+                            code: "USER_NOT_FOUND",
+                            message:
+                                "Aucun utilisateur associé à ce partenaire n'a été trouvé",
                         },
                     },
                 ],

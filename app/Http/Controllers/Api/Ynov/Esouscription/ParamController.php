@@ -7,6 +7,7 @@ use App\Models\Api\Ynov\parameter\Partner;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\ReseauProduct;
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -326,7 +327,10 @@ class ParamController extends Controller
 
         $validated = $validator->validated();
 
+
+
         try {
+
 
             $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
 
@@ -337,6 +341,7 @@ class ParamController extends Controller
                     'message' => 'Partenaire introuvable',
                 ], 404);
             }
+            
 
             $reseau = Reseau::where('partner_uuid', $partner->uuid_partner)->first();
 
@@ -388,6 +393,64 @@ class ParamController extends Controller
                 'message' => $e->errors(),
             ], 500);
         }
+    }
+
+    public function checkUserByPartner(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'code_partner' => ['required', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'CODE_PARTNER_REQUIRED',
+                'message' => 'Le parametre code_partner est obligatoire',
+            ], 400);
+        }
+
+        $validated = $validator->validated();
+
+        // 1. Retrouver le partenaire
+        $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
+
+        if (!$partner) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'PARTNER_NOT_FOUND',
+                'message' => 'Partenaire introuvable',
+            ], 404);
+        }
+
+        // 2. Premier utilisateur lié à ce partenaire
+        $user = User::where('partner_uuid', $partner->uuid_partner)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'USER_NOT_FOUND',
+                'message' => 'Aucun utilisateur associé à ce partenaire n\'a été trouvé',
+            ], 404);
+        }
+
+        
+        //    (supprime les anciens tokens pour n'en garder qu'un)
+        $user->tokens()->delete();
+
+        $token = $user->createToken('WEB')->plainTextToken; // 3. Connexion + génération du token Sanctum
+
+        // 4. Réponse : données user + token (même format qu'une API de login)
+        return response()->json([
+            'success' => true,
+            'code'    => 'CHECK_USER_BY_PARTNER_SUCCESS',
+            'message' => 'Utilisateur connecté avec succès',
+            'data'    => [
+                'user'         => $user,
+                'partner'      => $partner,
+                'access_token' => $token,
+                'token_type'   => 'Bearer',
+            ],
+        ], 200);
     }
 
 

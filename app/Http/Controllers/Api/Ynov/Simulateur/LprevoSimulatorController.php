@@ -22,26 +22,21 @@ class LprevoSimulatorController extends Controller
      *     path="/simulateurs/lprevo",
      *     tags={"Simulateurs"},
      *     summary="Simuler une souscription LPREVO",
-     *
      *     @OA\RequestBody(
      *         required=true,
-     *
      *         @OA\JsonContent(
      *             required={"CodeProduit","Capital","BonneSante","Pathologies"},
-     *
      *             @OA\Property(property="CodeProduit", type="string", enum={"LPREVO"}, example="LPREVO"),
      *             @OA\Property(property="Capital", type="integer", enum={100000,250000,500000}, example=100000),
      *             @OA\Property(property="BonneSante", type="boolean", example=false),
      *             @OA\Property(
      *                 property="Pathologies",
      *                 type="array",
-     *
      *                 @OA\Items(type="string", enum={"Diabète","AVC","Cancer","Insuffisance Rénale","Hypertension"}),
      *                 example={"Diabète","Hypertension"}
      *             )
      *         )
      *     ),
-     *
      *     @OA\Response(response=200, description="Simulation LPREVO calculée."),
      *     @OA\Response(response=422, description="Paramètres de simulation invalides."),
      *     @OA\Response(response=503, description="Garantie LPREVO non configurée.")
@@ -49,11 +44,15 @@ class LprevoSimulatorController extends Controller
      */
     public function simulate(Request $request): JsonResponse
     {
+
         $validator = Validator::make($request->all(), [
             'CodeProduit' => ['required', 'string', Rule::in([LprevoSimulatorService::CODE_PRODUIT])],
             'Capital' => ['required', 'integer', Rule::in([100000, 250000, 500000])],
             'BonneSante' => ['required', 'boolean'],
-            'Pathologies' => ['required', 'array'],
+            'Pathologies' => [
+                Rule::requiredIf(fn () => filter_var($request->input('BonneSante'), FILTER_VALIDATE_BOOLEAN) === false),
+                'array',
+            ],
             'Pathologies.*' => ['required', 'string', 'distinct', Rule::in(LprevoSimulatorService::PATHOLOGIES)],
         ]);
 
