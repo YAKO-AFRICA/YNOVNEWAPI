@@ -358,8 +358,8 @@
             description: "Paiement anticipé de primes",
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
-            successUrl: window.location.origin + "/paiements/jeko/success",
-            errorUrl: window.location.origin + "/paiements/jeko/error",
+            // successUrl: window.location.origin + "/paiements/jeko/success",
+            // errorUrl: window.location.origin + "/paiements/jeko/error",
             metadata: {
                 source: "web_demo",
                 scenario: "earlyPayment",
