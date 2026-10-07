@@ -345,12 +345,10 @@
             <span>Ce paiement régularise {{ $factures->count() }} prime{{ $factures->count() > 1 ? 's' : '' }} impayée{{ $factures->count() > 1 ? 's' : '' }}.</span>
         </div>
         @endif
-
         <div class="footer-note">
             Ce document tient lieu de justificatif de paiement.<br>
             En cas de question, contactez notre service client.
         </div>
     </div>
 </body>
-
 </html>
