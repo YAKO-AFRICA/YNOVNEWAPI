@@ -188,7 +188,8 @@ class PaymentService
      */
     public function traiterWebhook(array $payload): ?array
     {
-        $reference = $payload['reference'] ?? null;
+        $reference = $payload['transactionDetails']['reference'] ?? null;
+        // $reference = $payload['reference'] ?? null;
         $status = $payload['status'] ?? null;
 
         if (!$reference || !$status) {

@@ -289,7 +289,9 @@ class PaymentController extends Controller
     public function webhook(Request $request)
     {
         $payload = $request->all();
-        Log::info('Webhook Jeko reçu');
+        Log::info('Webhook Jeko reçu', [
+            'payload' => $payload,
+        ]);
 
         try {
             // Valider le webhook
