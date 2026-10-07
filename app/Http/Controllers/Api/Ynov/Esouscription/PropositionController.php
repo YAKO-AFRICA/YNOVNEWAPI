@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
 use App\Services\Api\Ynov\Documents\DocumentService;
-use App\Services\Api\Ynov\Esouscription\ActeurService;
-use App\Services\Api\Ynov\Esouscription\ClientNumberGenerator;
-use App\Services\Api\Ynov\Esouscription\ContratActeurService;
-use App\Services\Api\Ynov\Esouscription\ContratService;
-use App\Services\Api\Ynov\Esouscription\DeclarationSanteService;
+use App\Services\Api\Ynov\ESouscription\ActeurService;
+use App\Services\Api\Ynov\ESouscription\ClientNumberGenerator;
+use App\Services\Api\Ynov\ESouscription\ContratActeurService;
+use App\Services\Api\Ynov\ESouscription\ContratService;
+use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
 use DateTimeImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

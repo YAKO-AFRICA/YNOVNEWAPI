@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Api\Ynov\Esouscription;
+namespace App\Services\Api\Ynov\ESouscription;
 
 use App\Models\Api\Ynov\Esouscription\Acteur;
 use DateTimeInterface;
