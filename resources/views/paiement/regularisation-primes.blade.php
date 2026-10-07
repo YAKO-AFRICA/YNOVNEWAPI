@@ -498,6 +498,7 @@
 
                 const referenceInterne = generateReference();
                 const successUrl = "{{ url('/paiement/recu') }}" + "/" + referenceInterne;
+                console.log('successUrl :', successUrl)
 
                 widget.open({
                     reference: referenceInterne,
