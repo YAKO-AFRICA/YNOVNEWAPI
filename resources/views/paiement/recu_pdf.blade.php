@@ -238,7 +238,7 @@
         <div class="header clearfix">
             <div class="header-left clearfix">
                 <div class="logo">
-                    <img src="data:image/jpg;base64,{{ base64_encode(file_get_exists(public_path('assets/images/ynov-logo.jpg')) ? file_get_contents(public_path('assets/images/ynov-logo.jpg')) : '') }}" width="50" height="50" style="border-radius:15%;" alt="">
+                    <img src="data:image/jpg;base64,{{ base64_encode(file_exists(public_path('assets/images/ynov-logo.jpg')) ? file_get_contents(public_path('assets/images/ynov-logo.jpg')) : '') }}" width="50" height="50" style="border-radius:15%;" alt="">
                 </div>
                 <div class="title-block">
                     <h1>Reçu de paiement</h1>
