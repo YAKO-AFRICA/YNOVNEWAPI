@@ -637,6 +637,104 @@
             },
 
             {
+                id: "upload-doc",
+                module: "souscription",
+                name: "Téléverser un document",
+                description:
+                    "Téléverse un fichier et crée le document associé à une référence. La requête doit être envoyée en multipart/form-data. Les extensions autorisées sont pdf, doc, docx, xls, xlsx, csv, ppt, pptx, jpg, jpeg, png, gif, webp, zip, rar et txt ; la taille maximale est de 50 Mo. Si type_document est omis, le type est déduit du fichier.",
+                method: "POST",
+                path: "/esouscription/upload-doc",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        fichier: {
+                            type: "file",
+                            required: true,
+                            description: "Fichier à téléverser (50 Mo maximum, extensions autorisées indiquées ci-dessus).",
+                        },
+                        reference_uuid: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Référence UUID à laquelle rattacher le document.",
+                        },
+                        libelle: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Libellé du document. Par défaut, le nom du fichier sans extension.",
+                        },
+                        source: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Source du document.",
+                        },
+                        type_document: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Type du document. Déduit automatiquement du fichier si absent.",
+                        },
+                        created_by: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Identifiant de l'utilisateur ayant créé le document.",
+                        },
+                    },
+                },
+                exampleRequest:
+                    "Cette requête utilise multipart/form-data. Envoyez les champs avec FormData et laissez le navigateur définir le Content-Type et sa boundary :\n\nconst formData = new FormData();\nformData.append('fichier', fileInput.files[0]);\nformData.append('reference_uuid', '550e8400-e29b-41d4-a716-446655440000');\nformData.append('libelle', 'Pièce justificative'); // Optionnel\nformData.append('source', 'E-SOUSCRIPTION');\nformData.append('type_document', 'IDENTITE'); // Optionnel\nformData.append('created_by', 'user-123');\n\nfetch('/api/v1/esouscription/upload-doc', {\n  method: 'POST',\n  headers: { 'Authorization': '******', 'Accept': 'application/json' },\n  body: formData\n});",
+                responses: [
+                    {
+                        status: 201,
+                        description: "Fichier téléversé et document créé avec succès.",
+                        example: {
+                            success: true,
+                            message: "Fichier uploadé et document créé avec succès.",
+                            data: {
+                                document: {},
+                                nom_original: "piece_identite.pdf",
+                                nom_stocke: "document-stocke.pdf",
+                                extension: "pdf",
+                                mime_type: "application/pdf",
+                                taille: 102400,
+                                compresse: false,
+                                dimensions: null,
+                                chemin_relatif: "documents/document-stocke.pdf",
+                                url_publique: "https://api.example.com/docnumerises/PROD/document-stocke.pdf",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation ou extension de fichier non autorisée.",
+                        example: {
+                            success: false,
+                            message: "Erreur de validation.",
+                            errors: {
+                                fichier: ["Le champ fichier est obligatoire."],
+                            },
+                        },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur lors du téléversement ou de la création du document.",
+                        example: {
+                            success: false,
+                            message: "Erreur lors de l'upload du document.",
+                            error: "Détail de l'erreur",
+                        },
+                    },
+                ],
+            },
+
+            {
                 id: "reseau-products-list",
                 module: "souscription",
                 name: "Lister les produits associés aux réseaux",
