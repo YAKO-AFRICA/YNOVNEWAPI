@@ -94,6 +94,12 @@ Route::get('get-document-contrat/{file}', function ($file) {
 Route::prefix('paiement')->name('paiement.')->group(function () {
     Route::get('recu/{referenceInterne}', [ReceiptController::class, 'show'])->name('recu');
     Route::get('recu/{referenceInterne}/download', [ReceiptController::class, 'download'])->name('recu.download');
+    Route::get('regularisation-primes', function () {
+        return view('paiement.regularisation-primes');
+    })->name('regularisation-primes');
+    Route::get('/error', function () {
+        return view('paiement.jeko-error');
+    })->name('error');
 });
 Route::get('/api/v1/demo-jeko-widget', [PaymentController::class, 'demoJekoWidget'])->name('demo-jeko-widget');
 

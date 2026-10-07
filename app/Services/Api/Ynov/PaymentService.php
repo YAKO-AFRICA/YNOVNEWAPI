@@ -62,6 +62,12 @@ class PaymentService
             $corpsRequete['metadata'] = $donnees['metadata'];
         }
 
+        Log::info('Initialisation du paiement Jeko', [
+            'reference' => $referenceInterne,
+            'currency' => $donnees['currency'] ?? 'XOF',
+            'payment_method' => $donnees['paymentMethod'],
+        ]);
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'X-API-KEY' => $this->apiKey,
@@ -74,10 +80,9 @@ class PaymentService
         $data = $response->json();
 
         if (!$response->successful() || empty($data['redirectUrl'])) {
-            Log::warning('Échec initialisation paiement Jeko', [
+            Log::error('Échec initialisation paiement Jeko', [
+                'reference' => $referenceInterne,
                 'status' => $response->status(),
-                'response' => $data,
-                'request' => $corpsRequete,
             ]);
 
             return [
@@ -88,12 +93,77 @@ class PaymentService
             ];
         }
 
+        Log::info('Paiement Jeko initialisé avec succès', [
+            'reference' => $referenceInterne,
+            'status' => $data['status'] ?? 'pending',
+        ]);
+
         return [
             'success' => true,
             'redirectUrl' => $data['redirectUrl'],
-            'paymentId' => $data['paymentId'] ?? null,
+            'paymentId' => $data['id'] ?? null,
             'status' => $data['status'] ?? 'pending',
             'code' => 'PAYMENT_INITIATED',
+        ];
+    }
+
+
+    /**
+     * Vérifie le statut d'un paiement
+     */
+    public function verifierStatut($paiement): array
+    {
+        if (empty($paiement->payment_token)) {
+            Log::warning('Tentative de vérification de statut avec un token de paiement vide');
+
+            return [
+                'success' => false,
+                'code' => 'INVALID_PAYMENT_CODE',
+                'status' => $paiement->status ?? 'unknown',
+                'message' => 'Token de paiement manquant ou invalide',
+                'details' => [],
+            ];
+        }
+
+        // Utiliser l'endpoint payment_requests pour obtenir le statut (et non payment_links)
+        $response = Http::withHeaders([
+            'X-API-KEY' => $this->apiKey,
+            'X-API-KEY-ID' => $this->apiKeyId,
+        ])
+            ->timeout(10)
+            ->retry(2, 100)
+            // ->get($this->baseUrl . '/partner_api/payment_links/' . $paiement->payment_code);
+            ->get($this->baseUrl . '/partner_api/payment_requests/' . $paiement->payment_token);
+
+        if (!$response->successful()) {
+            Log::warning('Échec de la vérification du statut du paiement', [
+                'status' => $response->status(),
+            ]);
+
+            return [
+                'success' => false,
+                'code' => 'TRANSACTION_VERIFICATION_FAILED',
+                'status' => $paiement->status ?? 'unknown',
+                'message' => 'Erreur lors de la vérification du statut du paiement',
+                'details' => [
+                    'http_status' => $response->status(),
+                    'payment_token' => $paiement->payment_token,
+                ],
+            ];
+        }
+
+        $data = $response->json();
+
+        Log::info('Statut du paiement vérifié avec succès', [
+            'status' => $data['status'] ?? 'unknown',
+        ]);
+
+        return [
+            'success' => true,
+            'code' => 'TRANSACTION_VERIFIED',
+            'message' => 'Statut du paiement vérifié',
+            'status' => $data['status'] ?? 'unknown',
+            'details' => $data,
         ];
     }
 
@@ -122,13 +192,25 @@ class PaymentService
         $status = $payload['status'] ?? null;
 
         if (!$reference || !$status) {
+            Log::warning('Webhook Jeko avec données incomplètes');
             return null;
         }
 
         $paiement = Paiement::where('command_number', $reference)->first();
 
         if (!$paiement) {
-            Log::warning('Paiement non trouvé pour le webhook', ['reference' => $reference]);
+            Log::warning('Paiement non trouvé pour le webhook');
+            return null;
+        }
+
+        // Idempotency: si le paiement est déjà dans l'état final, ignorer le webhook
+        $targetStatus = $this->convertirStatut($status);
+        if ($paiement->status === $targetStatus && in_array($targetStatus, ['paid', 'cancelled', 'error'])) {
+            Log::info('Webhook ignoré - paiement déjà dans l\'état final', [
+                'reference' => $reference,
+                'current_status' => $paiement->status,
+                'webhook_status' => $targetStatus,
+            ]);
             return null;
         }
 
@@ -139,16 +221,16 @@ class PaymentService
             $phone = substr($phone, -10);
         }
 
-        $paymentToken = $payload['transactionDetails']['paymentLinkId'] ?? null;
+        // $paymentToken = $payload['transactionDetails']['paymentLinkId'] ?? null;
         $payment_code = $payload['transactionDetails']['paymentLinkId'] ?? null;
 
         return [
             'reference' => $reference,
-            'status' => $this->convertirStatut($status),
+            'status' => $targetStatus,
             'phone' => $phone,
-            'payment_token' => $paymentToken,
+            // 'payment_token' => $paymentToken,
             'payment_code' => $payment_code,
-            'amount' => $payload['amount']['amount'] / 100 ?? null,
+            'amount' => ($payload['amount']['amount'] ?? null) / 100,
         ];
     }
 

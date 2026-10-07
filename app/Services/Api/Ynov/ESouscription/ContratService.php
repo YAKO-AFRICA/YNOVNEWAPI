@@ -57,8 +57,26 @@ class ContratService
     {
         return DB::transaction(function () use ($data): Contrat {
             $data['uuid_contrat'] = $data['uuid_contrat'] ?? (string) Str::uuid();
+            $data['id_contrat'] = $this->generateNextIdContrat();
 
             return Contrat::create($data);
+        });
+    }
+
+    /**
+     * Génère le prochain id_contrat auto-incrémenté unique.
+     * Utilise un verrou pessimiste pour éviter les conflits d'accès concurrents.
+     *
+     * @return int
+     */
+    protected function generateNextIdContrat(): int
+    {
+        return DB::transaction(function () {
+            $lastId = Contrat::withTrashed()
+                ->lockForUpdate()
+                ->max('id_contrat');
+
+            return ($lastId ?? 0) + 1;
         });
     }
 

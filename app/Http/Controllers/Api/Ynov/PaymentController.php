@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api\Ynov;
 
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\Esouscription\Contrat;
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\Facture;
 use App\Models\Api\Ynov\Paiement;
+use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\PaymentService;
 use App\Services\Api\Ynov\PrimePaymentOrchestrator;
 use App\Services\EncaissementBisService;
@@ -13,6 +16,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -33,6 +37,7 @@ class PaymentController extends Controller
         protected PaymentService $jekoService,
         protected PrimePaymentOrchestrator $orchestrator,
         protected EncaissementBisService $encaissementBis,
+        protected DocumentService $documentService,
     ) {}
 
     public function demoJekoWidget()
@@ -171,14 +176,16 @@ class PaymentController extends Controller
                 'reference' => $referenceInterne,
                 'paymentMethod' => $donnees['paymentMethod'],
                 'successUrl' => $donnees['successUrl'] ??  route('paiement.recu', ['referenceInterne' => $referenceInterne]),
-                'errorUrl' => $donnees['errorUrl'] ?? null,
+                'errorUrl' => $donnees['errorUrl'] ?? route('paiement.error'),
                 'customerEmail' => $donnees['customerEmail'] ?? null,
                 'customerName' => $donnees['customerName'] ?? null,
                 'description' => $donnees['description'] ?? null,
                 'metadata' => $donnees['metadata'] ?? null,
             ], $referenceInterne);
 
-            Log::info('JeKO: ' . json_encode($resultat));
+            Log::info('Paiement initialisé via Jeko', [
+                'reference' => $referenceInterne,
+            ]);
 
             if (!$resultat['success']) {
                 return response()->json([
@@ -193,7 +200,6 @@ class PaymentController extends Controller
             $paiement = $this->orchestrator->enregistrer($donnees, $preparation, $referenceInterne, $resultat);
 
             Log::info('Paiement enregistré', [
-                'paiement' => $paiement,
                 'referenceInterne' => $referenceInterne,
             ]);
 
@@ -215,7 +221,6 @@ class PaymentController extends Controller
 
             Log::error('Erreur lors de l\'initialisation du paiement', [
                 'referenceInterne' => $referenceInterne,
-                'exception' => $e,
             ]);
 
             return response()->json([
@@ -226,6 +231,56 @@ class PaymentController extends Controller
             ], 503);
         }
     }
+
+    /**
+     * Vérifie le statut d'un paiement (via referenceInterne = codePaiement).
+     */
+    public function verifierStatut(Request $request, string $referenceInterne): JsonResponse
+    {
+        try {
+            $paiement = Paiement::where('command_number', $referenceInterne)->first();
+
+            if (!$paiement) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction non trouvée.',
+                    'code' => 'TRANSACTION_NOT_FOUND',
+                ], 404);
+            }
+
+            $statut = $this->jekoService->verifierStatut($paiement);
+
+            // Si le statut est "error", mettre à jour le statut en base
+            if ($statut['success'] && $statut['status'] === 'error') {
+                $this->orchestrator->mettreAJourStatut($paiement, 'error', []);
+                Log::info('Statut du paiement mis à jour en base (error)', [
+                    'reference' => $referenceInterne,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'statut' => $statut['status'],
+                    'montant' => $paiement->amount,
+                    'reference' => $paiement->command_number,
+                    'payment_type' => $paiement->payment_type,
+                    'details' => $statut['details'] ?? null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Erreur vérification statut', [
+                'reference' => $referenceInterne,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la vérification du statut.',
+                'code' => 'STATUS_CHECK_FAILED',
+            ], 500);
+        }
+    }
     
 
     /**
@@ -234,12 +289,12 @@ class PaymentController extends Controller
     public function webhook(Request $request)
     {
         $payload = $request->all();
-        Log::info('Webhook Jeko reçu', ['payload' => $payload]);
+        Log::info('Webhook Jeko reçu');
 
         try {
             // Valider le webhook
             if (!$this->jekoService->validerWebhook($request)) {
-                Log::warning('Webhook Jeko non valide', ['payload' => $payload]);
+                Log::warning('Webhook Jeko non valide - signature incorrecte');
                 return response()->json(['error' => 'Invalid webhook'], 401);
             }
 
@@ -247,17 +302,22 @@ class PaymentController extends Controller
             $resultat = $this->jekoService->traiterWebhook($payload);
 
             if (!$resultat) {
+                Log::info('Webhook ignoré - traitement non nécessaire');
                 return response()->json(['status' => 'ignored'], 200);
             }
 
             // Mettre à jour le paiement
             $paiement = Paiement::where('command_number', $resultat['reference'])->first();
-            // $paiement = Paiement::where('command_number', $reference)->first();
 
             if (!$paiement) {
                 Log::warning('Paiement non trouvé pour le webhook', ['reference' => $resultat['reference']]);
                 return response()->json(['status' => 'ignored'], 200);
             }
+
+            Log::info('Mise à jour du paiement via webhook', [
+                'reference' => $resultat['reference'],
+                'nouveau_statut' => $resultat['status'],
+            ]);
 
             // Mettre à jour le statut
             $this->orchestrator->mettreAJourStatut(
@@ -265,7 +325,7 @@ class PaymentController extends Controller
                 $resultat['status'],
                 [
                     'phone' => $resultat['phone'],
-                    'payment_token' => $resultat['payment_token'],
+                    // 'payment_token' => $resultat['payment_token'],
                     'payment_code' => $resultat['payment_code'],
                 ]
             );
@@ -284,7 +344,6 @@ class PaymentController extends Controller
         } catch (\Throwable $e) {
             Log::error('Erreur traitement webhook Jeko', [
                 'message' => $e->getMessage(),
-                'payload' => $payload,
             ]);
 
             return response()->json(['error' => 'Webhook processing failed'], 500);
@@ -298,13 +357,12 @@ class PaymentController extends Controller
     private function generateReceipt(Paiement $paiement)
     {
         try {
-            $externalUploadDir = base_path(env('UPLOADS_PATH'));
-            if (!is_dir($externalUploadDir)) {
-                mkdir($externalUploadDir, 0777, true);
-            }
-
             $paiement = Paiement::where('uuid_paiement', $paiement->uuid_paiement)->firstOrFail();
-            
+
+            Log::info('Génération du reçu PDF', [
+                'reference' => $paiement->command_number,
+            ]);
+
             $libellesTypeFacture = [
                 'N' => 'Prime principale',
                 'F' => "Frais d'adhésion",
@@ -321,7 +379,7 @@ class PaymentController extends Controller
                 'earlyPayment' => 'Paiement anticipé',
                 'recoveryPrime' => 'Régularisation de primes',
             ];
-            
+
             $libelleType = $libellesType[$paiement->payment_type] ?? $paiement->payment_type;
 
             $factures = Facture::where('payment_uuid', $paiement->uuid_paiement)
@@ -350,25 +408,55 @@ class PaymentController extends Controller
             $dompdf->render();
 
             $identifiantContrat = $paiement->id_contrat;
-
             $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
-            $filePath = $externalUploadDir . DIRECTORY_SEPARATOR . $fileName;
-            
-            // Sauvegarder le PDF
-            file_put_contents($filePath, $dompdf->output());
-            
-            Log::info('PDF généré avec succès pour : ' . $paiement->payment_code);
+
+            // Créer un fichier temporaire
+            $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
+            file_put_contents($tempPath, $dompdf->output());
+
+            Log::info('PDF généré avec succès', [
+                'file_name' => $fileName,
+            ]);
+
+            if ($paiement->payment_type === 'firstPayment') {
+                $contrat = Contrat::where('id_contrat', $identifiantContrat)->firstOrFail();
+
+                // Créer un UploadedFile à partir du fichier temporaire
+                $uploadedFile = new UploadedFile(
+                    $tempPath,
+                    $fileName,
+                    'application/pdf',
+                    null,
+                    true
+                );
+
+                // Utiliser DocumentService pour créer le document
+                $this->documentService->createDocument([
+                    'reference_uuid' => $contrat->uuid_contrat,
+                    'libelle' => 'Recu de paiement',
+                    'source' => 'ES',
+                    'created_by' => $contrat->created_by ?? null,
+                ], $uploadedFile);
+
+                // Mettre le contrat en statut "payé"
+                $contrat->update(['is_paid' => 1]);
+            }
+
+            // Supprimer le fichier temporaire
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
 
             return [
                 'status' => 'success',
                 'file_name' => $fileName,
-                'file_path' => $filePath,
             ];
-            
+
         } catch (\Exception $e) {
-            Log::error('Erreur génération PDF : ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+            Log::error('Erreur génération PDF', [
+                'message' => $e->getMessage(),
+            ]);
+
             return [
                 'status' => 'error',
                 'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage()
@@ -376,102 +464,3 @@ class PaymentController extends Controller
         }
     }
 }
-
-
-// private function generateReceipt(Paiement $paiement)
-// {
-//     try {
-//         $externalUploadDir = base_path(env('UPLOADS_PATH'));
-//         if (!is_dir($externalUploadDir)) {
-//             mkdir($externalUploadDir, 0777, true);
-//         }
-
-//         $paiement = Paiement::where('uuid_paiement', $paiement->uuid_paiement)->firstOrFail();
-//         // $contrat = Contrat::where('id', $paiement->idContrat)->firstOrFail();
-        
-//         $libellesTypeFacture = [
-//             'N' => 'Prime principale',
-//             'F' => "Frais d'adhésion",
-//             'P' => 'Partielle (Reste à payer)',
-//             'U' => 'Unique',
-//             'B' => 'Participation aux Bénéfices',
-//             'E' => 'Exceptionnelle',
-//             'A' => 'Avance (Remboursement de prêts)',
-//         ];
-
-//         // Libellés des types de paiement
-//         $libellesType = [
-//             'firstPayment' => 'Premier paiement',
-//             'earlyPayment' => 'Paiement anticipé',
-//             'recoveryPrime' => 'Régularisation de primes',
-//         ];
-        
-//         $libelleType = $libellesType[$paiement->payment_type] ?? $paiement->payment_type;
-
-//         $factures = Facture::where('payment_uuid', $paiement->uuid_paiement)
-//             ->orderBy('created_at')
-//             ->get()
-//             ->map(function ($facture) use ($libellesTypeFacture) {
-//                 $facture->libelleTypeFacture =
-//                     $libellesTypeFacture[$facture->type_facture]
-//                     ?? $facture->type_facture;
-//                 return $facture;
-//             });
-
-//         // Charger la vue et générer le HTML
-//         $html = view('paiement.recu_pdf', compact('paiement', 'factures', 'libelleType'))->render();
-
-//         // Configurer DomPDF
-//         $options = new Options();
-//         $options->set('defaultFont', 'DejaVu Sans');
-//         $options->set('isRemoteEnabled', false);
-//         $options->set('isHtml5ParserEnabled', true);
-//         $options->set('isPhpEnabled', false);
-
-//         $dompdf = new Dompdf($options);
-//         $dompdf->loadHtml($html);
-//         $dompdf->setPaper('A4', 'portrait');
-//         $dompdf->render();
-
-//         $identifiantContrat = $paiement->id_contrat;
-
-//         $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
-//         $filePath = $externalUploadDir . DIRECTORY_SEPARATOR . $fileName;
-        
-//         // Sauvegarder le PDF
-//         file_put_contents($filePath, $dompdf->output());
-        
-//         Log::info('PDF généré avec succès pour : ' . $paiement->payment_code);
-
-//         // if ($payment_type === 'firstPayment') {
-
-//         //     // Ajoute le reçu au contrat
-//         //     TblDocument::create([
-//         //         'codecontrat' => $paiement->idContrat,
-//         //         'filename' => $fileName,
-//         //         'libelle' => 'Recu de paiement',
-//         //         'saisiele' => now(),
-//         //         'saisiepar' => $contrat->saisiepar ?? null,
-//         //         'source' => "ES",
-//         //     ]);
-            
-//         //     // Mettre le contrat en statut "payé"
-//         //     $contrat->update(['estpaye' => 1]);
-//         // }
-
-//         return [
-//             'status' => 'success',
-//             'file_name' => $fileName,
-//             'file_path' => $filePath,
-//         ];
-        
-//     } catch (\Exception $e) {
-//         Log::error('Erreur génération PDF : ' . $e->getMessage());
-//         Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-//         return [
-//             'status' => 'error',
-//             'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage()
-//         ];
-//     }
-// }

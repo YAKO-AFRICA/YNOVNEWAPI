@@ -54,6 +54,7 @@ class Contrat extends Model
     protected $fillable = [
         // Identifiant unique UUID du contrat
         'uuid_contrat',
+        'id_contrat',
 
         // Informations générales du contrat
         'date_effet',

@@ -9,6 +9,7 @@ use App\Models\Api\Ynov\parameter\User;
 use App\Services\EncaissementBisService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Orchestre la préparation et l'enregistrement des paiements
@@ -213,15 +214,23 @@ class PrimePaymentOrchestrator
             // Créer le paiement
             $paiement = Paiement::create([
                 'command_number' => $referenceInterne ?? null,
+                // 'payment_code' => $resultatJeko['paymentId'] ?? null,
                 'amount' => $preparation['montantTotal'],
                 'payment_mode' => $donnees['paymentMethod'] ?? null,
                 'payment_status' => $resultatJeko['status'] ?? 'pending',
                 'status' => 'pending',
                 'payment_type' => $donnees['paymentType'],
+                'payment_token' => $resultatJeko['paymentId'] ?? null,
                 'reglement_source' => 'JEKO',
                 'id_contrat' => $preparation['contractId'] ?? null,
                 'facture_count' => count($preparation['facturesAGenerer']),
                 'payer_email' => $donnees['customerEmail'] ?? null,
+            ]);
+
+            Log::info('Paiement créé en base de données', [
+                'reference' => $referenceInterne,
+                'payment_type' => $donnees['paymentType'],
+                'facture_count' => count($preparation['facturesAGenerer']),
             ]);
 
             // Créer les factures associées
@@ -261,17 +270,25 @@ class PrimePaymentOrchestrator
                 if (!empty($payload['phone'])) {
                     $updateData['payment_phone'] = $payload['phone'];
                 }
-                if (!empty($payload['payment_token'])) {
-                    $updateData['payment_token'] = $payload['payment_token'];
-                }
+                // if (!empty($payload['payment_token'])) {
+                //     $updateData['payment_token'] = $payload['payment_token'];
+                // }
                 if (!empty($payload['payment_code'])) {
                     $updateData['payment_code'] = $payload['payment_code'];
                 }
+
+                Log::info('Paiement marqué comme payé', [
+                    'reference' => $paiement->command_number,
+                ]);
             } elseif ($statut === 'error' || $statut === 'cancelled') {
                 $updateData['status'] = $statut;
                 if ($statut === 'cancelled') {
                     $updateData['cancelled_at'] = now();
                 }
+
+                Log::warning('Paiement marqué comme ' . $statut, [
+                    'reference' => $paiement->command_number,
+                ]);
             }
 
             $paiement->update($updateData);
@@ -283,16 +300,16 @@ class PrimePaymentOrchestrator
                 default => 'pending',
             };
 
-            if ($factureStatus === 'paid') {
-                Facture::where('payment_uuid', $paiement->uuid_paiement)
-                    ->update([
-                        'status' => $factureStatus,
-                        'paid_at' => now(),
-                    ]);
-            } else {
-                Facture::where('payment_uuid', $paiement->uuid_paiement)
-                    ->update(['status' => $factureStatus]);
-            }
+            $updatedCount = Facture::where('payment_uuid', $paiement->uuid_paiement)
+                ->update(array_filter([
+                    'status' => $factureStatus,
+                    'paid_at' => $factureStatus === 'paid' ? now() : null,
+                ], fn($value) => $value !== null));
+
+            Log::info('Factures mises à jour', [
+                'status' => $factureStatus,
+                'count' => $updatedCount,
+            ]);
         });
     }
 }

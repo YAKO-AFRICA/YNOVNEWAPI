@@ -168,8 +168,12 @@ Route::prefix('v1')->group(function () {
         // Initialisation du paiement
         Route::post('init', [PaymentController::class, 'initierPaiement']);
 
+        
         // Webhook
         Route::post('webhook', [PaymentController::class, 'webhook']);
+        
+        // Vérification du statut d'un paiement
+        Route::get('statut/{referenceInterne}', [PaymentController::class, 'verifierStatut']);
     });
 
     // ============================================================

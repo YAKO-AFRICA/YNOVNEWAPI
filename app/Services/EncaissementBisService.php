@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Api\Ynov\Esouscription\Contrat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -490,33 +491,22 @@ class EncaissementBisService
     public function recupDetailsContratWeb(string $idContrat, string $paymentType): array
     {
         try {
-                // $contrat = Contrat::where('id', $idContrat)->first();
+                $contrat = Contrat::where('id_contrat', $idContrat)->first();
 
-                // if (!$contrat) {
-                //     Log::warning('Contrat non trouvé', ['idContrat' => $idContrat]);
-                //     return $this->failure('Impossible de récupérer les détails du contrat.');
-                // }
-
-                // return [
-                //     'success' => true,
-                //     'contratIdWeb' => $contrat->id ?? null,
-                //     'primePrincipale' => (int) ($contrat->primepricipale ?? 0),
-                //     'fraisAdhesion' => (int) ($contrat->fraisadhesion ?? 0),
-                //     'devise' => 'XOF',
-                //     'codeProduit' => $contrat->codeproduit ?? null,
-                //     'produit' => $contrat->libelleproduit ?? null,
-                // ];
+                if (!$contrat) {
+                    Log::warning('Contrat non trouvé', ['idContrat' => $idContrat]);
+                    return $this->failure('Impossible de récupérer les détails du contrat.');
+                }
 
                 return [
                     'success' => true,
-                    'contratIdWeb' => $idContrat,
-                    'primePrincipale' => 0,
-                    'fraisAdhesion' => 0,
+                    'contratIdWeb' => $contrat->id_contrat ?? null,
+                    'primePrincipale' => (int) ($contrat->prime ?? 0),
+                    'fraisAdhesion' => (int) ($contrat->frais_adhesion ?? 0),
                     'devise' => 'XOF',
-                    'codeProduit' => $paymentType,
-                    'produit' => '',
+                    'codeProduit' => $contrat->code_produit ?? null,
+                    'produit' => $contrat->libelle_produit ?? null,
                 ];
-                
         } catch (\Throwable $e) {
             Log::error('Erreur récupération contrat', [
                 'idContrat' => $idContrat,

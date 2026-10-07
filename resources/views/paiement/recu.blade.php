@@ -405,7 +405,7 @@
                             @else
                             <span style="display:flex; align-items:center; gap:6px;">
                                 <span style="font-size:16px;">📄</span>
-                                Facture n°{{ $facture->id ?? $i + 1 }}
+                                Facture n°{{ $i + 1 }}
                             </span>
                             @endif
                         </td>
@@ -448,7 +448,7 @@
         @endif
 
         <div class="actions">
-            <a href="{{ url('storage/documents/' . $fileName) }}" download class="btn">
+            <a href="{{ url('preview/doc/' . $fileName) }}" download class="btn">
                 📥 Télécharger en PDF
             </a>
             <button onclick="window.print()">

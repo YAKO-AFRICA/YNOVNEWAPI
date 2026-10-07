@@ -306,7 +306,7 @@
                         @if(($paiement->payment_type ?? '') === 'recoveryPrime')
                         Régularisation prime
                         @else
-                        Facture n°{{ $facture->id ?? $i + 1 }}
+                        Facture n°{{ $i + 1 }}
                         @endif
                     </td>
                     <td style="font-size:12px; color:#6b7280;">

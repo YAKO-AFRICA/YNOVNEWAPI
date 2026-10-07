@@ -21816,6 +21816,328 @@
                 ],
             },
 
+            // ============================================================
+            // PAIEMENTS JEKO - API ENDPOINTS
+            // ============================================================
+            {
+                id: "jeko-verify-contract",
+                module: "jeko_widget",
+                name: "Vérifier un contrat",
+                description:
+                    "Vérifie la validité d'un contrat et récupère ses informations (prime, frais d'adhésion, etc.) avant d'initialiser un paiement.",
+                method: "POST",
+                path: "/paiements/jeko/contrat/verifier",
+                isProtected: false,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        idContrat: {
+                            type: "string",
+                            required: true,
+                            description: "Identifiant du contrat",
+                        },
+                        paymentType: {
+                            type: "string",
+                            required: false,
+                            description: "Type de paiement (firstPayment, earlyPayment, recoveryPrime)",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    idContrat: "82718",
+                    paymentType: "recoveryPrime",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Contrat vérifié avec succès",
+                        example: {
+                            success: true,
+                            message: "Contrat vérifié.",
+                            code: "CONTRACT_VERIFIED",
+                            data: {
+                                success: true,
+                                primePrincipale: 16050,
+                                fraisAdhesion: 0,
+                                aDesImpayes: true,
+                                idProposition: "PROP-123",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Contrat introuvable",
+                        example: {
+                            success: false,
+                            message: "Contrat introuvable.",
+                            code: "CONTRACT_NOT_FOUND",
+                            data: null,
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "jeko-init-payment",
+                module: "jeko_widget",
+                name: "Initialiser un paiement",
+                description:
+                    "Initialise un paiement auprès de Jeko pour les 3 types : firstPayment (souscription), earlyPayment (paiement anticipé), recoveryPrime (régularisation). Crée le paiement en base de données et retourne l'URL de redirection.",
+                method: "POST",
+                path: "/paiements/jeko/init",
+                isProtected: false,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        reference: {
+                            type: "string",
+                            required: true,
+                            description: "Référence unique du paiement (générée par le client)",
+                        },
+                        paymentMethod: {
+                            type: "string",
+                            required: true,
+                            description: "Méthode de paiement (wave, orange, moov, mtn, djamo, visa, mastercard)",
+                        },
+                        paymentType: {
+                            type: "string",
+                            required: true,
+                            description: "Type de paiement (firstPayment, earlyPayment, recoveryPrime)",
+                        },
+                        contractId: {
+                            type: "string",
+                            required: true,
+                            description: "Identifiant du contrat (requis pour earlyPayment et recoveryPrime)",
+                        },
+                        numberOfPrimes: {
+                            type: "integer",
+                            required: false,
+                            description: "Nombre de primes à payer (1-60)",
+                        },
+                        selectedInvoiceIds: {
+                            type: "array",
+                            required: false,
+                            description: "IDs des factures à régulariser (requis pour recoveryPrime)",
+                        },
+                        currency: {
+                            type: "string",
+                            required: false,
+                            description: "Devise (XOF, XAF, USD, EUR) - défaut: XOF",
+                        },
+                        successUrl: {
+                            type: "string",
+                            required: false,
+                            description: "URL de redirection en cas de succès",
+                        },
+                        errorUrl: {
+                            type: "string",
+                            required: false,
+                            description: "URL de redirection en cas d'erreur",
+                        },
+                        customerEmail: {
+                            type: "string",
+                            required: false,
+                            description: "Email du client",
+                        },
+                        customerName: {
+                            type: "string",
+                            required: false,
+                            description: "Nom du client",
+                        },
+                        description: {
+                            type: "string",
+                            required: false,
+                            description: "Description du paiement",
+                        },
+                        metadata: {
+                            type: "object",
+                            required: false,
+                            description: "Métadonnées additionnelles",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    reference: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                    paymentMethod: "moov",
+                    paymentType: "recoveryPrime",
+                    contractId: "82718",
+                    selectedInvoiceIds: ["173669", "3132514", "3191079"],
+                    currency: "XOF",
+                    customerEmail: "client@example.com",
+                    customerName: "Jean Dupont",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Paiement initialisé avec succès",
+                        example: {
+                            success: true,
+                            message: "Paiement initialisé avec succès.",
+                            code: "PAYMENT_INITIATED",
+                            data: {
+                                redirectUrl: "https://pay.jeko.africa/pr/e6e9ae44-52e3-4726-9236-49fc035a1530",
+                                referenceInterne: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                                referenceMetier: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                                montant: 80250,
+                                devise: "XOF",
+                                nombreDePrimes: 5,
+                                recuUrl: "https://votre-domaine.com/paiement/recu/PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Données de paiement invalides",
+                        example: {
+                            success: false,
+                            message: "Données de paiement invalides.",
+                            code: "VALIDATION_ERROR",
+                            errors: {
+                                contractId: ["L'identifiant du contrat est requis pour ce type de paiement."],
+                            },
+                        },
+                    },
+                    {
+                        status: 502,
+                        description: "Erreur lors de l'initialisation du paiement",
+                        example: {
+                            success: false,
+                            message: "Impossible d'initialiser le paiement.",
+                            code: "JEKO_INIT_FAILED",
+                            data: null,
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "jeko-check-status",
+                module: "jeko_widget",
+                name: "Vérifier le statut d'un paiement",
+                description:
+                    "Interroge le statut d'un paiement via l'API Jeko. Utilise l'endpoint /partner_api/payment_requests/{id} qui retourne le statut du paiement (pending, success, error). Cette méthode est recommandée en complément des webhooks pour suivre les paiements.",
+                method: "GET",
+                path: "/paiements/jeko/statut/{referenceInterne}",
+                isProtected: false,
+                headers: {
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        referenceInterne: {
+                            type: "string",
+                            required: true,
+                            description: "Référence interne du paiement (command_number)",
+                        },
+                    },
+                },
+                exampleRequest: null,
+                responses: [
+                    {
+                        status: 200,
+                        description: "Statut du paiement récupéré",
+                        example: {
+                            success: true,
+                            data: {
+                                statut: "pending",
+                                montant: "80250.00",
+                                reference: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                                payment_type: "recoveryPrime",
+                                details: {
+                                    id: "22238464-db04-4160-840e-580dcafde287",
+                                    storeId: "3283d851-314c-45f8-a85c-d9006a9f3fc0",
+                                    reference: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                                    type: "redirect",
+                                    status: "pending",
+                                    escrowId: null,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Transaction non trouvée",
+                        example: {
+                            success: false,
+                            message: "Transaction non trouvée.",
+                            code: "TRANSACTION_NOT_FOUND",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "jeko-webhook",
+                module: "jeko_widget",
+                name: "Webhook Jeko",
+                description:
+                    "Endpoint pour recevoir les notifications de paiement de Jeko. Le webhook est signé avec HMAC-SHA256 pour garantir l'authenticité. Gère l'idempotence pour éviter les traitements en double. Met à jour le statut du paiement et génère automatiquement le reçu PDF en cas de succès.",
+                method: "POST",
+                path: "/paiements/jeko/webhook",
+                isProtected: false,
+                headers: {
+                    "Content-Type": "application/json",
+                    "jeko-signature": "{signature}",
+                },
+                requestParams: {
+                    body: {
+                        reference: {
+                            type: "string",
+                            required: true,
+                            description: "Référence du paiement",
+                        },
+                        status: {
+                            type: "string",
+                            required: true,
+                            description: "Statut du paiement (pending, completed, failed, cancelled)",
+                        },
+                        amount: {
+                            type: "object",
+                            required: true,
+                            description: "Montant du paiement",
+                        },
+                        transactionDetails: {
+                            type: "object",
+                            required: true,
+                            description: "Détails de la transaction",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    reference: "PAI-20261007095526-1791366926864-b1v5kukn-1782",
+                    status: "completed",
+                    amount: {
+                        amount: 8025000,
+                        currency: "XOF",
+                    },
+                    transactionDetails: {
+                        paymentLinkId: "22238464-db04-4160-840e-580dcafde287",
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Webhook traité avec succès",
+                        example: {
+                            status: "success",
+                        },
+                    },
+                    {
+                        status: 401,
+                        description: "Signature du webhook invalide",
+                        example: {
+                            error: "Invalid webhook",
+                        },
+                    },
+                ],
+            },
+
             // // ============================================================
             // // WIDGET SIGNATURE - INTÉGRATION
             // // ============================================================

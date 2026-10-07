@@ -15,10 +15,39 @@
         widgetJs: BASE_URL + '/api/v1/paiements/jeko/jeko-payment-widget.js',
         init: BASE_URL + '/api/v1/paiements/jeko/init',
         contractCheck: BASE_URL + '/api/v1/paiements/jeko/contrat/verifier',
+        checkStatus: BASE_URL + '/api/v1/paiements/jeko/statut',
     };
 
     console.log('📍 Base URL détectée:', BASE_URL);
-    console.log('📍 URLs API:', API_URLS);
+
+    // ============================================================
+    // 1.5) FONCTION POUR VÉRIFIER LE STATUT D'UN PAIEMENT
+    // ============================================================
+    /**
+     * Interroge le statut d'un paiement via l'API
+     * @param {string} referenceInterne - Référence interne du paiement
+     * @returns {Promise<Object|null>} Données du statut ou null en cas d'erreur
+     */
+    async function checkPaymentStatus(referenceInterne) {
+        try {
+            const response = await fetch(API_URLS.checkStatus + '/' + referenceInterne);
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ Statut du paiement:', data.data.statut);
+                return data.data;
+            } else {
+                console.error('❌ Erreur lors de la vérification:', data.message);
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Erreur réseau lors de la vérification:', error);
+            return null;
+        }
+    }
+
+    // Exposer la fonction globalement pour les tests dans la console
+    window.checkPaymentStatus = checkPaymentStatus;
 
     // ============================================================
     // 1) GESTION DES ONGLETS
@@ -101,7 +130,9 @@
         backendEndpoint: API_URLS.init,
         /** URL pour vérifier le contrat (obligatoire) */
         contractCheckEndpoint: API_URLS.contractCheck,
-        
+        /** URL pour vérifier le statut du paiement (polling automatique) */
+        statusCheckEndpoint: API_URLS.checkStatus,
+
         // --- Configuration générale ---
         /** Devise par défaut : XOF, XAF, USD, EUR */
         currency: "XOF",
@@ -109,20 +140,26 @@
         timeout: 30000,
         /** Vérification automatique du contrat si contractId fourni */
         autoVerifyContract: true,
-        
+
+        // --- Configuration du polling du statut ---
+        /** Intervalle de polling en millisecondes (défaut: 3000) */
+        statusPollInterval: 3000,
+        /** Nombre maximum de tentatives de polling (défaut: 20) */
+        statusPollMaxAttempts: 20,
+
         // --- Headers personnalisés ---
         headers: {
             "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
             "Accept": "application/json",
         },
-        
+
         // --- Callbacks ---
         callbacks: {
             /** Appelé lorsque le paiement est initialisé avec succès */
             onSuccess: function (redirectUrl, data) {
-                console.log("✅ Paiement initialisé", { redirectUrl, data });
-                // Ouvrir l'URL de paiement dans un nouvel onglet
-                window.open(redirectUrl, "_blank");
+                console.log("✅ Paiement initialisé");
+                // Le widget ouvre automatiquement la page de paiement
+                // et effectue le polling du statut
             },
             /** Appelé en cas d'erreur lors de l'initialisation */
             onError: function (message, data) {
@@ -131,14 +168,14 @@
             },
             /** Appelé lorsque le widget est ouvert */
             onOpen: function (data) {
-                console.log("🔄 Widget ouvert", data);
+                console.log("🔄 Widget ouvert");
             },
             /** Appelé lorsque le widget est fermé */
             onClose: function () {
                 console.log("❌ Widget fermé");
             },
         },
-        
+
         // --- Personnalisation du thème ---
         theme: {
             primary: "#1D603D",          // Couleur principale
@@ -148,7 +185,7 @@
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             maxWidth: "550px",            // Largeur maximale du widget
         },
-        
+
         // --- Traductions personnalisées ---
         translations: {
             title: "Paiement sécurisé",
@@ -173,13 +210,17 @@
             verify: "Vérifier le contrat",
             verifying: "Vérification en cours...",
             loadingContract: "Chargement des informations du contrat...",
+            // Traductions pour le polling du statut
+            polling: "Vérification du statut du paiement en cours...",
+            pollingPending: "Paiement en attente...",
+            pollingSuccess: "Paiement réussi !",
+            pollingError: "Le paiement a échoué",
+            pollingTimeout: "Délai d'attente dépassé",
+            pollingRestart: "Vérifier à nouveau",
         },
     });
 
     console.log("✅ Widget Jeko initialisé avec succès");
-    console.log("📍 API Endpoint:", API_URLS.init);
-    console.log("📍 Contract Check:", API_URLS.contractCheck);
-    console.log("📍 Widget JS:", API_URLS.widgetJs);
 
     // ============================================================
     // 5) FONCTIONS UTILITAIRES
@@ -255,10 +296,7 @@
     document.getElementById("btnFirstPayment").addEventListener("click", function () {
         var contractId = document.getElementById("contractIdFirstPayment")?.value || "1093";
         
-        console.log("🔹 Premier paiement initié", { 
-            contractId: contractId,
-            paymentType: "firstPayment"
-        });
+        console.log("🔹 Premier paiement initié");
 
         widget.open({
             // Référence unique du paiement
@@ -309,10 +347,7 @@
             return;
         }
         
-        console.log("🔹 Paiement anticipé initié", { 
-            contractId: contractId,
-            paymentType: "earlyPayment"
-        });
+        console.log("🔹 Paiement anticipé initié");
 
         updateStatus("earlyStatus", "⏳ Vérification automatique du contrat en cours...", "info");
 
@@ -351,12 +386,7 @@
             return;
         }
 
-        console.log("🔹 Régularisation initiée", {
-            contractId: contractId,
-            paymentType: "recoveryPrime",
-            preselectedCount: preselectedIds.length,
-            preselectedIds: preselectedIds,
-        });
+        console.log("🔹 Régularisation initiée");
 
         updateStatus(
             "recoveryStatus",
@@ -407,13 +437,7 @@
         console.error('⚠️ Promesse non capturée:', e.reason);
     });
 
-    console.log("✅ Widget Jeko initialisé avec succès");
-    console.log("📍 API Endpoint:", API_URLS.init);
-    console.log("📍 Contract Check:", API_URLS.contractCheck);
-    console.log("📍 Widget JS:", API_URLS.widgetJs);
-    console.log("📌 Types de paiement disponibles:");
-    console.log("   - firstPayment: Premier paiement (souscription)");
-    console.log("   - earlyPayment: Paiement anticipé");
-    console.log("   - recoveryPrime: Régularisation d'impayés");
+    console.log("📌 Types de paiement disponibles: firstPayment, earlyPayment, recoveryPrime");
+    console.log("🔄 Polling automatique du statut activé");
 
 })();

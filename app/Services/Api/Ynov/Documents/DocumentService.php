@@ -118,8 +118,6 @@ class DocumentService
                         'nom_fichier'    => $resultat['nom_stocke'],
                         'libelle'        => $libelle,
                         'source'         => $data['source'] ?? null,
-                        // ⚠️ On stocke le CHEMIN RELATIF (ex: 2026/09/fichier.pdf)
-                        //    ainsi que l'URL publique complète n'est PAS stockée.
                         'chemin'         => $cheminRelatif,
                         'type_document'  => $typeDocument,
                         'taille_fichier' => $resultat['taille'],

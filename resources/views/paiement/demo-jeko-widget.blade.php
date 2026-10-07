@@ -446,7 +446,7 @@
                     <span class="subtitle">Intégration pour développeurs front-end</span>
                 </div>
             </div>
-            <span class="badge-version">v1.0</span>
+            <span class="badge-version">v2.0</span>
         </div>
 
         <!-- ============================================================
@@ -574,30 +574,38 @@ TAB 1: HTML / Vanilla JS - Version complète avec 3 types
 const widget = new JekoWidget({
     // Endpoint pour initialiser le paiement
     backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
-    
+
     // Endpoint pour vérifier le contrat
     contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
-    
+
+    // Endpoint pour vérifier le statut du paiement (polling automatique)
+    statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/statut",
+
     // Devise par défaut (XOF, XAF, USD, EUR)
     currency: "XOF",
-    
+
     // Timeout de la requête en millisecondes
     timeout: 30000,
-    
+
     // Vérification automatique du contrat si contractId fourni
     autoVerifyContract: true,
-    
+
+    // Configuration du polling du statut (optionnel)
+    statusPollInterval: 3000,          // Intervalle de polling en ms (défaut: 3000)
+    statusPollMaxAttempts: 20,         // Nombre max de tentatives (défaut: 20)
+
     // Headers personnalisés (CSRF, etc.)
     headers: {
         "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
         "Accept": "application/json",
     },
-    
+
     // Callbacks pour gérer les événements
     callbacks: {
         onSuccess: (redirectUrl, data) => {
             console.log("✅ Paiement initialisé", { redirectUrl, data });
-            window.open(redirectUrl, "_blank");
+            // Le widget ouvre automatiquement la page de paiement
+            // et effectue le polling du statut
         },
         onError: (message, data) => {
             console.error("❌ Erreur de paiement", { message, data });
@@ -606,7 +614,7 @@ const widget = new JekoWidget({
         onOpen: (data) => console.log("🔄 Widget ouvert", data),
         onClose: () => console.log("❌ Widget fermé"),
     },
-    
+
     // Personnalisation du thème (optionnel)
     theme: {
         primary: "#1D603D",
@@ -616,7 +624,7 @@ const widget = new JekoWidget({
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         maxWidth: "550px",
     },
-    
+
     // Traductions personnalisées (optionnel)
     translations: {
         title: "Paiement sécurisé",
@@ -638,10 +646,53 @@ const widget = new JekoWidget({
         verify: "Vérifier le contrat",
         verifying: "Vérification en cours...",
         loadingContract: "Chargement des informations du contrat...",
+        // Traductions pour le polling du statut
+        polling: "Vérification du statut du paiement en cours...",
+        pollingPending: "Paiement en attente...",
+        pollingSuccess: "Paiement réussi !",
+        pollingError: "Le paiement a échoué",
+        pollingTimeout: "Délai d'attente dépassé",
+        pollingRestart: "Vérifier à nouveau",
     },
 });</pre>
 
-                        <p style="margin: 0 0 8px;"><strong>3. Générer une référence unique :</strong></p>
+                        <p style="margin: 0 0 8px;"><strong>3. Polling automatique du statut :</strong></p>
+                        <div style="background: #f0f7f3; border-left: 4px solid #1D603D; padding: 12px 16px; border-radius: 8px; margin: 8px 0 12px; font-size: 13px; color: #374151; line-height: 1.6;">
+                            <p style="margin: 0 0 8px;"><strong>🔄 Le widget effectue automatiquement le polling du statut du paiement :</strong></p>
+                            <ul style="margin: 0 0 8px; padding-left: 20px;">
+                                <li>Après l'initialisation, le widget ouvre la page Jeko dans un nouvel onglet</li>
+                                <li>Le widget vérifie automatiquement le statut toutes les 3 secondes (configurable)</li>
+                                <li>Statuts possibles : <code>pending</code>, <code>success</code>, <code>error</code></li>
+                                <li>Si <code>pending</code> : le widget continue le polling avec un spinner</li>
+                                <li>Si <code>success</code> : le webhook met à jour le statut en base, le widget affiche "Paiement réussi !"</li>
+                                <li>Si <code>error</code> : le widget met à jour le statut en base et affiche une erreur</li>
+                                <li>Après 20 tentatives (configurable) : bouton "Vérifier à nouveau" pour relancer le polling</li>
+                            </ul>
+                        </div>
+
+                        <p style="margin: 0 0 8px;"><strong>4. Vérifier manuellement le statut (optionnel) :</strong></p>
+                        <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
+// Interroger le statut d'un paiement via l'API
+// Endpoint: GET /api/v1/paiements/jeko/statut/{referenceInterne}
+async function checkPaymentStatus(referenceInterne) {
+    const response = await fetch(`{{ BASE_URL }}/api/v1/paiements/jeko/statut/${referenceInterne}`);
+    const data = await response.json();
+
+    if (data.success) {
+        console.log("Statut du paiement:", data.data.statut);
+        console.log("Montant:", data.data.montant);
+        console.log("Détails:", data.data.details);
+        return data.data;
+    } else {
+        console.error("Erreur:", data.message);
+        return null;
+    }
+}
+
+// Exemple d'utilisation
+checkPaymentStatus("PAI-20261007095526-1791366926864-b1v5kukn-1782");</pre>
+
+                        <p style="margin: 0 0 8px;"><strong>5. Générer une référence unique :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
 function generateReference() {
     const now = new Date();
@@ -658,7 +709,7 @@ function generateReference() {
     return `PAI-${year}${month}${day}${hours}${minutes}${seconds}-${timestamp}-${random}-${code}`;
 }</pre>
 
-                        <p style="margin: 0 0 8px;"><strong>4. Récupérer les factures pré-sélectionnées :</strong></p>
+                        <p style="margin: 0 0 8px;"><strong>6. Récupérer les factures pré-sélectionnées :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
 function getPreselectedInvoices() {
     var ids = [];
@@ -771,23 +822,29 @@ function getPreselectedInvoices() {
                 // --- Configuration des endpoints ---
                 backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
                 contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
-                
+                statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/statut",
+
                 // --- Configuration générale ---
                 currency: "XOF",
                 timeout: 30000,
                 autoVerifyContract: true,
-                
+
+                // --- Configuration du polling du statut ---
+                statusPollInterval: 3000,          // Intervalle de polling en ms (défaut: 3000)
+                statusPollMaxAttempts: 20,         // Nombre max de tentatives (défaut: 20)
+
                 // --- Headers ---
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
                     "Accept": "application/json",
                 },
-                
+
                 // --- Callbacks ---
                 callbacks: {
                     onSuccess: function(redirectUrl, data) {
                         console.log("✅ Paiement initialisé", { redirectUrl, data });
-                        window.open(redirectUrl, "_blank");
+                        // Le widget ouvre automatiquement la page de paiement
+                        // et effectue le polling du statut
                     },
                     onError: function(message, data) {
                         console.error("❌ Erreur de paiement", { message, data });
@@ -800,7 +857,7 @@ function getPreselectedInvoices() {
                         console.log("❌ Widget fermé");
                     },
                 },
-                
+
                 // --- Thème personnalisé ---
                 theme: {
                     primary: "#1D603D",
@@ -810,7 +867,7 @@ function getPreselectedInvoices() {
                     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                     maxWidth: "550px",
                 },
-                
+
                 // --- Traductions ---
                 translations: {
                     title: "Paiement sécurisé",
@@ -832,6 +889,13 @@ function getPreselectedInvoices() {
                     verify: "Vérifier le contrat",
                     verifying: "Vérification en cours...",
                     loadingContract: "Chargement des informations du contrat...",
+                    // Traductions pour le polling du statut
+                    polling: "Vérification du statut du paiement en cours...",
+                    pollingPending: "Paiement en attente...",
+                    pollingSuccess: "Paiement réussi !",
+                    pollingError: "Le paiement a échoué",
+                    pollingTimeout: "Délai d'attente dépassé",
+                    pollingRestart: "Vérifier à nouveau",
                 },
             });
 

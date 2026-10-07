@@ -109,6 +109,7 @@
     const DEFAULT_OPTIONS = {
         backendEndpoint: "/api/v1/paiements/jeko/init",
         contractCheckEndpoint: "/api/v1/paiements/jeko/contrat/verifier",
+        statusCheckEndpoint: "/api/v1/paiements/jeko/statut",
         currency: "XOF",
         successUrl: null,
         errorUrl: null,
@@ -119,6 +120,10 @@
         // (pour earlyPayment et recoveryPrime). Toujours actif pour
         // firstPayment. Désactivable par l'application hôte.
         autoVerifyContract: true,
+        // Intervalle de polling du statut (en millisecondes)
+        statusPollInterval: 3000,
+        // Nombre maximum de tentatives de polling
+        statusPollMaxAttempts: 60,
         theme: {
             primary: "#1D603D",
             primaryDark: "#0B482F",
@@ -175,6 +180,13 @@
             summaryAmount: "Montant à payer",
             changeMethod: "Modifier",
             loadingContract: "Chargement des informations du contrat...",
+            // États de polling du statut
+            polling: "Vérification du statut du paiement en cours...",
+            pollingPending: "Paiement en attente...",
+            pollingSuccess: "Paiement réussi !",
+            pollingError: "Le paiement a échoué",
+            pollingTimeout: "Délai d'attente dépassé",
+            pollingRestart: "Vérifier à nouveau",
         },
         callbacks: {
             onSuccess: null,
@@ -426,6 +438,36 @@
         padding:15px 17px; border-bottom:1px solid #f0f0f0;
       }
       .jeko-summary-row:last-child { border-bottom:none; }
+
+      /* Result state */
+      .jeko-state {
+        text-align:center; padding:40px 30px;
+        animation: jeko-pop .3s ease;
+      }
+      .jeko-state .icon { font-size:48px; display:block; margin-bottom:16px; }
+      .jeko-state h4 { font-size:18px; font-weight:700; color:#111827; margin:0 0 8px; }
+      .jeko-state p { font-size:14px; color:#6b7280; margin:0; line-height:1.5; }
+      .jeko-state.success .icon { color:#22c55e; }
+      .jeko-state.error .icon { color:#dc2626; }
+      .jeko-state.polling .icon { display:none; }
+      .jeko-state.polling h4 { color:var(--jeko-primary-dark); }
+
+      /* Spinner */
+      .jeko-state.polling .spinner {
+        width:48px; height:48px; margin:0 auto 20px;
+        border:4px solid #e5e7eb; border-top-color:var(--jeko-primary);
+        border-radius:50%; animation: jeko-spin 1s linear infinite;
+      }
+      @keyframes jeko-spin { to { transform:rotate(360deg); } }
+
+      /* Retry button */
+      .jeko-retry {
+        margin-top:20px; padding:12px 24px; border-radius:11px;
+        border:2px solid var(--jeko-primary); background:#fff;
+        color:var(--jeko-primary-dark); font-weight:700; font-size:14px;
+        cursor:pointer; transition:all .15s;
+      }
+      .jeko-retry:hover { background:var(--jeko-primary); color:#fff; }
       .jeko-summary-row .label { font-size:12.5px; color:#6b7280; font-weight:600; }
       .jeko-summary-row .value { font-size:13.5px; color:#111827; font-weight:700; text-align:right; }
       .jeko-summary-row .value.method { display:flex; align-items:center; gap:8px; }
@@ -592,6 +634,7 @@
         }
 
         close() {
+            this._clearStatusPoll();
             if (this._overlay) {
                 this._overlay.remove();
                 this._overlay = null;
@@ -1476,6 +1519,7 @@
                 }
 
                 const redirectUrl = data.data?.redirectUrl;
+                const referenceInterne = data.data?.referenceInterne;
                 if (!redirectUrl) {
                     this._renderResultState(
                         "error",
@@ -1486,14 +1530,19 @@
                     return;
                 }
 
-                this._renderResultState("success", t.success, t.successMessage);
-                if (this.options.callbacks.onSuccess)
-                    this.options.callbacks.onSuccess(redirectUrl, data);
-                setTimeout(() => {
-                    // Fermer le modal
-                    this.close();
-                    window.open(redirectUrl, "_blank");
-                }, 1500);
+                // Ouvrir la page de paiement dans un nouvel onglet
+                window.open(redirectUrl, "_blank");
+
+                // Commencer le polling du statut du paiement
+                if (referenceInterne) {
+                    this._startStatusPolling(referenceInterne);
+                } else {
+                    // Fallback si pas de référence : afficher succès et fermer
+                    this._renderResultState("success", t.success, t.successMessage);
+                    if (this.options.callbacks.onSuccess)
+                        this.options.callbacks.onSuccess(redirectUrl, data);
+                    setTimeout(() => this.close(), 1500);
+                }
             } catch (error) {
                 const msg =
                     error.name === "AbortError"
@@ -1504,6 +1553,122 @@
                     this.options.callbacks.onError(msg, null);
             } finally {
                 this._isSubmitting = false;
+            }
+        }
+
+        // ---------- Polling du statut du paiement ----------
+
+        async _startStatusPolling(referenceInterne) {
+            const t = this.options.translations;
+            const pollInterval = this.options.statusPollInterval || 3000;
+            const maxAttempts = this.options.statusPollMaxAttempts || 20;
+            let attempts = 0;
+
+            // Stocker la référence pour pouvoir relancer le polling
+            this._currentReference = referenceInterne;
+
+            // Afficher l'état de polling avec spinner
+            this._renderPollingState();
+
+            this._statusPollTimer = setInterval(async () => {
+                attempts++;
+
+                try {
+                    const response = await fetch(
+                        `${this.options.statusCheckEndpoint}/${referenceInterne}`
+                    );
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        console.error("Erreur lors de la vérification du statut:", data);
+                        return;
+                    }
+
+                    const status = data.data?.statut;
+
+                    if (status === "success") {
+                        // Paiement réussi - le webhook s'en charge de la mise à jour en base
+                        this._clearStatusPoll();
+                        this._renderResultState(
+                            "success",
+                            t.pollingSuccess,
+                            "Votre paiement a été effectué avec succès.",
+                        );
+                        if (this.options.callbacks.onSuccess) {
+                            this.options.callbacks.onSuccess(null, data);
+                        }
+                        setTimeout(() => this.close(), 3000);
+                    } else if (status === "error") {
+                        // Paiement échoué - mettre à jour le statut en base
+                        this._clearStatusPoll();
+                        this._renderResultState(
+                            "error",
+                            t.pollingError,
+                            "Le paiement a échoué. Veuillez réessayer.",
+                            { showRetry: true },
+                        );
+                        if (this.options.callbacks.onError) {
+                            this.options.callbacks.onError("Paiement échoué", data);
+                        }
+                    } else if (status === "pending") {
+                        // Paiement toujours en attente - continuer le polling
+                        this._updatePollingMessage(t.pollingPending);
+                    } else {
+                        // Statut inconnu
+                        console.warn("Statut inconnu:", status);
+                    }
+                } catch (error) {
+                    console.error("Erreur lors du polling:", error);
+                }
+
+                // Arrêter le polling après le nombre maximum de tentatives
+                if (attempts >= maxAttempts) {
+                    this._clearStatusPoll();
+                    this._renderPollingTimeoutState(referenceInterne);
+                }
+            }, pollInterval);
+        }
+
+        _clearStatusPoll() {
+            if (this._statusPollTimer) {
+                clearInterval(this._statusPollTimer);
+                this._statusPollTimer = null;
+            }
+        }
+
+        _renderPollingState() {
+            const t = this.options.translations;
+            this._modal.innerHTML = `
+        <div class="jeko-state polling">
+          <div class="spinner"></div>
+          <h4>${t.polling}</h4>
+          <p>${t.pollingPending}</p>
+        </div>`;
+        }
+
+        _updatePollingMessage(message) {
+            const msgEl = this._modal.querySelector(".jeko-state.polling p");
+            if (msgEl) {
+                msgEl.textContent = message;
+            }
+        }
+
+        _renderPollingTimeoutState(referenceInterne) {
+            const t = this.options.translations;
+            this._modal.innerHTML = `
+        <div class="jeko-state error">
+          <span class="icon">⏱️</span>
+          <h4>${t.pollingTimeout}</h4>
+          <p>Le délai d'attente a été dépassé. Vérifiez si vous avez effectué le paiement sur la page Jeko.</p>
+          <button type="button" class="jeko-retry jeko-restart-poll">${t.pollingRestart}</button>
+        </div>`;
+
+            // Attacher l'événement pour relancer le polling
+            const restartBtn = this._modal.querySelector(".jeko-restart-poll");
+            if (restartBtn) {
+                restartBtn.addEventListener("click", () => {
+                    this._startStatusPolling(referenceInterne);
+                });
             }
         }
 
