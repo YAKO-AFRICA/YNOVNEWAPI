@@ -363,8 +363,9 @@ class PropositionController extends Controller
                 }
 
                 return [
-                    'key_integration' => $keyIntegration,
-                    'contrat_uuid'    => $contratUuid,
+                    'contratData'     => $contratStore,
+                    // 'key_integration' => $keyIntegration,
+                    // 'contrat_uuid'    => $contratUuid,
                     'documentStore'   => $documentStore,
                 ];
             });
@@ -373,9 +374,8 @@ class PropositionController extends Controller
                 'success'         => true,
                 'message'         => 'Souscription créée avec succès',
                 'code'            => 200,
-                'key_integration' => $result['key_integration'],
-                'contrat_uuid'    => $result['contrat_uuid'],
-                'data'            => $result['documentStore'],
+                'contratData'     => $result['contratData'],
+                'documentStore'   => $result['documentStore'],
             ]);
 
         } catch (\Throwable $th) {
