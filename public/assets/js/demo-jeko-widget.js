@@ -282,6 +282,9 @@
         }
     }
 
+    const referenceInterne = generateReference();
+    const successUrl = "{{ url('/paiement/recu') }}" + "/" + referenceInterne;
+    const errorUrl = "{{ route('paiement.error') }}";
     // ============================================================
     // 6) BOUTONS DE PAIEMENT - LES 3 TYPES
     // ============================================================
@@ -300,7 +303,7 @@
 
         widget.open({
             // Référence unique du paiement
-            reference: generateReference(),
+            reference: referenceInterne,
             
             // Type de paiement: firstPayment | earlyPayment | recoveryPrime
             paymentType: "firstPayment",
@@ -318,10 +321,10 @@
             customerName: "Jean Dupont",
             
             // URL de redirection en cas de succès
-            successUrl: window.location.origin + "/paiements/jeko/success",
+            successUrl: successUrl,
             
             // URL de redirection en cas d'erreur
-            errorUrl: window.location.origin + "/paiements/jeko/error",
+            errorUrl: errorUrl,
             
             // Métadonnées additionnelles (pour le suivi)
             metadata: {
@@ -351,15 +354,17 @@
 
         updateStatus("earlyStatus", "⏳ Vérification automatique du contrat en cours...", "info");
 
+
+
         widget.open({
-            reference: generateReference(),
+            reference: referenceInterne,
             paymentType: "earlyPayment",
             contractId: contractId,
             description: "Paiement anticipé de primes",
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
-            // successUrl: window.location.origin + "/paiements/jeko/success",
-            // errorUrl: window.location.origin + "/paiements/jeko/error",
+            successUrl: successUrl ,
+            errorUrl: errorUrl,
             metadata: {
                 source: "web_demo",
                 scenario: "earlyPayment",
@@ -395,15 +400,15 @@
         );
 
         widget.open({
-            reference: generateReference(),
+            reference: referenceInterne,
             paymentType: "recoveryPrime",
             contractId: contractId,
             preselectedInvoiceIds: preselectedIds.length > 0 ? preselectedIds : undefined,
             description: "Régularisation de primes impayées",
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
-            successUrl: window.location.origin + "/paiements/jeko/success",
-            errorUrl: window.location.origin + "/paiements/jeko/error",
+            successUrl: successUrl,
+            errorUrl: errorUrl,
             metadata: {
                 source: "web_demo",
                 scenario: "recoveryPrime",

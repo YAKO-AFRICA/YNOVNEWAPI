@@ -328,7 +328,7 @@ class PaymentController extends Controller
                 [
                     'phone' => $resultat['phone'],
                     // 'payment_token' => $resultat['payment_token'],
-                    'payment_code' => $resultat['payment_code'],
+                    // 'payment_code' => $resultat['payment_code'],
                 ]
             );
 

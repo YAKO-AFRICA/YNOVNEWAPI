@@ -223,14 +223,13 @@ class PaymentService
         }
 
         // $paymentToken = $payload['transactionDetails']['paymentLinkId'] ?? null;
-        $payment_code = $payload['transactionDetails']['paymentLinkId'] ?? null;
+        // $payment_code = $payload['transactionDetails']['paymentLinkId'] ?? null;
 
         return [
             'reference' => $reference,
             'status' => $targetStatus,
             'phone' => $phone,
-            // 'payment_token' => $paymentToken,
-            'payment_code' => $payment_code,
+            // 'payment_code' => $payment_code,
             'amount' => ($payload['amount']['amount'] ?? null) / 100,
         ];
     }
