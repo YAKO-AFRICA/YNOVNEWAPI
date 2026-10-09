@@ -213,8 +213,8 @@ class PrimePaymentOrchestrator
         return DB::transaction(function () use ($donnees, $preparation, $referenceInterne, $resultatJeko) {
             // Créer le paiement
             $paiement = Paiement::create([
+                'payment_code' => $referenceInterne ?? null,
                 'command_number' => $referenceInterne ?? null,
-                // 'payment_code' => $resultatJeko['paymentId'] ?? null,
                 'amount' => $preparation['montantTotal'],
                 'payment_mode' => $donnees['paymentMethod'] ?? null,
                 'payment_status' => $resultatJeko['status'] ?? 'pending',
@@ -273,9 +273,9 @@ class PrimePaymentOrchestrator
                 // if (!empty($payload['payment_token'])) {
                 //     $updateData['payment_token'] = $payload['payment_token'];
                 // }
-                if (!empty($payload['payment_code'])) {
-                    $updateData['payment_code'] = $payload['payment_code'];
-                }
+                // if (!empty($payload['payment_code'])) {
+                //     $updateData['payment_code'] = $payload['payment_code'];
+                // }
 
                 Log::info('Paiement marqué comme payé', [
                     'reference' => $paiement->command_number,

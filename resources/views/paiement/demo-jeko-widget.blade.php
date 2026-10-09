@@ -468,7 +468,7 @@
                     <h4>Premier paiement</h4>
                     <p>Après validation d'un nouveau contrat</p>
                     <div style="margin-bottom:8px;">
-                        <input type="text" id="contractIdFirstPayment" value="4" style="width:100%; padding:6px 10px; border:1.5px solid #e5e7eb; border-radius:6px; font-size:13px; box-sizing:border-box;" readonly />
+                        <input type="text" id="contractIdFirstPayment" value="1" style="width:100%; padding:6px 10px; border:1.5px solid #e5e7eb; border-radius:6px; font-size:13px; box-sizing:border-box;" readonly />
                     </div>
                     <button class="btn-pay-sm" id="btnFirstPayment">Payer la première prime</button>
                 </div>

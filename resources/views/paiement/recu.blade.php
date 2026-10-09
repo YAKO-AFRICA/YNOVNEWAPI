@@ -375,12 +375,12 @@
                 <span class="label">Référence transaction</span>
                 <span class="value" style="font-size:12px; font-weight:500; color:#6b7280;">{{ $paiement->payment_code ?? '—' }}</span>
             </div>
-            @if($paiement->command_number)
+            <!-- @if($paiement->command_number)
             <div class="item">
                 <span class="label">N° commande</span>
                 <span class="value" style="font-size:12px; font-weight:500; color:#6b7280;">{{ $paiement->command_number }}</span>
             </div>
-            @endif
+            @endif -->
         </div>
 
         <div class="table-responsive">
