@@ -1400,6 +1400,51 @@ class PermissionService
                     ],
                 ]
             ],
+            // ============================================================
+            // sOUSCRIPTION - Contrats
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'souscriptions',
+                    'libelle' => 'Souscription',
+                    'description' => 'Gestion des souscriptions et contrats',
+                    'icone' => 'file-contract',
+                    'color' => '#007bff',
+                    'ordre' => 22,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les souscriptions',
+                        'description' => 'Permet de visualiser la liste des souscriptions'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'creer',
+                        'libelle' => 'Créer une souscription',
+                        'description' => 'Permet de créer une nouvelle souscription'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier une souscription',
+                        'description' => 'Permet de modifier une souscription'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'supprimer',
+                        'libelle' => 'Supprimer une souscription',
+                        'description' => 'Permet de supprimer une souscription'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'transmettre',
+                        'libelle' => 'Transmettre une souscription',
+                        'description' => 'Permet de transmettre une souscription'
+                    ],
+                ]
+            ],
         ];
     }
 }

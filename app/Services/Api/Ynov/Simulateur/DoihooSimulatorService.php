@@ -28,7 +28,7 @@ class DoihooSimulatorService
         }
 
         $capital = (float) $parameters['Capital'];
-        $age = (int) 99; // Age fixe à 99 ans pour le calcul de la prime, comme spécifié dans les exigences
+        $age = (int) 99;
         $duration = (int) $parameters['Duree'];
         $productCode = $parameters['CodeProduit'];
         $periodicity = $parameters['CodePeriodicite'];
