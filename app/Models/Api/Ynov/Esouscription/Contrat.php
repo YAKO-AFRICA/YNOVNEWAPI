@@ -5,12 +5,12 @@ namespace App\Models\Api\Ynov\Esouscription;
 use App\Models\Api\Ynov\Esouscription\Acteur;
 use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\Partner;
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User;
 
 class Contrat extends Model
 {
@@ -204,6 +204,11 @@ class Contrat extends Model
     public function partner()
     {
         return $this->belongsTo(Partner::class, 'partner_uuid', 'uuid_partner');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
     }
 
 

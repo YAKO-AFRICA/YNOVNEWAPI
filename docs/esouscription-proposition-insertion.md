@@ -705,9 +705,81 @@ curl --location --request POST 'http://localhost:8000/api/v1/esouscription/store
 
 ---
 
+## Consultation des propositions
+
+```http
+GET /api/v1/esouscription/get-propositions/{uuid_user}?per_page=15
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+### Paramètres
+
+| Paramètre | Emplacement | Obligatoire | Description |
+| --- | --- | --- | --- |
+| `uuid_user` | Chemin | Oui | UUID (`users.uuid_user`) de l’utilisateur authentifié. |
+| `per_page` | Query string | Non | Nombre de propositions par page, de 1 à 100. Valeur par défaut : `15`. |
+
+L’endpoint nécessite une authentification Sanctum. L’UUID du chemin doit correspondre à celui de l’utilisateur authentifié ; il n’est pas possible de demander les propositions d’un autre utilisateur.
+
+Exemple :
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8000/api/v1/esouscription/get-propositions/UUID_USER?per_page=15' \
+  --header 'Accept: application/json' \
+  --header 'Authorization: Bearer TOKEN'
+```
+
+Le rôle est résolu à partir de `users.role_uuid`, puis de `roles.code`. La visibilité est la suivante :
+
+- `conseiller_souscription` (commercial) : propositions dont `contrats.created_by` correspond à l’utilisateur.
+- `manager_souscription` : ses propres propositions et toutes celles dont `contrats.agence_uuid` correspond à l’une de ses agences actives.
+- `superviseur_souscription` (gestionnaire) et `admin_souscription` (administrateur) : toutes les propositions.
+
+La réponse est paginée et inclut les informations d’agence ainsi que les acteurs liés au contrat (`ADH`, `ASS`, `BEN`).
+
+Exemple de réponse `200` :
+
+```json
+{
+  "success": true,
+  "message": "Propositions récupérées avec succès",
+  "code": 200,
+  "total": 1,
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "uuid_contrat": "UUID_CONTRAT",
+        "created_by": "UUID_USER",
+        "agence_uuid": "UUID_AGENCE",
+        "agence": {},
+        "contrat_acteurs": [
+          {
+            "type_acteur": "ADH",
+            "acteur": {}
+          }
+        ]
+      }
+    ],
+    "per_page": 15,
+    "total": 1
+  }
+}
+```
+
+Erreurs possibles :
+
+- `401` : utilisateur non authentifié.
+- `403` : l’UUID du chemin ne correspond pas à l’utilisateur authentifié, ou son rôle ne permet pas de consulter les propositions.
+- `404` : utilisateur introuvable.
+- `422` : valeur `per_page` invalide.
+
 ## Fichiers liés
 
 - contrôleur : `app/Http/Controllers/Api/Ynov/Esouscription/PropositionController.php`
+- service : `app/Services/Api/Ynov/ESouscription/PropositionService.php`
 - route : `routes/api.php`
 
-Ce document décrit exactement l’insertion de la proposition selon le comportement réel de la méthode `storeSouscription()`.
+Ce document décrit le flux d’insertion de `storeSouscription()` et la consultation des propositions selon le rôle de l’utilisateur authentifié.

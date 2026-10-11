@@ -9,8 +9,10 @@ use App\Services\Api\Ynov\ESouscription\ClientNumberGenerator;
 use App\Services\Api\Ynov\ESouscription\ContratActeurService;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
+use App\Services\Api\Ynov\ESouscription\PropositionService;
 use DateTimeImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -23,8 +25,45 @@ class PropositionController extends Controller
         private ContratActeurService $contratActeurService,
         private DeclarationSanteService $declarationSanteService,
         private DocumentService $documentService,
-        private ContratService $contratService
+        private ContratService $contratService,
+        private PropositionService $propositionService
     ) {}
+
+    public function getPropositions(Request $request, string $uuid_user)
+    {
+        if ($request->user()?->uuid_user !== $uuid_user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous ne pouvez consulter que les propositions de votre compte.',
+                'code' => 403,
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        try {
+            $propositions = $this->propositionService->getForUser(
+                $uuid_user,
+                (int) ($validated['per_page'] ?? 15)
+            );
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur introuvable.',
+                'code' => 404,
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Propositions récupérées avec succès',
+            'code' => 200,
+            'total' => $propositions->total(),
+            'data' => $propositions,
+        ]);
+    }
 
     public function storeSouscription(Request $request)
     {
@@ -33,7 +72,7 @@ class PropositionController extends Controller
 
                 $contratUuid = Str::uuid()->toString();
                 $keyIntegration = now()->format('Ymdh');
-                
+
 
                 $adherentData      = $request->adherentData ?? [];
                 $assurerDatas      = $request->assurerDatas ?? [];
@@ -155,7 +194,7 @@ class PropositionController extends Controller
                             throw new \Exception("Échec de la déclaration santé de l'assuré : {$assureInfo['nom']}");
                         }
 
-                        
+
                     } else {
 
                         $assurerStore = $this->acteurService->create([

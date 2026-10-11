@@ -97,7 +97,7 @@ Route::prefix('v1')->group(function () {
    
 
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner'])->middleware('throttle:login');
+    Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner']);
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
 
@@ -1159,6 +1159,7 @@ Route::prefix('v1')->middleware([
 
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
+        Route::get('get-propositions/{uuid_user}', [PropositionController::class, 'getPropositions']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
 
