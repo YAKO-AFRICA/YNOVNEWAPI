@@ -89,6 +89,32 @@ class ContratService
         });
     }
 
+    public function transmit(Contrat $contrat, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $contrat->update([
+                'etape' => 3,
+                'transmis_par' => $userUuid,
+                'date_transmission' => now(),
+            ]);
+
+            return $contrat->fresh();
+        });
+    }
+
+    public function cancel(Contrat $contrat, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $contrat->update([
+                'etape' => 4,
+                'annuler_par' => $userUuid,
+                'date_annulation' => now(),
+            ]);
+
+            return $contrat->fresh();
+        });
+    }
+
     public function delete(Contrat $contrat, bool $force = false, ?string $deletedBy = null): void
     {
         DB::transaction(function () use ($contrat, $force, $deletedBy): void {

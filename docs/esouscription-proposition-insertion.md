@@ -783,3 +783,63 @@ Erreurs possibles :
 - route : `routes/api.php`
 
 Ce document décrit le flux d’insertion de `storeSouscription()` et la consultation des propositions selon le rôle de l’utilisateur authentifié.
+
+## Transmission d’un contrat
+
+```http
+POST /api/v1/esouscription/transmettre-contrat/{uuid}
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+L’endpoint nécessite une authentification Sanctum. Remplacer `{uuid}` par l’UUID du contrat à transmettre. Aucune donnée n’est attendue dans le corps de la requête : l’UUID de l’utilisateur connecté est automatiquement enregistré dans `transmis_par`.
+
+La transmission met `etape` à `3` et renseigne `date_transmission` avec la date et l’heure courantes.
+
+Exemple de réponse `200` :
+
+```json
+{
+  "success": true,
+  "message": "Contrat transmis avec succès",
+  "code": 200,
+  "data": {
+    "uuid_contrat": "UUID_CONTRAT",
+    "etape": 3,
+    "transmis_par": "UUID_USER",
+    "date_transmission": "2026-10-11T19:56:04.000000Z"
+  }
+}
+```
+
+Un contrat introuvable retourne `404`.
+
+## Annulation d’un contrat
+
+```http
+POST /api/v1/esouscription/annuler-contrat/{uuid}
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+L’endpoint nécessite une authentification Sanctum. Remplacer `{uuid}` par l’UUID du contrat à annuler. Aucune donnée n’est attendue dans le corps de la requête : l’UUID de l’utilisateur connecté est automatiquement enregistré dans `annuler_par`.
+
+L’annulation met `etape` à `4` et renseigne `date_annulation` avec la date et l’heure courantes.
+
+Exemple de réponse `200` :
+
+```json
+{
+  "success": true,
+  "message": "Contrat annulé avec succès",
+  "code": 200,
+  "data": {
+    "uuid_contrat": "UUID_CONTRAT",
+    "etape": 4,
+    "annuler_par": "UUID_USER",
+    "date_annulation": "2026-10-11T20:16:06.000000Z"
+  }
+}
+```
+
+Un contrat introuvable retourne `404`.

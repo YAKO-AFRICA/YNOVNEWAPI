@@ -131,6 +131,56 @@ class ContratController extends Controller
         }
     }
 
+    public function transmit(Request $request, string $uuid)
+    {
+        $contrat = $this->contratService->findByUuid($uuid);
+
+        if (!$contrat) {
+            return $this->notFoundResponse();
+        }
+
+        try {
+            $contrat = $this->contratService->transmit(
+                $contrat,
+                (string) $request->user()->uuid_user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contrat transmis avec succès',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (Throwable $e) {
+            return $this->errorResponse('Erreur lors de la transmission du contrat', $e);
+        }
+    }
+
+    public function cancel(Request $request, string $uuid)
+    {
+        $contrat = $this->contratService->findByUuid($uuid);
+
+        if (!$contrat) {
+            return $this->notFoundResponse();
+        }
+
+        try {
+            $contrat = $this->contratService->cancel(
+                $contrat,
+                (string) $request->user()->uuid_user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contrat annulé avec succès',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (Throwable $e) {
+            return $this->errorResponse('Erreur lors de l’annulation du contrat', $e);
+        }
+    }
+
     public function destroy(Request $request, string $uuid)
     {
         $contrat = $this->contratService->findWithTrashedByUuid($uuid);
