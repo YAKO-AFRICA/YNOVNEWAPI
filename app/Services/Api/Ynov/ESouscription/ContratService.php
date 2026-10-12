@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Api\Ynov\Esouscription;
+namespace App\Services\Api\Ynov\ESouscription;
 
 use App\Models\Api\Ynov\Esouscription\Contrat;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -84,6 +84,32 @@ class ContratService
     {
         return DB::transaction(function () use ($contrat, $data): Contrat {
             $contrat->update($data);
+
+            return $contrat->fresh();
+        });
+    }
+
+    public function transmit(Contrat $contrat, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $contrat->update([
+                'etape' => 3,
+                'transmis_par' => $userUuid,
+                'date_transmission' => now(),
+            ]);
+
+            return $contrat->fresh();
+        });
+    }
+
+    public function cancel(Contrat $contrat, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $contrat->update([
+                'etape' => 4,
+                'annuler_par' => $userUuid,
+                'date_annulation' => now(),
+            ]);
 
             return $contrat->fresh();
         });

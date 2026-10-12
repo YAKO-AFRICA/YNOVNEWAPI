@@ -56,12 +56,20 @@ class DoihooSimulatorController extends Controller
      */
     public function simulate(Request $request): JsonResponse
     {
+
+        Log::info('Requête de simulation Doihoo reçue.', [
+            'request_data' => $request->all(),
+        ]);
         $validator = Validator::make($request->all(), [
             'CodeProduit' => ['required', 'string', Rule::in([DoihooSimulatorService::CODE_PRODUIT])],
             'CodePeriodicite' => ['required', 'string', 'max:30'],
             'Capital' => ['required', 'numeric', 'gt:0'],
             'AgeAssure' => ['required', 'integer', 'between:18,99'],
             'Duree' => ['required', 'integer', Rule::in([DoihooSimulatorService::DUREE_CONTRAT])],
+        ]);
+
+        Log::info('Paramètres de simulation validés.', [
+            'validated_data' => $validator->validated(),
         ]);
 
         if ($validator->fails()) {

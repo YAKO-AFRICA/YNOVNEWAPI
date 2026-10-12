@@ -93,6 +93,10 @@ class ContratController extends Controller
                 'assures'       => $assures,
             ];
 
+            // Récupération des documents associés au contrat
+
+            $documents = $contrat->documents()->get();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Contrat récupéré avec succès',
@@ -100,6 +104,7 @@ class ContratController extends Controller
                 'data'    => [
                     'contrat'        => $contrat,
                     'contratActeurs' => $acteursGroupes,
+                    'documents'      => $documents,
                 ],
             ]);
         } catch (Throwable $e) {
@@ -128,6 +133,56 @@ class ContratController extends Controller
             ]);
         } catch (Throwable $e) {
             return $this->errorResponse('Erreur lors de la mise à jour du contrat', $e);
+        }
+    }
+
+    public function transmit(Request $request, string $uuid)
+    {
+        $contrat = $this->contratService->findByUuid($uuid);
+
+        if (!$contrat) {
+            return $this->notFoundResponse();
+        }
+
+        try {
+            $contrat = $this->contratService->transmit(
+                $contrat,
+                (string) $request->user()->uuid_user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contrat transmis avec succès',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (Throwable $e) {
+            return $this->errorResponse('Erreur lors de la transmission du contrat', $e);
+        }
+    }
+
+    public function cancel(Request $request, string $uuid)
+    {
+        $contrat = $this->contratService->findByUuid($uuid);
+
+        if (!$contrat) {
+            return $this->notFoundResponse();
+        }
+
+        try {
+            $contrat = $this->contratService->cancel(
+                $contrat,
+                (string) $request->user()->uuid_user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contrat annulé avec succès',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (Throwable $e) {
+            return $this->errorResponse('Erreur lors de l’annulation du contrat', $e);
         }
     }
 

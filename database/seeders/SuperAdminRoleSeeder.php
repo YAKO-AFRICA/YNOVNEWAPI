@@ -140,6 +140,102 @@ class SuperAdminRoleSeeder extends Seeder
                 'status' => 'actif',
             ]
         );
+        // ============================================================
+        // Rôle Administrateur Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'admin_souscription'],
+            [
+                'libelle' => 'Administrateur Souscription',
+                'description' => "Rôle administrateur souscription disposant de droits d'Administration pour la gestion des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 8,
+                'priority' => 8,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle Manager Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'manager_souscription'],
+            [
+                'libelle' => 'Manager Souscription',
+                'description' => "Rôle manager souscription disposant de droits de manager pour la gestion des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 9,
+                'priority' => 9,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle Superviseur Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'superviseur_souscription'],
+            [
+                'libelle' => 'Superviseur Souscription',
+                'description' => "Rôle superviseur souscription disposant de droits de supervision pour la gestion des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 10,
+                'priority' => 10,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle Conseiller Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'conseiller_souscription'],
+            [
+                'libelle' => 'Conseiller Souscription',
+                'description' => "Rôle conseiller souscription disposant de conseiller étendus pour la gestion des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 11,
+                'priority' => 11,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle Banccass Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'banccass_souscription'],
+            [
+                'libelle' => 'Banccass Souscription',
+                'description' => "Rôle banccass Permettant de suivre toute les activitées  bancaire sur la platforme YNOV.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 12,
+                'priority' => 12,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle Producteur Souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'producteur_souscription'],
+            [
+                'libelle' => 'Producteur Souscription',
+                'description' => "Rôle producteur souscription lui permettant de traiter des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 13,
+                'priority' => 13,
+                'status' => 'actif',
+            ]
+        );
     }
 }
 
