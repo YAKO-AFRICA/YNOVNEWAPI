@@ -175,10 +175,10 @@ class PaymentController extends Controller
                 'currency' => $donnees['currency'] ?? 'XOF',
                 'reference' => $referenceInterne,
                 'paymentMethod' => $donnees['paymentMethod'],
-                'successUrl' => route('paiement.recu', ['referenceInterne' => $referenceInterne]),
-                'errorUrl' => route('paiement.error'),
-                // 'successUrl' => isset($donnees['successUrl']) ? $donnees['successUrl'] :   route('paiement.recu', ['referenceInterne' => $referenceInterne]),
-                // 'errorUrl' => isset($donnees['errorUrl']) ? $donnees['errorUrl'] : route('paiement.error'),
+                'successUrl' => env('APP_URL') . '/paiement/recu/' . $referenceInterne,
+                'errorUrl' => env('APP_URL') . '/paiement/error',
+                // 'successUrl' => isset($donnees['successUrl']) ? $donnees['successUrl'] : env('APP_URL') . '/paiement/recu/' . $referenceInterne,
+                // 'errorUrl' => isset($donnees['errorUrl']) ? $donnees['errorUrl'] : env('APP_URL') . '/paiement/error',
                 'customerEmail' => $donnees['customerEmail'] ?? null,
                 'customerName' => $donnees['customerName'] ?? null,
                 'description' => $donnees['description'] ?? null,
@@ -216,7 +216,7 @@ class PaymentController extends Controller
                     'montant' => $preparation['montantTotal'],
                     'devise' => $donnees['currency'] ?? 'XOF',
                     'nombreDePrimes' => $preparation['nombreDePrimes'],
-                    'recuUrl' => route('paiement.recu', ['referenceInterne' => $referenceInterne]),
+                    'recuUrl' => env('APP_URL') . '/paiement/recu/' . $referenceInterne,
                 ],
             ]);
         } catch (\Throwable $e) {
