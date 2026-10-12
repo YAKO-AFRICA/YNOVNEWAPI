@@ -93,6 +93,8 @@ class ContratController extends Controller
                 'assures'       => $assures,
             ];
 
+            // Récupération des documents associés au contrat
+
             $documents = $contrat->documents()->get();
 
             return response()->json([

@@ -213,10 +213,17 @@ class Contrat extends Model
 
 
     // Dans Contrat
+    // public function contratActeurs()
+    // {
+    //     return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
+    //                 ->with('acteur');   // eager loading imbriqué
+    // }
+
+    // App\Models\Api\Ynov\Esouscription\Contrat
     public function contratActeurs()
     {
         return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
-                    ->with('acteur');   // eager loading imbriqué
+                    ->with('acteur.sante');
     }
 
     // document du contrat
