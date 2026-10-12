@@ -93,6 +93,8 @@ class ContratController extends Controller
                 'assures'       => $assures,
             ];
 
+            $documents = $contrat->documents()->get();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Contrat récupéré avec succès',
@@ -100,6 +102,7 @@ class ContratController extends Controller
                 'data'    => [
                     'contrat'        => $contrat,
                     'contratActeurs' => $acteursGroupes,
+                    'documents'      => $documents,
                 ],
             ]);
         } catch (Throwable $e) {

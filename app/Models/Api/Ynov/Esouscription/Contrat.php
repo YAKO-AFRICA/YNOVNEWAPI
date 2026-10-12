@@ -29,7 +29,7 @@ class Contrat extends Model
      * @var string
      */
 
-    public $incrementing = false; 
+    public $incrementing = false;
     protected $primaryKey = 'uuid_contrat';
 
     /**
@@ -217,6 +217,12 @@ class Contrat extends Model
     {
         return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
                     ->with('acteur');   // eager loading imbriqué
+    }
+
+    // document du contrat
+    public function documents()
+    {
+        return $this->hasMany(Document::class, 'reference_uuid', 'uuid_contrat');
     }
 
     // =====================================================
