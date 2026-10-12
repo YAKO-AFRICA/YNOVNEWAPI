@@ -236,6 +236,39 @@ class SuperAdminRoleSeeder extends Seeder
                 'status' => 'actif',
             ]
         );
+
+        // ============================================================
+        // Rôle admin validation souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'admin_validation_souscription'],
+            [
+                'libelle' => 'Administrateur Validation Souscription',
+                'description' => "Rôle administrateur validation souscription disposant de droits d'Administration pour la validation des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 14,
+                'priority' => 14,
+                'status' => 'actif',
+            ]
+        );
+        // ============================================================
+        // Rôle gestionnaire validation souscription
+        // ============================================================
+        Role::firstOrCreate(
+            ['code' => 'gestionnaire_validation_souscription'],
+            [
+                'libelle' => 'Gestionnaire Validation Souscription',
+                'description' => "Rôle gestionnaire validation souscription disposant de droits de gestion pour la validation des souscriptions.",
+                'is_system' => false,
+                'is_super_admin' => false,
+                'is_default' => false,
+                'level' => 15,
+                'priority' => 15,
+                'status' => 'actif',
+            ]
+        );
     }
 }
 

@@ -1401,7 +1401,7 @@ class PermissionService
                 ]
             ],
             // ============================================================
-            // sOUSCRIPTION - Contrats
+            // SOUSCRIPTION - Contrats
             // ============================================================
             [
                 'module' => [
@@ -1442,6 +1442,46 @@ class PermissionService
                         'action' => 'transmettre',
                         'libelle' => 'Transmettre une souscription',
                         'description' => 'Permet de transmettre une souscription'
+                    ],
+                ]
+            ],
+
+            // ============================================================
+            // VALIDATION SOUSCRIPTION
+            // ============================================================
+            [
+                'module' => [
+                    'code' => 'validations',
+                    'libelle' => 'Validation souscription',
+                    'description' => 'Gestion de la validation des souscriptions',
+                    'icone' => 'check-circle',
+                    'color' => '#28a745',
+                    'ordre' => 23,
+                ],
+                'permissions' => [
+                    [
+                        'category' => 'crud',
+                        'action' => 'afficher',
+                        'libelle' => 'Afficher les validations de souscriptions',
+                        'description' => 'Permet de visualiser la liste des validations de souscriptions'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'modifier',
+                        'libelle' => 'Modifier une validation de souscription',
+                        'description' => 'Permet de modifier une validation de souscription'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'valider',
+                        'libelle' => 'Valider une souscription',
+                        'description' => 'Permet de valider une souscription'
+                    ],
+                    [
+                        'category' => 'crud',
+                        'action' => 'rejeter',
+                        'libelle' => 'Rejeter une souscription',
+                        'description' => 'Permet de rejeter une souscription'
                     ],
                 ]
             ],
