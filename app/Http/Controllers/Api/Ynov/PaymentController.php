@@ -436,7 +436,7 @@ class PaymentController extends Controller
                 $this->documentService->createDocument([
                     'reference_uuid' => $contrat->uuid_contrat,
                     'libelle' => 'Recu de paiement',
-                    'source' => 'ES',
+                    'source' => 'E-SOUSCRIPTION',
                     'created_by' => $contrat->created_by ?? null,
                 ], $uploadedFile);
 
