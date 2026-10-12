@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\Esouscription\Contrat;
 use App\Models\Api\Ynov\Facture;
 use App\Models\Api\Ynov\Paiement;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -51,8 +52,15 @@ class ReceiptController extends Controller
         // Identifiant du contrat
         $identifiantContrat = $paiement->id_contrat ?? '';
 
+        $contrat = Contrat::where('id_contrat', $identifiantContrat)->first();
+        // recuperer le recu de paiement du contrat dans la table des documents
+        if ($contrat) {
+            // uniquement (nom_fichier) celui dont le fileName contient le payment_code du paiement
+            $recuPaiement = $contrat->documents()->where('nom_fichier', 'like', '%' . $paiement->payment_code . '%')->first();
+        }
+
         // Nom du fichier PDF
-        $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
+        $fileName = $recuPaiement->nom_fichier ?? null;
 
         Log::info('Affichage reçu', [
             'payment_code' => $paiement->payment_code,

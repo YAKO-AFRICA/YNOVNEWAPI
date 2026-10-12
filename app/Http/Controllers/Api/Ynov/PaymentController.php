@@ -223,6 +223,7 @@ class PaymentController extends Controller
 
             Log::error('Erreur lors de l\'initialisation du paiement', [
                 'referenceInterne' => $referenceInterne,
+                // 'message' => $e->getMessage(),
             ]);
 
             return response()->json([
