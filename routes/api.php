@@ -892,7 +892,7 @@ Route::prefix('v1')->middleware([
 
         // Agences disponibles
         Route::get('agences', [RdvController::class, 'agences'])
-            ->middleware('permission:rdvs.creer');
+            ->middleware('permission:rdvs.afficher');
 
         // Dates disponibles
         Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles'])
