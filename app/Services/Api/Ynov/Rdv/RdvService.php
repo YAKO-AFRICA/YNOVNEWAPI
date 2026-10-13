@@ -1180,21 +1180,27 @@ class RdvService
 
         if (!empty($filters['date'])) {
             //Filtre sur date_rdv_effective ou sur la date de creation
-            $query->whereDate('date_rdv_effective', $filters['date']);
-            $query->orWhereDate('created_at', $filters['date']);
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', $filters['date'])
+                  ->orWhereDate('created_at', $filters['date']);
+            });
             // if (!isset($filters['status'])) {
             //     $query->whereIn('status', ['transmis']);
             // }
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
-            $query->orWhereDate('created_at', '>=', $filters['date_debut']);
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', '>=', $filters['date_debut'])
+                  ->orWhereDate('created_at', '>=', $filters['date_debut']);
+            });
             // $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
-            $query->orWhereDate('created_at', '<=', $filters['date_fin']);
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', '<=', $filters['date_fin'])
+                  ->orWhereDate('created_at', '<=', $filters['date_fin']);
+            });
             // $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
         }
 
