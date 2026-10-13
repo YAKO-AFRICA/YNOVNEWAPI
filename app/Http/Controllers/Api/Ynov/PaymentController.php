@@ -145,6 +145,8 @@ class PaymentController extends Controller
 
         $donnees = $validator->validated();
 
+        Log::info('Initialisation de paiement', $donnees);
+
         // 1) Calcul du montant et des lignes de factures
         try {
             $preparation = $this->orchestrator->preparer($donnees);
@@ -197,6 +199,10 @@ class PaymentController extends Controller
                     'data' => null,
                 ], $resultat['status'] ?? 502);
             }
+
+            Log::info('Enregistrement du paiement', [
+                'referenceInterne' => $referenceInterne,
+            ]);
 
             // 3) Enregistrement du paiement et des factures
             $paiement = $this->orchestrator->enregistrer($donnees, $preparation, $referenceInterne, $resultat);
