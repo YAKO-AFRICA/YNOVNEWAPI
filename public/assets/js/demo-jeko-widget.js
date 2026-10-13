@@ -8,6 +8,7 @@
     // ============================================================
     // Cette variable s'adapte automatiquement au domaine d'hébergement
     // (localhost:8000, apimain.test, mondomaine.com, etc.)
+    // Si la page est accessible via une route spécifique, on utilise window.location.origin
     var BASE_URL = window.location.origin;
     
     // URLs des endpoints API
@@ -283,8 +284,8 @@
     }
 
     const referenceInterne = generateReference();
-    const successUrl = "{{ url('/paiement/recu') }}" + "/" + referenceInterne;
-    const errorUrl = "{{ route('paiement.error') }}";
+    const successUrl = BASE_URL + "/paiement/recu/" + referenceInterne;
+    const errorUrl = BASE_URL + "/paiement/error";
     // ============================================================
     // 6) BOUTONS DE PAIEMENT - LES 3 TYPES
     // ============================================================
@@ -298,34 +299,35 @@
      */
     document.getElementById("btnFirstPayment").addEventListener("click", function () {
         var contractId = document.getElementById("contractIdFirstPayment")?.value || "1093";
-        
+        var ref = generateReference(); // Générer une nouvelle référence pour chaque paiement
+
         console.log("🔹 Premier paiement initié");
 
         widget.open({
             // Référence unique du paiement
-            reference: referenceInterne,
-            
+            reference: ref,
+
             // Type de paiement: firstPayment | earlyPayment | recoveryPrime
             paymentType: "firstPayment",
-            
+
             // Identifiant du contrat (optionnel pour firstPayment)
             contractId: contractId,
-            
+
             // Description du paiement (affichée dans le widget)
             description: "Souscription — première prime",
-            
+
             // Email du client (pour les notifications)
             customerEmail: "client@example.com",
-            
+
             // Nom du client
             customerName: "Jean Dupont",
-            
+
             // URL de redirection en cas de succès
-            successUrl: successUrl,
-            
+            successUrl: BASE_URL + "/paiement/recu/" + ref,
+
             // URL de redirection en cas d'erreur
-            errorUrl: errorUrl,
-            
+            errorUrl: BASE_URL + "/paiement/error",
+
             // Métadonnées additionnelles (pour le suivi)
             metadata: {
                 source: "web_demo",
@@ -344,12 +346,13 @@
      */
     document.getElementById("btnEarlyPayment").addEventListener("click", function () {
         var contractId = document.getElementById("contractIdEarly").value.trim();
-        
+        var ref = generateReference(); // Générer une nouvelle référence pour chaque paiement
+
         if (!contractId) {
             alert("⚠️ Veuillez saisir un identifiant de contrat.");
             return;
         }
-        
+
         console.log("🔹 Paiement anticipé initié");
 
         updateStatus("earlyStatus", "⏳ Vérification automatique du contrat en cours...", "info");
@@ -357,14 +360,14 @@
 
 
         widget.open({
-            reference: referenceInterne,
+            reference: ref,
             paymentType: "earlyPayment",
             contractId: contractId,
             description: "Paiement anticipé de primes",
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
-            successUrl: successUrl ,
-            errorUrl: errorUrl,
+            successUrl: BASE_URL + "/paiement/recu/" + ref,
+            errorUrl: BASE_URL + "/paiement/error",
             metadata: {
                 source: "web_demo",
                 scenario: "earlyPayment",
@@ -385,6 +388,7 @@
     document.getElementById("btnRecoveryPrime").addEventListener("click", function () {
         var contractId = document.getElementById("contractIdRecovery").value.trim();
         var preselectedIds = getPreselectedInvoices();
+        var ref = generateReference(); // Générer une nouvelle référence pour chaque paiement
 
         if (!contractId) {
             alert("⚠️ Veuillez saisir un identifiant de contrat.");
@@ -400,15 +404,15 @@
         );
 
         widget.open({
-            reference: referenceInterne,
+            reference: ref,
             paymentType: "recoveryPrime",
             contractId: contractId,
             preselectedInvoiceIds: preselectedIds.length > 0 ? preselectedIds : undefined,
             description: "Régularisation de primes impayées",
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
-            successUrl: successUrl,
-            errorUrl: errorUrl,
+            successUrl: BASE_URL + "/paiement/recu/" + ref,
+            errorUrl: BASE_URL + "/paiement/error",
             metadata: {
                 source: "web_demo",
                 scenario: "recoveryPrime",
