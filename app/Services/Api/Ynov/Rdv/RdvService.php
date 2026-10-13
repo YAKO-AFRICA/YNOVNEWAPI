@@ -1035,17 +1035,22 @@ class RdvService
         }
 
         if (!empty($filters['date'])) {
-            $query->whereDate('date_rdv_effective', $filters['date']);
+            //Filtre sur date_rdv_effective ou sur la date de creation
+            $query->whereDate('date_rdv_effective', $filters['date'])
+                ->orWhereDate('created_at', $filters['date']);
+
             // if (!isset($filters['status'])) {
             //     $query->whereIn('status', ['transmis']);
             // }
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut'])
+                ->orWhereDate('created_at', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin'])
+                ->orWhereDate('created_at', '<=', $filters['date_fin']);
         }
 
         $sortBy = $filters['sort_by'] ?? 'present_at';
@@ -1174,7 +1179,9 @@ class RdvService
         }
 
         if (!empty($filters['date'])) {
+            //Filtre sur date_rdv_effective ou sur la date de creation
             $query->whereDate('date_rdv_effective', $filters['date']);
+            $query->orWhereDate('created_at', $filters['date']);
             // if (!isset($filters['status'])) {
             //     $query->whereIn('status', ['transmis']);
             // }
@@ -1182,10 +1189,12 @@ class RdvService
 
         if (!empty($filters['date_debut'])) {
             $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            $query->orWhereDate('created_at', '>=', $filters['date_debut']);
             // $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            $query->orWhereDate('created_at', '<=', $filters['date_fin']);
             // $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
         }
 
@@ -1211,7 +1220,7 @@ class RdvService
                 ->whereJsonDoesntContain('motif_traitement', 'automatique');
         }
 
-        $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';
+        $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter' ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'asc';
         $query->orderBy($sortBy, $sortOrder);
 

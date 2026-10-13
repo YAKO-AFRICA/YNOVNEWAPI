@@ -293,10 +293,13 @@ class DashboardService
         }
 
         if (isset($filters['date_debut'])) {
+            //Filtre sur date_rdv_effective ou sur la date de creation
             $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            // $query->orWhereDate('created_at', '>=', $filters['date_debut']);
         }
         if (isset($filters['date_fin'])) {
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            // $query->orWhereDate('created_at', '<=', $filters['date_fin']);
         }
 
         if (isset($filters['status'])) {
