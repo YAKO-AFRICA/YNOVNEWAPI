@@ -280,7 +280,7 @@ class DashboardService
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
         
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            // $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->whereIn('agence_effective_uuid', [$agences, null]);
             $query->where('rdvs.created_by', $user->uuid_user);
         }
 
