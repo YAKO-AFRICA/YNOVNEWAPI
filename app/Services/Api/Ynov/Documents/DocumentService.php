@@ -154,6 +154,96 @@ class DocumentService
         }
     }
 
+    /**
+     * Met à jour un document existant : supprime l'ancien fichier et remplace par le nouveau.
+     *
+     * @param string $uuidDocument UUID du document à mettre à jour
+     * @param UploadedFile $newFile Nouveau fichier
+     * @param array $data Données supplémentaires (libelle, updated_by, etc.)
+     * @return array Document mis à jour avec les informations du nouveau fichier
+     */
+    public function updateDocument(string $uuidDocument, UploadedFile $newFile, array $data = []): array
+    {
+        $document = Document::where('uuid_document', $uuidDocument)->firstOrFail();
+        $ancienChemin = $document->chemin;
+        $nouveauChemin = null;
+
+        try {
+            return DB::transaction(function () use ($document, $ancienChemin, $newFile, $data, &$nouveauChemin) {
+                // 1. Traiter le nouveau fichier
+                $extension = strtolower($newFile->getClientOriginalExtension());
+                $allowed   = config('documents.allowed_extensions', []);
+
+                if (!in_array($extension, $allowed, true)) {
+                    throw new \RuntimeException("Extension non autorisée : .{$extension}");
+                }
+
+                $resultat = $this->traiter($newFile);
+                $nouveauChemin = $resultat['chemin_relatif'];
+
+                if (!$nouveauChemin) {
+                    throw new \RuntimeException("Échec du traitement du nouveau fichier");
+                }
+
+                // 2. Supprimer l'ancien fichier physique
+                if ($ancienChemin && $ancienChemin !== $nouveauChemin) {
+                    $this->supprimer($ancienChemin);
+                    Log::info('[DocumentService] Ancien fichier supprimé', [
+                        'uuid_document' => $document->uuid_document,
+                        'ancien_chemin' => $ancienChemin,
+                    ]);
+                }
+
+                // 3. Mettre à jour l'enregistrement en base
+                $typeDocument = $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
+                $libelle = $data['libelle'] ?? $document->libelle ?? pathinfo($newFile->getClientOriginalName(), PATHINFO_FILENAME);
+
+                $document->update([
+                    'nom_fichier'    => $resultat['nom_stocke'],
+                    'libelle'        => $libelle,
+                    'chemin'         => $nouveauChemin,
+                    'type_document'  => $typeDocument,
+                    'taille_fichier' => $resultat['taille'],
+                    'mime_type'      => $resultat['mime_type'],
+                    'updated_by'     => $data['updated_by'] ?? null,
+                    'updated_at'     => now(),
+                ]);
+
+                Log::info('[DocumentService] Document mis à jour', [
+                    'uuid_document' => $document->uuid_document,
+                    'ancien_chemin' => $ancienChemin,
+                    'nouveau_chemin' => $nouveauChemin,
+                    'nom_fichier' => $resultat['nom_stocke'],
+                ]);
+
+                return [
+                    'document'       => $document->fresh(),
+                    'nom_original'   => $newFile->getClientOriginalName(),
+                    'nom_stocke'     => $resultat['nom_stocke'],
+                    'extension'      => $resultat['extension'],
+                    'mime_type'      => $resultat['mime_type'],
+                    'taille'         => $resultat['taille'],
+                    'compresse'      => $resultat['compresse'],
+                    'dimensions'     => $resultat['dimensions'],
+                    'chemin_relatif' => $nouveauChemin,
+                    'url_publique'   => $resultat['url_publique'],
+                ];
+            });
+        } catch (\Throwable $e) {
+            // En cas d'erreur, supprimer le nouveau fichier si créé
+            if ($nouveauChemin && $nouveauChemin !== $ancienChemin) {
+                $this->supprimer($nouveauChemin);
+            }
+
+            Log::error('[DocumentService] Échec mise à jour document', [
+                'uuid_document' => $uuidDocument,
+                'erreur' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
     
     /**
      * Traite un fichier : décide s'il faut compresser, stocke, retourne les infos.

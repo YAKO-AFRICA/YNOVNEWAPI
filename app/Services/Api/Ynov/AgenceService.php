@@ -72,7 +72,7 @@ class AgenceService
             
             // Mettre à jour l'agence
             $agence->update([
-                'code' => $data['code'] ?? $agence->code,
+                // 'code' => $data['code'] ?? $agence->code,
                 'libelle' => $data['libelle'] ?? $agence->libelle,
                 'description' => $data['description'] ?? $agence->description,
                 'reseau_uuid' => $data['reseau_uuid'] ?? $agence->reseau_uuid,

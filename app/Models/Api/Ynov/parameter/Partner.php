@@ -2,10 +2,12 @@
 // app/Models/Api/Ynov/parameter/Partner.php
 namespace App\Models\Api\Ynov\parameter;
 
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -26,6 +28,7 @@ class Partner extends Model
         'uuid_partner',
         'code',
         'code_contractant',
+        'code_branche',
         'designation',
         'description',
         'logo',
@@ -60,6 +63,17 @@ class Partner extends Model
     {
         return $this->hasMany(User::class, 'partner_uuid', 'uuid_partner');
     }
+    
+    /**
+     * Récupérer le logo du partenaire
+     */
+    public function logoDocuments()
+    {
+        return $this->hasMany(Document::class, 'reference_uuid', 'uuid_partner')
+            ->where('source', 'PARANTER_PARTNER_LOGO')
+            ->where('statut', 'actif');
+    }
+    
     
     /**
      * Récupérer les réseaux actifs du partenaire

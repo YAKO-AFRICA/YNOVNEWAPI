@@ -28,20 +28,14 @@ class Reseau extends Model
         'code',
         'libelle',
         'description',
+        'code_branche',
         'partner_uuid',
         'email',
         'telephone',
-        'config',
-        'metadata',
         'status',
         'created_by',
         'updated_by',
         'deleted_by',
-    ];
-    
-    protected $casts = [
-        'config' => 'array',
-        'metadata' => 'array',
     ];
 
     protected static function booted(): void

@@ -21,9 +21,19 @@ class StoreReseauRequest extends FormRequest
             'partner_uuid' => ['nullable', 'exists:partners,uuid_partner'],
             'email' => ['nullable', 'email', 'max:100'],
             'telephone' => ['nullable', 'string', 'max:25'],
-            'config' => ['nullable', 'array'],
-            'metadata' => ['nullable', 'array'],
             'status' => ['nullable', 'string', Rule::in(['actif', 'inactif'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'code.required' => 'Le code du réseau est requis.',
+            'code.unique' => 'Le code du réseau doit être unique.',
+            'libelle.required' => 'Le libellé du réseau est requis.',
+            'partner_uuid.exists' => 'Le partenaire spécifié n\'existe pas.',
+            'email.email' => 'L\'adresse e-mail doit être valide.',
+            'status.in' => 'Le statut doit être soit "actif" soit "inactif".',
         ];
     }
 }

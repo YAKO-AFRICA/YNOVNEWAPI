@@ -117,7 +117,7 @@ class ReseauService
      */
     public function getReseaux(array $filters = [], int $perPage = 20)
     {
-        $query = Reseau::query()->with(['partner']);
+        $query = Reseau::query()->with(['partner', 'agences', 'users']);
         
         // Filtres
         if (isset($filters['status'])) {
