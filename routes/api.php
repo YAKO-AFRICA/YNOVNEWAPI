@@ -717,8 +717,8 @@ Route::prefix('v1')->middleware([
         // ============================================================
         // VÉRIFICATIONS ET ÉLIGIBILITÉ
         // ============================================================
-        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount'])
-            ->middleware('permission:prestations.creer');
+        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount']);
+            // ->middleware('permission:prestations.creer');
 
         Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
@@ -887,20 +887,20 @@ Route::prefix('v1')->middleware([
 
     Route::prefix('rdvs')->group(function () {
         // Motifs disponibles
-        Route::get('motifs', [RdvController::class, 'motifs'])
-            ->middleware('permission:rdvs.creer');
+        Route::get('motifs', [RdvController::class, 'motifs']);
+            // ->middleware('permission:rdvs.creer');
 
         // Agences disponibles
         Route::get('agences', [RdvController::class, 'agences'])
             ->middleware('permission:rdvs.afficher');
 
         // Dates disponibles
-        Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles'])
-            ->middleware('permission:rdvs.creer');
+        Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles']);
+            // ->middleware('permission:rdvs.creer');
 
         // Vérifier une date
-        Route::post('verifier-date', [RdvController::class, 'verifierDate'])
-            ->middleware('permission:rdvs.creer');
+        Route::post('verifier-date', [RdvController::class, 'verifierDate']);
+            // ->middleware('permission:rdvs.creer');
 
         // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
         Route::get('list', [RdvController::class, 'getList'])->middleware('permission:rdvs.afficher');
