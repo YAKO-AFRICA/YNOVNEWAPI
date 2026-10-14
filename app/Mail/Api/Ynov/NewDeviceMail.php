@@ -32,12 +32,25 @@ class NewDeviceMail extends Mailable implements ShouldQueue
     {
         $details = $this->user->details;
 
+        // Formater le navigateur/OS
+        $browser = $this->device->browser;
+        $os = $this->device->os;
+        if ($browser && $os) {
+            $browserOs = "{$browser} / {$os}";
+        } elseif ($browser) {
+            $browserOs = $browser;
+        } elseif ($os) {
+            $browserOs = $os;
+        } else {
+            $browserOs = '—';
+        }
+
         return new Content(
             view: 'emails.api.ynov.new-device',
             with: [
                 'fullName' => $details ? trim($details->prenoms . ' ' . $details->nom) : $this->user->login,
                 'deviceName' => $this->device->device_name ?? 'Appareil inconnu',
-                'browserOs' => trim(($this->device->browser ?? '—') . ' / ' . ($this->device->os ?? '—')),
+                'browserOs' => $browserOs,
                 'ipAddress' => $this->device->ip_address,
                 'location' => $this->device->location ?? 'Non déterminée',
                 'loginAt' => now()->format('d/m/Y à H:i'),

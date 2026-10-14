@@ -33,12 +33,21 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         try {
+            $userAgent = $request->userAgent();
+            $ip = $request->ip();
+
+            $os = $this->deviceService->detectOS($userAgent);
+            $browser = $this->deviceService->detectBrowser($userAgent);
+
             $deviceInfo = [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'ip' => $ip,
+                'user_agent' => $userAgent,
                 'fingerprint' => $this->deviceService->fingerprint($request),
-                'device_name' => $request->device_name ?? 'Appareil inconnu',
-                'location' => $request->header('X-Geo-Location'),
+                'device_name' => $request->device_name ?? ($os && $browser ? "{$os} · {$browser}" : 'Appareil inconnu'),
+                'location' => $request->header('X-Geo-Location') ?? $this->deviceService->detectLocation($ip),
+                'browser' => $browser,
+                'os' => $os,
+                'device_type' => $this->detectDeviceType($userAgent),
             ];
 
             $result = $this->authService->login($request->only(['login', 'password']), $deviceInfo);
@@ -141,14 +150,28 @@ class AuthController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'code' => 'SERVER_ERROR',
                 'message' => 'Une erreur interne est survenue. Veuillez réessayer.'
             ], 500);
-  
+
         }
+    }
+
+    /**
+     * Détecte le type d'appareil (mobile, desktop, tablette)
+     */
+    private function detectDeviceType(string $userAgent): string
+    {
+        if (preg_match('/Mobile|Android|iPhone|iPad|iPod/i', $userAgent)) {
+            return 'mobile';
+        }
+        if (preg_match('/Tablet|iPad/i', $userAgent)) {
+            return 'tablet';
+        }
+        return 'desktop';
     }
 
     public function freezeCheck(string $login): JsonResponse
