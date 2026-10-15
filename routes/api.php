@@ -98,7 +98,7 @@ Route::prefix('v1')->group(function () {
    
 
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner'])->middleware('throttle:login');
+    Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner']);
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
 
@@ -718,8 +718,8 @@ Route::prefix('v1')->middleware([
         // ============================================================
         // VÉRIFICATIONS ET ÉLIGIBILITÉ
         // ============================================================
-        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount'])
-            ->middleware('permission:prestations.creer');
+        Route::get('motifs', [PrestationController::class, 'motifsWithMaxAmount']);
+            // ->middleware('permission:prestations.creer');
 
         Route::post('check-motif-appointment', [PrestationController::class, 'checkMotifAppointment'])
             ->middleware('permission:prestations.creer');
@@ -888,20 +888,20 @@ Route::prefix('v1')->middleware([
 
     Route::prefix('rdvs')->group(function () {
         // Motifs disponibles
-        Route::get('motifs', [RdvController::class, 'motifs'])
-            ->middleware('permission:rdvs.creer');
+        Route::get('motifs', [RdvController::class, 'motifs']);
+            // ->middleware('permission:rdvs.creer');
 
         // Agences disponibles
         Route::get('agences', [RdvController::class, 'agences'])
-            ->middleware('permission:rdvs.creer');
+            ->middleware('permission:rdvs.afficher');
 
         // Dates disponibles
-        Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles'])
-            ->middleware('permission:rdvs.creer');
+        Route::get('dates-disponibles', [RdvController::class, 'datesDisponibles']);
+            // ->middleware('permission:rdvs.creer');
 
         // Vérifier une date
-        Route::post('verifier-date', [RdvController::class, 'verifierDate'])
-            ->middleware('permission:rdvs.creer');
+        Route::post('verifier-date', [RdvController::class, 'verifierDate']);
+            // ->middleware('permission:rdvs.creer');
 
         // Liste globale des RDV avec filtres (DOIT ÊTRE AVANT LA ROUTE AVEC PARAMÈTRE)
         Route::get('list', [RdvController::class, 'getList'])->middleware('permission:rdvs.afficher');
@@ -1143,6 +1143,8 @@ Route::prefix('v1')->middleware([
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'show']);
         Route::put('update-contrat/{uuid}', [ContratController::class, 'update']);
+        Route::post('transmettre-contrat/{uuid}', [ContratController::class, 'transmit']);
+        Route::post('annuler-contrat/{uuid}', [ContratController::class, 'cancel']);
         Route::delete('delete-contrat/{uuid}', [ContratController::class, 'destroy']);
         Route::get('restore-contrat/{uuid}', [ContratController::class, 'restore']);
 
@@ -1163,6 +1165,7 @@ Route::prefix('v1')->middleware([
 
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
+        Route::get('get-propositions/{uuid_user}', [PropositionController::class, 'getPropositions']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
 

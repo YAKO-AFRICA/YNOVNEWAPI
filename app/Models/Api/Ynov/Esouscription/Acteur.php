@@ -2,6 +2,7 @@
 
 namespace App\Models\Api\Ynov\Esouscription;
 
+use App\Models\Api\Ynov\Esouscription\DeclarationSante;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -22,6 +23,8 @@ class Acteur extends Model
     public $incrementing = false;
 
     protected $keyType = 'string';
+
+    protected $appends = ['sante'];
 
 
     protected $fillable = [
@@ -75,6 +78,16 @@ class Acteur extends Model
     public function RelationContrat()
     {
         return $this->hasMany(ContratActeur::class, 'acteur_uuid', 'uuid_acteur');
+    }
+
+    public function getSanteAttribute()
+    {
+        return $this->hasOne(DeclarationSante::class, 'assure_uuid', 'uuid_acteur');
+    }
+
+    public function sante()
+    {
+        return $this->hasOne(DeclarationSante::class, 'assure_uuid', 'uuid_acteur');
     }
 
 

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Services\Api\Ynov\Esouscription\DeclarationSanteService;
+use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
 use Illuminate\Http\Request;
 use Throwable;
 

@@ -19,9 +19,13 @@ class Document extends Model
      *
      * @var string
      */
-    
+
+
+
+
+
     protected $connection = 'mysql';
-    
+
     protected $table = 'documents';
     /**
      * La clé primaire du modèle.
@@ -44,6 +48,8 @@ class Document extends Model
      */
     public $incrementing = false;
 
+    protected $appends = ['url'];
+
     /**
      * Les attributs qui sont assignables en masse.
      *
@@ -57,13 +63,13 @@ class Document extends Model
         'libelle',
         'source',
         'chemin',
-        
+
         // Métadonnées
         'type_document',
         'taille_fichier',
         'mime_type',
         'statut',
-        
+
         // Traçabilité
         'created_by',
         'update_by',
@@ -83,6 +89,11 @@ class Document extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function getUrlAttribute()
+    {
+        return url("preview/doc/{$this->nom_fichier}");
+    }
 
     public function prestation()
     {

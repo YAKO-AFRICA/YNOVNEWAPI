@@ -54,76 +54,58 @@ class PartnerController extends Controller
     /**
      * Créer un partenaire
      */
-    public function store(Request $request): JsonResponse
+    public function store(StorePartnerRequest $request): JsonResponse
     {
         Log::info('PartnerController@store - données reçues', $request->all());
 
-        $validator = Validator::make($request->all(), [
-            'code'        => 'required|string|max:55|unique:partners,code',
-            'code_contractant' => 'required|string|max:255',
-            'designation' => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
-            'logo' => 'nullable|file|max:' . config('documents.max_size'),
-            'is_active' => 'nullable|boolean',
-            'status' => 'nullable|string|max:100',
-            'created_by' => 'nullable|string|max:255',
-        ]);
-
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation.',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
         $partner = $this->partnerService->create(
-            $validator->validated(),
+            $request->validated(),
             $request->user()->uuid_user
         );
 
         if ($partner) {
+            if ($request->hasFile('logo')) {
             // ==================== 4. Documents ====================
 
-            $DocumentDatas = [
-                [
-                    'file'    => $request->file('logo'),  
-                    'libelle' => 'Logo_' . $partner->code,
-                ]
-            ];
+                $DocumentDatas = [
+                    [
+                        'file'    => $request->file('logo'),  
+                        'libelle' => 'Logo du partenaire ' . $partner->designation . ' (' . $partner->code . ')',
+                    ]
+                ];
 
-            Log::info('Données des documents', $DocumentDatas);
+                Log::info('Données des documents', $DocumentDatas);
 
-            $payload = [
-                'reference_uuid' => $partner->uuid_partner,
-                'source'         => 'E-SOUSCRIPTION',
-                'created_by'     => $request->user()->uuid_user,
-                'documents'      => $DocumentDatas,
-            ];
+                $payload = [
+                    'reference_uuid' => $partner->uuid_partner,
+                    'source'         => 'PARANTER_PARTNER_LOGO',
+                    'created_by'     => $request->user()->uuid_user,
+                    'documents'      => $DocumentDatas,
+                ];
 
-            $documentStore = $this->documentService->createDocument($payload);
+                $documentStore = $this->documentService->createDocument($payload);
 
-            Log::info('[DocumentService] copieDirecte tttttttt', $documentStore);
+                Log::info('[DocumentService] copieDirecte tttttttt', $documentStore);
 
-            if (!$documentStore) {
-                throw new \Exception("Échec de l'enregistrement des documents.");
+                if (!$documentStore) {
+                    throw new \Exception("Échec de l'enregistrement des documents.");
+                }
+
+                $chemin = $documentStore['chemin_relatif']
+                    ?? $documentStore['copieDirecte'][0]['chemin_relatif']
+                    ?? $documentStore['copieDirecte']['chemin_relatif']
+                    ?? null;
+
+                $partner->logo = $chemin;
+                $partner->save();
             }
-
-            $chemin = $documentStore['chemin_relatif']
-                ?? $documentStore['copieDirecte'][0]['chemin_relatif']
-                ?? $documentStore['copieDirecte']['chemin_relatif']
-                ?? null;
-
-            $partner->logo = $chemin;
-            $partner->save();
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Partenaire créé avec succès.',
             'code'    => 'PARTNER_CREATED',
-            'data'    => new PartnerResource($partner),
+            'data'    => new PartnerResource($partner->fresh()),
         ], 201);
     }
 
@@ -135,23 +117,16 @@ class PartnerController extends Controller
     public function showPartenaire(string $uuid_partner): JsonResponse
     {
         $partner = Partner::where('uuid_partner', $uuid_partner)
-            ->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users'])
+            ->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users', 'logoDocuments'])
             ->firstOrFail();
 
             $document = Document::withoutTrashed()->where('reference_uuid', $uuid_partner)->first();
 
-            if (!$document) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Document introuvable.',
-                ], 404);
-            }
-
-            $url = url('preview/doc/' . $document->nom_fichier);
+            $url = ($document) ? env('APP_URL') .'/preview/doc/' . $document->nom_fichier : null;
 
         return response()->json([
             'success' => true,
-            'message' => 'Détails du partenaire.',
+            'message' => 'Détails du partenaire récupérés.',
             'code' => 'PARTNER_FOUND',
             'data' => new PartnerResource($partner),
             'document_url' => $url,
@@ -164,10 +139,72 @@ class PartnerController extends Controller
     public function update(UpdatePartnerRequest $request, string $uuid_partner): JsonResponse
     {
         $partner = Partner::where('uuid_partner', $uuid_partner)->firstOrFail();
+
+        Log::info('PartnerController@update - données reçues', $request->all());
+        
+        // Récupérer les données validées
+        $validatedData = $request->validated();
+        
+        // Gestion du logo si un nouveau fichier est envoyé
+        if ($request->hasFile('logo')) {
+            try {
+                // Récupérer le document existant associé au partenaire
+                $document = Document::withoutTrashed()
+                    ->where('chemin', $partner->logo)
+                    ->where('reference_uuid', $uuid_partner)
+                    ->where('source', 'PARANTER_PARTNER_LOGO')
+                    ->first();
+
+                if ($document) {
+                    // Mettre à jour le document existant
+                    $documentResult = $this->documentService->updateDocument(
+                        $document->uuid_document,
+                        $request->file('logo'),
+                        [
+                            'libelle' => 'Logo du partenaire ' . $partner->designation . ' (' . $partner->code . ')',
+                            'updated_by' => $request->user()->uuid_user,
+                        ]
+                    );
+
+                    // Remplacer le logo par le chemin dans les données validées
+                    $validatedData['logo'] = $documentResult['chemin_relatif'];
+                } else {
+                    // Créer un nouveau document si aucun n'existe
+                    $documentData = [
+                        'file' => $request->file('logo'),
+                        'libelle' => 'Logo du partenaire ' . $partner->designation . ' (' . $partner->code . ')',
+                    ];
+
+                    $payload = [
+                        'reference_uuid' => $uuid_partner,
+                        'source' => 'PARANTER_PARTNER_LOGO',
+                        'created_by' => $request->user()->uuid_user,
+                        'documents' => [$documentData],
+                    ];
+
+                    $documentStore = $this->documentService->createDocument($payload);
+
+                    $chemin = $documentStore['chemin_relatif']
+                        ?? $documentStore['copieDirecte'][0]['chemin_relatif']
+                        ?? $documentStore['copieDirecte']['chemin_relatif']
+                        ?? null;
+
+                    if ($chemin) {
+                        $validatedData['logo'] = $chemin;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('[PartnerController] Erreur mise à jour logo', [
+                    'uuid_partner' => $uuid_partner,
+                    'erreur' => $e->getMessage(),
+                ]);
+                // Ne pas bloquer la mise à jour si le logo échoue
+            }
+        }
         
         $updated = $this->partnerService->update(
             $partner,
-            $request->validated(),
+            $validatedData,
             $request->user()->uuid_user
         );
 

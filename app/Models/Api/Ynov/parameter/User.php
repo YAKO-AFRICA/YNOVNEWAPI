@@ -16,6 +16,7 @@ use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\TwoFactorRecoveryCode;
 use App\Models\Api\Ynov\parameter\UserDetails;
 use App\Models\Api\Ynov\parameter\UserDevice;
+use App\Models\Api\Ynov\Esouscription\Contrat;
 use App\Models\Api\Ynov\UserContrat;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -237,6 +238,11 @@ class User extends Authenticatable
     public function userContrats(): HasMany
     {
         return $this->hasMany(UserContrat::class, 'user_uuid', 'uuid_user');
+    }
+
+    public function propositions(): HasMany
+    {
+        return $this->hasMany(Contrat::class, 'created_by', 'uuid_user');
     }
 
     public function groupNotifs(): BelongsToMany

@@ -1485,8 +1485,8 @@
                     paymentType === "recoveryPrime"
                         ? Array.from(this._selectedInvoiceIds)
                         : undefined,
-                successUrl: this.options.successUrl || window.location.href,
-                errorUrl: this.options.errorUrl || window.location.href,
+                successUrl: this._paymentData.successUrl || this.options.successUrl || window.location.href,
+                errorUrl: this._paymentData.errorUrl || this.options.errorUrl || window.location.href,
                 description,
                 customerEmail,
                 customerName,

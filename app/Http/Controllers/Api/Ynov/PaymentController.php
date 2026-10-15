@@ -145,6 +145,8 @@ class PaymentController extends Controller
 
         $donnees = $validator->validated();
 
+        Log::info('Initialisation de paiement', $donnees);
+
         // 1) Calcul du montant et des lignes de factures
         try {
             $preparation = $this->orchestrator->preparer($donnees);
@@ -175,8 +177,10 @@ class PaymentController extends Controller
                 'currency' => $donnees['currency'] ?? 'XOF',
                 'reference' => $referenceInterne,
                 'paymentMethod' => $donnees['paymentMethod'],
-                'successUrl' => $donnees['successUrl'] ??  route('paiement.recu', ['referenceInterne' => $referenceInterne]),
-                'errorUrl' => $donnees['errorUrl'] ?? route('paiement.error'),
+                // 'successUrl' => env('APP_URL') . '/paiement/recu/' . $referenceInterne,
+                // 'errorUrl' => env('APP_URL') . '/paiement/error',
+                'successUrl' => (isset($donnees['successUrl']) && !empty($donnees['successUrl'])) ? $donnees['successUrl'] : env('APP_URL') . '/paiement/recu/' . $referenceInterne,
+                'errorUrl' => (isset($donnees['errorUrl']) && !empty($donnees['errorUrl'])) ? $donnees['errorUrl'] : env('APP_URL') . '/paiement/error',
                 'customerEmail' => $donnees['customerEmail'] ?? null,
                 'customerName' => $donnees['customerName'] ?? null,
                 'description' => $donnees['description'] ?? null,
@@ -196,6 +200,10 @@ class PaymentController extends Controller
                 ], $resultat['status'] ?? 502);
             }
 
+            Log::info('Enregistrement du paiement', [
+                'referenceInterne' => $referenceInterne,
+            ]);
+
             // 3) Enregistrement du paiement et des factures
             $paiement = $this->orchestrator->enregistrer($donnees, $preparation, $referenceInterne, $resultat);
 
@@ -214,13 +222,14 @@ class PaymentController extends Controller
                     'montant' => $preparation['montantTotal'],
                     'devise' => $donnees['currency'] ?? 'XOF',
                     'nombreDePrimes' => $preparation['nombreDePrimes'],
-                    'recuUrl' => route('paiement.recu', ['referenceInterne' => $referenceInterne]),
+                    'recuUrl' => env('APP_URL') . '/paiement/recu/' . $referenceInterne,
                 ],
             ]);
         } catch (\Throwable $e) {
 
             Log::error('Erreur lors de l\'initialisation du paiement', [
                 'referenceInterne' => $referenceInterne,
+                // 'message' => $e->getMessage(),
             ]);
 
             return response()->json([
@@ -436,7 +445,7 @@ class PaymentController extends Controller
                 $this->documentService->createDocument([
                     'reference_uuid' => $contrat->uuid_contrat,
                     'libelle' => 'Recu de paiement',
-                    'source' => 'ES',
+                    'source' => 'E-SOUSCRIPTION',
                     'created_by' => $contrat->created_by ?? null,
                 ], $uploadedFile);
 

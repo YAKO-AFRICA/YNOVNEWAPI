@@ -7,7 +7,8 @@ use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDevice;
 use App\Services\Api\Ynov\NotificationService;
 use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -21,6 +22,121 @@ class DeviceService
     {
         $data = $request->ip() . '|' . $request->userAgent() . '|' . $request->header('Accept-Language', '');
         return hash('sha256', $data);
+    }
+
+    /**
+     * Détecte le navigateur à partir du User-Agent
+     */
+    public function detectBrowser(string $userAgent): ?string
+    {
+        $browsers = [
+            'Chrome' => '/Chrome/i',
+            'Firefox' => '/Firefox/i',
+            'Safari' => '/Safari/i',
+            'Edge' => '/Edg/i',
+            'Opera' => '/OPR/i',
+            'IE' => '/MSIE|Trident/i',
+        ];
+
+        foreach ($browsers as $name => $pattern) {
+            if (preg_match($pattern, $userAgent)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Détecte l'OS à partir du User-Agent
+     */
+    public function detectOS(string $userAgent): ?string
+    {
+        $oses = [
+            'Windows' => '/Windows/i',
+            'Mac' => '/Macintosh|Mac OS/i',
+            'Linux' => '/Linux/i',
+            'Android' => '/Android/i',
+            'iOS' => '/iPhone|iPad|iPod/i',
+            'Ubuntu' => '/Ubuntu/i',
+        ];
+
+        foreach ($oses as $name => $pattern) {
+            if (preg_match($pattern, $userAgent)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Détecte la localisation à partir de l'adresse IP
+     * Utilise plusieurs API de géolocalisation en fallback
+     */
+    public function detectLocation(string $ip): ?string
+    {
+        // Ne pas détecter les IPs locales
+        if ($this->isLocalIP($ip)) {
+            return null;
+        }
+
+        // Liste des APIs à essayer en ordre de préférence
+        $apis = [
+            [
+                'url' => "http://ip-api.com/json/{$ip}?fields=country,city,status",
+                'parser' => function($data) {
+                    if (($data['status'] ?? '') === 'success') {
+                        $parts = array_filter([$data['city'] ?? null, $data['country'] ?? null]);
+                        return implode(', ', $parts) ?: null;
+                    }
+                    return null;
+                }
+            ],
+            [
+                'url' => "https://ipapi.co/{$ip}/json/",
+                'parser' => function($data) {
+                    if (!isset($data['error'])) {
+                        $parts = array_filter([$data['city'] ?? null, $data['country_name'] ?? null]);
+                        return implode(', ', $parts) ?: null;
+                    }
+                    return null;
+                }
+            ],
+        ];
+
+        foreach ($apis as $api) {
+            try {
+                $response = Http::timeout(3)->get($api['url']);
+
+                if ($response->successful()) {
+                    $location = ($api['parser'])($response->json());
+                    if ($location) {
+                        return $location;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Erreur lors de la détection de localisation', [
+                    'ip' => $ip,
+                    'api' => $api['url'],
+                    'error' => $e->getMessage(),
+                ]);
+                continue; // Essayer l'API suivante
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Vérifie si l'IP est une adresse locale
+     */
+    private function isLocalIP(string $ip): bool
+    {
+        return in_array($ip, ['127.0.0.1', '::1', 'localhost']) ||
+               str_starts_with($ip, '192.168.') ||
+               str_starts_with($ip, '10.') ||
+               str_starts_with($ip, '172.16.');
     }
 
     public function isTrusted(User $user, string $fingerprint): bool

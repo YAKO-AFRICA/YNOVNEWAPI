@@ -57,11 +57,64 @@ class UserController extends Controller
             }
         }
 
+        // Filtres de recherche
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%")
+                  ->orWhere('login', 'like', "%{$search}%")
+                  ->orWhereHas('details', function ($q) use ($search) {
+                      $q->where('nom', 'like', "%{$search}%")
+                        ->orWhere('prenoms', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filtre par statut
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // Filtre par type d'utilisateur
+        if ($request->filled('user_type')) {
+            $query->where('user_type', $request->input('user_type'));
+        }
+
+        // Filtre par rôle
+        if ($request->filled('role_uuid')) {
+            $query->where('role_uuid', $request->input('role_uuid'));
+        }
+
+        // Filtre par partenaire
+        if ($request->filled('partner_uuid')) {
+            $query->where('partner_uuid', $request->input('partner_uuid'));
+        }
+
+        // Filtre par réseau
+        if ($request->filled('reseau_uuid')) {
+            $query->where('reseau_uuid', $request->input('reseau_uuid'));
+        }
+
+        // Filtre par agence
+        if ($request->filled('agence_uuid')) {
+            $query->whereHas('agences', function ($q) use ($request) {
+                $q->where('agences.uuid_agence', $request->input('agence_uuid'));
+            });
+        }
+
         $users = $query->orderByDesc('created_at')->paginate($request->integer('per_page', 20));
 
         return response()->json([
             'success' => true,
+            'message' => 'Liste des utilisateurs récupérée.',
+            'code' => 'USERS_LISTED',
             'data' => UserResource::collection($users),
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
         ]);
     }
 

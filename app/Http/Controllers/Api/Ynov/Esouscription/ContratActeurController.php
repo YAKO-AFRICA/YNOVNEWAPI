@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Services\Api\Ynov\Esouscription\ContratActeurService;
+use App\Services\Api\Ynov\ESouscription\ContratActeurService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;

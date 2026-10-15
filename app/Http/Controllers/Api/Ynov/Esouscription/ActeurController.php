@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Services\Api\Ynov\Esouscription\ActeurService;
+use App\Services\Api\Ynov\ESouscription\ActeurService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;

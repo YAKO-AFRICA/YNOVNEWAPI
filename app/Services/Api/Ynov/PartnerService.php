@@ -22,6 +22,7 @@ class PartnerService
                 'uuid_partner' => (string) Str::uuid(),
                 'code' => $data['code'],
                 'code_contractant' => $data['code_contractant'] ?? null,
+                'code_branche' => $data['code_branche'] ?? null,
                 'designation' => $data['designation'],
                 'description' => $data['description'] ?? null,
                 'logo' => $data['logo'] ?? null,
@@ -52,6 +53,7 @@ class PartnerService
      */
     public function update(Partner $partner, array $data, string $updaterUuid): Partner
     {
+        Log::info('Updating partner with data: ' . json_encode($data));
         return DB::transaction(function () use ($partner, $data, $updaterUuid) {
             $oldValues = $partner->toArray();
             
@@ -59,6 +61,7 @@ class PartnerService
                 // 'code' => $data['code'] ?? $partner->code,
                 'designation' => $data['designation'] ?? $partner->designation,
                 'code_contractant' => $data['code_contractant'] ?? $partner->code_contractant,
+                'code_branche' => $data['code_branche'] ?? $partner->code_branche,
                 'description' => $data['description'] ?? $partner->description,
                 'logo' => $data['logo'] ?? $partner->logo,
                 'is_active' => $data['is_active'] ?? $partner->is_active,
@@ -119,7 +122,7 @@ class PartnerService
      */
     public function getPartners(array $filters = [], int $perPage = 20)
     {
-        $query = Partner::query();
+        $query = Partner::query()->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users', 'logoDocuments']);
         
         // Filtres
         if (isset($filters['status'])) {

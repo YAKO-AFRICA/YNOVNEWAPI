@@ -20,29 +20,46 @@ class UpdatePartnerRequest extends FormRequest
         return [
             // 'code' => ['sometimes', 'string', 'max:55', Rule::unique('partners', 'code')->ignore($uuid, 'uuid_partner')],
             'designation' => ['sometimes', 'string', 'max:100'],
-            'sigle' => ['nullable', 'string', 'max:20'],
             'description' => ['nullable', 'string'],
-            'logo' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'file', 'max:' . config('documents.max_size')],
             'code_branche' => ['nullable', 'string', 'max:35'],
-            'email' => ['nullable', 'email', 'max:100'],
-            'email_2' => ['nullable', 'email', 'max:100'],
-            'telephone' => ['nullable', 'string', 'max:25'],
-            'telephone_2' => ['nullable', 'string', 'max:25'],
-            'adresse' => ['nullable', 'string', 'max:255'],
-            'ville' => ['nullable', 'string', 'max:100'],
-            'pays' => ['nullable', 'string', 'max:100'],
-            'site_web' => ['nullable', 'url', 'max:255'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'type' => ['nullable', 'string', 'max:50'],
-            'secteur_activite' => ['nullable', 'string', 'max:100'],
-            'categorie' => ['nullable', 'string', 'max:50'],
-            'config' => ['nullable', 'array'],
-            'metadata' => ['nullable', 'array'],
+            'code_contractant' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
             'status' => ['nullable', 'string', Rule::in(['actif', 'inactif', 'suspendu'])],
-            'date_agrement' => ['nullable', 'date'],
-            'date_expiration' => ['nullable', 'date', 'after:date_agrement'],
+        ];
+    }
+
+    protected function prepareForValidation()
+    {
+        // Convertir is_active de string '1'/'0' à boolean pour FormData
+        if ($this->has('is_active')) {
+            $this->merge([
+                'is_active' => in_array($this->input('is_active'), ['1', 'true', true], true),
+            ]);
+        }
+    }
+
+    public function messages(): array
+    {
+        return [
+            'designation.string' => 'La désignation doit être une chaîne de caractères.',
+            'designation.max' => 'La désignation ne peut pas dépasser 100 caractères.',
+            
+            'description.string' => 'La description doit être une chaîne de caractères.',
+            
+            'logo.file' => 'Le logo doit être un fichier.',
+            'logo.max' => 'Le logo ne peut pas dépasser ' . config('documents.max_size') . ' octets.',
+            
+            'code_branche.string' => 'Le code branche doit être une chaîne de caractères.',
+            'code_branche.max' => 'Le code branche ne peut pas dépasser 35 caractères.',
+            
+            'code_contractant.string' => 'Le code contractant doit être une chaîne de caractères.',
+            'code_contractant.max' => 'Le code contractant ne peut pas dépasser 100 caractères.',
+            
+            'is_active.boolean' => 'Le champ actif doit être un booléen.',
+            
+            'status.string' => 'Le statut doit être une chaîne de caractères.',
+            'status.in' => 'Le statut doit être actif, inactif ou suspendu.',
         ];
     }
 }

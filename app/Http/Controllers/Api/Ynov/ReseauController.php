@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreReseauRequest;
 use App\Http\Requests\Api\Ynov\UpdateReseauRequest;
 use App\Http\Resources\Api\Ynov\ReseauResource;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Services\Api\Ynov\ReseauService;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,21 @@ class ReseauController extends Controller
         
         $perPage = $request->integer('per_page', 20);
         $reseaux = $this->reseauService->getReseaux($filters, $perPage);
+
+        if ($reseaux->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun réseau trouvé.',
+                'code' => 'RESEAUX_EMPTY',
+                'data' => [],
+                'meta' => [
+                    'current_page' => $reseaux->currentPage(),
+                    'per_page' => $reseaux->perPage(),
+                    'total' => $reseaux->total(),
+                    'last_page' => $reseaux->lastPage(),
+                ]
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -54,6 +70,14 @@ class ReseauController extends Controller
             $request->user()->uuid_user
         );
 
+        if (!$reseau) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création du réseau.',
+                'code' => 'RESEAU_CREATION_FAILED',
+            ], 500);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Réseau créé avec succès.',
@@ -71,7 +95,13 @@ class ReseauController extends Controller
             ->with(['partner', 'agences', 'agences.horaires', 'users'])
             ->firstOrFail();
 
-        Log::info("Found reseau: " . json_encode($reseau->toArray()));
+        if (!$reseau) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Réseau non trouvé.',
+                'code' => 'RESEAU_NOT_FOUND',
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -103,6 +133,14 @@ class ReseauController extends Controller
             $request->validated(),
             $request->user()->uuid_user
         );
+
+        if (!$updated) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour du réseau.',
+                'code' => 'RESEAU_UPDATE_FAILED',
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,

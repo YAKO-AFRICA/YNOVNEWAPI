@@ -346,222 +346,6 @@ class RdvService
     }
 
     /**
-     * Vérifier si un client peut prendre un rendez-vous
-     */
-    // public function verifierEligibiliteClient(User $client, int $contratId, string $agenceUuid, string $dateRdv): array
-    // {
-    //     $errors = [];
-
-    //     $rdvRecent = Rdv::forClient($client->uuid_user)
-    //         ->forContrat($contratId)
-    //         ->whereDate('created_at', '>=', now()->subDays(30))
-    //         ->whereNotIn('status', ['rejete', 'annule'])
-    //         ->first();
-
-    //     if ($rdvRecent) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'RDV_RECENT',
-    //             'message' => 'Vous avez déjà un rendez-vous sur ce contrat datant de moins de 30 jours.',
-    //             'rdv_code' => $rdvRecent->code,
-    //             'rdv_date' => $rdvRecent->date_rdv_effective ?? $rdvRecent->date_rdv_souhaiter,
-    //             'rdv_status' => $rdvRecent->status,
-    //         ];
-    //     }
-
-    //     $jourSemaine = strtolower(Carbon::parse($dateRdv)->locale('fr')->dayName);
-    //     $horaire = Agence::where('uuid_agence', $agenceUuid)
-    //         ->first()
-    //         ?->horaires()
-    //         ->where('jour', $jourSemaine)
-    //         ->where('rendez_vous_actif', true)
-    //         ->where('ferme', false)
-    //         ->first();
-
-    //     if (!$horaire) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'AGENCE_NON_DISPONIBLE',
-    //             'message' => 'Cette agence ne reçoit pas sur rendez-vous ce jour.',
-    //         ];
-    //     }
-
-    //     $date = Carbon::parse($dateRdv)->startOfDay();
-    //     if ($date->isPast() && !$date->isToday()) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'DATE_DANS_LE_PASSE',
-    //             'message' => 'La date du rendez-vous est déjà passée.',
-    //         ];
-    //     }
-
-    //     if ($date->isWeekend()) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'DATE_WEEKEND',
-    //             'message' => 'Les rendez-vous ne sont pas disponibles le week-end.',
-    //         ];
-    //     }
-
-    //     if (JourFerie::isFerie($date)) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'DATE_FERIE',
-    //             'message' => 'Cette date est un jour férié.',
-    //         ];
-    //     }
-
-    //     if (BordereauRdv::isDateCloturee($date)) {
-    //         $errors[] = [
-    //             'success' => false,
-    //             'code' => 'DATE_CLOTUREE',
-    //             'message' => 'La date du rendez-vous est déjà transférée et n’est plus disponible.',
-    //         ];
-    //     }
-
-    //     return [
-    //         'success' => true,
-    //         'code' => 'ELIGIBLE',
-    //         'eligible' => empty($errors),
-    //         'message' => 'Eligible',
-    //         'errors' => $errors,
-    //     ];
-    // }
-
-    // /**
-    //  * Créer un rendez-vous
-    //  */
-    // public function create(array $data, User $client, string $creatorUuid): array
-    // {
-    //     $assignation = null;
-    //     $rdvData = null;
-
-    //     DB::transaction(function () use ($data, $client, $creatorUuid, &$assignation, &$rdvData) {
-    //         $eligibilite = $this->verifierEligibiliteClient(
-    //             $client,
-    //             $data['id_contrat'],
-    //             $data['agence_uuid'],
-    //             $data['date_rdv']
-    //         );
-
-    //         if (!$eligibilite['success']) {
-    //             return [
-    //                 'success' => false,
-    //                 'code' => $eligibilite['code'] ?? 'CLIENT_NON_ELIGIBLE',
-    //                 'message' => $eligibilite['message'] ?? 'Le client n\'est pas éligible pour un rendez-vous.',
-    //                 'eligibilite' => $eligibilite['errors'] ?? [],
-    //             ];
-    //         }
-
-    //         $dateDispo = $this->verifierDateDisponible(
-    //             $data['agence_uuid'],
-    //             $data['date_rdv']
-    //         );
-
-    //         if (!$dateDispo['disponible']) {
-    //             return [
-    //                 'success' => false,
-    //                 'code' => $dateDispo['code'] ?? 'DATE_NON_DISPONIBLE',
-    //                 'message' => $dateDispo['message'] ?? 'La date sélectionnée n\'est pas disponible.',
-    //             ];
-    //         }
-
-    //         $motif = TypePrestation::where('uuid_type_prestation', $data['motif_rdv'])
-    //             ->where('status', 'actif')
-    //             ->first();
-
-    //         if (!$motif) {
-    //             return [
-    //                 'success' => false,
-    //                 'code' => 'MOTIF_NON_DISPONIBLE',
-    //                 'message' => 'Ce motif n\'est pas disponible.',
-    //             ];
-    //         }
-
-    //         $contrat = Produit::where('code', $data['code_produit'])->first();
-    //         if ($contrat) {
-    //             $association = $contrat->typePrestations()
-    //                 ->where('uuid_type_prestation', $data['motif_rdv'])
-    //                 ->wherePivot('status', 'actif')
-    //                 ->exists();
-
-    //             if (!$association) {
-    //                 return [
-    //                     'success' => false,
-    //                     'code' => 'MOTIF_NON_DISPONIBLE',
-    //                     'message' => 'Ce motif n\'est pas disponible pour ce contrat.', 
-    //                 ];
-    //             }
-    //         }
-
-    //         $rdv = Rdv::create([
-    //             'uuid_rdvs' => (string) Str::uuid(),
-    //             'code' => RefgenerateCode(Rdv::class, 'RDV-', 'code'),
-    //             'client_uuid' => $client->uuid_user,
-    //             'id_contrat' => $data['id_contrat'],
-    //             'motif_rdv' => $data['motif_rdv'],
-    //             'demandeur' => $data['demandeur'] ?? 'Souscripteur',
-    //             'date_rdv_souhaiter' => $data['date_rdv'],
-    //             'agence_souhaiter_uuid' => $data['agence_uuid'],
-    //             'status' => 'en_attente',
-    //             'created_by' => $creatorUuid,
-    //         ]);
-
-    //         ActivityLog::log([
-    //             'user_uuid' => $creatorUuid,
-    //             'action' => 'create',
-    //             'action_type' => 'crud',
-    //             'module' => 'rdvs',
-    //             'description' => "Création du rendez-vous pour le client {$client->email}",
-    //             'resource_type' => 'rdv',
-    //             'resource_id' => $rdv->uuid_rdvs,
-    //             'new_values' => $rdv->toArray(),
-    //             'level' => 'info',
-    //         ]);
-
-    //         $this->notificationService->create([
-    //             'user_uuid' => $creatorUuid,
-    //             'group_notif_uuid' => $this->getRdvGroupUuid(),
-    //             'title' => '⚠️ Prise de rendez-vous. Code : '. $rdv->code,
-    //             'body' => 'Votre rendez-vous N°' . $rdv->code . ' est en attente de validation. Vous allez recevoir un message de confirmation après validation.',
-    //             'type' => 'RENDEZ-VOUS',
-    //             'metadata' => [
-    //                 'rdv' => $rdv->toArray(),
-    //                 'client' => $client->toArray(),
-    //                 'agence' => Agence::where('uuid_agence', $data['agence_uuid'])->first()->toArray(),
-    //                 'motif' => $motif->toArray(),
-    //             ],
-    //             'channel' => 'database',
-    //             'created_by' => null,
-    //         ]);
-
-    //         DB::afterCommit(function () use ($rdv, &$assignation) {
-    //             // Log::info("Tentative d'assignation automatique du rendez-vous {$rdv->code} après création.");
-    //             $assignation = $this->routingService->assignerAutomatiquement($rdv);
-    //             // Log::info("Assignation automatique du rendez-vous {$rdv->code} : {$assignation['success']}");
-    //         });
-
-    //         $rdvData = $rdv->load(['client', 'motif', 'agenceSouhaitee']);
-
-    //         return [
-    //             'success' => true,
-    //             'code' => 'RDV_CREATED',
-    //             'message' => 'Rendez-vous créé avec succès. Code : ' . $rdv->code,
-    //             'data' => $rdvData,
-    //             'assignation_automatique' => null,
-    //         ];
-    //     });
-
-    //     return [
-    //         'success' => true,
-    //         'code' => 'RDV_CREATED',
-    //         'message' => 'Rendez-vous créé avec succès.',
-    //         'data' => $rdvData ?? null,
-    //         'assignation_automatique' => $assignation,
-    //     ];
-    // }
-
-    /**
      * Vérifie l'éligibilité du client pour un rendez-vous.
      *
      * 'success' et 'eligible' sont cohérents : true uniquement si aucune erreur.
@@ -745,7 +529,8 @@ class RdvService
             ]);
 
             $this->notificationService->create([
-                'user_uuid' => $creatorUuid,
+                'user_uuid' => $client->uuid_user,
+                // 'user_uuid' => $creatorUuid,
                 'group_notif_uuid' => $this->getRdvGroupUuid(),
                 'title' => '⚠️ Prise de rendez-vous. Code : ' . $rdv->code,
                 'body' => 'Votre rendez-vous N°' . $rdv->code . ' est en attente de validation. Vous allez recevoir un message de confirmation après validation.',
@@ -1250,7 +1035,10 @@ class RdvService
         }
 
         if (!empty($filters['date'])) {
+            //Filtre sur date_rdv_effective ou sur la date de creation
             $query->whereDate('date_rdv_effective', $filters['date']);
+                // ->orWhereDate('created_at', $filters['date']);
+
             // if (!isset($filters['status'])) {
             //     $query->whereIn('status', ['transmis']);
             // }
@@ -1258,9 +1046,11 @@ class RdvService
 
         if (!empty($filters['date_debut'])) {
             $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+                // ->orWhereDate('created_at', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
             $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+                // ->orWhereDate('created_at', '<=', $filters['date_fin']);
         }
 
         $sortBy = $filters['sort_by'] ?? 'present_at';
@@ -1341,7 +1131,7 @@ class RdvService
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
         
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            // $query->whereIn('agence_effective_uuid', [$agences, null]);
             $query->where('created_by', $user->uuid_user);
         }
 
@@ -1389,18 +1179,28 @@ class RdvService
         }
 
         if (!empty($filters['date'])) {
-            $query->whereDate('date_rdv_effective', $filters['date']);
+            //Filtre sur date_rdv_effective ou sur la date de creation
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', $filters['date'])
+                  ->orWhereDate('created_at', $filters['date']);
+            });
             // if (!isset($filters['status'])) {
             //     $query->whereIn('status', ['transmis']);
             // }
         }
 
         if (!empty($filters['date_debut'])) {
-            $query->whereDate('date_rdv_effective', '>=', $filters['date_debut']);
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', '>=', $filters['date_debut'])
+                  ->orWhereDate('created_at', '>=', $filters['date_debut']);
+            });
             // $query->whereDate('date_rdv_souhaiter', '>=', $filters['date_debut']);
         }
         if (!empty($filters['date_fin'])) {
-            $query->whereDate('date_rdv_effective', '<=', $filters['date_fin']);
+            $query->where(function ($q) use ($filters) {
+                $q->whereDate('date_rdv_effective', '<=', $filters['date_fin'])
+                  ->orWhereDate('created_at', '<=', $filters['date_fin']);
+            });
             // $query->whereDate('date_rdv_souhaiter', '<=', $filters['date_fin']);
         }
 
@@ -1426,7 +1226,7 @@ class RdvService
                 ->whereJsonDoesntContain('motif_traitement', 'automatique');
         }
 
-        $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter';
+        $sortBy = $filters['sort_by'] ?? 'date_rdv_effective' ?? 'date_rdv_souhaiter' ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'asc';
         $query->orderBy($sortBy, $sortOrder);
 
