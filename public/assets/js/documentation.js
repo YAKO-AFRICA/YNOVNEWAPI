@@ -792,7 +792,7 @@
                 module: "souscription",
                 name: "Lister les produits d'un réseau",
                 description:
-                    "Récupère le réseau, ses produits et les détails des associations correspondantes.",
+                    "Récupère le réseau, ses produits avec leur formule associée et les détails des associations correspondantes.",
                 method: "POST",
                 path: "/param/get-product-by-reseau",
                 isProtected: true,
@@ -824,7 +824,16 @@
                                 "Liste des produits par réseau récupérée avec succès",
                             data: {
                                 reseau: {},
-                                products: [],
+                                products: [
+                                    {
+                                        uuid_produit: "PRODUCT_UUID",
+                                        libelle: "Produit exemple",
+                                        formule: {
+                                            uuid_produit_formule: "FORMULE_UUID",
+                                            libelle: "Formule exemple",
+                                        },
+                                    },
+                                ],
                                 details_reseau_product: [],
                             },
                         },
@@ -856,7 +865,7 @@
                 module: "souscription",
                 name: "Lister les produits d'un partenaire",
                 description:
-                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés par ce réseau.",
+                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés avec leur formule associée.",
                 method: "POST",
                 path: "/param/get-product-by-partner",
                 isProtected: true,
@@ -888,7 +897,16 @@
                                 "Liste des produits par réseau récupérée avec succès",
                             data: {
                                 reseau: {},
-                                products: [],
+                                products: [
+                                    {
+                                        uuid_produit: "PRODUCT_UUID",
+                                        libelle: "Produit exemple",
+                                        formule: {
+                                            uuid_produit_formule: "FORMULE_UUID",
+                                            libelle: "Formule exemple",
+                                        },
+                                    },
+                                ],
                                 details_reseau_product: [],
                             },
                         },
@@ -1206,9 +1224,162 @@
                 ],
             },
 
+            {
+                id: "filiations-list",
+                module: "souscription",
+                name: "Lister les filiations",
+                description:
+                    "Récupère les filiations dont l’état est « actif ». La route ne nécessite aucun paramètre.",
+                method: "GET",
+                path: "/param/get-filiations",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des filiations récupérée",
+                        example: {
+                            success: true,
+                            message:
+                                "Liste des filiations récupérée avec succès.",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucune filiation active trouvée",
+                        example: {
+                            success: false,
+                            message: "Aucune filiation trouvée.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "banques-sigles-list",
+                module: "souscription",
+                name: "Lister les banques",
+                description:
+                    "Récupère les banques-agences actives, sans doublons, avec leur UUID, sigle et code banque.",
+                method: "GET",
+                path: "/param/get-sigle-banque",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Banques récupérées avec succès",
+                        example: {
+                            success: true,
+                            code: "BANQUES_LISTED",
+                            message:
+                                "Liste des banques-agences récupérée avec succès.",
+                            data: [
+                                {
+                                    uuid_banque: "uuid-banque",
+                                    sigle: "SIGLE",
+                                    code_banque: "CODE",
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucune banque-agence active trouvée",
+                        example: {
+                            success: false,
+                            code: "BANQUE_NOT_FOUND",
+                            message: "Aucune banque-agence trouvée.",
+                        },
+                    },
+                    {
+                        status: 500,
+                        description:
+                            "Erreur lors de la récupération des banques",
+                    },
+                ],
+            },
+
+            {
+                id: "banque-guichets-list",
+                module: "souscription",
+                name: "Lister les guichets d'une banque",
+                description:
+                    "Récupère les guichets actifs associés au code de la banque.",
+                method: "POST",
+                path: "/param/get-guichet-by-banque",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_banque: {
+                            type: "string",
+                            required: true,
+                            description: "Code de la banque",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Guichets récupérés avec succès",
+                        example: {
+                            success: true,
+                            code: "GUICHETS_LISTED",
+                            message:
+                                "Liste des guichets récupérée avec succès.",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 400,
+                        description: "Le code banque est manquant ou invalide",
+                        example: {
+                            success: false,
+                            code: "CODE_BANQUE_REQUIRED",
+                            message:
+                                "Le parametre code_banque est obligatoire",
+                        },
+                    },
+                    {
+                        status: 404,
+                        description:
+                            "Aucun guichet actif trouvé pour ce code banque",
+                        example: {
+                            success: false,
+                            code: "GUICHET_NOT_FOUND",
+                            message:
+                                "Aucun guichet actif trouvé pour cette banque.",
+                        },
+                    },
+                    {
+                        status: 500,
+                        description:
+                            "Erreur lors de la récupération des guichets",
+                    },
+                ],
+            },
 
 
-            
+
+
 
 
 
@@ -13108,6 +13279,74 @@
                             message:
                                 "Le simulateur LPREVO ne peut pas être exécuté actuellement.",
                             code: "LPREVO_SIMULATION_UNAVAILABLE",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "simulateur-yapi",
+                module: "simulateurs",
+                name: "Simuler le produit Yapi",
+                description:
+                    "Calcule la prime Yapi selon le capital choisi : 30 000 FCFA pour 500 000 FCFA de capital ou 58 000 FCFA pour 1 000 000 FCFA. Aucun frais supplémentaire n’est ajouté.",
+                method: "POST",
+                path: "/esouscription/simulateurs/yapi",
+                isProtected: false,
+                rateLimit: "throttle:30,1 (30 simulations / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        CodeProduit: {
+                            type: "string",
+                            required: true,
+                            enum: ["YAPI"],
+                            description: "Code du produit",
+                        },
+                        Capital: {
+                            type: "integer",
+                            required: true,
+                            enum: [500000, 1000000],
+                            description:
+                                "Capital souscrit : 500 000 ou 1 000 000 FCFA",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    CodeProduit: "YAPI",
+                    Capital: 500000,
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Simulation Yapi calculée",
+                        example: {
+                            success: true,
+                            message: "Simulation Yapi calculée avec succès.",
+                            code: "YAPI_SIMULATION_SUCCESS",
+                            data: {
+                                codeProduit: "YAPI",
+                                capital: 500000,
+                                prime: 30000,
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Code produit ou capital invalide",
+                        example: {
+                            success: false,
+                            message:
+                                "Les paramètres de simulation Yapi sont invalides.",
+                            code: "YAPI_SIMULATION_INVALID",
+                            errors: {
+                                Capital: [
+                                    "The selected Capital is invalid.",
+                                ],
+                            },
                         },
                     },
                 ],

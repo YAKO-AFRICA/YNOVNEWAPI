@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\Filiation;
 use App\Models\Api\Ynov\parameter\Partner;
 use App\Models\Api\Ynov\parameter\Produit;
+use App\Models\Api\Ynov\parameter\ProduitFormule;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\ReseauProduct;
 use App\Models\Api\Ynov\parameter\User;
+use App\Services\Api\Ynov\Esouscription\BanqueAgenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +21,10 @@ use Throwable;
 
 class ParamController extends Controller
 {
+    public function __construct(private BanqueAgenceService $banqueAgenceService)
+    {
+    }
+
     // ================== SCRIPT CRUD POUR LES PRODUITS COMMERCIALISES DANS UN RESEAU ==================
 
     /**
@@ -91,8 +98,20 @@ class ParamController extends Controller
             }
 
             $pluckedProductUuids = $productByReseau->pluck('product_uuid')->toArray();
+            $pluckedFormuleUuids = $productByReseau->pluck('formule_uuid')->toArray();
 
             $products = Produit::whereIn('uuid_produit', $pluckedProductUuids)->get();
+            $formules = ProduitFormule::whereIn('uuid_produit_formule', $pluckedFormuleUuids)->get();
+
+            $formulesByUuid = $formules->keyBy('uuid_produit_formule');
+            $reseauProductsByProductUuid = $productByReseau->keyBy('product_uuid');
+            $products->each(function (Produit $product) use ($reseauProductsByProductUuid, $formulesByUuid) {
+                $reseauProduct = $reseauProductsByProductUuid->get($product->uuid_produit);
+                $product->setAttribute(
+                    'formule',
+                    $reseauProduct ? $formulesByUuid->get($reseauProduct->formule_uuid) : null
+                );
+            });
 
             if (!$products) {
                 return response()->json([
@@ -327,10 +346,7 @@ class ParamController extends Controller
 
         $validated = $validator->validated();
 
-
-
         try {
-
 
             $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
 
@@ -364,8 +380,20 @@ class ParamController extends Controller
             }
 
             $pluckedProductUuids = $productByReseau->pluck('product_uuid')->toArray();
+            $pluckedFormuleUuids = $productByReseau->pluck('formule_uuid')->toArray();
 
             $products = Produit::whereIn('uuid_produit', $pluckedProductUuids)->get();
+            $formules = ProduitFormule::whereIn('uuid_produit_formule', $pluckedFormuleUuids)->get();
+
+            $formulesByUuid = $formules->keyBy('uuid_produit_formule');
+            $reseauProductsByProductUuid = $productByReseau->keyBy('product_uuid');
+            $products->each(function (Produit $product) use ($reseauProductsByProductUuid, $formulesByUuid) {
+                $reseauProduct = $reseauProductsByProductUuid->get($product->uuid_produit);
+                $product->setAttribute(
+                    'formule',
+                    $reseauProduct ? $formulesByUuid->get($reseauProduct->formule_uuid) : null
+                );
+            });
 
             if (!$products) {
                 return response()->json([
@@ -507,6 +535,116 @@ class ParamController extends Controller
                 'success' => false,
                 'message' => 'Erreur lors de la connexion au service des professions.',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getFiliation()
+    {
+        try {
+            $filiations = Filiation::where('etat', 'actif')->get();
+
+            if ($filiations->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucune filiation trouvée.',
+                ], 404);
+            }
+
+
+            if ($filiations) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Liste des filiations récupérée avec succès.',
+                    'data' => $filiations
+                ], 200);
+            }
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la connexion au service des filiations.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
+    }
+    public function getSigleBanque()
+    {
+
+        try {
+
+            $banqueSigle = $this->banqueAgenceService->getSigleBanques();
+
+            if ($banqueSigle->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'BANQUE_NOT_FOUND',
+                    'message' => 'Aucune banque-agence trouvée.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'code' => 'BANQUES_LISTED',
+                'message' => 'Liste des banques-agences récupérée avec succès.',
+                'data' => $banqueSigle,
+            ], 200);
+
+        } catch (Throwable $e) {
+            Log::error('Erreur lors de la récupération des banques-agences.', [
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la connexion au service des banques-agences.',
+            ], 500);
+        }
+    }
+
+    public function getGuichetByBanque(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'code_banque' => ['required', 'string', 'max:50'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'code'    => 'CODE_BANQUE_REQUIRED',
+                'message' => 'Le parametre code_banque est obligatoire',
+            ], 400);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            $guichets = $this->banqueAgenceService->getGuichetsByCodeBanque($validated['code_banque']);
+
+            if ($guichets->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'GUICHET_NOT_FOUND',
+                    'message' => 'Aucun guichet actif trouvé pour cette banque.',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'code' => 'GUICHETS_LISTED',
+                'message' => 'Liste des guichets récupérée avec succès.',
+                'data' => $guichets,
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Erreur lors de la récupération des guichets de la banque.', [
+                'code_banque' => $validated['code_banque'],
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des guichets de la banque.',
             ], 500);
         }
     }

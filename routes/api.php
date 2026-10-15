@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\Ynov\SessionController;
 use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
 use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
+use App\Http\Controllers\Api\Ynov\Simulateur\YapiSimulatorController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
@@ -1094,6 +1095,9 @@ Route::prefix('v1')->middleware([
         Route::delete('villes/{uuid_ville}', [VilleController::class, 'destroy']);
         Route::get('get-villes-nsil', [ParamController::class, 'getNsilVilles']);
         Route::get('get-professions-nsil', [ParamController::class, 'getNsilProfession']); 
+        Route::get('get-filiations', [ParamController::class, 'getFiliation']); 
+        Route::get('get-sigle-banque', [ParamController::class, 'getSigleBanque']);
+        Route::post('get-guichet-by-banque', [ParamController::class, 'getGuichetByBanque']);
 
         // gestion des professions
         Route::get('professions', [ProfessionController::class, 'indexProfession']);
@@ -1168,6 +1172,9 @@ Route::prefix('v1')->middleware([
         ->middleware('throttle:30,1');
 
         Route::post('simulateurs/lprevo', [LprevoSimulatorController::class, 'simulate'])
+            ->middleware('throttle:30,1');
+
+        Route::post('simulateurs/yapi', [YapiSimulatorController::class, 'simulate'])
             ->middleware('throttle:30,1');
 
     });
