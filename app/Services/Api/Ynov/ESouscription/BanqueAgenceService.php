@@ -12,8 +12,13 @@ class BanqueAgenceService
         return BanqueAgence::query()
             ->select('uuid_banque', 'sigle', 'code_banque')
             ->where('etat', 'actif')
-            ->distinct()
-            ->orderBy('sigle')
+            // sigle et code_banque non null ou vide
+            ->whereNotNull('sigle')
+            ->whereNotNull('code_banque')
+            ->where('sigle', '!=', '')
+            ->where('code_banque', '!=', '')
+            ->distinct('code_banque')
+            ->orderBy('sigle', 'asc')
             ->get();
     }
 
