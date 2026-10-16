@@ -46,4 +46,44 @@ class ValidationController extends Controller
             ], 500);
         }
     }
+
+    public function rejectContrat(Request $request, string $uuid)
+    {
+        $contrat = $this->contratService->findByUuid($uuid);
+
+        if (!$contrat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contrat introuvable',
+                'code' => 404,
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'motif_rejet' => ['required', 'array', 'min:1'],
+            'motif_rejet.*' => ['required', 'string', 'distinct'],
+        ]);
+
+        try {
+            $contrat = $this->contratService->reject(
+                $contrat,
+                $validated['motif_rejet'],
+                (string) $request->user()->uuid_user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contrat rejeté avec succès',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du rejet du contrat',
+                'code' => 500,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -1146,6 +1146,7 @@ Route::prefix('v1')->middleware([
         Route::put('update-contrat/{uuid}', [ContratController::class, 'update']);
         Route::post('transmettre-contrat/{uuid}', [ContratController::class, 'transmit']);
         Route::post('accepter-contrat/{uuid}', [ValidationController::class, 'acceptContrat']);
+        Route::post('rejeter-contrat/{uuid}', [ValidationController::class, 'rejectContrat']);
         Route::post('annuler-contrat/{uuid}', [ContratController::class, 'cancel']);
         Route::delete('delete-contrat/{uuid}', [ContratController::class, 'destroy']);
         Route::get('restore-contrat/{uuid}', [ContratController::class, 'restore']);

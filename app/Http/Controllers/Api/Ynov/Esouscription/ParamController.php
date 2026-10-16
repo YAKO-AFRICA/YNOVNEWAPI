@@ -46,6 +46,10 @@ class ParamController extends Controller
             $query->where('formule_uuid', $request->input('formule_uuid'));
         }
 
+        if ($request->has('formule_key')) {
+            $query->where('formule_key', $request->input('formule_key'));
+        }
+
         $productByReseau = $query->paginate(10);
 
         return response()->json([
@@ -150,6 +154,7 @@ class ParamController extends Controller
             'reseau_uuid' => 'required|string',
             'product_uuid' => 'required|string',
             'formule_uuid' => 'required|string',
+            'formule_key' => 'required|string',
         ]);
 
         DB::beginTransaction();
@@ -161,6 +166,7 @@ class ParamController extends Controller
                 'reseau_uuid' => $validatedData['reseau_uuid'],
                 'product_uuid' => $validatedData['product_uuid'],
                 'formule_uuid' => $validatedData['formule_uuid'],
+                'formule_key' => $validatedData['formule_key'],
                 'etat' => 'actif',
             ]);
 
@@ -196,6 +202,7 @@ class ParamController extends Controller
             'reseau_uuid' => 'sometimes|required|string',
             'product_uuid' => 'sometimes|required|string',
             'formule_uuid' => 'sometimes|required|string',
+            'formule_key' => 'sometimes|required|string',
         ]);
 
         DB::beginTransaction();
@@ -218,6 +225,7 @@ class ParamController extends Controller
                 'reseau_uuid' => $validatedData['reseau_uuid'] ?? $reseauProduct->reseau_uuid,
                 'product_uuid' => $validatedData['product_uuid'] ?? $reseauProduct->product_uuid,
                 'formule_uuid' => $validatedData['formule_uuid'] ?? $reseauProduct->formule_uuid,
+                'formule_key' => $validatedData['formule_key'] ?? $reseauProduct->formule_key,
             ]);
 
             DB::commit();
