@@ -13,6 +13,10 @@ class BanqueAgence extends Model
 
     protected $primaryKey = 'uuid_banque';
 
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
