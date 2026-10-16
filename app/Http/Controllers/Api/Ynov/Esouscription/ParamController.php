@@ -10,7 +10,7 @@ use App\Models\Api\Ynov\parameter\ProduitFormule;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\ReseauProduct;
 use App\Models\Api\Ynov\parameter\User;
-use App\Services\Api\Ynov\Esouscription\BanqueAgenceService;
+use App\Services\Api\Ynov\ESouscription\BanqueAgenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
