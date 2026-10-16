@@ -1003,6 +1003,43 @@
             // CRUD CONTRATS
             // ============================================================
             {
+                id: "esouscription-partenaires-contrats-en-attente",
+                module: "contrats",
+                name: "Lister les partenaires avec des contrats en attente",
+                description: "Récupère les partenaires distincts associés à au moins un contrat à l'étape 2 (en attente d'acceptation). Les contrats supprimés et ceux sans partenaire ne sont pas pris en compte.",
+                method: "GET",
+                path: "/esouscription/get-partners-distinct",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                responses: [
+                    { status: 200, description: "Partenaires avec un contrat en attente récupérés.", example: { success: true, message: "Partenaires récupérés avec succès", code: 200, data: [{ uuid_partner: "UUID_PARTENAIRE", designation: "Nom du partenaire" }] } },
+                ],
+            },
+            {
+                id: "esouscription-contrats-by-partner",
+                module: "contrats",
+                name: "Lister les contrats d'un partenaire",
+                description: "Récupère tous les contrats du partenaire, du plus récent au plus ancien. Le champ partner_uuid du contrat correspond à uuid_partner du partenaire. Le paramètre etape est facultatif et permet de filtrer les contrats par étape.",
+                method: "GET",
+                path: "/esouscription/get-contrats-by-partner/{partner_uuid}",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                requestParams: {
+                    path: {
+                        partner_uuid: { type: "uuid", required: true, description: "UUID du partenaire (partners.uuid_partner)." },
+                    },
+                    query: {
+                        etape: { type: "integer", required: false, description: "Filtre facultatif sur l'étape du contrat." },
+                    },
+                },
+                exampleRequest: { etape: 2 },
+                responses: [
+                    { status: 200, description: "Contrats du partenaire récupérés.", example: { success: true, message: "Contrats récupérés avec succès", code: 200, total: 1, data: [{ uuid_contrat: "UUID_CONTRAT", partner_uuid: "UUID_PARTENAIRE", etape: 2, created_at: "2026-10-16T10:00:00.000000Z" }] } },
+                    { status: 404, description: "Partenaire introuvable.", example: { success: false, message: "Partenaire introuvable", code: 404 } },
+                    { status: 422, description: "Le filtre etape doit être un entier.", example: { message: "The given data was invalid.", errors: { etape: ["The etape field must be an integer."] } } },
+                ],
+            },
+            {
                 id: "esouscription-contrats-list",
                 module: "contrats",
                 name: "Lister les contrats eSouscription",
@@ -1507,7 +1544,7 @@
                 module: "souscription",
                 name: "Lister les produits associés aux réseaux",
                 description:
-                    "Récupère les associations entre réseaux, produits et formules, y compris formule_key. Les résultats sont paginés par 10.",
+                    "Récupère les associations entre réseaux, produits et formules, y compris formule_key et frais_adhesion. Les résultats sont paginés par 10.",
                 method: "GET",
                 path: "/param/get-reseau-product",
                 isProtected: true,
@@ -1558,6 +1595,7 @@
                                         product_uuid: "PRODUCT_UUID",
                                         formule_uuid: "FORMULE_UUID",
                                         formule_key: "FORMULE_STANDARD",
+                                        frais_adhesion: 2500,
                                         etat: "actif",
                                     },
                                 ],
@@ -1574,7 +1612,7 @@
                 module: "souscription",
                 name: "Lister les produits d'un réseau",
                 description:
-                    "Récupère le réseau, ses produits avec leur formule associée et les détails des associations correspondantes.",
+                    "Récupère le réseau, ses produits avec leur formule, clé de formule et frais d'adhésion, ainsi que les détails des associations correspondantes.",
                 method: "POST",
                 path: "/param/get-product-by-reseau",
                 isProtected: true,
@@ -1614,6 +1652,8 @@
                                             uuid_produit_formule: "FORMULE_UUID",
                                             libelle: "Formule exemple",
                                         },
+                                        formule_key: "FORMULE_STANDARD",
+                                        frais_adhesion: 2500,
                                     },
                                 ],
                                 details_reseau_product: [
@@ -1623,6 +1663,7 @@
                                         product_uuid: "PRODUCT_UUID",
                                         formule_uuid: "FORMULE_UUID",
                                         formule_key: "FORMULE_STANDARD",
+                                        frais_adhesion: 2500,
                                         etat: "actif",
                                     },
                                 ],
@@ -1656,7 +1697,7 @@
                 module: "souscription",
                 name: "Lister les produits d'un partenaire",
                 description:
-                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés avec leur formule associée.",
+                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés avec leur formule, clé de formule et frais d'adhésion.",
                 method: "POST",
                 path: "/param/get-product-by-partner",
                 isProtected: true,
@@ -1696,6 +1737,8 @@
                                             uuid_produit_formule: "FORMULE_UUID",
                                             libelle: "Formule exemple",
                                         },
+                                        formule_key: "FORMULE_STANDARD",
+                                        frais_adhesion: 2500,
                                     },
                                 ],
                                 details_reseau_product: [
@@ -1705,6 +1748,7 @@
                                         product_uuid: "PRODUCT_UUID",
                                         formule_uuid: "FORMULE_UUID",
                                         formule_key: "FORMULE_STANDARD",
+                                        frais_adhesion: 2500,
                                         etat: "actif",
                                     },
                                 ],
@@ -1734,7 +1778,7 @@
                 module: "souscription",
                 name: "Associer un produit à un réseau",
                 description:
-                    "Crée une association entre un réseau, un produit et une formule. L'association est créée avec l'état « actif ».",
+                    "Crée une association entre un réseau, un produit, une formule, sa clé et les frais d'adhésion. L'association est créée avec l'état « actif ».",
                 method: "POST",
                 path: "/param/store-product-reseau",
                 isProtected: true,
@@ -1765,6 +1809,11 @@
                             required: true,
                             description: "Clé de la formule associée",
                         },
+                        frais_adhesion: {
+                            type: "integer",
+                            required: true,
+                            description: "Frais d'adhésion associés au produit et à la formule",
+                        },
                     },
                 },
                 exampleRequest: {
@@ -1772,6 +1821,7 @@
                     product_uuid: "550e8400-e29b-41d4-a716-446655440002",
                     formule_uuid: "550e8400-e29b-41d4-a716-446655440003",
                     formule_key: "FORMULE_STANDARD",
+                    frais_adhesion: 2500,
                 },
                 responses: [
                     {
@@ -1781,7 +1831,15 @@
                             success: true,
                             message: "Produit ajouté au réseau avec succès",
                             code: 201,
-                            data: {},
+                            data: {
+                                uuid: "ASSOCIATION_UUID",
+                                reseau_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                product_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                                formule_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                                formule_key: "FORMULE_STANDARD",
+                                frais_adhesion: 2500,
+                                etat: "actif",
+                            },
                         },
                     },
                     {
@@ -1796,7 +1854,7 @@
                 module: "souscription",
                 name: "Modifier une association produit-réseau",
                 description:
-                    "Modifie les UUID du réseau, du produit ou de la formule, ainsi que la clé de formule. Tous les champs sont facultatifs ; seuls les champs transmis sont mis à jour.",
+                    "Modifie les UUID du réseau, du produit ou de la formule, la clé de formule et/ou les frais d'adhésion. Tous les champs sont facultatifs ; seuls les champs transmis sont mis à jour.",
                 method: "PUT",
                 path: "/param/update-product-reseau/{uuid}",
                 isProtected: true,
@@ -1834,11 +1892,17 @@
                             required: false,
                             description: "Nouvelle clé de la formule",
                         },
+                        frais_adhesion: {
+                            type: "integer",
+                            required: false,
+                            description: "Nouveaux frais d'adhésion",
+                        },
                     },
                 },
                 exampleRequest: {
                     product_uuid: "550e8400-e29b-41d4-a716-446655440004",
                     formule_key: "FORMULE_PREMIUM",
+                    frais_adhesion: 3000,
                 },
                 responses: [
                     {
@@ -1849,7 +1913,12 @@
                             message:
                                 "Produit du réseau mis à jour avec succès",
                             code: 200,
-                            data: {},
+                            data: {
+                                uuid: "ASSOCIATION_UUID",
+                                product_uuid: "550e8400-e29b-41d4-a716-446655440004",
+                                formule_key: "FORMULE_PREMIUM",
+                                frais_adhesion: 3000,
+                            },
                         },
                     },
                     {
