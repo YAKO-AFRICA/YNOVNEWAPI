@@ -115,6 +115,19 @@ class ContratService
         });
     }
 
+    public function reject(Contrat $contrat, array $motifs, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $motifs, $userUuid): Contrat {
+            $contrat->update([
+                'rejeter_par' => $userUuid,
+                'date_rejet' => now(),
+                'motif_rejet' => array_values(array_unique($motifs)),
+            ]);
+
+            return $contrat->fresh();
+        });
+    }
+
     public function cancel(Contrat $contrat, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $userUuid): Contrat {

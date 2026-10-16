@@ -1197,6 +1197,62 @@
                 ],
             },
             {
+                id: "esouscription-contrats-reject",
+                module: "contrats",
+                name: "Rejeter un contrat",
+                description: "Rejette le contrat avec un ou plusieurs motifs. Les motifs sélectionnés sont stockés dans motif_rejet au format JSON ; rejeter_par et date_rejet sont renseignés automatiquement.",
+                method: "POST",
+                path: "/esouscription/rejeter-contrat/{uuid}",
+                isProtected: true,
+                headers: { Authorization: "******", "Content-Type": "application/json", Accept: "application/json" },
+                requestParams: {
+                    path: { uuid: { type: "uuid", required: true, description: "UUID du contrat à rejeter." } },
+                    body: {
+                        motif_rejet: {
+                            type: "array",
+                            required: true,
+                            min: 1,
+                            description: "Tableau des motifs de rejet sélectionnés sous forme de chaînes de caractères.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    motif_rejet: ["MOTIF_1", "MOTIF_2"],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Contrat rejeté avec succès.",
+                        example: {
+                            success: true,
+                            message: "Contrat rejeté avec succès",
+                            code: 200,
+                            data: {
+                                uuid_contrat: "UUID_CONTRAT",
+                                rejeter_par: "UUID_USER_CONNECTE",
+                                date_rejet: "2026-10-16T10:00:00.000000Z",
+                                motif_rejet: ["MOTIF_1", "MOTIF_2"],
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Contrat introuvable.",
+                        example: { success: false, message: "Contrat introuvable", code: 404 },
+                    },
+                    {
+                        status: 422,
+                        description: "Au moins un motif de rejet est requis et les motifs doivent être distincts.",
+                        example: { message: "The given data was invalid.", errors: { motif_rejet: ["The motif rejet field is required."] } },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur lors du rejet du contrat.",
+                        example: { success: false, message: "Erreur lors du rejet du contrat", code: 500 },
+                    },
+                ],
+            },
+            {
                 id: "esouscription-contrats-cancel",
                 module: "contrats",
                 name: "Annuler un contrat",
@@ -1451,7 +1507,7 @@
                 module: "souscription",
                 name: "Lister les produits associés aux réseaux",
                 description:
-                    "Récupère les associations entre réseaux, produits et formules. Les résultats sont paginés par 10.",
+                    "Récupère les associations entre réseaux, produits et formules, y compris formule_key. Les résultats sont paginés par 10.",
                 method: "GET",
                 path: "/param/get-reseau-product",
                 isProtected: true,
@@ -1476,6 +1532,11 @@
                             required: false,
                             description: "Filtrer par UUID de la formule",
                         },
+                        formule_key: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par clé de formule",
+                        },
                     },
                 },
                 responses: [
@@ -1490,7 +1551,16 @@
                             total: 1,
                             data: {
                                 current_page: 1,
-                                data: [],
+                                data: [
+                                    {
+                                        uuid: "ASSOCIATION_UUID",
+                                        reseau_uuid: "RESEAU_UUID",
+                                        product_uuid: "PRODUCT_UUID",
+                                        formule_uuid: "FORMULE_UUID",
+                                        formule_key: "FORMULE_STANDARD",
+                                        etat: "actif",
+                                    },
+                                ],
                                 per_page: 10,
                                 total: 1,
                             },
@@ -1546,7 +1616,16 @@
                                         },
                                     },
                                 ],
-                                details_reseau_product: [],
+                                details_reseau_product: [
+                                    {
+                                        uuid: "ASSOCIATION_UUID",
+                                        reseau_uuid: "RESEAU_UUID",
+                                        product_uuid: "PRODUCT_UUID",
+                                        formule_uuid: "FORMULE_UUID",
+                                        formule_key: "FORMULE_STANDARD",
+                                        etat: "actif",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -1619,7 +1698,16 @@
                                         },
                                     },
                                 ],
-                                details_reseau_product: [],
+                                details_reseau_product: [
+                                    {
+                                        uuid: "ASSOCIATION_UUID",
+                                        reseau_uuid: "RESEAU_UUID",
+                                        product_uuid: "PRODUCT_UUID",
+                                        formule_uuid: "FORMULE_UUID",
+                                        formule_key: "FORMULE_STANDARD",
+                                        etat: "actif",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -1672,12 +1760,18 @@
                             required: true,
                             description: "UUID de la formule",
                         },
+                        formule_key: {
+                            type: "string",
+                            required: true,
+                            description: "Clé de la formule associée",
+                        },
                     },
                 },
                 exampleRequest: {
                     reseau_uuid: "550e8400-e29b-41d4-a716-446655440001",
                     product_uuid: "550e8400-e29b-41d4-a716-446655440002",
                     formule_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                    formule_key: "FORMULE_STANDARD",
                 },
                 responses: [
                     {
@@ -1702,7 +1796,7 @@
                 module: "souscription",
                 name: "Modifier une association produit-réseau",
                 description:
-                    "Modifie les UUID du réseau, du produit ou de la formule. Tous les champs sont facultatifs ; seuls les champs transmis sont mis à jour.",
+                    "Modifie les UUID du réseau, du produit ou de la formule, ainsi que la clé de formule. Tous les champs sont facultatifs ; seuls les champs transmis sont mis à jour.",
                 method: "PUT",
                 path: "/param/update-product-reseau/{uuid}",
                 isProtected: true,
@@ -1735,10 +1829,16 @@
                             required: false,
                             description: "Nouvel UUID de la formule",
                         },
+                        formule_key: {
+                            type: "string",
+                            required: false,
+                            description: "Nouvelle clé de la formule",
+                        },
                     },
                 },
                 exampleRequest: {
                     product_uuid: "550e8400-e29b-41d4-a716-446655440004",
+                    formule_key: "FORMULE_PREMIUM",
                 },
                 responses: [
                     {

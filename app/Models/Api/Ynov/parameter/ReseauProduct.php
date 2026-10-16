@@ -23,6 +23,7 @@ class ReseauProduct extends Model
         'reseau_uuid',
         'product_uuid',
         'formule_uuid',
+        'formule_key',
         'etat',
     ];
 

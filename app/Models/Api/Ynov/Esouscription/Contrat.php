@@ -159,6 +159,7 @@ class Contrat extends Model
         'date_transmission' => 'datetime',
         'date_annulation'   => 'datetime',
         'date_rejet'        => 'datetime',
+        'motif_rejet'       => 'array',
         'acceptance_date'   => 'datetime',
         'prime'             => 'float',
         'prime_principale'  => 'float',
