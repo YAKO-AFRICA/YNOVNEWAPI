@@ -130,19 +130,15 @@ class PartnerService
         }
         
         if (isset($filters['is_active'])) {
-            $query->where('is_active', $filters['is_active']);
+            $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
         }
-        
-        if (isset($filters['type'])) {
-            $query->where('type', $filters['type']);
-        }
-        
-        if (isset($filters['categorie'])) {
-            $query->where('categorie', $filters['categorie']);
-        }
-        
+
         if (isset($filters['code_branche'])) {
             $query->where('code_branche', $filters['code_branche']);
+        }
+
+        if (isset($filters['code_contractant'])) {
+            $query->where('code_contractant', $filters['code_contractant']);
         }
         
         if (isset($filters['search'])) {
@@ -150,16 +146,12 @@ class PartnerService
             $query->where(function ($q) use ($search) {
                 $q->where('designation', 'LIKE', "%{$search}%")
                   ->orWhere('code', 'LIKE', "%{$search}%")
-                  ->orWhere('sigle', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%");
+                  ->orWhere('code_contractant', 'LIKE', "%{$search}%")
+                  ->orWhere('code_branche', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
             });
         }
-        
-        if (isset($filters['not_expired']) && $filters['not_expired']) {
-            $query->notExpired();
-        }
-        
+
         return $query->orderBy('designation')->paginate($perPage);
     }
 }

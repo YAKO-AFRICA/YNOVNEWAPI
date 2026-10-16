@@ -31,7 +31,7 @@ class PartnerController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only([
-            'status', 'is_active', 'type', 'categorie', 'code_branche', 'search', 'not_expired'
+            'status', 'is_active', 'code_branche', 'code_contractant', 'search'
         ]);
         
         $perPage = $request->integer('per_page', 20);

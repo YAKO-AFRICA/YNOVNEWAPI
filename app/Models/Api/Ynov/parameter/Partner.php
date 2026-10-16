@@ -99,13 +99,7 @@ class Partner extends Model
         return $this->is_active && $this->status === 'actif';
     }
     
-    /**
-     * Vérifier si le partenaire est expiré
-     */
-    public function isExpired(): bool
-    {
-        return $this->date_expiration && $this->date_expiration->isPast();
-    }
+   
     
     /**
      * Obtenir l'adresse complète
@@ -138,29 +132,13 @@ class Partner extends Model
     }
     
     /**
-     * Scope pour un type spécifique
+     * Scope pour un code contractant spécifique
      */
-    public function scopeOfType($query, string $type)
+    public function scopeContractant($query, string $codeContractant)
     {
-        return $query->where('type', $type);
+        return $query->where('code_contractant', $codeContractant);
     }
     
-    /**
-     * Scope pour une catégorie spécifique
-     */
-    public function scopeCategorie($query, string $categorie)
-    {
-        return $query->where('categorie', $categorie);
-    }
+   
     
-    /**
-     * Scope pour les partenaires non expirés
-     */
-    public function scopeNotExpired($query)
-    {
-        return $query->where(function ($q) {
-            $q->whereNull('date_expiration')
-              ->orWhere('date_expiration', '>=', now());
-        });
-    }
 }

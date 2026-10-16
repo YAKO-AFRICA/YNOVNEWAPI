@@ -7762,7 +7762,7 @@
                 module: "partners",
                 name: "Liste des partenaires",
                 description:
-                    "Récupère la liste des partenaires avec filtres (statut, type, catégorie, recherche textuelle).",
+                    "Récupère la liste des partenaires avec filtres (statut, activité, code branche, code contractant et recherche textuelle).",
                 method: "GET",
                 path: "/partners",
                 isProtected: true,
@@ -7790,30 +7790,20 @@
                             required: false,
                             description: "Filtrer par statut actif/inactif",
                         },
-                        type: {
-                            type: "string",
-                            required: false,
-                            description: "Filtrer par type",
-                        },
-                        categorie: {
-                            type: "string",
-                            required: false,
-                            description: "Filtrer par catégorie",
-                        },
                         code_branche: {
                             type: "string",
                             required: false,
                             description: "Filtrer par code branche",
                         },
+                        code_contractant: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par code contractant",
+                        },
                         search: {
                             type: "string",
                             required: false,
-                            description: "Recherche textuelle",
-                        },
-                        not_expired: {
-                            type: "boolean",
-                            required: false,
-                            description: "Partenaires non expirés",
+                            description: "Recherche dans la désignation, les codes et la description",
                         },
                     },
                 },
