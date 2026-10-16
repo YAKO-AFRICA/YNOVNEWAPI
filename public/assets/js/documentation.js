@@ -1157,6 +1157,46 @@
                 ],
             },
             {
+                id: "esouscription-contrats-accept",
+                module: "contrats",
+                name: "Accepter un contrat",
+                description: "Accepte le contrat : son étape passe à 3, accepted_by est défini avec l’UUID de l’utilisateur authentifié et acceptance_date avec la date et l’heure courantes.",
+                method: "POST",
+                path: "/esouscription/accepter-contrat/{uuid}",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                requestParams: {
+                    path: { uuid: { type: "uuid", required: true, description: "UUID du contrat à accepter." } },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Contrat accepté avec succès.",
+                        example: {
+                            success: true,
+                            message: "Contrat accepté avec succès",
+                            code: 200,
+                            data: {
+                                uuid_contrat: "UUID_CONTRAT",
+                                etape: 3,
+                                accepted_by: "UUID_USER_CONNECTE",
+                                acceptance_date: "2026-10-11T19:56:04.000000Z",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Contrat introuvable.",
+                        example: { success: false, message: "Contrat introuvable", code: 404 },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur lors de l’acceptation du contrat.",
+                        example: { success: false, message: "Erreur lors de l’acceptation du contrat", code: 500 },
+                    },
+                ],
+            },
+            {
                 id: "esouscription-contrats-cancel",
                 module: "contrats",
                 name: "Annuler un contrat",

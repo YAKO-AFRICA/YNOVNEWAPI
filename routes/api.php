@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
 use App\Http\Controllers\Api\Ynov\Esouscription\PropositionController;
 use App\Http\Controllers\Api\Ynov\Esouscription\SanteController;
+use App\Http\Controllers\Api\Ynov\Esouscription\ValidationController;
 use App\Http\Controllers\Api\Ynov\EspaceClient\CustomerController;
 use App\Http\Controllers\Api\Ynov\FaqCategoryController;
 use App\Http\Controllers\Api\Ynov\FaqController;
@@ -1144,6 +1145,7 @@ Route::prefix('v1')->middleware([
         Route::get('show-contrat/{uuid}', [ContratController::class, 'show']);
         Route::put('update-contrat/{uuid}', [ContratController::class, 'update']);
         Route::post('transmettre-contrat/{uuid}', [ContratController::class, 'transmit']);
+        Route::post('accepter-contrat/{uuid}', [ValidationController::class, 'acceptContrat']);
         Route::post('annuler-contrat/{uuid}', [ContratController::class, 'cancel']);
         Route::delete('delete-contrat/{uuid}', [ContratController::class, 'destroy']);
         Route::get('restore-contrat/{uuid}', [ContratController::class, 'restore']);

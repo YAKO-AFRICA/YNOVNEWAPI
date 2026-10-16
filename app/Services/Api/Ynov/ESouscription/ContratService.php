@@ -102,6 +102,19 @@ class ContratService
         });
     }
 
+    public function accept(Contrat $contrat, string $userUuid): Contrat
+    {
+        return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $contrat->update([
+                'etape' => 3,
+                'accepted_by' => $userUuid,
+                'acceptance_date' => now(),
+            ]);
+
+            return $contrat->fresh();
+        });
+    }
+
     public function cancel(Contrat $contrat, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $userUuid): Contrat {
