@@ -10,7 +10,7 @@ class BanqueAgenceService
     public function getSigleBanques(): Collection
     {
         return BanqueAgence::query()
-            ->select('uuid_banque', 'sigle', 'code_banque')
+            ->select('sigle', 'code_banque')
             ->where('etat', 'actif')
             ->distinct()
             ->orderBy('sigle')
