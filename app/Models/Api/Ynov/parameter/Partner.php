@@ -6,8 +6,8 @@ use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -63,6 +63,21 @@ class Partner extends Model
     {
         return $this->hasMany(User::class, 'partner_uuid', 'uuid_partner');
     }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by', 'uuid_user');
+    }
     
     /**
      * Récupérer le logo du partenaire
@@ -98,14 +113,18 @@ class Partner extends Model
     {
         return $this->is_active && $this->status === 'actif';
     }
-    
-    /**
-     * Vérifier si le partenaire est expiré
-     */
-    public function isExpired(): bool
+
+    public function getPartnerStatusLabel(): ?string
     {
-        return $this->date_expiration && $this->date_expiration->isPast();
+        return $this->status ? match ($this->status) {
+            'actif' => 'Actif',
+            'inactif' => 'Inactif',
+            'suspendu' => 'Suspendu',
+            default => $this->status,
+        } : null;
     }
+    
+   
     
     /**
      * Obtenir l'adresse complète
@@ -138,29 +157,13 @@ class Partner extends Model
     }
     
     /**
-     * Scope pour un type spécifique
+     * Scope pour un code contractant spécifique
      */
-    public function scopeOfType($query, string $type)
+    public function scopeContractant($query, string $codeContractant)
     {
-        return $query->where('type', $type);
+        return $query->where('code_contractant', $codeContractant);
     }
     
-    /**
-     * Scope pour une catégorie spécifique
-     */
-    public function scopeCategorie($query, string $categorie)
-    {
-        return $query->where('categorie', $categorie);
-    }
+   
     
-    /**
-     * Scope pour les partenaires non expirés
-     */
-    public function scopeNotExpired($query)
-    {
-        return $query->where(function ($q) {
-            $q->whereNull('date_expiration')
-              ->orWhere('date_expiration', '>=', now());
-        });
-    }
 }
