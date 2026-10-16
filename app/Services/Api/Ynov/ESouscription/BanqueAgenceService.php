@@ -10,14 +10,13 @@ class BanqueAgenceService
     public function getSigleBanques(): Collection
     {
         return BanqueAgence::query()
-            ->select('uuid_banque', 'sigle', 'code_banque')
+            ->selectRaw('MIN(uuid_banque) AS uuid_banque, MIN(TRIM(sigle)) AS sigle, TRIM(code_banque) AS code_banque')
             ->where('etat', 'actif')
-            // sigle et code_banque non null ou vide
             ->whereNotNull('sigle')
             ->whereNotNull('code_banque')
-            ->where('sigle', '!=', '')
-            ->where('code_banque', '!=', '')
-            ->distinct('code_banque')
+            ->whereRaw("TRIM(sigle) <> ''")
+            ->whereRaw("TRIM(code_banque) <> ''")
+            ->groupByRaw('TRIM(code_banque)')
             ->orderBy('sigle', 'asc')
             ->get();
     }
