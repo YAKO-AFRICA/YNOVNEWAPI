@@ -24,6 +24,7 @@ class ReseauProduct extends Model
         'product_uuid',
         'formule_uuid',
         'formule_key',
+        'frais_adhesion',
         'etat',
     ];
 

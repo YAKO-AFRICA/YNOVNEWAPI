@@ -115,6 +115,8 @@ class ParamController extends Controller
                     'formule',
                     $reseauProduct ? $formulesByUuid->get($reseauProduct->formule_uuid) : null
                 );
+                $product->setAttribute('formule_key', $reseauProduct?->formule_key);
+                $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
             });
 
             if (!$products) {
@@ -155,6 +157,7 @@ class ParamController extends Controller
             'product_uuid' => 'required|string',
             'formule_uuid' => 'required|string',
             'formule_key' => 'required|string',
+            'frais_adhesion' => 'required|integer',
         ]);
 
         DB::beginTransaction();
@@ -167,6 +170,7 @@ class ParamController extends Controller
                 'product_uuid' => $validatedData['product_uuid'],
                 'formule_uuid' => $validatedData['formule_uuid'],
                 'formule_key' => $validatedData['formule_key'],
+                'frais_adhesion' => $validatedData['frais_adhesion'],
                 'etat' => 'actif',
             ]);
 
@@ -203,6 +207,7 @@ class ParamController extends Controller
             'product_uuid' => 'sometimes|required|string',
             'formule_uuid' => 'sometimes|required|string',
             'formule_key' => 'sometimes|required|string',
+            'frais_adhesion' => 'sometimes|required|integer',
         ]);
 
         DB::beginTransaction();
@@ -226,6 +231,7 @@ class ParamController extends Controller
                 'product_uuid' => $validatedData['product_uuid'] ?? $reseauProduct->product_uuid,
                 'formule_uuid' => $validatedData['formule_uuid'] ?? $reseauProduct->formule_uuid,
                 'formule_key' => $validatedData['formule_key'] ?? $reseauProduct->formule_key,
+                'frais_adhesion' => $validatedData['frais_adhesion'] ?? $reseauProduct->frais_adhesion,
             ]);
 
             DB::commit();
@@ -401,6 +407,8 @@ class ParamController extends Controller
                     'formule',
                     $reseauProduct ? $formulesByUuid->get($reseauProduct->formule_uuid) : null
                 );
+                $product->setAttribute('formule_key', $reseauProduct?->formule_key);
+                $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
             });
 
             if (!$products) {
