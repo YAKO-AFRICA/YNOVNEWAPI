@@ -309,7 +309,7 @@ class User extends Authenticatable
         return $this->hasMany(TwoFactorRecoveryCode::class, 'user_uuid', 'uuid_user');
     }
 
-    // Fonctions utilitaires
+    // Fonctions utilitaires pour les permissions de l'utilisateur
     public function hasPermission(string $permissionCode): bool
     {
         if ($this->isSuperAdmin()) {
@@ -381,7 +381,7 @@ class User extends Authenticatable
         }
 
         if ($this->role->is_super_admin) {
-            return ['**'];
+            return ['*'];
         }
 
         return $this->role->permissions()
