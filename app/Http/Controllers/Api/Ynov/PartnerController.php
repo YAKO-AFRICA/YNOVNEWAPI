@@ -105,7 +105,12 @@ class PartnerController extends Controller
             'success' => true,
             'message' => 'Partenaire créé avec succès.',
             'code'    => 'PARTNER_CREATED',
-            'data'    => new PartnerResource($partner->fresh()),
+            'data'    => new PartnerResource($partner->fresh()->load([
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+                'logoDocuments',
+            ])),
         ], 201);
     }
 
@@ -117,7 +122,16 @@ class PartnerController extends Controller
     public function showPartenaire(string $uuid_partner): JsonResponse
     {
         $partner = Partner::where('uuid_partner', $uuid_partner)
-            ->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users', 'logoDocuments'])
+            ->with([
+                'reseaux',
+                'reseaux.agences',
+                'reseaux.agences.horaires',
+                'users',
+                'logoDocuments',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])
             ->firstOrFail();
 
             $document = Document::withoutTrashed()->where('reference_uuid', $uuid_partner)->first();
@@ -212,7 +226,12 @@ class PartnerController extends Controller
             'success' => true,
             'message' => 'Partenaire mis à jour avec succès.',
             'code' => 'PARTNER_UPDATED',
-            'data' => new PartnerResource($updated),
+            'data' => new PartnerResource($updated->load([
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+                'logoDocuments',
+            ])),
         ]);
     }
 

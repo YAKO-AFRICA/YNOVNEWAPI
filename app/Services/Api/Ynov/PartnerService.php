@@ -122,7 +122,16 @@ class PartnerService
      */
     public function getPartners(array $filters = [], int $perPage = 20)
     {
-        $query = Partner::query()->with(['reseaux', 'reseaux.agences', 'reseaux.agences.horaires', 'users', 'logoDocuments']);
+        $query = Partner::query()->with([
+            'reseaux',
+            'reseaux.agences',
+            'reseaux.agences.horaires',
+            'users',
+            'logoDocuments',
+            'createdBy.details',
+            'updatedBy.details',
+            'deletedBy.details',
+        ]);
         
         // Filtres
         if (isset($filters['status'])) {

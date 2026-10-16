@@ -6,8 +6,8 @@ use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Reseau;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -63,6 +63,21 @@ class Partner extends Model
     {
         return $this->hasMany(User::class, 'partner_uuid', 'uuid_partner');
     }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by', 'uuid_user');
+    }
     
     /**
      * Récupérer le logo du partenaire
@@ -97,6 +112,16 @@ class Partner extends Model
     public function isActive(): bool
     {
         return $this->is_active && $this->status === 'actif';
+    }
+
+    public function getPartnerStatusLabel(): ?string
+    {
+        return $this->status ? match ($this->status) {
+            'actif' => 'Actif',
+            'inactif' => 'Inactif',
+            'suspendu' => 'Suspendu',
+            default => $this->status,
+        } : null;
     }
     
    
