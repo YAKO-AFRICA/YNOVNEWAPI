@@ -66,6 +66,21 @@ class Reseau extends Model
     {
         return $this->hasMany(User::class, 'reseau_uuid', 'uuid_reseau');
     }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by', 'uuid_user');
+    }
     
     /**
      * Récupérer les agences actives du réseau
@@ -89,6 +104,15 @@ class Reseau extends Model
     public function isActive(): bool
     {
         return $this->status === 'actif';
+    }
+
+    public function getReseauStatusLabel(): ?string
+    {
+        return $this->status ? match ($this->status) {
+            'actif' => 'Actif',
+            'inactif' => 'Inactif',
+            default => $this->status,
+        } : null;
     }
     
     /**
@@ -131,6 +155,10 @@ class Reseau extends Model
         return $query->where(function ($q) use ($search) {
             $q->where('libelle', 'LIKE', "%{$search}%")
               ->orWhere('code', 'LIKE', "%{$search}%")
+              ->orWhere('code_branche', 'LIKE', "%{$search}%")
+                ->orWhere('email', 'LIKE', "%{$search}%")
+                ->orWhere('telephone', 'LIKE', "%{$search}%")
+                ->orWhere('status', 'LIKE', "%{$search}%")
               ->orWhere('description', 'LIKE', "%{$search}%");
         });
     }

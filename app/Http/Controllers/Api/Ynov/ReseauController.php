@@ -82,7 +82,12 @@ class ReseauController extends Controller
             'success' => true,
             'message' => 'Réseau créé avec succès.',
             'code' => 'RESEAU_CREATED',
-            'data' => new ReseauResource($reseau->load('partner')),
+            'data' => new ReseauResource($reseau->load([
+                'partner',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ], 201);
     }
 
@@ -92,7 +97,15 @@ class ReseauController extends Controller
     public function show(string $uuid_reseau): JsonResponse
     {
         $reseau = Reseau::where('uuid_reseau', $uuid_reseau)
-            ->with(['partner', 'agences', 'agences.horaires', 'users'])
+            ->with([
+                'partner',
+                'agences',
+                'agences.horaires',
+                'users',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])
             ->firstOrFail();
 
         if (!$reseau) {
@@ -146,7 +159,12 @@ class ReseauController extends Controller
             'success' => true,
             'message' => 'Réseau mis à jour avec succès.',
             'code' => 'RESEAU_UPDATED',
-            'data' => new ReseauResource($updated->load('partner')),
+            'data' => new ReseauResource($updated->load([
+                'partner',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ]);
     }
 

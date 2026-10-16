@@ -213,7 +213,13 @@ class AgenceService
      */
     public function getAgences(array $filters = [], int $perPage = 20)
     {
-        $query = Agence::query()->with(['reseau', 'horaires']);
+        $query = Agence::query()->with([
+            'reseau',
+            'horaires',
+            'createdBy.details',
+            'updatedBy.details',
+            'deletedBy.details',
+        ]);
         
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);

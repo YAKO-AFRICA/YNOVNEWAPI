@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\Ynov;
 
 use App\Http\Resources\Api\Ynov\AgenceResource;
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,12 +26,35 @@ class ReseauResource extends JsonResource
             'email' => $this->email,
             'telephone' => $this->telephone,
             'status' => $this->status,
+            'status_label' => $this->getReseauStatusLabel(),
             'is_active' => $this->isActive(),
             'agences_count' => $this->agences_count ?? $this->agences()->count(),
             'users_count' => $this->users_count ?? $this->users()->count(),
             'agences' => AgenceResource::collection($this->whenLoaded('agences')),
+            'created_by' => $this->formatUser($this->createdBy),
+            'updated_by' => $this->formatUser($this->updatedBy),
+            'deleted_by' => $this->formatUser($this->deletedBy),
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
+        ];
+    }
+
+    private function formatUser(?User $user): ?array
+    {
+        if (!$user) {
+            return null;
+        }
+
+        $nom = $user->details?->nom;
+        $prenoms = $user->details?->prenoms;
+
+        return [
+            'uuid_user' => $user->uuid_user,
+            'login' => $user->login,
+            'email' => $user->email,
+            'nom' => $nom,
+            'prenoms' => $prenoms,
+            'full_name' => trim(($nom ?? '') . ' ' . ($prenoms ?? '')),
         ];
     }
 }

@@ -60,7 +60,13 @@ class AgenceController extends Controller
             'success' => true,
             'message' => 'Agence créée avec succès.',
             'code' => 'AGENCE_CREATED',
-            'data' => new AgenceResource($agence->load(['reseau', 'horaires'])),
+            'data' => new AgenceResource($agence->load([
+                'reseau',
+                'horaires',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ], 201);
     }
 
@@ -70,7 +76,14 @@ class AgenceController extends Controller
     public function show(string $uuid_agence): JsonResponse
     {
         $agence = Agence::where('uuid_agence', $uuid_agence)
-            ->with(['reseau', 'horaires', 'users'])
+            ->with([
+                'reseau',
+                'horaires',
+                'users',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])
             ->firstOrFail();
 
         return response()->json([
@@ -98,7 +111,13 @@ class AgenceController extends Controller
             'success' => true,
             'message' => 'Agence mise à jour avec succès.',
             'code' => 'AGENCE_UPDATED',
-            'data' => new AgenceResource($updated->load(['reseau', 'horaires'])),
+            'data' => new AgenceResource($updated->load([
+                'reseau',
+                'horaires',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ]);
     }
 

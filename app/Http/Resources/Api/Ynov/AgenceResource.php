@@ -2,6 +2,7 @@
 // app/Http/Resources/Api/Ynov/AgenceResource.php
 namespace App\Http\Resources\Api\Ynov;
 
+use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,7 +38,9 @@ class AgenceResource extends JsonResource
             'responsable' => $this->responsable,
             'site_web' => $this->site_web,
             'status' => $this->status,
+            'status_label' => $this->getAgenceStatusLabel(),
             'is_open' => $this->isOpen(),
+            'recoit_sur_rdv' => $this->recoitSurRdv(),
             'users_count' => $this->whenCounted('users', $this->users_count ?? $this->users()->count()),
             'horaires' => $this->whenLoaded('horaires', function () {
                 return $this->horaires->map(function ($horaire) {
@@ -57,8 +60,30 @@ class AgenceResource extends JsonResource
                 });
             }),
             'horaires_formatted' => $this->getHorairesFormatted(),
+            'created_by' => $this->formatUser($this->createdBy),
+            'updated_by' => $this->formatUser($this->updatedBy),
+            'deleted_by' => $this->formatUser($this->deletedBy),
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
+        ];
+    }
+
+    private function formatUser(?User $user): ?array
+    {
+        if (!$user) {
+            return null;
+        }
+
+        $nom = $user->details?->nom;
+        $prenoms = $user->details?->prenoms;
+
+        return [
+            'uuid_user' => $user->uuid_user,
+            'login' => $user->login,
+            'email' => $user->email,
+            'nom' => $nom,
+            'prenoms' => $prenoms,
+            'full_name' => trim(($nom ?? '') . ' ' . ($prenoms ?? '')),
         ];
     }
 }
