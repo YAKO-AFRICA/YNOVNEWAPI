@@ -1003,6 +1003,99 @@
             // CRUD CONTRATS
             // ============================================================
             {
+                id: "esouscription-contrats-dashboard",
+                module: "contrats",
+                name: "Tableau de bord des contrats",
+                description: "Récupère les indicateurs de contrats, les classements par primes et par volume, ainsi que l'évolution des souscriptions par période. Les étapes de l'évolution sont comptées selon leur date effective (création, transmission, acceptation, rejet ou annulation).",
+                method: "GET",
+                path: "/esouscription/dashboard-contrats",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                requestParams: {
+                    query: {
+                        date_debut: { type: "date", required: false, description: "Début de la période filtrée (YYYY-MM-DD)." },
+                        date_fin: { type: "date", required: false, description: "Fin de la période filtrée (YYYY-MM-DD), doit être égale ou postérieure à date_debut si celui-ci est fourni." },
+                        granularite: { type: "string", required: false, description: "Granularité de la courbe : mois (par défaut), semaine ou jour." },
+                        agence_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par agence." },
+                        reseau_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par réseau." },
+                        partner_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par partenaire." },
+                        code_produit: { type: "string", required: false, description: "Filtrer les contrats par code produit." },
+                    },
+                },
+                exampleRequest: {
+                    date_debut: "2026-01-01",
+                    date_fin: "2026-12-31",
+                    granularite: "mois",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Indicateurs et classements des contrats.",
+                        example: {
+                            success: true,
+                            message: "Tableau de bord des contrats récupéré avec succès",
+                            code: 200,
+                            data: {
+                                meilleurs: {
+                                    produits_par_primes: { identifiant: "DOIHOO", libelle: "DOIHOO", total_primes: 2000000, nombre_contrats: 52 },
+                                    produits_par_contrats: { identifiant: "DOIHOO", libelle: "DOIHOO", total_primes: 2000000, nombre_contrats: 52 },
+                                    agences_par_primes: { identifiant: "UUID_AGENCE", libelle: "Agence principale", total_primes: 7000000, nombre_contrats: 52 },
+                                    agences_par_contrats: { identifiant: "UUID_AGENCE", libelle: "Agence principale", total_primes: 7000000, nombre_contrats: 52 },
+                                    reseaux_par_primes: null,
+                                    reseaux_par_contrats: null,
+                                    partenaires_par_primes: null,
+                                    partenaires_par_contrats: null,
+                                },
+                                top_5_par_primes: {
+                                    produits: [{ identifiant: "DOIHOO", libelle: "DOIHOO", total_primes: 2000000, nombre_contrats: 52 }],
+                                    agences: [{ identifiant: "UUID_AGENCE", libelle: "Agence principale", total_primes: 7000000, nombre_contrats: 52 }],
+                                    reseaux: [],
+                                    partenaires: [],
+                                },
+                                top_5_par_contrats: {
+                                    produits: [{ identifiant: "DOIHOO", libelle: "DOIHOO", total_primes: 2000000, nombre_contrats: 52 }],
+                                    agences: [{ identifiant: "UUID_AGENCE", libelle: "Agence principale", total_primes: 7000000, nombre_contrats: 52 }],
+                                    reseaux: [],
+                                    partenaires: [],
+                                },
+                                evolution_souscriptions: {
+                                    granularite: "mois",
+                                    date_debut: "2026-01-01",
+                                    date_fin: "2026-12-31",
+                                    donnees: [
+                                        { periode: "2026-01", saisies: 10, transmis: 3, acceptes: 4, rejetes: 1, annules: 0 },
+                                        { periode: "2026-02", saisies: 8, transmis: 5, acceptes: 2, rejetes: 0, annules: 1 },
+                                    ],
+                                },
+                                indicateurs_volume: {
+                                    contrats_aujourdhui: 2,
+                                    contrats_cette_semaine: 8,
+                                    contrats_ce_mois: 20,
+                                    contrats_cette_annee: 52,
+                                    total_contrats_periode: 52,
+                                    contrats_en_attente_validation: 10,
+                                    contrats_valides: 4,
+                                    contrats_annules: 1,
+                                    partenaires_actifs: 2,
+                                    agences_actives: 1,
+                                    reseaux_actifs: 0,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Filtres invalides, date_fin antérieure à date_debut ou granularité non prise en charge.",
+                        example: { message: "The given data was invalid.", errors: { granularite: ["The selected granularite is invalid."] } },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur lors du calcul du tableau de bord.",
+                        example: { success: false, message: "Erreur lors de la récupération du tableau de bord des contrats", code: 500 },
+                    },
+                ],
+            },
+            {
                 id: "esouscription-partenaires-contrats-en-attente",
                 module: "contrats",
                 name: "Lister les partenaires avec des contrats en attente",

@@ -48,6 +48,35 @@ class ContratController extends Controller
         }
     }
 
+    public function dashboard(Request $request)
+    {
+        $dateFinRules = ['sometimes', 'nullable', 'date'];
+        if ($request->filled('date_debut')) {
+            $dateFinRules[] = 'after_or_equal:date_debut';
+        }
+
+        $filters = $request->validate([
+            'date_debut' => ['sometimes', 'nullable', 'date'],
+            'date_fin' => $dateFinRules,
+            'agence_uuid' => ['sometimes', 'nullable', 'string'],
+            'reseau_uuid' => ['sometimes', 'nullable', 'string'],
+            'partner_uuid' => ['sometimes', 'nullable', 'string'],
+            'code_produit' => ['sometimes', 'nullable', 'string'],
+            'granularite' => ['sometimes', 'string', 'in:mois,semaine,jour'],
+        ]);
+
+        try {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tableau de bord des contrats récupéré avec succès',
+                'code' => 200,
+                'data' => $this->contratService->getDashboard($filters),
+            ]);
+        } catch (Throwable $e) {
+            return $this->errorResponse('Erreur lors de la récupération du tableau de bord des contrats', $e);
+        }
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate($this->rules());
