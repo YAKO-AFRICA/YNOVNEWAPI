@@ -15,6 +15,7 @@ use App\Services\Api\Ynov\ProduitFormuleService;
 use App\Services\Api\Ynov\Prestation\PrestationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ProduitController extends Controller
@@ -158,7 +159,7 @@ class ProduitController extends Controller
 
             $validated = $request->validate([
                 'libelle' => ['nullable', 'string', 'max:128'],
-                'code' => ['nullable', 'string', 'max:25', 'unique:produits,code,' . $produit->id],
+                'code' => ['nullable', 'string', 'max:25', Rule::unique('produits', 'code')->ignore($produit->uuid_produit, 'uuid_produit')],
                 'code_branche' => ['nullable', 'string', 'max:25'],
                 'code_produit_nature' => ['nullable', 'string', 'max:25'],
                 'description' => ['nullable', 'string'],

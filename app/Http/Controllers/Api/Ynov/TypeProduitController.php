@@ -9,6 +9,7 @@ use App\Models\Api\Ynov\parameter\TypeProduit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class TypeProduitController extends Controller
@@ -108,7 +109,7 @@ class TypeProduitController extends Controller
         $oldValues = $type->toArray();
 
         $validated = $request->validate([
-            'code' => ['nullable', 'string', 'max:45', 'unique:type_produits,code,' . $type->id],
+            'code' => ['nullable', 'string', 'max:45', Rule::unique('type_produits', 'code')->ignore($type->uuid_type_produit, 'uuid_type_produit')],
             'libelle' => ['nullable', 'string', 'max:90'],
         ]);
 
