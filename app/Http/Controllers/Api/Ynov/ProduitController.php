@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\ProduitFormule;
 use App\Models\Api\Ynov\parameter\ProduitGarantie;
@@ -623,6 +624,18 @@ class ProduitController extends Controller
                 'created_by' => $request->user()->uuid_user,
             ]);
 
+            ActivityLog::log([
+                'user_uuid' => $request->user()->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'produits',
+                'description' => "Création de la garantie {$garantie->libelle} pour le produit {$produit->code}",
+                'resource_type' => 'produit_garantie',
+                'resource_id' => $garantie->uuid_produit_garantie,
+                'new_values' => $garantie->toArray(),
+                'level' => 'info',
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Garantie créée avec succès.',
@@ -662,6 +675,7 @@ class ProduitController extends Controller
             ]);
 
             $garantie = ProduitGarantie::where('uuid_produit_garantie', $uuid_produit_garantie)->firstOrFail();
+            $oldValues = $garantie->toArray();
 
             $garantie->update([
                 'code_produit_garantie' => $request->code_produit_garantie ?? $garantie->code_produit_garantie,
@@ -678,6 +692,19 @@ class ProduitController extends Controller
                 'branche' => $request->branche ?? $garantie->branche,
                 'description' => $request->description ?? $garantie->description,
                 'updated_by' => $request->user()->uuid_user,
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'produits',
+                'description' => "Mise à jour de la garantie {$garantie->libelle}",
+                'resource_type' => 'produit_garantie',
+                'resource_id' => $garantie->uuid_produit_garantie,
+                'old_values' => $oldValues,
+                'new_values' => $garantie->fresh()->toArray(),
+                'level' => 'info',
             ]);
 
             return response()->json([
@@ -699,10 +726,23 @@ class ProduitController extends Controller
     /**
      * Supprimer une garantie
      */
-    public function destroyGarantie(string $uuid_produit_garantie): JsonResponse
+    public function destroyGarantie(Request $request, string $uuid_produit_garantie): JsonResponse
     {
         $garantie = ProduitGarantie::where('uuid_produit_garantie', $uuid_produit_garantie)->firstOrFail();
+        $oldValues = $garantie->toArray();
         $garantie->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'delete',
+            'action_type' => 'crud',
+            'module' => 'produits',
+            'description' => "Suppression de la garantie {$garantie->libelle}",
+            'resource_type' => 'produit_garantie',
+            'resource_id' => $garantie->uuid_produit_garantie,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

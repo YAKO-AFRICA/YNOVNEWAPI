@@ -51,11 +51,17 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
 
-            if ($targetUser && $user->uuid_user !== $targetUser->uuid_user) {
-                return (new AuditLogPolicy())->viewOther($user, $targetUser);
+            if (!$targetUser || $user->uuid_user === $targetUser->uuid_user) {
+                return true;
             }
 
-            return $user->hasPermission('audit.consulter');
+            return (new AuditLogPolicy())->viewOther($user, $targetUser);
+        });
+
+        Gate::define('view-all-activity-logs', function ($user) {
+            return $user->isSuperAdmin()
+                || $user->hasPermission('audit.consulter_les_logs')
+                || $user->hasPermission('audit.consulter');
         });
 
         // Gestion des questions de sécurité

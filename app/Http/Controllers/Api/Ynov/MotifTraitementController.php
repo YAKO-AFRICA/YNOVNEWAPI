@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Ynov;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreMotifTraitementRequest;
 use App\Http\Requests\Api\Ynov\UpdateMotifTraitementRequest;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Services\Api\Ynov\MotifTraitementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,6 +77,18 @@ class MotifTraitementController extends Controller
     {
         $motif = $this->motifTraitementService->create($request->validated());
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'create',
+            'action_type' => 'crud',
+            'module' => 'motif_traitements',
+            'description' => "Création du motif de traitement : {$motif->libelle}",
+            'resource_type' => 'motif_traitement',
+            'resource_id' => $motif->uuid_motif_traitements,
+            'new_values' => $motif->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Motif de traitement créé avec succès.',
@@ -86,7 +99,21 @@ class MotifTraitementController extends Controller
 
     public function update(UpdateMotifTraitementRequest $request, string $uuid): JsonResponse
     {
+        $oldValues = $this->motifTraitementService->getByUuid($uuid)->toArray();
         $motif = $this->motifTraitementService->update($uuid, $request->validated());
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'update',
+            'action_type' => 'crud',
+            'module' => 'motif_traitements',
+            'description' => "Mise à jour du motif de traitement : {$motif->libelle}",
+            'resource_type' => 'motif_traitement',
+            'resource_id' => $motif->uuid_motif_traitements,
+            'old_values' => $oldValues,
+            'new_values' => $motif->toArray(),
+            'level' => 'info',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -96,9 +123,23 @@ class MotifTraitementController extends Controller
         ]);
     }
 
-    public function toggle(string $uuid): JsonResponse
+    public function toggle(Request $request, string $uuid): JsonResponse
     {
+        $oldValues = $this->motifTraitementService->getByUuid($uuid)->toArray();
         $motif = $this->motifTraitementService->toggleStatus($uuid);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'toggle_status',
+            'action_type' => 'crud',
+            'module' => 'motif_traitements',
+            'description' => "Changement du statut du motif : {$motif->libelle}",
+            'resource_type' => 'motif_traitement',
+            'resource_id' => $motif->uuid_motif_traitements,
+            'old_values' => $oldValues,
+            'new_values' => $motif->toArray(),
+            'level' => 'info',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -108,8 +149,10 @@ class MotifTraitementController extends Controller
         ]);
     }
 
-    public function destroy(string $uuid): JsonResponse
+    public function destroy(Request $request, string $uuid): JsonResponse
     {
+        $motif = $this->motifTraitementService->getByUuid($uuid);
+        $oldValues = $motif->toArray();
         $deleted = $this->motifTraitementService->delete($uuid);
 
         if (!$deleted) {
@@ -119,6 +162,18 @@ class MotifTraitementController extends Controller
                 'code' => 'MOTIF_TRAITEMENT_DELETE_FAILED',
             ], 400);
         }
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'delete',
+            'action_type' => 'crud',
+            'module' => 'motif_traitements',
+            'description' => "Suppression du motif de traitement : {$motif->libelle}",
+            'resource_type' => 'motif_traitement',
+            'resource_id' => $motif->uuid_motif_traitements,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

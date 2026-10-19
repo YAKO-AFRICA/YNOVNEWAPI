@@ -365,6 +365,18 @@ class UserController extends Controller
 
             $user->agences()->detach($uuid_agence);
 
+            ActivityLog::log([
+                'user_uuid' => $request->user()->uuid_user,
+                'action' => 'remove_agence',
+                'action_type' => 'security',
+                'module' => 'users',
+                'description' => "Retrait de l'agence {$uuid_agence} de l'utilisateur : {$user->login}",
+                'resource_type' => 'user',
+                'resource_id' => $user->uuid_user,
+                'old_values' => ['agence_uuid' => $uuid_agence],
+                'level' => 'warning',
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Utilisateur retiré de l\'agence avec succès.',

@@ -3,6 +3,7 @@
 namespace App\Services\Api\Ynov\ESouscription;
 
 use App\Models\Api\Ynov\Esouscription\DeclarationSante;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -55,14 +56,42 @@ class DeclarationSanteService
         return DB::transaction(function () use ($data): DeclarationSante {
             $data['uuid_declaration_santes'] = (string) Str::uuid();
 
-            return DeclarationSante::create($data);
+            $declaration = DeclarationSante::create($data);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'esouscription_sante',
+                'description' => "Création d'une déclaration santé : {$declaration->uuid_declaration_santes}",
+                'resource_type' => 'declaration_sante',
+                'resource_id' => $declaration->uuid_declaration_santes,
+                'new_values' => $declaration->toArray(),
+                'level' => 'info',
+            ]);
+
+            return $declaration;
         });
     }
 
     public function update(DeclarationSante $declaration, array $data): DeclarationSante
     {
         return DB::transaction(function () use ($declaration, $data): DeclarationSante {
+            $oldValues = $declaration->toArray();
             $declaration->update($data);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'esouscription_sante',
+                'description' => "Mise à jour d'une déclaration santé : {$declaration->uuid_declaration_santes}",
+                'resource_type' => 'declaration_sante',
+                'resource_id' => $declaration->uuid_declaration_santes,
+                'old_values' => $oldValues,
+                'new_values' => $declaration->toArray(),
+                'level' => 'info',
+            ]);
 
             return $declaration->fresh();
         });
@@ -74,22 +103,61 @@ class DeclarationSanteService
         ?string $deletedBy = null
     ): void {
         DB::transaction(function () use ($declaration, $force, $deletedBy): void {
+            $oldValues = $declaration->toArray();
             if ($force) {
                 $declaration->forceDelete();
+
+                ActivityLog::log([
+                    'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                    'action' => 'force_delete',
+                    'action_type' => 'crud',
+                    'module' => 'esouscription_sante',
+                    'description' => "Suppression définitive d'une déclaration santé : {$declaration->uuid_declaration_santes}",
+                    'resource_type' => 'declaration_sante',
+                    'resource_id' => $declaration->uuid_declaration_santes,
+                    'old_values' => $oldValues,
+                    'level' => 'warning',
+                ]);
 
                 return;
             }
 
             $declaration->update(['deleted_by' => $deletedBy]);
             $declaration->delete();
+
+            ActivityLog::log([
+                'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                'action' => 'delete',
+                'action_type' => 'crud',
+                'module' => 'esouscription_sante',
+                'description' => "Suppression d'une déclaration santé : {$declaration->uuid_declaration_santes}",
+                'resource_type' => 'declaration_sante',
+                'resource_id' => $declaration->uuid_declaration_santes,
+                'old_values' => $oldValues,
+                'level' => 'warning',
+            ]);
         });
     }
 
     public function restore(DeclarationSante $declaration): DeclarationSante
     {
         return DB::transaction(function () use ($declaration): DeclarationSante {
+            $oldValues = $declaration->toArray();
             $declaration->restore();
             $declaration->update(['deleted_by' => null]);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'restore',
+                'action_type' => 'crud',
+                'module' => 'esouscription_sante',
+                'description' => "Restauration d'une déclaration santé : {$declaration->uuid_declaration_santes}",
+                'resource_type' => 'declaration_sante',
+                'resource_id' => $declaration->uuid_declaration_santes,
+                'old_values' => $oldValues,
+                'new_values' => $declaration->fresh()->toArray(),
+                'level' => 'info',
+            ]);
 
             return $declaration->fresh();
         });

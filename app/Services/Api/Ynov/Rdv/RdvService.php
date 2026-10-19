@@ -879,6 +879,24 @@ class RdvService
             'updated_by' => $clientUuid,
         ]);
 
+        ActivityLog::log([
+            'user_uuid' => $clientUuid,
+            'action' => 'signaler_presence',
+            'action_type' => 'crud',
+            'module' => 'rdvs',
+            'description' => "Présence signalée pour le rendez-vous {$rdv->code}",
+            'resource_type' => 'rdv',
+            'resource_id' => $rdv->uuid_rdvs,
+            'old_values' => ['is_present' => false, 'present_at' => null],
+            'new_values' => [
+                'is_present' => true,
+                'present_at' => $rdv->present_at,
+                'latitude' => $data['latitude'],
+                'longitude' => $data['longitude'],
+            ],
+            'level' => 'info',
+        ]);
+
         // Notifier le gestionnaire si présent
         if ($rdv->gestionnaire_uuid) {
             $clientNom = $rdv->client?->details?->nom ?? '';

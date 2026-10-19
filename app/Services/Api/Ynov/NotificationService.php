@@ -152,7 +152,23 @@ class NotificationService
             ->first();
 
         if ($notification) {
+            $wasRead = $notification->read_at !== null;
             $notification->markAsRead();
+
+            if (!$wasRead) {
+                ActivityLog::log([
+                    'user_uuid' => $userUuid,
+                    'action' => 'notification_read',
+                    'action_type' => 'notification',
+                    'module' => 'notifications',
+                    'description' => "Notification marquée comme lue : {$notification->title}",
+                    'resource_type' => 'notification',
+                    'resource_id' => $notification->uuid_notification,
+                    'old_values' => ['read_at' => null],
+                    'new_values' => ['read_at' => $notification->fresh()->read_at],
+                    'level' => 'info',
+                ]);
+            }
         }
 
         return $notification;
@@ -163,9 +179,24 @@ class NotificationService
      */
     public function markAllAsRead(string $userUuid): int
     {
-        return Notification::where('user_uuid', $userUuid)
+        $count = Notification::where('user_uuid', $userUuid)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        if ($count > 0) {
+            ActivityLog::log([
+                'user_uuid' => $userUuid,
+                'action' => 'notifications_read',
+                'action_type' => 'notification',
+                'module' => 'notifications',
+                'description' => 'Toutes les notifications ont été marquées comme lues.',
+                'resource_type' => 'notification',
+                'new_values' => ['marked_count' => $count],
+                'level' => 'info',
+            ]);
+        }
+
+        return $count;
     }
 
     /**
@@ -178,7 +209,23 @@ class NotificationService
             ->first();
 
         if ($notification) {
+            $wasImportant = (bool) $notification->is_important;
             $notification->markAsImportant();
+
+            if (!$wasImportant) {
+                ActivityLog::log([
+                    'user_uuid' => $userUuid,
+                    'action' => 'notification_marked_important',
+                    'action_type' => 'notification',
+                    'module' => 'notifications',
+                    'description' => "Notification marquée comme importante : {$notification->title}",
+                    'resource_type' => 'notification',
+                    'resource_id' => $notification->uuid_notification,
+                    'old_values' => ['is_important' => false],
+                    'new_values' => ['is_important' => true],
+                    'level' => 'info',
+                ]);
+            }
         }
 
         return $notification;
@@ -194,7 +241,23 @@ class NotificationService
             ->first();
 
         if ($notification) {
+            $wasImportant = (bool) $notification->is_important;
             $notification->unmarkImportant();
+
+            if ($wasImportant) {
+                ActivityLog::log([
+                    'user_uuid' => $userUuid,
+                    'action' => 'notification_unmarked_important',
+                    'action_type' => 'notification',
+                    'module' => 'notifications',
+                    'description' => "Notification retirée des importantes : {$notification->title}",
+                    'resource_type' => 'notification',
+                    'resource_id' => $notification->uuid_notification,
+                    'old_values' => ['is_important' => true],
+                    'new_values' => ['is_important' => false],
+                    'level' => 'info',
+                ]);
+            }
         }
 
         return $notification;
@@ -205,9 +268,30 @@ class NotificationService
      */
     public function delete(string $notificationUuid, string $userUuid): bool
     {
-        return Notification::where('uuid_notification', $notificationUuid)
+        $notification = Notification::where('uuid_notification', $notificationUuid)
             ->where('user_uuid', $userUuid)
-            ->delete();
+            ->first();
+
+        if (!$notification) {
+            return false;
+        }
+
+        $oldValues = $notification->toArray();
+        $notification->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $userUuid,
+            'action' => 'notification_deleted',
+            'action_type' => 'notification',
+            'module' => 'notifications',
+            'description' => "Notification supprimée : {$notification->title}",
+            'resource_type' => 'notification',
+            'resource_id' => $notification->uuid_notification,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
+
+        return true;
     }
 
     /**

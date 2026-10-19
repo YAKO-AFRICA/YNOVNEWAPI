@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\TypeProduit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,18 @@ class TypeProduitController extends Controller
             'created_by' => $request->user()->uuid_user,
         ]);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'create',
+            'action_type' => 'crud',
+            'module' => 'type_produits',
+            'description' => "Création du type de produit : {$type->libelle}",
+            'resource_type' => 'type_produit',
+            'resource_id' => $type->uuid_type_produit,
+            'new_values' => $type->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Type de produit créé avec succès.',
@@ -92,6 +105,7 @@ class TypeProduitController extends Controller
     public function update(Request $request, string $uuid_type_produit): JsonResponse
     {
         $type = TypeProduit::where('uuid_type_produit', $uuid_type_produit)->firstOrFail();
+        $oldValues = $type->toArray();
 
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:45', 'unique:type_produits,code,' . $type->id],
@@ -102,6 +116,19 @@ class TypeProduitController extends Controller
             'code' => $validated['code'] ?? $type->code,
             'libelle' => $validated['libelle'] ?? $type->libelle,
             'updated_by' => $request->user()->uuid_user,
+        ]);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'update',
+            'action_type' => 'crud',
+            'module' => 'type_produits',
+            'description' => "Mise à jour du type de produit : {$type->libelle}",
+            'resource_type' => 'type_produit',
+            'resource_id' => $type->uuid_type_produit,
+            'old_values' => $oldValues,
+            'new_values' => $type->fresh()->toArray(),
+            'level' => 'info',
         ]);
 
         return response()->json([
@@ -128,11 +155,25 @@ class TypeProduitController extends Controller
             ], 422);
         }
 
+        $oldValues = $type->toArray();
+
         $type->update([
             'deleted_by' => $request->user()->uuid_user,
         ]);
 
         $type->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'delete',
+            'action_type' => 'crud',
+            'module' => 'type_produits',
+            'description' => "Suppression du type de produit : {$type->libelle}",
+            'resource_type' => 'type_produit',
+            'resource_id' => $type->uuid_type_produit,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

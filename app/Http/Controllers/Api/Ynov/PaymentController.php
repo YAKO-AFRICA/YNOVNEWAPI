@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Contrat;
-use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\Facture;
 use App\Models\Api\Ynov\Paiement;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\PaymentService;
 use App\Services\Api\Ynov\PrimePaymentOrchestrator;
@@ -450,7 +450,26 @@ class PaymentController extends Controller
                 ], $uploadedFile);
 
                 // Mettre le contrat en statut "payé"
+                $oldIsPaid = (bool) $contrat->is_paid;
                 $contrat->update(['is_paid' => 1]);
+
+                if (!$oldIsPaid) {
+                    ActivityLog::log([
+                        'user_uuid' => request()->user()?->uuid_user,
+                        'action' => 'contract_marked_paid',
+                        'action_type' => 'payment',
+                        'module' => 'contracts',
+                        'description' => "Contrat {$contrat->id_contrat} marqué comme payé après émission du reçu.",
+                        'resource_type' => 'contrat',
+                        'resource_id' => $contrat->uuid_contrat,
+                        'old_values' => ['is_paid' => false],
+                        'new_values' => [
+                            'is_paid' => true,
+                            'payment_uuid' => $paiement->uuid_paiement,
+                        ],
+                        'level' => 'info',
+                    ]);
+                }
             }
 
             // Supprimer le fichier temporaire

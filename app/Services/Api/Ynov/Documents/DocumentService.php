@@ -3,6 +3,7 @@
 namespace App\Services\Api\Ynov\Documents;
 
 use App\Models\Api\Ynov\Esouscription\Document;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -126,6 +127,18 @@ class DocumentService
                         'created_by'     => $data['created_by'] ?? null,
                     ]);
 
+                    ActivityLog::log([
+                        'user_uuid' => $data['created_by'] ?? null,
+                        'action' => 'create',
+                        'action_type' => 'crud',
+                        'module' => 'documents',
+                        'description' => "Création du document : {$document->libelle}",
+                        'resource_type' => 'document',
+                        'resource_id' => $document->uuid_document,
+                        'new_values' => $document->toArray(),
+                        'level' => 'info',
+                    ]);
+
                     $documentsCrees[] = [
                         'document'       => $document,
                         'nom_original'   => $uploadedFile->getClientOriginalName(),
@@ -165,11 +178,12 @@ class DocumentService
     public function updateDocument(string $uuidDocument, UploadedFile $newFile, array $data = []): array
     {
         $document = Document::where('uuid_document', $uuidDocument)->firstOrFail();
+        $oldValues = $document->toArray();
         $ancienChemin = $document->chemin;
         $nouveauChemin = null;
 
         try {
-            return DB::transaction(function () use ($document, $ancienChemin, $newFile, $data, &$nouveauChemin) {
+            return DB::transaction(function () use ($document, $ancienChemin, $newFile, $data, $oldValues, &$nouveauChemin) {
                 // 1. Traiter le nouveau fichier
                 $extension = strtolower($newFile->getClientOriginalExtension());
                 $allowed   = config('documents.allowed_extensions', []);
@@ -207,6 +221,19 @@ class DocumentService
                     'mime_type'      => $resultat['mime_type'],
                     'updated_by'     => $data['updated_by'] ?? null,
                     'updated_at'     => now(),
+                ]);
+
+                ActivityLog::log([
+                    'user_uuid' => $data['updated_by'] ?? null,
+                    'action' => 'update',
+                    'action_type' => 'crud',
+                    'module' => 'documents',
+                    'description' => "Remplacement du fichier du document : {$document->libelle}",
+                    'resource_type' => 'document',
+                    'resource_id' => $document->uuid_document,
+                    'old_values' => $oldValues,
+                    'new_values' => $document->toArray(),
+                    'level' => 'info',
                 ]);
 
                 Log::info('[DocumentService] Document mis à jour', [

@@ -5,7 +5,7 @@ namespace App\Services\Api\Ynov;
 
 use App\Models\Api\Ynov\Facture;
 use App\Models\Api\Ynov\Paiement;
-use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Services\EncaissementBisService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -245,6 +245,22 @@ class PrimePaymentOrchestrator
                 ]);
             }
 
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'payment_registered',
+                'action_type' => 'payment',
+                'module' => 'payments',
+                'description' => "Paiement enregistré : {$paiement->command_number}",
+                'resource_type' => 'paiement',
+                'resource_id' => $paiement->uuid_paiement,
+                'new_values' => [
+                    'payment' => $paiement->toArray(),
+                    'factures_count' => count($preparation['facturesAGenerer']),
+                    'source' => 'JEKO',
+                ],
+                'level' => 'info',
+            ]);
+
             return $paiement;
         });
     }
@@ -255,6 +271,11 @@ class PrimePaymentOrchestrator
     public function mettreAJourStatut(Paiement $paiement, string $statut, array $payload = []): void
     {
         DB::transaction(function () use ($paiement, $statut, $payload) {
+            $oldValues = $paiement->toArray();
+            $oldFactures = Facture::where('payment_uuid', $paiement->uuid_paiement)
+                ->get(['uuid_facture', 'status', 'paid_at'])
+                ->toArray();
+
             // Mise à jour du paiement
             $updateData = [
                 'payment_status' => $statut,
@@ -305,6 +326,27 @@ class PrimePaymentOrchestrator
                     'status' => $factureStatus,
                     'paid_at' => $factureStatus === 'paid' ? now() : null,
                 ], fn($value) => $value !== null));
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'payment_status_updated',
+                'action_type' => 'payment',
+                'module' => 'payments',
+                'description' => "Statut du paiement {$paiement->command_number} changé vers {$statut}",
+                'resource_type' => 'paiement',
+                'resource_id' => $paiement->uuid_paiement,
+                'old_values' => [
+                    'payment' => $oldValues,
+                    'factures' => $oldFactures,
+                ],
+                'new_values' => [
+                    'payment' => $paiement->fresh()->toArray(),
+                    'facture_status' => $factureStatus,
+                    'factures_updated' => $updatedCount,
+                    'source' => request()->route()?->getName() === 'payments.webhook' ? 'JEKO_WEBHOOK' : 'API',
+                ],
+                'level' => in_array($statut, ['error', 'cancelled'], true) ? 'warning' : 'info',
+            ]);
 
             Log::info('Factures mises à jour', [
                 'status' => $factureStatus,

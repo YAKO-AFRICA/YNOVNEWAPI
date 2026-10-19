@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Filiation;
 use App\Models\Api\Ynov\parameter\Partner;
 use App\Models\Api\Ynov\parameter\Produit;
@@ -174,6 +175,18 @@ class ParamController extends Controller
                 'etat' => 'actif',
             ]);
 
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'reseau_products',
+                'description' => "Ajout du produit {$reseauProduct->product_uuid} au réseau {$reseauProduct->reseau_uuid}",
+                'resource_type' => 'reseau_product',
+                'resource_id' => $reseauProduct->uuid,
+                'new_values' => $reseauProduct->toArray(),
+                'level' => 'info',
+            ]);
+
             DB::commit();
 
             return response()->json([
@@ -226,12 +239,27 @@ class ParamController extends Controller
                 ], 404);
             }
 
+            $oldValues = $reseauProduct->toArray();
+
             $reseauProduct->update([
                 'reseau_uuid' => $validatedData['reseau_uuid'] ?? $reseauProduct->reseau_uuid,
                 'product_uuid' => $validatedData['product_uuid'] ?? $reseauProduct->product_uuid,
                 'formule_uuid' => $validatedData['formule_uuid'] ?? $reseauProduct->formule_uuid,
                 'formule_key' => $validatedData['formule_key'] ?? $reseauProduct->formule_key,
                 'frais_adhesion' => $validatedData['frais_adhesion'] ?? $reseauProduct->frais_adhesion,
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'reseau_products',
+                'description' => "Mise à jour du produit du réseau {$reseauProduct->reseau_uuid}",
+                'resource_type' => 'reseau_product',
+                'resource_id' => $reseauProduct->uuid,
+                'old_values' => $oldValues,
+                'new_values' => $reseauProduct->toArray(),
+                'level' => 'info',
             ]);
 
             DB::commit();
@@ -290,6 +318,8 @@ class ParamController extends Controller
                 ], 404);
             }
 
+            $oldValues = $reseauProduct->toArray();
+
             /*
              * Suppression définitive
              *
@@ -298,6 +328,18 @@ class ParamController extends Controller
             if ($request->input('deleting') === 'full') {
 
                 $reseauProduct->delete();
+
+                ActivityLog::log([
+                    'user_uuid' => $request->user()?->uuid_user,
+                    'action' => 'delete',
+                    'action_type' => 'crud',
+                    'module' => 'reseau_products',
+                    'description' => "Suppression définitive du produit du réseau {$reseauProduct->reseau_uuid}",
+                    'resource_type' => 'reseau_product',
+                    'resource_id' => $reseauProduct->uuid,
+                    'old_values' => $oldValues,
+                    'level' => 'warning',
+                ]);
 
                 DB::commit();
 
@@ -317,6 +359,19 @@ class ParamController extends Controller
              */
             $reseauProduct->update([
                 'etat' => 'inactif',
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'deactivate',
+                'action_type' => 'crud',
+                'module' => 'reseau_products',
+                'description' => "Désactivation du produit du réseau {$reseauProduct->reseau_uuid}",
+                'resource_type' => 'reseau_product',
+                'resource_id' => $reseauProduct->uuid,
+                'old_values' => $oldValues,
+                'new_values' => $reseauProduct->fresh()->toArray(),
+                'level' => 'warning',
             ]);
 
             DB::commit();
