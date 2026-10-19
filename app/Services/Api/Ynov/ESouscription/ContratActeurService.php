@@ -3,9 +3,9 @@
 namespace App\Services\Api\Ynov\ESouscription;
 
 use App\Models\Api\Ynov\Esouscription\ContratActeur;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ContratActeurService
 {
@@ -48,16 +48,42 @@ class ContratActeurService
     public function create(array $data): ContratActeur
     {
         return DB::transaction(function () use ($data): ContratActeur {
-            // $data['uuid_contrat_acteur'] = (string) Str::uuid();
+            $relation = ContratActeur::create($data);
 
-            return ContratActeur::create($data);
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrat_acteurs',
+                'description' => "Création du lien contrat-acteur : {$relation->uuid_contrat_acteur}",
+                'resource_type' => 'contrat_acteur',
+                'resource_id' => $relation->uuid_contrat_acteur,
+                'new_values' => $relation->toArray(),
+                'level' => 'info',
+            ]);
+
+            return $relation;
         });
     }
 
     public function update(ContratActeur $contratActeur, array $data): ContratActeur
     {
         return DB::transaction(function () use ($contratActeur, $data): ContratActeur {
+            $oldValues = $contratActeur->toArray();
             $contratActeur->update($data);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrat_acteurs',
+                'description' => "Mise à jour du lien contrat-acteur : {$contratActeur->uuid_contrat_acteur}",
+                'resource_type' => 'contrat_acteur',
+                'resource_id' => $contratActeur->uuid_contrat_acteur,
+                'old_values' => $oldValues,
+                'new_values' => $contratActeur->toArray(),
+                'level' => 'info',
+            ]);
 
             return $contratActeur->fresh();
         });
@@ -69,22 +95,61 @@ class ContratActeurService
         ?string $deletedBy = null
     ): void {
         DB::transaction(function () use ($contratActeur, $force, $deletedBy): void {
+            $oldValues = $contratActeur->toArray();
             if ($force) {
                 $contratActeur->forceDelete();
+
+                ActivityLog::log([
+                    'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                    'action' => 'force_delete',
+                    'action_type' => 'crud',
+                    'module' => 'esouscription_contrat_acteurs',
+                    'description' => "Suppression définitive du lien contrat-acteur : {$contratActeur->uuid_contrat_acteur}",
+                    'resource_type' => 'contrat_acteur',
+                    'resource_id' => $contratActeur->uuid_contrat_acteur,
+                    'old_values' => $oldValues,
+                    'level' => 'warning',
+                ]);
 
                 return;
             }
 
             $contratActeur->update(['deleted_by' => $deletedBy]);
             $contratActeur->delete();
+
+            ActivityLog::log([
+                'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                'action' => 'delete',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrat_acteurs',
+                'description' => "Suppression du lien contrat-acteur : {$contratActeur->uuid_contrat_acteur}",
+                'resource_type' => 'contrat_acteur',
+                'resource_id' => $contratActeur->uuid_contrat_acteur,
+                'old_values' => $oldValues,
+                'level' => 'warning',
+            ]);
         });
     }
 
     public function restore(ContratActeur $contratActeur): ContratActeur
     {
         return DB::transaction(function () use ($contratActeur): ContratActeur {
+            $oldValues = $contratActeur->toArray();
             $contratActeur->restore();
             $contratActeur->update(['deleted_by' => null]);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'restore',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrat_acteurs',
+                'description' => "Restauration du lien contrat-acteur : {$contratActeur->uuid_contrat_acteur}",
+                'resource_type' => 'contrat_acteur',
+                'resource_id' => $contratActeur->uuid_contrat_acteur,
+                'old_values' => $oldValues,
+                'new_values' => $contratActeur->fresh()->toArray(),
+                'level' => 'info',
+            ]);
 
             return $contratActeur->fresh();
         });

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreFaqCategoryRequest;
 use App\Http\Requests\Api\Ynov\UpdateFaqCategoryRequest;
 use App\Http\Resources\Api\Ynov\FaqCategoryResource;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\FaqCategory;
 use App\Services\Api\Ynov\FaqCategoryService;
 use Illuminate\Http\JsonResponse;
@@ -168,10 +169,24 @@ class FaqCategoryController extends Controller
     {
         try {
             $category = FaqCategory::where('uuid_faq_category', $uuid_faq_category)->firstOrFail();
-            
+            $oldValues = ['is_active' => (bool) $category->is_active];
+
             $category->update([
                 'is_active' => !$category->is_active,
                 'updated_by' => $request->user()->uuid_user,
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()->uuid_user,
+                'action' => 'toggle_status',
+                'action_type' => 'crud',
+                'module' => 'faq_categories',
+                'description' => "Changement du statut de la catégorie FAQ : {$category->label}",
+                'resource_type' => 'faq_category',
+                'resource_id' => $category->uuid_faq_category,
+                'old_values' => $oldValues,
+                'new_values' => ['is_active' => (bool) $category->is_active],
+                'level' => 'info',
             ]);
 
             return response()->json([
@@ -209,7 +224,25 @@ class FaqCategoryController extends Controller
         ]);
 
         try {
+            $oldOrders = FaqCategory::query()
+                ->whereIn('uuid_faq_category', $request->uuids)
+                ->orderBy('order')
+                ->pluck('uuid_faq_category')
+                ->all();
+
             $this->faqCategoryService->reorder($request->uuids);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()->uuid_user,
+                'action' => 'reorder',
+                'action_type' => 'crud',
+                'module' => 'faq_categories',
+                'description' => 'Réorganisation des catégories FAQ.',
+                'resource_type' => 'faq_category',
+                'old_values' => ['uuids' => $oldOrders],
+                'new_values' => ['uuids' => array_values($request->uuids)],
+                'level' => 'info',
+            ]);
 
             return response()->json([
                 'success' => true,

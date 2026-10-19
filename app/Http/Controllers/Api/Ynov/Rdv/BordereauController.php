@@ -223,7 +223,11 @@ class BordereauController extends Controller
     {
         $payload = $request->getUpdatableData();
 
-        $result = $this->bordereauRdvService->updateDetail($uuidDetailBordereauRdv, $payload);
+        $result = $this->bordereauRdvService->updateDetail(
+            $uuidDetailBordereauRdv,
+            $payload,
+            $request->user()->uuid_user
+        );
 
         if (!$result['success']) {
             return response()->json($result, 404);
@@ -251,7 +255,8 @@ class BordereauController extends Controller
         $result = $this->bordereauRdvService->importDetailExcel(
             $request->file('file'),
             $request->input('reference'),
-            $request->input('observation')
+            $request->input('observation'),
+            $request->user()->uuid_user
         );
 
         return response()->json($result, $result['success'] ? 200 : 422);

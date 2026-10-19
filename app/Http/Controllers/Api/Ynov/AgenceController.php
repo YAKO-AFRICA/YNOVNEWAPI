@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreAgenceRequest;
 use App\Http\Requests\Api\Ynov\UpdateAgenceRequest;
 use App\Http\Resources\Api\Ynov\AgenceResource;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Agence;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\AgenceService;
@@ -60,7 +61,13 @@ class AgenceController extends Controller
             'success' => true,
             'message' => 'Agence créée avec succès.',
             'code' => 'AGENCE_CREATED',
-            'data' => new AgenceResource($agence->load(['reseau', 'horaires'])),
+            'data' => new AgenceResource($agence->load([
+                'reseau',
+                'horaires',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ], 201);
     }
 
@@ -70,7 +77,14 @@ class AgenceController extends Controller
     public function show(string $uuid_agence): JsonResponse
     {
         $agence = Agence::where('uuid_agence', $uuid_agence)
-            ->with(['reseau', 'horaires', 'users'])
+            ->with([
+                'reseau',
+                'horaires',
+                'users',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])
             ->firstOrFail();
 
         return response()->json([
@@ -98,7 +112,13 @@ class AgenceController extends Controller
             'success' => true,
             'message' => 'Agence mise à jour avec succès.',
             'code' => 'AGENCE_UPDATED',
-            'data' => new AgenceResource($updated->load(['reseau', 'horaires'])),
+            'data' => new AgenceResource($updated->load([
+                'reseau',
+                'horaires',
+                'createdBy.details',
+                'updatedBy.details',
+                'deletedBy.details',
+            ])),
         ]);
     }
 
@@ -153,6 +173,21 @@ class AgenceController extends Controller
 
         $agence->users()->syncWithoutDetaching($syncData);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'assign_users',
+            'action_type' => 'security',
+            'module' => 'agences',
+            'description' => "Affectation d'utilisateurs à l'agence : {$agence->libelle}",
+            'resource_type' => 'agence',
+            'resource_id' => $agence->uuid_agence,
+            'new_values' => [
+                'user_uuids' => array_values($request->user_uuids),
+                'is_primary' => $request->boolean('is_primary', false),
+            ],
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Utilisateurs assignés avec succès.',
@@ -170,6 +205,22 @@ class AgenceController extends Controller
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
 
         $agence->users()->detach($uuid_user);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'remove_user',
+            'action_type' => 'security',
+            'module' => 'agences',
+            'description' => "Retrait d'un utilisateur de l'agence : {$agence->libelle}",
+            'resource_type' => 'agence',
+            'resource_id' => $agence->uuid_agence,
+            'old_values' => [
+                'user_uuid' => $user->uuid_user,
+                'login' => $user->login,
+                'email' => $user->email,
+            ],
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

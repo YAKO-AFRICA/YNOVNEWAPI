@@ -416,15 +416,19 @@ Route::prefix('v1')->middleware([
     Route::prefix('audit')->group(function () {
         // Mes logs personnels
         Route::get('my-activity', [AuditLogController::class, 'getMyActivityLogs']);
-        Route::get('my-activity/stats', [AuditLogController::class, 'getActivityStats']);
+        Route::get('my-activity/stats', [AuditLogController::class, 'getMyActivityStats']);
 
         // Admin : logs des utilisateurs
         Route::middleware('permission:audit.consulter_les_logs')->group(function () {
+            Route::get('filters', [AuditLogController::class, 'getFilterOptions']);
             Route::get('activity', [AuditLogController::class, 'getAllActivityLogs']);
             Route::get('activity/user/{uuid_user}', [AuditLogController::class, 'getUserActivityLogs']);
             Route::get('freeze-logs', [AuditLogController::class, 'getFreezeLogs']);
             Route::get('stats', [AuditLogController::class, 'getActivityStats']);
         });
+
+        Route::get('activity/export', [AuditLogController::class, 'exportActivityLogs']);
+            // ->middleware('can:export-audit-logs');
     });
 
     // ============================================================

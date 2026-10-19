@@ -3,6 +3,7 @@
 namespace App\Services\Api\Ynov;
 
 use App\Models\Api\Ynov\SignatureRequest;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -151,6 +152,24 @@ class SignatureService
                 'metadata'               => $metadata,
             ]);
 
+            ActivityLog::log([
+                'user_uuid' => null,
+                'action' => 'signature_link_created',
+                'action_type' => 'security',
+                'module' => 'signatures',
+                'description' => 'Création d’une demande de signature électronique.',
+                'resource_type' => 'signature_request',
+                'resource_id' => $signatureRequest->uuid_signature_request,
+                'new_values' => [
+                    'document_url' => $documentUrl,
+                    'document_description' => $documentDescription,
+                    'expires_at' => $expiresAt->toIso8601String(),
+                    'signer_user_uuid' => $metadata['signer_user_uuid'],
+                    'delivery_status' => $signatureRequest->delivery_status,
+                ],
+                'level' => 'info',
+            ]);
+
             return [
                 'token'                    => $token,
                 'widget_url'               => $this->widgetUrl($token),
@@ -277,6 +296,25 @@ class SignatureService
                 : SignatureRequest::DELIVERY_FAILED,
             'delivered_at'    => $delivery['delivered'] ? now() : null,
         ])->save();
+
+        ActivityLog::log([
+            'user_uuid' => null,
+            'action' => $delivery['delivered'] ? 'signature_processed' : 'signature_delivery_failed',
+            'action_type' => 'security',
+            'module' => 'signatures',
+            'description' => $delivery['delivered']
+                ? 'Signature transmise à l’application hôte.'
+                : 'Échec de transmission de la signature à l’application hôte.',
+            'resource_type' => 'signature_request',
+            'resource_id' => $signatureRequest->uuid_signature_request,
+            'new_values' => [
+                'delivery_status' => $signatureRequest->delivery_status,
+                'webhook_status' => $delivery['status'],
+                'method' => $method,
+                'signer_user_uuid' => $signatureRequest->metadata['signer_user_uuid'] ?? null,
+            ],
+            'level' => $delivery['delivered'] ? 'info' : 'warning',
+        ]);
 
         if (!$delivery['delivered']) {
             return [

@@ -771,9 +771,24 @@ class PrestationService
     public function updatePrestation(Prestation $prestation, array $data, string $updaterUuid): Prestation
     {
         return DB::transaction(function () use ($prestation, $data, $updaterUuid) {
+            $oldValues = $prestation->toArray();
+
             $prestation->update(array_merge($data, [
                 'updated_by' => $updaterUuid,
             ]));
+
+            ActivityLog::log([
+                'user_uuid' => $updaterUuid,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'prestations',
+                'description' => "Mise à jour de la prestation {$prestation->code}",
+                'resource_type' => 'prestation',
+                'resource_id' => $prestation->uuid_prestation,
+                'old_values' => $oldValues,
+                'new_values' => $prestation->toArray(),
+                'level' => 'info',
+            ]);
 
             return $prestation->fresh()->load([
                 'client',
@@ -792,11 +807,25 @@ class PrestationService
     public function deletePrestation(Prestation $prestation, string $deleterUuid): void
     {
         DB::transaction(function () use ($prestation, $deleterUuid) {
+            $oldValues = $prestation->toArray();
+
             $prestation->update([
                 'deleted_by' => $deleterUuid,
             ]);
 
             $prestation->delete();
+
+            ActivityLog::log([
+                'user_uuid' => $deleterUuid,
+                'action' => 'delete',
+                'action_type' => 'crud',
+                'module' => 'prestations',
+                'description' => "Suppression de la prestation {$prestation->code}",
+                'resource_type' => 'prestation',
+                'resource_id' => $prestation->uuid_prestation,
+                'old_values' => $oldValues,
+                'level' => 'warning',
+            ]);
         });
     }
 

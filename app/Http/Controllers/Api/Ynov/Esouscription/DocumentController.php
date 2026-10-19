@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\Esouscription\Document;
 use App\Services\Api\Ynov\Documents\WebDavService;
 use App\Services\DocumentUploadService;
@@ -210,6 +211,18 @@ class DocumentController extends Controller
                 'created_by'     => $request->input('created_by'),
             ]);
 
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'documents',
+                'description' => "Upload du document : {$document->libelle}",
+                'resource_type' => 'document',
+                'resource_id' => $document->uuid_document,
+                'new_values' => $document->toArray(),
+                'level' => 'info',
+            ]);
+
             DB::commit();
 
             return response()->json([
@@ -326,6 +339,18 @@ class DocumentController extends Controller
                         'mime_type'      => $resultat['mime_type'],
                         'statut'         => 'actif',
                         'created_by'     => $createdBy,
+                    ]);
+
+                    ActivityLog::log([
+                        'user_uuid' => $request->user()?->uuid_user,
+                        'action' => 'create',
+                        'action_type' => 'crud',
+                        'module' => 'documents',
+                        'description' => "Upload du document : {$document->libelle}",
+                        'resource_type' => 'document',
+                        'resource_id' => $document->uuid_document,
+                        'new_values' => $document->toArray(),
+                        'level' => 'info',
                     ]);
 
                     $documentsCrees[] = [
@@ -474,11 +499,25 @@ class DocumentController extends Controller
                 ], 404);
             }
 
+            $oldValues = $document->toArray();
             $data = $validator->validated();
-            $data['update_by'] = $request->input('update_by');
+            $data['update_by'] = $request->user()?->uuid_user;
             $data['updated_at'] = $request->input('updated_at');
 
             $document->update($data);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'documents',
+                'description' => "Mise à jour des métadonnées du document : {$document->libelle}",
+                'resource_type' => 'document',
+                'resource_id' => $document->uuid_document,
+                'old_values' => $oldValues,
+                'new_values' => $document->fresh()->toArray(),
+                'level' => 'info',
+            ]);
 
             DB::commit();
 
@@ -515,9 +554,23 @@ class DocumentController extends Controller
                 ], 404);
             }
 
-            $document->delete_by = $request->input('delete_by');
+            $oldValues = $document->toArray();
+            $document->delete_by = $request->user()?->uuid_user ?? $request->input('delete_by');
             $document->save();
             $document->delete(); // soft delete
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'delete',
+                'action_type' => 'crud',
+                'module' => 'documents',
+                'description' => "Suppression logique du document : {$document->libelle}",
+                'resource_type' => 'document',
+                'resource_id' => $document->uuid_document,
+                'old_values' => $oldValues,
+                'new_values' => ['deleted_at' => $document->fresh()->deleted_at],
+                'level' => 'warning',
+            ]);
 
             DB::commit();
 
@@ -539,7 +592,7 @@ class DocumentController extends Controller
     /**
      * Restaurer un document supprimé.
      */
-    public function restoreDocument(string $uuid): JsonResponse
+    public function restoreDocument(Request $request, string $uuid): JsonResponse
     {
         DB::beginTransaction();
 
@@ -553,9 +606,23 @@ class DocumentController extends Controller
                 ], 404);
             }
 
+            $oldValues = $document->toArray();
             $document->restore();
             $document->delete_by = null;
             $document->save();
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'restore',
+                'action_type' => 'crud',
+                'module' => 'documents',
+                'description' => "Restauration du document : {$document->libelle}",
+                'resource_type' => 'document',
+                'resource_id' => $document->uuid_document,
+                'old_values' => $oldValues,
+                'new_values' => $document->fresh()->toArray(),
+                'level' => 'info',
+            ]);
 
             DB::commit();
 
@@ -576,7 +643,7 @@ class DocumentController extends Controller
     }
 
 
-    public function forceDeleteDocument(string $uuid): JsonResponse
+    public function forceDeleteDocument(Request $request, string $uuid): JsonResponse
     {
         DB::beginTransaction();
 
@@ -592,6 +659,7 @@ class DocumentController extends Controller
 
             // On garde le chemin en mémoire avant suppression en BDD
             $cheminEnregistre = $document->chemin;
+            $oldValues = $document->toArray();
 
             // --- 1. Suppression du fichier physique ---
             $cheminAbsolu = $this->resoudreCheminAbsolu($cheminEnregistre);
@@ -620,6 +688,18 @@ class DocumentController extends Controller
 
             // --- 2. Suppression en BDD ---
             $document->forceDelete();
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'force_delete',
+                'action_type' => 'crud',
+                'module' => 'documents',
+                'description' => "Suppression définitive du document : {$oldValues['libelle']}",
+                'resource_type' => 'document',
+                'resource_id' => $uuid,
+                'old_values' => $oldValues,
+                'level' => 'warning',
+            ]);
 
             DB::commit();
 

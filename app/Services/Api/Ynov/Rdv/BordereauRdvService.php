@@ -5,6 +5,7 @@ namespace App\Services\Api\Ynov\Rdv;
 use App\Models\Api\Ynov\BordereauRdv;
 use App\Models\Api\Ynov\DetailBordereauRdv;
 use App\Models\Api\Ynov\Rdv;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\JourFerie;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -210,7 +211,7 @@ class BordereauRdvService
         }
     }
 
-    public function updateDetail(string $uuidDetailBordereauRdv, array $data): array
+    public function updateDetail(string $uuidDetailBordereauRdv, array $data, string $updaterUuid): array
     {
         $detail = DetailBordereauRdv::query()
             ->where('uuid_detail_bordereau_rdv', $uuidDetailBordereauRdv)
@@ -266,8 +267,22 @@ class BordereauRdvService
             ];
         }
 
+        $oldValues = $detail->toArray();
         $detail->fill($payload);
         $detail->save();
+
+        ActivityLog::log([
+            'user_uuid' => $updaterUuid,
+            'action' => 'update',
+            'action_type' => 'crud',
+            'module' => 'bordereaux_rdv',
+            'description' => "Mise à jour d'une ligne du bordereau {$detail->bordereauRdv?->reference}",
+            'resource_type' => 'detail_bordereau_rdv',
+            'resource_id' => $detail->uuid_detail_bordereau_rdv,
+            'old_values' => $oldValues,
+            'new_values' => $detail->toArray(),
+            'level' => 'info',
+        ]);
 
         return [
             'success' => true,
@@ -288,7 +303,7 @@ class BordereauRdvService
      * Le fichier doit contenir une colonne "Numero du rendez-vous" (ou "Numero")
      * qui correspond au code du RDV.
      */
-    public function importDetailExcel(UploadedFile $file, string $reference, ?string $observation = null): array
+    public function importDetailExcel(UploadedFile $file, string $reference, ?string $observation, string $updaterUuid): array
     {
         $lot = BordereauRdv::where('reference', trim($reference))->first();
 
@@ -353,6 +368,7 @@ class BordereauRdvService
             ];
         }
 
+        $oldLotValues = $lot->toArray();
         $imported = 0;
         $errors = [];
         $totalRows = count($rows);
@@ -392,6 +408,7 @@ class BordereauRdvService
                 $detail->bordereau_rdv_uuid = $lot->uuid_bordereau_rdv;
                 $detail->rdv_uuid = $rdv->uuid_rdvs;
                 $detail->status = 'traite';
+                $detail->created_by = $updaterUuid;
             }
 
             $filled = $this->mapExcelRowToDetail($row, $columnIndexes, $lot, $rdv);
@@ -409,8 +426,26 @@ class BordereauRdvService
                 ? 'Import du détail de bordereau terminé.'
                 : 'Import échoué : aucune ligne valide trouvée.'
             ))),
-            'updated_by' => $lot->created_by ?? null,
+            'updated_by' => $updaterUuid,
         ]);
+
+        if ($imported > 0) {
+            ActivityLog::log([
+                'user_uuid' => $updaterUuid,
+                'action' => 'import_details',
+                'action_type' => 'crud',
+                'module' => 'bordereaux_rdv',
+                'description' => "Import de {$imported} ligne(s) dans le bordereau {$lot->reference}",
+                'resource_type' => 'bordereau_rdv',
+                'resource_id' => $lot->uuid_bordereau_rdv,
+                'old_values' => $oldLotValues,
+                'new_values' => array_merge($lot->fresh()->toArray(), [
+                    'imported_details_count' => $imported,
+                    'errors_count' => count($errors),
+                ]),
+                'level' => 'info',
+            ]);
+        }
 
         return [
             'success' => $imported > 0,

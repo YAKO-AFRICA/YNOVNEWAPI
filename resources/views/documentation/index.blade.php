@@ -1180,8 +1180,6 @@
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
     <script src="{{ asset('assets/js/documentation.js') }}"></script>
-    
-
 </body>
 
 </html>

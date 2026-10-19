@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Param;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Ville;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -52,6 +53,18 @@ class VilleController extends Controller
  
         $ville = Ville::create($validated);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'create',
+            'action_type' => 'crud',
+            'module' => 'villes',
+            'description' => "Création de la ville : {$ville->MonLibelle}",
+            'resource_type' => 'ville',
+            'resource_id' => $ville->uuid_ville,
+            'new_values' => $ville->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Ville créée avec succès.',
@@ -75,6 +88,7 @@ class VilleController extends Controller
     public function update(Request $request, string $uuid_ville): JsonResponse
     {
         $ville = Ville::where('uuid_ville', $uuid_ville)->firstOrFail();
+        $oldValues = $ville->toArray();
 
         $validated = $request->validate([
             'codeVille' => [
@@ -87,6 +101,19 @@ class VilleController extends Controller
 
         $ville->update($validated);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'update',
+            'action_type' => 'crud',
+            'module' => 'villes',
+            'description' => "Mise à jour de la ville : {$ville->MonLibelle}",
+            'resource_type' => 'ville',
+            'resource_id' => $ville->uuid_ville,
+            'old_values' => $oldValues,
+            'new_values' => $ville->fresh()->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Ville mise à jour avec succès.',
@@ -95,10 +122,23 @@ class VilleController extends Controller
         ]);
     }
 
-    public function destroy(string $uuid_ville): JsonResponse
+    public function destroy(Request $request, string $uuid_ville): JsonResponse
     {
         $ville = Ville::where('uuid_ville', $uuid_ville)->firstOrFail();
+        $oldValues = $ville->toArray();
         $ville->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'delete',
+            'action_type' => 'crud',
+            'module' => 'villes',
+            'description' => "Suppression de la ville : {$ville->MonLibelle}",
+            'resource_type' => 'ville',
+            'resource_id' => $ville->uuid_ville,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

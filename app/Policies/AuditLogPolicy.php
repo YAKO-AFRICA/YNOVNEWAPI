@@ -32,7 +32,7 @@ class AuditLogPolicy
      */
     public function viewOther(User $user, User $targetUser): bool
     {
-        if (!$user->hasPermission('audit.consulter')) {
+        if (!$user->hasPermission('audit.consulter_les_logs') && !$user->hasPermission('audit.consulter')) {
             return false;
         }
 
@@ -45,7 +45,9 @@ class AuditLogPolicy
      */
     public function viewAll(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->hasPermission('audit.consulter');
+        return $user->isSuperAdmin()
+            || $user->hasPermission('audit.consulter_les_logs')
+            || $user->hasPermission('audit.consulter');
     }
 
     /**

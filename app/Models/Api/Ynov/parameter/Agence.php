@@ -107,6 +107,30 @@ class Agence extends Model
             'metadata'
         ])->withTimestamps();
     }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by', 'uuid_user');
+    }
+
+    public function getAgenceStatusLabel(): ?string
+    {
+        return $this->status ? match ($this->status) {
+            'actif' => 'Actif',
+            'inactif' => 'Inactif',
+            default => $this->status,
+        } : null;
+    }
     
     /**
      * Récupérer les horaires formatés par jour
@@ -147,10 +171,6 @@ class Agence extends Model
                 'commentaire' => $horaire->commentaire,
                 'rendez_vous_actif' => $horaire->rendez_vous_actif,
                 'capacite_rendez_vous' => $horaire->capacite_rendez_vous,
-                // 'heure_debut_rdv' => $horaire->heure_debut_rdv ? $horaire->heure_debut_rdv->format('H:i') : null,
-                // 'heure_fin_rdv' => $horaire->heure_fin_rdv ? $horaire->heure_fin_rdv->format('H:i') : null,
-                // 'duree_rdv_minutes' => $horaire->duree_rdv_minutes,
-                // 'plages_rdv' => $horaire->plages_rdv,
             ];
         }
         
@@ -184,6 +204,19 @@ class Agence extends Model
         $horaire = $this->horaires()->where('jour', $jourActuel)->first();
         
         return $horaire && $horaire->isRdvActif();
+    }
+
+    public function recoitSurRdv(): bool
+    {
+        if ($this->relationLoaded('horaires')) {
+            return $this->horaires->contains(
+                fn (AgenceHoraire $horaire) => $horaire->rendez_vous_actif
+            );
+        }
+
+        return $this->horaires()
+            ->where('rendez_vous_actif', true)
+            ->exists();
     }
 
     /**

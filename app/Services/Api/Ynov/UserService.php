@@ -5,6 +5,7 @@ use App\Mail\Api\Ynov\AccountBlockedMail;
 use App\Mail\Api\Ynov\AccountUnblockedMail;
 use App\Mail\Api\Ynov\WelcomeMail;
 use App\Models\Api\Ynov\parameter\GroupNotif;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
@@ -478,6 +479,18 @@ class UserService
         }
 
         $user->agences()->syncWithoutDetaching($syncData);
+
+        ActivityLog::log([
+            'user_uuid' => $assignerUuid,
+            'action' => 'assign_agences',
+            'action_type' => 'security',
+            'module' => 'users',
+            'description' => "Affectation d'agences à l'utilisateur : {$user->login}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'new_values' => ['agence_uuids' => array_values($newAgences)],
+            'level' => 'info',
+        ]);
     }
 
     /**
@@ -518,6 +531,21 @@ class UserService
             $firstAgence = $user->agences()->first();
             $user->agences()->updateExistingPivot($firstAgence->uuid_agence, ['is_primary' => true]);
         }
+
+        if (!empty($toRemove) || !empty($toAdd)) {
+            ActivityLog::log([
+                'user_uuid' => $updaterUuid,
+                'action' => 'sync_agences',
+                'action_type' => 'security',
+                'module' => 'users',
+                'description' => "Synchronisation des agences de l'utilisateur : {$user->login}",
+                'resource_type' => 'user',
+                'resource_id' => $user->uuid_user,
+                'old_values' => ['agence_uuids' => array_values($currentAgences)],
+                'new_values' => ['agence_uuids' => array_values($agenceUuids)],
+                'level' => 'info',
+            ]);
+        }
     }
 
     /**
@@ -530,6 +558,10 @@ class UserService
             return false;
         }
 
+        $previousPrimaryAgence = $user->agences()
+            ->wherePivot('is_primary', true)
+            ->value('uuid_agence');
+
         // Retirer le statut principal des autres agences
         $user->agences()->updateExistingPivot($user->agences()->pluck('uuid_agence')->toArray(), [
             'is_primary' => false,
@@ -538,6 +570,19 @@ class UserService
         // Définir cette agence comme principale
         $user->agences()->updateExistingPivot($agenceUuid, [
             'is_primary' => true,
+        ]);
+
+        ActivityLog::log([
+            'user_uuid' => $updaterUuid,
+            'action' => 'set_primary_agence',
+            'action_type' => 'security',
+            'module' => 'users',
+            'description' => "Définition de l'agence principale de l'utilisateur : {$user->login}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'old_values' => ['primary_agence_uuid' => $previousPrimaryAgence],
+            'new_values' => ['primary_agence_uuid' => $agenceUuid],
+            'level' => 'info',
         ]);
 
         return true;

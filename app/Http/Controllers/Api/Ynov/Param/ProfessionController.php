@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Param;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Profession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,18 @@ class ProfessionController extends Controller
  
         $profession = Profession::create($validated);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'create',
+            'action_type' => 'crud',
+            'module' => 'professions',
+            'description' => "Création de la profession : {$profession->MonLibelle}",
+            'resource_type' => 'profession',
+            'resource_id' => $profession->uuid_profession,
+            'new_values' => $profession->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Profession créée avec succès.',
@@ -63,6 +76,8 @@ class ProfessionController extends Controller
     {
         $profession = Profession::where('uuid_profession', $uuid_profession)->firstOrFail();
 
+        $oldValues = $profession->toArray();
+
         $validated = $request->validate([
             'code_profession' => [
                 'sometimes', 'required', 'string', 'max:50',
@@ -73,6 +88,19 @@ class ProfessionController extends Controller
 
         $profession->update($validated);
 
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'update',
+            'action_type' => 'crud',
+            'module' => 'professions',
+            'description' => "Mise à jour de la profession : {$profession->MonLibelle}",
+            'resource_type' => 'profession',
+            'resource_id' => $profession->uuid_profession,
+            'old_values' => $oldValues,
+            'new_values' => $profession->fresh()->toArray(),
+            'level' => 'info',
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Ville mise à jour avec succès.',
@@ -81,10 +109,23 @@ class ProfessionController extends Controller
         ]);
     }
 
-    public function destroy(string $uuid_profession): JsonResponse
+    public function destroy(Request $request, string $uuid_profession): JsonResponse
     {
         $profession = Profession::where('uuid_profession', $uuid_profession)->firstOrFail();
+        $oldValues = $profession->toArray();
         $profession->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'delete',
+            'action_type' => 'crud',
+            'module' => 'professions',
+            'description' => "Suppression de la profession : {$profession->MonLibelle}",
+            'resource_type' => 'profession',
+            'resource_id' => $profession->uuid_profession,
+            'old_values' => $oldValues,
+            'level' => 'warning',
+        ]);
 
         return response()->json([
             'success' => true,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreFaqRequest;
 use App\Http\Requests\Api\Ynov\UpdateFaqRequest;
 use App\Http\Resources\Api\Ynov\FaqResource;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Faq;
 use App\Services\Api\Ynov\FaqService;
 use Illuminate\Http\JsonResponse;
@@ -150,10 +151,24 @@ class FaqController extends Controller
     public function toggle(Request $request, string $uuid_faq): JsonResponse
     {
         $faq = Faq::where('uuid_faq', $uuid_faq)->firstOrFail();
-        
+        $oldValues = ['is_active' => (bool) $faq->is_active];
+
         $faq->update([
             'is_active' => !$faq->is_active,
             'updated_by' => $request->user()->uuid_user,
+        ]);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'toggle_status',
+            'action_type' => 'crud',
+            'module' => 'faqs',
+            'description' => "Changement du statut de la FAQ : {$faq->question}",
+            'resource_type' => 'faq',
+            'resource_id' => $faq->uuid_faq,
+            'old_values' => $oldValues,
+            'new_values' => ['is_active' => (bool) $faq->is_active],
+            'level' => 'info',
         ]);
 
         return response()->json([

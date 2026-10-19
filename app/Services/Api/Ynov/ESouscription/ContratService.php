@@ -3,6 +3,7 @@
 namespace App\Services\Api\Ynov\ESouscription;
 
 use App\Models\Api\Ynov\Esouscription\Contrat;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -59,7 +60,21 @@ class ContratService
             $data['uuid_contrat'] = $data['uuid_contrat'] ?? (string) Str::uuid();
             $data['id_contrat'] = $this->generateNextIdContrat();
 
-            return Contrat::create($data);
+            $contrat = Contrat::create($data);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Création du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'new_values' => $contrat->toArray(),
+                'level' => 'info',
+            ]);
+
+            return $contrat;
         });
     }
 
@@ -83,7 +98,21 @@ class ContratService
     public function update(Contrat $contrat, array $data): Contrat
     {
         return DB::transaction(function () use ($contrat, $data): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->update($data);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Mise à jour du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->toArray(),
+                'level' => 'info',
+            ]);
 
             return $contrat->fresh();
         });
@@ -92,10 +121,24 @@ class ContratService
     public function transmit(Contrat $contrat, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->update([
                 'etape' => 3,
                 'transmis_par' => $userUuid,
                 'date_transmission' => now(),
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $userUuid,
+                'action' => 'transmit',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Transmission du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->toArray(),
+                'level' => 'info',
             ]);
 
             return $contrat->fresh();
@@ -105,10 +148,24 @@ class ContratService
     public function accept(Contrat $contrat, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->update([
                 'etape' => 3,
                 'accepted_by' => $userUuid,
                 'acceptance_date' => now(),
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $userUuid,
+                'action' => 'accept',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Acceptation du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->toArray(),
+                'level' => 'info',
             ]);
 
             return $contrat->fresh();
@@ -118,10 +175,24 @@ class ContratService
     public function reject(Contrat $contrat, array $motifs, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $motifs, $userUuid): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->update([
                 'rejeter_par' => $userUuid,
                 'date_rejet' => now(),
                 'motif_rejet' => array_values(array_unique($motifs)),
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $userUuid,
+                'action' => 'reject',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Rejet du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->toArray(),
+                'level' => 'warning',
             ]);
 
             return $contrat->fresh();
@@ -131,10 +202,24 @@ class ContratService
     public function cancel(Contrat $contrat, string $userUuid): Contrat
     {
         return DB::transaction(function () use ($contrat, $userUuid): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->update([
                 'etape' => 4,
                 'annuler_par' => $userUuid,
                 'date_annulation' => now(),
+            ]);
+
+            ActivityLog::log([
+                'user_uuid' => $userUuid,
+                'action' => 'cancel',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Annulation du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->toArray(),
+                'level' => 'warning',
             ]);
 
             return $contrat->fresh();
@@ -144,22 +229,61 @@ class ContratService
     public function delete(Contrat $contrat, bool $force = false, ?string $deletedBy = null): void
     {
         DB::transaction(function () use ($contrat, $force, $deletedBy): void {
+            $oldValues = $contrat->toArray();
             if ($force) {
                 $contrat->forceDelete();
+
+                ActivityLog::log([
+                    'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                    'action' => 'force_delete',
+                    'action_type' => 'crud',
+                    'module' => 'esouscription_contrats',
+                    'description' => "Suppression définitive du contrat : {$contrat->id_contrat}",
+                    'resource_type' => 'contrat',
+                    'resource_id' => $contrat->uuid_contrat,
+                    'old_values' => $oldValues,
+                    'level' => 'warning',
+                ]);
 
                 return;
             }
 
             $contrat->update(['deleted_by' => $deletedBy]);
             $contrat->delete();
+
+            ActivityLog::log([
+                'user_uuid' => $deletedBy ?? request()->user()?->uuid_user,
+                'action' => 'delete',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Suppression du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'level' => 'warning',
+            ]);
         });
     }
 
     public function restore(Contrat $contrat): Contrat
     {
         return DB::transaction(function () use ($contrat): Contrat {
+            $oldValues = $contrat->toArray();
             $contrat->restore();
             $contrat->update(['deleted_by' => null]);
+
+            ActivityLog::log([
+                'user_uuid' => request()->user()?->uuid_user,
+                'action' => 'restore',
+                'action_type' => 'crud',
+                'module' => 'esouscription_contrats',
+                'description' => "Restauration du contrat : {$contrat->id_contrat}",
+                'resource_type' => 'contrat',
+                'resource_id' => $contrat->uuid_contrat,
+                'old_values' => $oldValues,
+                'new_values' => $contrat->fresh()->toArray(),
+                'level' => 'info',
+            ]);
 
             return $contrat->fresh();
         });

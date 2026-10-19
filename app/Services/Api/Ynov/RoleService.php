@@ -11,7 +11,7 @@ class RoleService
     {
         return Role::create([
             // 'uuid_role' => (string) Str::uuid(),
-            // 'code' => Str::slug($data['libelle'], '_'),
+            'code' => Str::slug($data['libelle'], '_'),
             'libelle' => $data['libelle'],
             'description' => $data['description'] ?? null,
             'is_system' => false,
