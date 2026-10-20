@@ -272,6 +272,15 @@ class ProduitController extends Controller
         $filters = $request->only(['est_actif', 'search']);
         $formules = $this->formuleService->getFormulesForProduit($produit->uuid_produit, $filters);
 
+        if ($formules->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucune formule trouvée pour ce produit.',
+                'code' => 'NO_FORMULES_FOUND',
+                'data' => [],
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Formules du produit.',
