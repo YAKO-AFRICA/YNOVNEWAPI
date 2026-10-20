@@ -9,6 +9,7 @@ use App\Services\Api\Ynov\ESouscription\ClientNumberGenerator;
 use App\Services\Api\Ynov\ESouscription\ContratActeurService;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
+use App\Services\Api\Ynov\ESouscription\AssurerGarantieService;
 use App\Services\Api\Ynov\ESouscription\PropositionService;
 use DateTimeImmutable;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class PropositionController extends Controller
         private DeclarationSanteService $declarationSanteService,
         private DocumentService $documentService,
         private ContratService $contratService,
+        private AssurerGarantieService $assurerGarantieService,
         private PropositionService $propositionService
     ) {}
 
@@ -140,6 +142,18 @@ class PropositionController extends Controller
 
                     $assureInfo  = $assure['info']  ?? [];
                     $assureSante = $assure['sante'] ?? [];
+                    $assureGaranties = data_get($assure, 'garanties.garantieData')
+                        ?? data_get($assure, 'garantie.garantieData')
+                        ?? ($assure['garanties'] ?? $assure['garantie'] ?? []);
+                    if (isset($assureGaranties['garantieData'])) {
+                        $assureGaranties = $assureGaranties['garantieData'];
+                    }
+                    if (isset($assureGaranties['codeGarantie'])) {
+                        $assureGaranties = [$assureGaranties];
+                    }
+                    if (!is_array($assureGaranties)) {
+                        throw new \InvalidArgumentException('Les garanties de l’assuré doivent être une liste.');
+                    }
                     $assureCreatedBy = $assureInfo['created_by'] ?? $createdBy;
                     $isAdherentAssure = data_get($assure, 'is_adherent') === 'oui';
                     $uuidAssure = $isAdherentAssure
@@ -193,7 +207,6 @@ class PropositionController extends Controller
                         if (!$AssuAdhStoreSante) {
                             throw new \Exception("Échec de la déclaration santé de l'assuré : {$assureInfo['nom']}");
                         }
-
 
                     } else {
 
@@ -269,7 +282,31 @@ class PropositionController extends Controller
                         if (!$assurSanteStore) {
                             throw new \Exception("Échec de la déclaration santé de l'assuré : {$assureInfo['nom']}");
                         }
+                    }
 
+                    foreach ($assureGaranties as $assureGarantie) {
+                        if (
+                            !is_array($assureGarantie)
+                            || !isset(
+                                $assureGarantie['uuid_garantie'],
+                                $assureGarantie['codeGarantie'],
+                                $assureGarantie['libelle'],
+                                $assureGarantie['capital'],
+                                $assureGarantie['prime']
+                            )
+                        ) {
+                            throw new \InvalidArgumentException('Une garantie de l’assuré est incomplète.');
+                        }
+
+                        $this->assurerGarantieService->create([
+                            'code'          => $assureGarantie['codeGarantie'],
+                            'uuid_garantie' => $assureGarantie['uuid_garantie'],
+                            'uuid_assurer'  => $uuidAssure,
+                            'uuid_contrat'  => $contratUuid,
+                            'libelle'       => $assureGarantie['libelle'],
+                            'capital'       => $assureGarantie['capital'],
+                            'prime'         => $assureGarantie['prime'],
+                        ]);
                     }
                 }
 

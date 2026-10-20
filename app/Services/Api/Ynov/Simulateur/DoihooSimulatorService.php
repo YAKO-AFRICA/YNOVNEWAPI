@@ -97,6 +97,7 @@ class DoihooSimulatorService
             }
 
             $guaranteeData[] = [
+                'uuid_garantie' => $guarantee->uuid_produit_garantie,
                 'codeGarantie' => $guarantee->code_produit_garantie,
                 'libelle' => $guarantee->libelle,
                 'capital' => $capital,

@@ -44,6 +44,7 @@ class LprevoSimulatorService
 
         return [
             'garantieData' => [[
+                'uuid_garantie' => $guarantee->uuid_produit_garantie,
                 'codeGarantie' => $guarantee->code_produit_garantie,
                 'prime' => $primePrincipale,
                 'capital' => $capital,

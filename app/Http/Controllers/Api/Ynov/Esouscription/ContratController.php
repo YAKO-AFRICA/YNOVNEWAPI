@@ -56,13 +56,17 @@ class ContratController extends Controller
         }
 
         $filters = $request->validate([
+            'date' => ['sometimes', 'nullable', 'date'],
             'date_debut' => ['sometimes', 'nullable', 'date'],
             'date_fin' => $dateFinRules,
+            'commercial_uuid' => ['sometimes', 'nullable', 'string'],
+            'conseiller_uuid' => ['sometimes', 'nullable', 'string'],
             'agence_uuid' => ['sometimes', 'nullable', 'string'],
             'reseau_uuid' => ['sometimes', 'nullable', 'string'],
             'partner_uuid' => ['sometimes', 'nullable', 'string'],
             'code_produit' => ['sometimes', 'nullable', 'string'],
-            'granularite' => ['sometimes', 'string', 'in:mois,semaine,jour'],
+            'statut' => ['sometimes', 'nullable', 'string', 'in:en_attente,transmis,valide,rejete,annule,1,2,3,4'],
+            'granularite' => ['sometimes', 'string', 'in:jour,semaine,mois,trimestre,semestre,annee'],
         ]);
 
         try {

@@ -59,12 +59,14 @@ class DoihooSimulatorServiceTest extends BaseTestCase
             {
                 return new Collection([
                     new ProduitGarantie([
+                        'uuid_produit_garantie' => 'guarantee-uuid-1',
                         'code_produit' => 'DOIHOO',
                         'code_produit_garantie' => 'INV_2020',
                         'libelle' => 'INVEST',
                         'branche' => 'IND',
                     ]),
                     new ProduitGarantie([
+                        'uuid_produit_garantie' => 'guarantee-uuid-2',
                         'code_produit' => 'DOIHOO',
                         'code_produit_garantie' => 'DOI_2020',
                         'libelle' => 'DOIHOO',
@@ -83,6 +85,8 @@ class DoihooSimulatorServiceTest extends BaseTestCase
         ]);
 
         $this->assertCount(2, $result['garantieData']);
+        $this->assertSame('guarantee-uuid-1', $result['garantieData'][0]['uuid_garantie']);
+        $this->assertSame('guarantee-uuid-2', $result['garantieData'][1]['uuid_garantie']);
         $this->assertSame(12000.0, $result['garantieData'][0]['prime']);
         $this->assertSame(2500.0, $result['garantieData'][1]['prime']);
         $this->assertSame(14500.0, $result['infoSimulation']['primepricipale']);

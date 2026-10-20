@@ -25,4 +25,13 @@ class ValidationRouteTest extends TestCase
 
         $this->assertSame(ValidationController::class . '@getContratsByPartner', $route->getActionName());
     }
+
+    public function test_validation_dashboard_route_uses_validation_controller(): void
+    {
+        $route = $this->app['router']->getRoutes()->match(
+            Request::create('/api/v1/esouscription/dashboard-validation')
+        );
+
+        $this->assertSame(ValidationController::class . '@dashboard', $route->getActionName());
+    }
 }

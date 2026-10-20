@@ -361,7 +361,7 @@
                 module: "souscription",
                 name: "Créer une proposition de souscription",
                 description:
-                    "Crée en une seule transaction un contrat complet avec adhérent, assurés, bénéficiaires, documents et données de santé. La structure affichée est indicative : envoyer les champs imbriqués et les fichiers en multipart/form-data, avec des noms comme adherentData[nom], assurerDatas[0][info][nom] et documentDatas[0][file]. Laisser le client HTTP définir automatiquement le Content-Type et sa boundary.",
+                    "Crée en une seule transaction un contrat complet avec adhérent, assurés, bénéficiaires, documents, données de santé et garanties des assurés. Pour chaque assuré, transmettre ses garanties dans garantie.garantieData (ou garanties.garantieData) : chaque élément contient uuid_garantie, codeGarantie, libelle, capital et prime. Toutes les garanties transmises sont enregistrées pour l’assuré correspondant et le contrat créé. Envoyer les champs imbriqués et les fichiers en multipart/form-data, par exemple adherentData[nom], assurerDatas[0][info][nom], assurerDatas[0][garantie][garantieData][0][uuid_garantie] et documentDatas[0][file]. Laisser le client HTTP définir automatiquement le Content-Type et sa boundary.",
                 method: "POST",
                 path: "/esouscription/store-propositition",
                 isProtected: true,
@@ -380,7 +380,7 @@
                         assurerDatas: {
                             type: "array",
                             required: true,
-                            description: "Liste d’objets {is_adherent, info, sante}. is_adherent doit être exactement « oui » pour réutiliser l’adhérent déclaré dans adherentData (aucun nouvel acteur n’est créé), ou « non » pour créer un autre assuré. Même pour is_adherent: « oui », envoyer toutes les informations personnelles dans info et toutes les données de santé dans sante. Si la clé est absente ou différente de « oui », le serveur crée un nouvel acteur.",
+                            description: "Liste d’objets {is_adherent, info, sante, garantie}. is_adherent doit être exactement « oui » pour réutiliser l’adhérent déclaré dans adherentData (aucun nouvel acteur n’est créé), ou « non » pour créer un autre assuré. Même pour is_adherent: « oui », envoyer toutes les informations personnelles dans info et toutes les données de santé dans sante. La clé facultative garantie contient un objet garantieData, tableau des garanties propres à cet assuré ; chaque garantie doit fournir uuid_garantie, codeGarantie, libelle, capital et prime. La clé garanties (au pluriel) est également acceptée. Le serveur enregistre chaque élément de garantieData avec l’UUID de cet assuré et celui du contrat. Si la clé is_adherent est absente ou différente de « oui », le serveur crée un nouvel acteur.",
                         },
                         BeneficiaireDatas: {
                             type: "array",
@@ -465,6 +465,24 @@
                                 anemie: "0",
                                 insuffisance_renale: "0",
                                 avc: "0"
+                            },
+                            garantie: {
+                                garantieData: [
+                                    {
+                                        uuid_garantie: "UUID_GARANTIE_PRINCIPALE",
+                                        codeGarantie: "DTC/IAD",
+                                        libelle: "Décès toutes causes / invalidité absolue et définitive",
+                                        capital: 5000000,
+                                        prime: 150000
+                                    },
+                                    {
+                                        uuid_garantie: "UUID_GARANTIE_COMPLEMENTAIRE",
+                                        codeGarantie: "GARANTIE_COMPLEMENTAIRE",
+                                        libelle: "Garantie complémentaire",
+                                        capital: 1000000,
+                                        prime: 25000
+                                    }
+                                ]
                             }
                         },
                         {
@@ -511,6 +529,17 @@
                                 anemie: "0",
                                 insuffisance_renale: "0",
                                 avc: "0"
+                            },
+                            garantie: {
+                                garantieData: [
+                                    {
+                                        uuid_garantie: "UUID_GARANTIE_ASSURE",
+                                        codeGarantie: "DTC/IAD",
+                                        libelle: "Décès toutes causes / invalidité absolue et définitive",
+                                        capital: 1000000,
+                                        prime: 30000
+                                    }
+                                ]
                             }
                         }
                     ],
@@ -1006,17 +1035,20 @@
                 id: "esouscription-contrats-dashboard",
                 module: "contrats",
                 name: "Tableau de bord des contrats",
-                description: "Récupère les indicateurs de contrats, les classements par primes et par volume, ainsi que l'évolution des souscriptions par période. Les étapes de l'évolution sont comptées selon leur date effective (création, transmission, acceptation, rejet ou annulation).",
+                description: "Récupère les indicateurs de contrats, les classements par primes et par volume, les répartitions par statut et par produit, ainsi que l'évolution des propositions et des primes par statut. Les filtres de date, commercial, agence, statut, réseau, partenaire et produit s'appliquent aux indicateurs et répartitions. L'évolution est regroupée selon la granularité demandée.",
                 method: "GET",
                 path: "/esouscription/dashboard-contrats",
                 isProtected: true,
                 headers: { Authorization: "******", Accept: "application/json" },
                 requestParams: {
                     query: {
-                        date_debut: { type: "date", required: false, description: "Début de la période filtrée (YYYY-MM-DD)." },
-                        date_fin: { type: "date", required: false, description: "Fin de la période filtrée (YYYY-MM-DD), doit être égale ou postérieure à date_debut si celui-ci est fourni." },
-                        granularite: { type: "string", required: false, description: "Granularité de la courbe : mois (par défaut), semaine ou jour." },
+                        date: { type: "date", required: false, description: "Filtrer sur une seule date (YYYY-MM-DD). À utiliser à la place de la plage de dates." },
+                        date_debut: { type: "date", required: false, description: "Début de la plage de dates filtrée (YYYY-MM-DD)." },
+                        date_fin: { type: "date", required: false, description: "Fin de la plage de dates filtrée (YYYY-MM-DD), doit être égale ou postérieure à date_debut si celui-ci est fourni." },
+                        granularite: { type: "string", required: false, description: "Granularité de la courbe : semaine, mois (par défaut), trimestre, semestre ou annee. jour reste accepté pour compatibilité." },
+                        commercial_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par commercial (conseiller_uuid). Le paramètre conseiller_uuid est également accepté." },
                         agence_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par agence." },
+                        statut: { type: "string", required: false, description: "Filtrer par statut : en_attente, transmis, valide, rejete, annule, ou étape numérique 1 à 4." },
                         reseau_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par réseau." },
                         partner_uuid: { type: "uuid", required: false, description: "Filtrer les contrats par partenaire." },
                         code_produit: { type: "string", required: false, description: "Filtrer les contrats par code produit." },
@@ -1025,7 +1057,13 @@
                 exampleRequest: {
                     date_debut: "2026-01-01",
                     date_fin: "2026-12-31",
-                    granularite: "mois",
+                    commercial_uuid: "UUID_COMMERCIAL",
+                    agence_uuid: "UUID_AGENCE",
+                    statut: "valide",
+                    reseau_uuid: "UUID_RESEAU",
+                    partner_uuid: "UUID_PARTENAIRE",
+                    code_produit: "DOIHOO",
+                    granularite: "trimestre",
                 },
                 responses: [
                     {
@@ -1080,18 +1118,92 @@
                                     agences_actives: 1,
                                     reseaux_actifs: 0,
                                 },
+                                indicateurs: {
+                                    total_propositions: 52,
+                                    total_en_attente: 10,
+                                    total_transmis: 8,
+                                    total_valides: 4,
+                                    total_rejetes: 2,
+                                },
+                                repartition_statuts: [
+                                    { statut: "en_attente", libelle: "En attente", total: 10, total_primes: 1000000 },
+                                    { statut: "transmis", libelle: "Transmis", total: 8, total_primes: 800000 },
+                                    { statut: "valide", libelle: "Validé", total: 4, total_primes: 400000 },
+                                    { statut: "rejete", libelle: "Rejeté", total: 2, total_primes: 200000 },
+                                    { statut: "annule", libelle: "Annulé", total: 1, total_primes: 100000 },
+                                ],
+                                repartition_produits: [
+                                    { code_produit: "DOIHOO", libelle: "DOIHOO", total: 52, total_primes: 7000000 },
+                                ],
+                                evolution_propositions: {
+                                    granularite: "trimestre",
+                                    date_debut: "2026-01-01",
+                                    date_fin: "2026-12-31",
+                                    donnees: [
+                                        {
+                                            periode: "2026-T1",
+                                            total_propositions: 20,
+                                            total_en_attente: 5,
+                                            primes_en_attente: 500000,
+                                            total_transmis: 4,
+                                            primes_transmises: 400000,
+                                            total_valides: 3,
+                                            primes_validees: 300000,
+                                            total_rejetes: 1,
+                                            primes_rejetees: 100000,
+                                        },
+                                    ],
+                                },
                             },
                         },
                     },
                     {
                         status: 422,
-                        description: "Filtres invalides, date_fin antérieure à date_debut ou granularité non prise en charge.",
+                        description: "Filtres invalides, date_fin antérieure à date_debut, statut ou granularité non pris en charge.",
                         example: { message: "The given data was invalid.", errors: { granularite: ["The selected granularite is invalid."] } },
                     },
                     {
                         status: 500,
                         description: "Erreur lors du calcul du tableau de bord.",
                         example: { success: false, message: "Erreur lors de la récupération du tableau de bord des contrats", code: 500 },
+                    },
+                ],
+            },
+            {
+                id: "esouscription-validation-dashboard",
+                module: "contrats",
+                name: "Tableau de bord de validation",
+                description: "Récupère le nombre de contrats en attente (étape 2), les contrats acceptés (étape 3) et rejetés (étape 4) par jour, semaine et mois, les taux d'acceptation et de rejet, les cinq motifs de rejet les plus utilisés et les cinq agences et partenaires ayant le plus de rejets. Les nombres périodiques sont calculés selon la date d'acceptation ou de rejet. Les taux sont calculés sur les contrats traités de la période (acceptés + rejetés) ; ils valent 0 si aucun contrat n'a été traité. Les classements portent sur l'ensemble des contrats rejetés.",
+                method: "GET",
+                path: "/esouscription/dashboard-validation",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Indicateurs de validation et classements des rejets.",
+                        example: {
+                            success: true,
+                            message: "Tableau de bord de validation récupéré avec succès",
+                            code: 200,
+                            data: {
+                                contrats_en_attente_validation: 10,
+                                contrats_acceptes: { jour: 2, semaine: 8, mois: 20 },
+                                contrats_rejetes: { jour: 1, semaine: 3, mois: 5 },
+                                taux_acceptation: { jour: 66.67, semaine: 72.73, mois: 80 },
+                                taux_rejet: { jour: 33.33, semaine: 27.27, mois: 20 },
+                                top_5_motifs_rejet: [
+                                    { motif: "Dossier incomplet", total: 12 },
+                                    { motif: "Informations incorrectes", total: 8 },
+                                ],
+                                top_agences_par_rejets: [
+                                    { agence_uuid: "UUID_AGENCE", agence: "Agence principale", total_rejets: 10 },
+                                ],
+                                top_partenaires_par_rejets: [
+                                    { partner_uuid: "UUID_PARTENAIRE", partenaire: "Partenaire principal", total_rejets: 7 },
+                                ],
+                            },
+                        },
                     },
                 ],
             },

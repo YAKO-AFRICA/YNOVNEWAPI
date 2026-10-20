@@ -112,7 +112,7 @@ class ContratService
             'total_contrats_periode' => (clone $query)->count('contrats.uuid_contrat'),
             'contrats_en_attente_validation' => (clone $query)->where('contrats.etape', 2)->count(),
             'contrats_valides' => (clone $query)->whereNotNull('contrats.acceptance_date')->count(),
-            'contrats_annules' => (clone $query)->where('contrats.etape', 4)->count(),
+            'contrats_annules' => (clone $query)->whereNotNull('contrats.date_annulation')->count(),
             'partenaires_actifs' => (clone $query)->whereNotNull('contrats.partner_uuid')
                 ->distinct()->count('contrats.partner_uuid'),
             'agences_actives' => (clone $query)->whereNotNull('contrats.agence_uuid')
@@ -123,12 +123,24 @@ class ContratService
                 ->distinct()->count('dashboard_agences.reseau_uuid'),
         ];
 
+        $statusTotals = $this->getDashboardStatusTotals(clone $query);
+
         return [
             'meilleurs' => $leaders,
             'top_5_par_primes' => $topByPremium,
             'top_5_par_contrats' => $this->getTopFiveByContracts($query, $rankings),
             'evolution_souscriptions' => $evolution,
             'indicateurs_volume' => $volume,
+            'indicateurs' => [
+                'total_propositions' => $statusTotals['total_propositions'],
+                'total_en_attente' => $statusTotals['total_en_attente'],
+                'total_transmis' => $statusTotals['total_transmis'],
+                'total_valides' => $statusTotals['total_valides'],
+                'total_rejetes' => $statusTotals['total_rejetes'],
+            ],
+            'repartition_statuts' => $this->getDashboardStatusDistribution($statusTotals),
+            'repartition_produits' => $this->getDashboardProductDistribution(clone $query),
+            'evolution_propositions' => $this->getPropositionEvolution($filters),
         ];
     }
 
@@ -142,6 +154,15 @@ class ContratService
             }
         }
 
+        $commercialUuid = $filters['commercial_uuid'] ?? $filters['conseiller_uuid'] ?? null;
+        if (!empty($commercialUuid)) {
+            $query->where('contrats.conseiller_uuid', $commercialUuid);
+        }
+
+        if (!empty($filters['statut'])) {
+            $this->applyDashboardStatusFilter($query, (string) $filters['statut']);
+        }
+
         if (!empty($filters['reseau_uuid'])) {
             $query->whereExists(function ($subquery) use ($filters): void {
                 $subquery->selectRaw('1')
@@ -151,15 +172,216 @@ class ContratService
             });
         }
 
-        if ($applyDateRange && !empty($filters['date_debut'])) {
+        if ($applyDateRange && !empty($filters['date'])) {
+            $query->whereDate('contrats.created_at', $filters['date']);
+        } elseif ($applyDateRange && !empty($filters['date_debut'])) {
             $query->whereDate('contrats.created_at', '>=', $filters['date_debut']);
         }
 
-        if ($applyDateRange && !empty($filters['date_fin'])) {
+        if ($applyDateRange && empty($filters['date']) && !empty($filters['date_fin'])) {
             $query->whereDate('contrats.created_at', '<=', $filters['date_fin']);
         }
 
         return $query;
+    }
+
+    private function applyDashboardStatusFilter(Builder $query, string $status): void
+    {
+        if (in_array($status, ['1', '2', '3', '4'], true)) {
+            $query->where('contrats.etape', (int) $status);
+            return;
+        }
+
+        match ($status) {
+            'en_attente' => $query->where('contrats.etape', 2),
+            'transmis' => $query->whereNotNull('contrats.date_transmission')
+                ->whereNull('contrats.acceptance_date')
+                ->whereNull('contrats.date_rejet')
+                ->whereNull('contrats.date_annulation'),
+            'valide' => $query->whereNotNull('contrats.acceptance_date'),
+            'rejete' => $query->whereNotNull('contrats.date_rejet'),
+            'annule' => $query->whereNotNull('contrats.date_annulation'),
+        };
+    }
+
+    private function getDashboardStatusTotals(Builder $query): array
+    {
+        $row = $query
+            ->selectRaw('COUNT(contrats.uuid_contrat) as total_propositions')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN 1 ELSE 0 END), 0) as total_en_attente')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN 1 ELSE 0 END), 0) as total_transmis'
+            )
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN 1 ELSE 0 END), 0) as total_valides')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN 1 ELSE 0 END), 0) as total_rejetes')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_annulation IS NOT NULL THEN 1 ELSE 0 END), 0) as total_annules')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN contrats.prime ELSE 0 END), 0) as primes_en_attente')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
+            )
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_validees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_annulation IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_annulees')
+            ->first();
+
+        return [
+            'total_propositions' => (int) $row->total_propositions,
+            'total_en_attente' => (int) $row->total_en_attente,
+            'total_transmis' => (int) $row->total_transmis,
+            'total_valides' => (int) $row->total_valides,
+            'total_rejetes' => (int) $row->total_rejetes,
+            'total_annules' => (int) $row->total_annules,
+            'primes_en_attente' => (float) $row->primes_en_attente,
+            'primes_transmises' => (float) $row->primes_transmises,
+            'primes_validees' => (float) $row->primes_validees,
+            'primes_rejetees' => (float) $row->primes_rejetees,
+            'primes_annulees' => (float) $row->primes_annulees,
+        ];
+    }
+
+    private function getDashboardStatusDistribution(array $totals): array
+    {
+        $statuses = [
+            'en_attente' => ['libelle' => 'En attente', 'total' => 'total_en_attente', 'primes' => 'primes_en_attente'],
+            'transmis' => ['libelle' => 'Transmis', 'total' => 'total_transmis', 'primes' => 'primes_transmises'],
+            'valide' => ['libelle' => 'Validé', 'total' => 'total_valides', 'primes' => 'primes_validees'],
+            'rejete' => ['libelle' => 'Rejeté', 'total' => 'total_rejetes', 'primes' => 'primes_rejetees'],
+            'annule' => ['libelle' => 'Annulé', 'total' => 'total_annules', 'primes' => 'primes_annulees'],
+        ];
+
+        return array_map(static fn (array $status, string $key): array => [
+            'statut' => $key,
+            'libelle' => $status['libelle'],
+            'total' => $totals[$status['total']],
+            'total_primes' => $status['primes'] === null ? 0.0 : $totals[$status['primes']],
+        ], $statuses, array_keys($statuses));
+    }
+
+    private function getDashboardProductDistribution(Builder $query): array
+    {
+        return $query
+            ->selectRaw('contrats.code_produit as code_produit')
+            ->selectRaw('COALESCE(contrats.libelle_produit, contrats.code_produit) as libelle_produit')
+            ->selectRaw('COUNT(contrats.uuid_contrat) as total')
+            ->selectRaw('COALESCE(SUM(contrats.prime), 0) as total_primes')
+            ->groupBy('contrats.code_produit', 'contrats.libelle_produit')
+            ->orderByDesc('total')
+            ->orderBy('libelle_produit')
+            ->get()
+            ->map(static fn ($row): array => [
+                'code_produit' => $row->code_produit,
+                'libelle' => $row->libelle_produit ?: 'Non renseigné',
+                'total' => (int) $row->total,
+                'total_primes' => (float) $row->total_primes,
+            ])
+            ->all();
+    }
+
+    private function getPropositionEvolution(array $filters): array
+    {
+        $granularity = $filters['granularite'] ?? 'mois';
+        if (!empty($filters['date'])) {
+            $rangeStart = Carbon::parse($filters['date'])->startOfDay();
+            $rangeEnd = $rangeStart->copy()->endOfDay();
+        } else {
+            $rangeStart = Carbon::parse($filters['date_debut'] ?? now()->startOfYear())->startOfDay();
+            $rangeEnd = Carbon::parse($filters['date_fin'] ?? now())->endOfDay();
+        }
+
+        $start = $this->startOfDashboardPeriod($rangeStart->copy(), $granularity);
+        $end = $this->startOfDashboardPeriod($rangeEnd->copy(), $granularity);
+        $periods = [];
+
+        for ($period = $start->copy(); $period <= $end; $period = $this->nextDashboardPeriod($period, $granularity)) {
+            $key = $this->formatDashboardPeriod($period, $granularity);
+            $periods[$key] = [
+                'periode' => $key,
+                'total_propositions' => 0,
+                'total_en_attente' => 0,
+                'primes_en_attente' => 0.0,
+                'total_transmis' => 0,
+                'primes_transmises' => 0.0,
+                'total_valides' => 0,
+                'primes_validees' => 0.0,
+                'total_rejetes' => 0,
+                'primes_rejetees' => 0.0,
+            ];
+        }
+
+        $rows = $this->dashboardQuery($filters, true)
+            ->whereBetween('contrats.created_at', [$rangeStart, $rangeEnd])
+            ->selectRaw('DATE(contrats.created_at) as date_periode')
+            ->selectRaw('COUNT(contrats.uuid_contrat) as total_propositions')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN 1 ELSE 0 END), 0) as total_en_attente')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN contrats.prime ELSE 0 END), 0) as primes_en_attente')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN 1 ELSE 0 END), 0) as total_transmis'
+            )
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
+            )
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN 1 ELSE 0 END), 0) as total_valides')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_validees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN 1 ELSE 0 END), 0) as total_rejetes')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
+            ->groupByRaw('DATE(contrats.created_at)')
+            ->get();
+
+        foreach ($rows as $row) {
+            $key = $this->formatDashboardPeriod(Carbon::parse($row->date_periode), $granularity);
+            if (isset($periods[$key])) {
+                foreach (array_keys($periods[$key]) as $field) {
+                    if ($field !== 'periode') {
+                        $periods[$key][$field] += str_starts_with($field, 'primes_')
+                            ? (float) $row->{$field}
+                            : (int) $row->{$field};
+                    }
+                }
+            }
+        }
+
+        return [
+            'granularite' => $granularity,
+            'date_debut' => $rangeStart->toDateString(),
+            'date_fin' => $rangeEnd->toDateString(),
+            'donnees' => array_values($periods),
+        ];
+    }
+
+    private function startOfDashboardPeriod(Carbon $date, string $granularity): Carbon
+    {
+        return match ($granularity) {
+            'jour' => $date->startOfDay(),
+            'semaine' => $date->startOfWeek(),
+            'trimestre' => $date->startOfQuarter(),
+            'semestre' => $date->setMonth($date->month <= 6 ? 1 : 7)->startOfMonth(),
+            'annee' => $date->startOfYear(),
+            default => $date->startOfMonth(),
+        };
+    }
+
+    private function nextDashboardPeriod(Carbon $date, string $granularity): Carbon
+    {
+        return match ($granularity) {
+            'jour' => $date->addDay(),
+            'semaine' => $date->addWeek(),
+            'trimestre' => $date->addQuarter(),
+            'semestre' => $date->addMonths(6),
+            'annee' => $date->addYear(),
+            default => $date->addMonth(),
+        };
+    }
+
+    private function formatDashboardPeriod(Carbon $date, string $granularity): string
+    {
+        return match ($granularity) {
+            'jour' => $date->format('Y-m-d'),
+            'semaine' => $date->format('o-\WW'),
+            'trimestre' => $date->format('Y') . '-T' . $date->quarter,
+            'semestre' => $date->format('Y') . '-S' . ($date->month <= 6 ? '1' : '2'),
+            'annee' => $date->format('Y'),
+            default => $date->format('Y-m'),
+        };
     }
 
     private function getTopFiveByContracts(Builder $query, array $rankings): array
@@ -224,27 +446,19 @@ class ContratService
     private function getSubscriptionEvolution(array $filters): array
     {
         $granularity = $filters['granularite'] ?? 'mois';
-        $rangeStart = Carbon::parse($filters['date_debut'] ?? now()->startOfYear())->startOfDay();
-        $rangeEnd = Carbon::parse($filters['date_fin'] ?? now())->endOfDay();
-        $start = $rangeStart->copy();
-        $end = $rangeEnd->copy();
-
-        if ($granularity === 'mois') {
-            $start->startOfMonth();
-            $end->startOfMonth();
-            $step = 'month';
-        } elseif ($granularity === 'semaine') {
-            $start->startOfWeek();
-            $end->startOfWeek();
-            $step = 'week';
+        if (!empty($filters['date'])) {
+            $rangeStart = Carbon::parse($filters['date'])->startOfDay();
+            $rangeEnd = $rangeStart->copy()->endOfDay();
         } else {
-            $step = 'day';
+            $rangeStart = Carbon::parse($filters['date_debut'] ?? now()->startOfYear())->startOfDay();
+            $rangeEnd = Carbon::parse($filters['date_fin'] ?? now())->endOfDay();
         }
 
-        $periodEnd = $end->copy()->endOf($step);
+        $start = $this->startOfDashboardPeriod($rangeStart->copy(), $granularity);
+        $end = $this->startOfDashboardPeriod($rangeEnd->copy(), $granularity);
         $periods = [];
-        for ($period = $start->copy(); $period <= $end;) {
-            $key = $this->formatEvolutionPeriod($period, $granularity);
+        for ($period = $start->copy(); $period <= $end; $period = $this->nextDashboardPeriod($period, $granularity)) {
+            $key = $this->formatDashboardPeriod($period, $granularity);
             $periods[$key] = [
                 'periode' => $key,
                 'saisies' => 0,
@@ -253,14 +467,6 @@ class ContratService
                 'rejetes' => 0,
                 'annules' => 0,
             ];
-
-            if ($step === 'month') {
-                $period->addMonth();
-            } elseif ($step === 'week') {
-                $period->addWeek();
-            } else {
-                $period->addDay();
-            }
         }
 
         $events = [
@@ -281,7 +487,7 @@ class ContratService
                 ->get();
 
             foreach ($counts as $count) {
-                $key = $this->formatEvolutionPeriod(Carbon::parse($count->date_evenement), $granularity);
+                    $key = $this->formatDashboardPeriod(Carbon::parse($count->date_evenement), $granularity);
                 if (isset($periods[$key])) {
                     $periods[$key][$status] += (int) $count->total;
                 }
@@ -294,15 +500,6 @@ class ContratService
             'date_fin' => $rangeEnd->toDateString(),
             'donnees' => array_values($periods),
         ];
-    }
-
-    private function formatEvolutionPeriod(Carbon $period, string $granularity): string
-    {
-        return match ($granularity) {
-            'mois' => $period->format('Y-m'),
-            'semaine' => $period->format('o-\WW'),
-            default => $period->format('Y-m-d'),
-        };
     }
 
     private function countContractsBetween(Builder $query, $start, $end): int
