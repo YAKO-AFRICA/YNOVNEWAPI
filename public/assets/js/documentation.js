@@ -361,7 +361,7 @@
                 module: "souscription",
                 name: "Créer une proposition de souscription",
                 description:
-                    "Crée en une seule transaction un contrat complet avec adhérent, assurés, bénéficiaires, documents, données de santé et garanties des assurés. Pour chaque assuré, transmettre ses garanties dans garantie.garantieData (ou garanties.garantieData) : chaque élément contient uuid_garantie, codeGarantie, libelle, capital et prime. Toutes les garanties transmises sont enregistrées pour l’assuré correspondant et le contrat créé. Envoyer les champs imbriqués et les fichiers en multipart/form-data, par exemple adherentData[nom], assurerDatas[0][info][nom], assurerDatas[0][garantie][garantieData][0][uuid_garantie] et documentDatas[0][file]. Laisser le client HTTP définir automatiquement le Content-Type et sa boundary.",
+                    "Crée en une seule transaction un contrat complet avec adhérent, assurés, bénéficiaires, documents, données de santé et garanties des assurés. Pour chaque assuré, transmettre ses garanties dans garantie.garantieData (ou garanties.garantieData), avec les tableaux garantieObligatoire et garantieOptionnel. Chaque garantie contient uuid_garantie, codeGarantie, libelle, capital et prime ; utiliser [] lorsqu’il n’y a aucune garantie d’une catégorie. Toutes les garanties transmises sont enregistrées pour l’assuré correspondant et le contrat créé. Envoyer les champs imbriqués et les fichiers en multipart/form-data, par exemple assurerDatas[0][garantie][garantieData][garantieObligatoire][0][uuid_garantie] et documentDatas[0][file]. Laisser le client HTTP définir automatiquement le Content-Type et sa boundary.",
                 method: "POST",
                 path: "/esouscription/store-propositition",
                 isProtected: true,
@@ -380,7 +380,7 @@
                         assurerDatas: {
                             type: "array",
                             required: true,
-                            description: "Liste d’objets {is_adherent, info, sante, garantie}. is_adherent doit être exactement « oui » pour réutiliser l’adhérent déclaré dans adherentData (aucun nouvel acteur n’est créé), ou « non » pour créer un autre assuré. Même pour is_adherent: « oui », envoyer toutes les informations personnelles dans info et toutes les données de santé dans sante. La clé facultative garantie contient un objet garantieData, tableau des garanties propres à cet assuré ; chaque garantie doit fournir uuid_garantie, codeGarantie, libelle, capital et prime. La clé garanties (au pluriel) est également acceptée. Le serveur enregistre chaque élément de garantieData avec l’UUID de cet assuré et celui du contrat. Si la clé is_adherent est absente ou différente de « oui », le serveur crée un nouvel acteur.",
+                            description: "Liste d’objets {is_adherent, info, sante, garantie}. is_adherent doit être exactement « oui » pour réutiliser l’adhérent déclaré dans adherentData (aucun nouvel acteur n’est créé), ou « non » pour créer un autre assuré. Même pour is_adherent: « oui », envoyer toutes les informations personnelles dans info et toutes les données de santé dans sante. La clé facultative garantie contient un objet garantieData avec les tableaux garantieObligatoire et garantieOptionnel, propres à cet assuré. Chaque garantie doit fournir uuid_garantie, codeGarantie, libelle, capital et prime ; utiliser [] si une catégorie n’a pas de garantie. La clé garanties (au pluriel) est également acceptée. Le serveur enregistre toutes les garanties des deux tableaux avec l’UUID de cet assuré et celui du contrat. Si la clé is_adherent est absente ou différente de « oui », le serveur crée un nouvel acteur.",
                         },
                         BeneficiaireDatas: {
                             type: "array",
@@ -14783,20 +14783,26 @@
                             message: "Simulation Doihoo calculée avec succès.",
                             code: "DOIHOO_SIMULATION_SUCCESS",
                             data: {
-                                garantieData: [
-                                    {
-                                        codeGarantie: "INV_2020",
-                                        libelle: "INVEST",
-                                        capital: 1000000,
-                                        prime: 12000,
-                                    },
-                                    {
-                                        codeGarantie: "DOI_2020",
-                                        libelle: "DOIHOO",
-                                        capital: 1000000,
-                                        prime: 2500,
-                                    },
-                                ],
+                                garantieData: {
+                                    garantieObligatoire: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_INVEST",
+                                            codeGarantie: "INV_2020",
+                                            libelle: "INVEST",
+                                            capital: 1000000,
+                                            prime: 12000,
+                                        },
+                                    ],
+                                    garantieOptionnel: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_DOIHOO",
+                                            codeGarantie: "DOI_2020",
+                                            libelle: "DOIHOO",
+                                            capital: 1000000,
+                                            prime: 2500,
+                                        },
+                                    ],
+                                },
                                 infoSimulation: {
                                     codeProduit: "DOIHOO_2020_IND",
                                     periodicite: "M",
@@ -14913,15 +14919,19 @@
                             message: "Simulation LPREVO calculée avec succès.",
                             code: "LPREVO_SIMULATION_SUCCESS",
                             data: {
-                                garantieData: [
-                                    {
-                                        codeGarantie: "DTC/IAD",
-                                        prime: 2500,
-                                        capital: 250000,
-                                        libelle:
-                                            "DECES TOUTES CAUSES INVALIDITE ABSOLUE ET DEFINITIVE",
-                                    },
-                                ],
+                                garantieData: {
+                                    garantieObligatoire: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_DTC_IAD",
+                                            codeGarantie: "DTC/IAD",
+                                            prime: 2500,
+                                            capital: 250000,
+                                            libelle:
+                                                "DECES TOUTES CAUSES INVALIDITE ABSOLUE ET DEFINITIVE",
+                                        },
+                                    ],
+                                    garantieOptionnel: [],
+                                },
                                 pathologies: ["Diabète", "Hypertension"],
                                 infoSimulation: {
                                     isAssure: "oui",

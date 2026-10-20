@@ -64,6 +64,7 @@ class DoihooSimulatorServiceTest extends BaseTestCase
                         'code_produit_garantie' => 'INV_2020',
                         'libelle' => 'INVEST',
                         'branche' => 'IND',
+                        'est_obligatoire' => true,
                     ]),
                     new ProduitGarantie([
                         'uuid_produit_garantie' => 'guarantee-uuid-2',
@@ -71,6 +72,7 @@ class DoihooSimulatorServiceTest extends BaseTestCase
                         'code_produit_garantie' => 'DOI_2020',
                         'libelle' => 'DOIHOO',
                         'branche' => 'IND',
+                        'est_obligatoire' => false,
                     ]),
                 ]);
             }
@@ -84,11 +86,12 @@ class DoihooSimulatorServiceTest extends BaseTestCase
             'Duree' => DoihooSimulatorService::DUREE_CONTRAT,
         ]);
 
-        $this->assertCount(2, $result['garantieData']);
-        $this->assertSame('guarantee-uuid-1', $result['garantieData'][0]['uuid_garantie']);
-        $this->assertSame('guarantee-uuid-2', $result['garantieData'][1]['uuid_garantie']);
-        $this->assertSame(12000.0, $result['garantieData'][0]['prime']);
-        $this->assertSame(2500.0, $result['garantieData'][1]['prime']);
+        $this->assertCount(1, $result['garantieData']['garantieObligatoire']);
+        $this->assertCount(1, $result['garantieData']['garantieOptionnel']);
+        $this->assertSame('guarantee-uuid-1', $result['garantieData']['garantieObligatoire'][0]['uuid_garantie']);
+        $this->assertSame('guarantee-uuid-2', $result['garantieData']['garantieOptionnel'][0]['uuid_garantie']);
+        $this->assertSame(12000.0, $result['garantieData']['garantieObligatoire'][0]['prime']);
+        $this->assertSame(2500.0, $result['garantieData']['garantieOptionnel'][0]['prime']);
         $this->assertSame(14500.0, $result['infoSimulation']['primepricipale']);
         $this->assertSame(7500, $result['infoSimulation']['fraisAdhesion']);
         $this->assertSame(22000.0, $result['infoSimulation']['primeFinale']);

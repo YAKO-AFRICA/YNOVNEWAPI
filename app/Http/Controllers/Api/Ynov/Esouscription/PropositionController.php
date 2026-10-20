@@ -148,6 +148,20 @@ class PropositionController extends Controller
                     if (isset($assureGaranties['garantieData'])) {
                         $assureGaranties = $assureGaranties['garantieData'];
                     }
+                    if (
+                        is_array($assureGaranties)
+                        && (
+                            array_key_exists('garantieObligatoire', $assureGaranties)
+                            || array_key_exists('garantieOptionnel', $assureGaranties)
+                        )
+                    ) {
+                        $garantiesObligatoires = $assureGaranties['garantieObligatoire'] ?? [];
+                        $garantiesOptionnelles = $assureGaranties['garantieOptionnel'] ?? [];
+                        if (!is_array($garantiesObligatoires) || !is_array($garantiesOptionnelles)) {
+                            throw new \InvalidArgumentException('Les garanties de l’assuré doivent être des listes.');
+                        }
+                        $assureGaranties = array_merge($garantiesObligatoires, $garantiesOptionnelles);
+                    }
                     if (isset($assureGaranties['codeGarantie'])) {
                         $assureGaranties = [$assureGaranties];
                     }
