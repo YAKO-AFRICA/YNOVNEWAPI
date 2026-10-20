@@ -17,9 +17,10 @@ class AgenceService
     public function create(array $data, string $creatorUuid): Agence
     {
         return DB::transaction(function () use ($data, $creatorUuid) {
+            $uuid = (string) Str::uuid();
             // Créer l'agence
             $agence = Agence::create([
-                'uuid_agence' => (string) Str::uuid(),
+                'uuid_agence' => $uuid,
                 'code' => $data['code'],
                 'libelle' => $data['libelle'],
                 'description' => $data['description'] ?? null,
@@ -40,6 +41,11 @@ class AgenceService
                 'status' => $data['status'] ?? 'actif',
                 'created_by' => $creatorUuid,
             ]);
+
+            // garde-fou si un autre code écrase la PK
+            if ($agence->uuid_agence !== $uuid) {
+                $agence->setAttribute('uuid_agence', $uuid);
+            }
 
             // Créer les horaires
             if (isset($data['horaires']) && !empty($data['horaires'])) {

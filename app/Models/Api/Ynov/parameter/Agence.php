@@ -31,6 +31,8 @@ class Agence extends Model
      * @var string
      */
     protected $keyType = 'string';
+
+    public $incrementing = false;
     
     protected $fillable = [
         'uuid_agence',

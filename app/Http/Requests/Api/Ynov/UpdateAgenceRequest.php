@@ -18,7 +18,6 @@ class UpdateAgenceRequest extends FormRequest
         $uuid = $agence ? $agence->uuid_agence : null;
 
         return [
-            // 'code' => ['sometimes', 'string', 'max:55', Rule::unique('agences', 'code')->ignore($uuid, 'uuid_agence')],
             'libelle' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'reseau_uuid' => ['nullable', 'exists:reseaux,uuid_reseau'],
