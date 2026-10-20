@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Contrat;
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Partner;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use Illuminate\Http\Request;
@@ -17,16 +18,25 @@ class ValidationController extends Controller
 
     public function getPartnerDistinct(Request $request)
     {
-        $partnerUuids = Contrat::query()
+        // Compter les contrats par partenaire (étape = 2 et partner_uuid non null)
+        $contratsParPartenaire = Contrat::query()
             ->where('etape', 2)
             ->whereNotNull('partner_uuid')
-            ->select('partner_uuid')
-            ->distinct();
-
+            ->selectRaw('partner_uuid, COUNT(*) as total')
+            ->groupBy('partner_uuid')
+            ->pluck('total', 'partner_uuid');
+            
         $partners = Partner::query()
-            ->whereIn('uuid_partner', $partnerUuids)
+            ->whereIn('uuid_partner', $contratsParPartenaire->keys())
             ->orderBy('designation')
-            ->get();
+            ->get()
+            ->map(function ($partner) use ($contratsParPartenaire) {
+                $document = Document::withoutTrashed()->where('reference_uuid', $partner->uuid_partner)->first();
+                $url = ($document) ? env('APP_URL') .'preview/doc/' . $document->nom_fichier : null;
+                $partner->contrats = $contratsParPartenaire->get($partner->uuid_partner, 0);
+                $partner->logo_url = $url;
+                return $partner;
+            });
 
         return response()->json([
             'success' => true,

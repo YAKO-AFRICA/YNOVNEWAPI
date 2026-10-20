@@ -1144,6 +1144,7 @@ Route::prefix('v1')->middleware([
         Route::get('restore-contrat-acteur/{uuid}', [ContratActeurController::class, 'restore']);
 
         // crud contrats
+        Route::get('dashboard-contrats', [ContratController::class, 'dashboard']);
         Route::get('get-contrats', [ContratController::class, 'index']);
         Route::get('get-partners-distinct', [ValidationController::class, 'getPartnerDistinct']);
         Route::get('get-contrats-by-partner/{partner_uuid}', [ValidationController::class, 'getContratsByPartner']);
