@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ContratService
@@ -46,6 +47,7 @@ class ContratService
     {
         $query = $this->dashboardQuery($filters, true);
         $allDatesQuery = $this->dashboardQuery($filters, false);
+        $allStagesQuery = $this->dashboardQuery($filters, false, false);
 
         $rankings = [
             'produits' => [
@@ -111,7 +113,10 @@ class ContratService
             ),
             'total_contrats_periode' => (clone $query)->count('contrats.uuid_contrat'),
             'contrats_en_attente_validation' => (clone $query)->where('contrats.etape', 2)->count(),
-            'contrats_valides' => (clone $query)->whereNotNull('contrats.acceptance_date')->count(),
+            'contrats_transmis' => (clone $query)->whereIn('contrats.etape', [2, 3, 4])
+                ->whereNotNull('contrats.date_transmission')->count(),
+            'contrats_valides' => (clone $query)->where('contrats.etape', 3)->count(),
+            'contrats_rejetes' => (clone $query)->where('contrats.etape', 4)->count(),
             'contrats_annules' => (clone $query)->whereNotNull('contrats.date_annulation')->count(),
             'partenaires_actifs' => (clone $query)->whereNotNull('contrats.partner_uuid')
                 ->distinct()->count('contrats.partner_uuid'),
@@ -124,6 +129,9 @@ class ContratService
         ];
 
         $statusTotals = $this->getDashboardStatusTotals(clone $query);
+        $totalSaisie = (clone $allStagesQuery)->count('contrats.uuid_contrat');
+        $saisiesNonTransmis = (clone $allStagesQuery)->where('contrats.etape', 1)
+            ->count('contrats.uuid_contrat');
 
         return [
             'meilleurs' => $leaders,
@@ -132,6 +140,8 @@ class ContratService
             'evolution_souscriptions' => $evolution,
             'indicateurs_volume' => $volume,
             'indicateurs' => [
+                'total_saisie' => $totalSaisie,
+                'saisie_non_transmis' => $saisiesNonTransmis,
                 'total_propositions' => $statusTotals['total_propositions'],
                 'total_en_attente' => $statusTotals['total_en_attente'],
                 'total_transmis' => $statusTotals['total_transmis'],
@@ -144,7 +154,7 @@ class ContratService
         ];
     }
 
-    private function dashboardQuery(array $filters, bool $applyDateRange): Builder
+    private function dashboardQuery(array $filters, bool $applyDateRange, bool $applyStatusFilter = true): Builder
     {
         $query = Contrat::query();
 
@@ -159,7 +169,7 @@ class ContratService
             $query->where('contrats.conseiller_uuid', $commercialUuid);
         }
 
-        if (!empty($filters['statut'])) {
+        if ($applyStatusFilter && !empty($filters['statut'])) {
             $this->applyDashboardStatusFilter($query, (string) $filters['statut']);
         }
 
@@ -194,12 +204,10 @@ class ContratService
 
         match ($status) {
             'en_attente' => $query->where('contrats.etape', 2),
-            'transmis' => $query->whereNotNull('contrats.date_transmission')
-                ->whereNull('contrats.acceptance_date')
-                ->whereNull('contrats.date_rejet')
-                ->whereNull('contrats.date_annulation'),
-            'valide' => $query->whereNotNull('contrats.acceptance_date'),
-            'rejete' => $query->whereNotNull('contrats.date_rejet'),
+            'transmis' => $query->whereIn('contrats.etape', [2, 3, 4])
+                ->whereNotNull('contrats.date_transmission'),
+            'valide' => $query->where('contrats.etape', 3),
+            'rejete' => $query->where('contrats.etape', 4),
             'annule' => $query->whereNotNull('contrats.date_annulation'),
         };
     }
@@ -208,30 +216,34 @@ class ContratService
     {
         $row = $query
             ->selectRaw('COUNT(contrats.uuid_contrat) as total_propositions')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 1 THEN 1 ELSE 0 END), 0) as saisies_non_transmis')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN 1 ELSE 0 END), 0) as total_en_attente')
             ->selectRaw(
-                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN 1 ELSE 0 END), 0) as total_transmis'
+                'COALESCE(SUM(CASE WHEN contrats.etape IN (2, 3, 4) AND contrats.date_transmission IS NOT NULL THEN 1 ELSE 0 END), 0) as total_transmis'
             )
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN 1 ELSE 0 END), 0) as total_valides')
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN 1 ELSE 0 END), 0) as total_rejetes')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 3 THEN 1 ELSE 0 END), 0) as total_valides')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 4 THEN 1 ELSE 0 END), 0) as total_rejetes')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_annulation IS NOT NULL THEN 1 ELSE 0 END), 0) as total_annules')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 1 THEN contrats.prime ELSE 0 END), 0) as primes_saisies_non_transmises')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN contrats.prime ELSE 0 END), 0) as primes_en_attente')
             ->selectRaw(
-                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
+                'COALESCE(SUM(CASE WHEN contrats.etape IN (2, 3, 4) AND contrats.date_transmission IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
             )
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_validees')
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 3 THEN contrats.prime ELSE 0 END), 0) as primes_validees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 4 THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_annulation IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_annulees')
             ->first();
 
         return [
             'total_propositions' => (int) $row->total_propositions,
+            'saisies_non_transmis' => (int) $row->saisies_non_transmis,
             'total_en_attente' => (int) $row->total_en_attente,
             'total_transmis' => (int) $row->total_transmis,
             'total_valides' => (int) $row->total_valides,
             'total_rejetes' => (int) $row->total_rejetes,
             'total_annules' => (int) $row->total_annules,
             'primes_en_attente' => (float) $row->primes_en_attente,
+            'primes_saisies_non_transmises' => (float) $row->primes_saisies_non_transmises,
             'primes_transmises' => (float) $row->primes_transmises,
             'primes_validees' => (float) $row->primes_validees,
             'primes_rejetees' => (float) $row->primes_rejetees,
@@ -242,6 +254,11 @@ class ContratService
     private function getDashboardStatusDistribution(array $totals): array
     {
         $statuses = [
+            'saisie_non_transmis' => [
+                'libelle' => 'Saisie non transmise',
+                'total' => 'saisies_non_transmis',
+                'primes' => 'primes_saisies_non_transmises',
+            ],
             'en_attente' => ['libelle' => 'En attente', 'total' => 'total_en_attente', 'primes' => 'primes_en_attente'],
             'transmis' => ['libelle' => 'Transmis', 'total' => 'total_transmis', 'primes' => 'primes_transmises'],
             'valide' => ['libelle' => 'Validé', 'total' => 'total_valides', 'primes' => 'primes_validees'],
@@ -297,6 +314,7 @@ class ContratService
             $periods[$key] = [
                 'periode' => $key,
                 'total_propositions' => 0,
+                'saisies_non_transmis' => 0,
                 'total_en_attente' => 0,
                 'primes_en_attente' => 0.0,
                 'total_transmis' => 0,
@@ -312,18 +330,19 @@ class ContratService
             ->whereBetween('contrats.created_at', [$rangeStart, $rangeEnd])
             ->selectRaw('DATE(contrats.created_at) as date_periode')
             ->selectRaw('COUNT(contrats.uuid_contrat) as total_propositions')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 1 THEN 1 ELSE 0 END), 0) as saisies_non_transmis')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN 1 ELSE 0 END), 0) as total_en_attente')
             ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 2 THEN contrats.prime ELSE 0 END), 0) as primes_en_attente')
             ->selectRaw(
-                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN 1 ELSE 0 END), 0) as total_transmis'
+                'COALESCE(SUM(CASE WHEN contrats.etape IN (2, 3, 4) AND contrats.date_transmission IS NOT NULL THEN 1 ELSE 0 END), 0) as total_transmis'
             )
             ->selectRaw(
-                'COALESCE(SUM(CASE WHEN contrats.date_transmission IS NOT NULL AND contrats.acceptance_date IS NULL AND contrats.date_rejet IS NULL AND contrats.date_annulation IS NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
+                'COALESCE(SUM(CASE WHEN contrats.etape IN (2, 3, 4) AND contrats.date_transmission IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_transmises'
             )
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN 1 ELSE 0 END), 0) as total_valides')
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.acceptance_date IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_validees')
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN 1 ELSE 0 END), 0) as total_rejetes')
-            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.date_rejet IS NOT NULL THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 3 THEN 1 ELSE 0 END), 0) as total_valides')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 3 THEN contrats.prime ELSE 0 END), 0) as primes_validees')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 4 THEN 1 ELSE 0 END), 0) as total_rejetes')
+            ->selectRaw('COALESCE(SUM(CASE WHEN contrats.etape = 4 THEN contrats.prime ELSE 0 END), 0) as primes_rejetees')
             ->groupByRaw('DATE(contrats.created_at)')
             ->get();
 
@@ -461,6 +480,8 @@ class ContratService
             $key = $this->formatDashboardPeriod($period, $granularity);
             $periods[$key] = [
                 'periode' => $key,
+                'all_saisies' => 0,
+                'saisies_non_transmis' => 0,
                 'saisies' => 0,
                 'transmis' => 0,
                 'acceptes' => 0,
@@ -470,15 +491,24 @@ class ContratService
         }
 
         $events = [
-            'saisies' => 'created_at',
-            'transmis' => 'date_transmission',
-            'acceptes' => 'acceptance_date',
-            'rejetes' => 'date_rejet',
-            'annules' => 'date_annulation',
+            'saisies' => ['column' => 'created_at'],
+            'saisies_non_transmis' => ['column' => 'created_at', 'etape' => 1],
+            'transmis' => ['column' => 'date_transmission', 'etapes' => [2, 3, 4]],
+            'acceptes' => ['column' => 'acceptance_date', 'etape' => 3],
+            'rejetes' => ['column' => 'date_rejet', 'etape' => 4],
+            'annules' => ['column' => 'date_annulation'],
         ];
 
-        foreach ($events as $status => $column) {
-            $counts = $this->dashboardQuery($filters, false)
+        foreach ($events as $status => $event) {
+            $column = $event['column'];
+            $eventQuery = $this->dashboardQuery($filters, false, $status === 'saisies' || $status === 'saisies_non_transmis' ? false : true);
+            if (isset($event['etape'])) {
+                $eventQuery->where('contrats.etape', $event['etape']);
+            } elseif (isset($event['etapes'])) {
+                $eventQuery->whereIn('contrats.etape', $event['etapes']);
+            }
+
+            $counts = $eventQuery
                 ->whereNotNull('contrats.' . $column)
                 ->whereBetween('contrats.' . $column, [$rangeStart, $rangeEnd])
                 ->select('contrats.' . $column . ' as date_evenement')
@@ -487,17 +517,27 @@ class ContratService
                 ->get();
 
             foreach ($counts as $count) {
-                    $key = $this->formatDashboardPeriod(Carbon::parse($count->date_evenement), $granularity);
+                $key = $this->formatDashboardPeriod(Carbon::parse($count->date_evenement), $granularity);
                 if (isset($periods[$key])) {
                     $periods[$key][$status] += (int) $count->total;
+                    if ($status === 'saisies') {
+                        $periods[$key]['all_saisies'] += (int) $count->total;
+                    }
                 }
             }
         }
+
+        $totalSaisie = $this->dashboardQuery($filters, false, false)->count('contrats.uuid_contrat');
+        $saisieNonTransmis = $this->dashboardQuery($filters, false, false)
+            ->where('contrats.etape', 1)
+            ->count('contrats.uuid_contrat');
 
         return [
             'granularite' => $granularity,
             'date_debut' => $rangeStart->toDateString(),
             'date_fin' => $rangeEnd->toDateString(),
+            'total_saisie' => $totalSaisie,
+            'saisie_non_transmis' => $saisieNonTransmis,
             'donnees' => array_values($periods),
         ];
     }

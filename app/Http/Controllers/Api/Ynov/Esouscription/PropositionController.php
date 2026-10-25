@@ -82,7 +82,16 @@ class PropositionController extends Controller
                 $DocumentDatas     = $request->documentDatas ?? [];
                 $contratData       = $request->contratData ?? [];
 
-                $createdBy = $adherentData['created_by'] ?? null;
+                $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+
+                if($contratData['source_data'] == 'ONECI' || $contratData['source_data'] == 'oneci') {
+                    $dateTransmission = now()->format('Y-m-d H:i:s');
+                    $transmisPar = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                } else {
+                    $dateTransmission = null;
+                    $transmisPar = null;
+                }
+                
 
                 // ==================== 1. Souscripteur (ADH) ====================
                 $numeroClient = $this->clientNumberGenerator->generate(
@@ -444,7 +453,9 @@ class PropositionController extends Controller
                     'formule'                       => $contratData['formule'] ?? null,
                     'source_data'                   => $contratData['source_data'] ?? null,
                     'integration_key'               => $keyIntegration,
-                    'created_by'                    => $contratData['created_by'] ?? $createdBy,
+                    'created_by'                    => $createdBy,
+                    'date_transmission'             => $dateTransmission ?? null,
+                    'transmis_par'                  => $transmisPar ?? null,
                 ];
 
                 $contratStore = $this->contratService->create($contratPayload);
