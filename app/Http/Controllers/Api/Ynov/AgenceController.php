@@ -27,8 +27,10 @@ class AgenceController extends Controller
     {
         $filters = $request->only([
             'status', 'reseau_uuid', 'ville', 'quartier', 'search', 'open_now',
-            'latitude', 'longitude', 'radius'
+            'latitude', 'longitude', 'radius', 'user'=> $request->user() ?? null,
         ]);
+
+        
         
         $perPage = $request->integer('per_page', 20);
         $agences = $this->agenceService->getAgences($filters, $perPage);

@@ -13,6 +13,7 @@
 .env.production
 Homestead.json
 Homestead.yaml
+laloyale_bdynov.sql
 auth.json
 npm-debug.log
 yarn-error.log

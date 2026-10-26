@@ -196,6 +196,13 @@ Route::prefix('v1')->group(function () {
             Route::post('generate-link', [SignatureController::class, 'generateLink']);
         });
 
+         // --- Envoi du lien : authentifié (SMS/WhatsApp payants) ---
+        Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('send')->group(function () {
+            Route::post('email',    [SignatureController::class, 'sendByEmail']);
+            Route::post('sms',      [SignatureController::class, 'sendBySms']);
+            Route::post('whatsapp', [SignatureController::class, 'sendByWhatsapp']);
+        });
+
         // --- Appelé par le widget ---
         Route::post('webhook', [SignatureController::class, 'receiveSignature'])
             ->middleware('throttle:20,1');

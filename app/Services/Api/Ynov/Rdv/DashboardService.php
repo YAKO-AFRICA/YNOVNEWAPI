@@ -19,9 +19,9 @@ class DashboardService
         $user = $filters['user'] ?? null;
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
-        
+
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->whereIn('agence_effective_uuid', array_merge($agences, [null]));
             $query->where('created_by', $user->uuid_user);
         }
 
@@ -79,9 +79,9 @@ class DashboardService
         $user = $filters['user'] ?? null;
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
-        
+
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->whereIn('agence_effective_uuid', array_merge($agences, [null]));
             $query->where('created_by', $user->uuid_user);
         };
 
@@ -156,9 +156,9 @@ class DashboardService
         $user = $filters['user'] ?? null;
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
-        
+
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('rdvs.agence_effective_uuid', [$agences, null]);
+            $query->whereIn('rdvs.agence_effective_uuid', array_merge($agences, [null]));
             $query->where('rdvs.created_by', $user->uuid_user);
         }
 
@@ -218,9 +218,9 @@ class DashboardService
             $user = $filters['user'] ?? null;
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
-        
+
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('rdvs.agence_effective_uuid', [$agences, null]);
+            $query->whereIn('rdvs.agence_effective_uuid', array_merge($agences, [null]));
             $query->where('rdvs.created_by', $user->uuid_user);
         }
 
@@ -278,9 +278,9 @@ class DashboardService
         $user = $filters['user'] ?? null;
 
         if ($user && method_exists($user, 'hasRole') && $user->hasRole('gestionnaire_accueil')) {
-        
+
             $agences = $user->agences()->pluck('uuid_agence')->toArray();
-            $query->whereIn('agence_effective_uuid', [$agences, null]);
+            $query->whereIn('agence_effective_uuid', array_merge($agences, [null]));
             $query->where('rdvs.created_by', $user->uuid_user);
         }
 
