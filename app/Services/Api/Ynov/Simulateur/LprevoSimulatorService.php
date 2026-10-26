@@ -43,12 +43,16 @@ class LprevoSimulatorService
         }
 
         return [
-            'garantieData' => [[
-                'codeGarantie' => $guarantee->code_produit_garantie,
-                'prime' => $primePrincipale,
-                'capital' => $capital,
-                'libelle' => $guarantee->libelle,
-            ]],
+            'garantieData' => [
+                'garantieObligatoire' => [[
+                    'uuid_garantie' => $guarantee->uuid_produit_garantie,
+                    'codeGarantie' => $guarantee->code_produit_garantie,
+                    'prime' => $primePrincipale,
+                    'capital' => $capital,
+                    'libelle' => $guarantee->libelle,
+                ]],
+                'garantieOptionnel' => [],
+            ],
             'pathologies' => $pathologies,
             'infoSimulation' => [
                 'isAssure' => 'oui',

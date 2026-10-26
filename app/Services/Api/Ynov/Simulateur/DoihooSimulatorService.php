@@ -52,7 +52,10 @@ class DoihooSimulatorService
             );
         }
 
-        $guaranteeData = [];
+        $guaranteeData = [
+            'garantieObligatoire' => [],
+            'garantieOptionnel' => [],
+        ];
         foreach ($guarantees as $guarantee) {
             $premiumTable = collect($premiumTables)->first(
                 fn ($table) => is_array($table)
@@ -96,15 +99,22 @@ class DoihooSimulatorService
                 );
             }
 
-            $guaranteeData[] = [
+            $isObligatory = (bool) $guarantee->est_obligatoire;
+            $guaranteeDataItem = [
+                'uuid_garantie' => $guarantee->uuid_produit_garantie,
                 'codeGarantie' => $guarantee->code_produit_garantie,
                 'libelle' => $guarantee->libelle,
                 'capital' => $capital,
                 'prime' => round((float) $premium, 2),
             ];
+            $key = $isObligatory ? 'garantieObligatoire' : 'garantieOptionnel';
+            $guaranteeData[$key][] = $guaranteeDataItem;
         }
 
-        $totalPremium = round(array_sum(array_column($guaranteeData, 'prime')), 2);
+        $totalPremium = round(array_sum(array_map(
+            fn (array $guarantee) => $guarantee['prime'],
+            array_merge($guaranteeData['garantieObligatoire'], $guaranteeData['garantieOptionnel'])
+        )), 2);
 
         return [
             'garantieData' => $guaranteeData,

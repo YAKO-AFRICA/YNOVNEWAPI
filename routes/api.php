@@ -1152,6 +1152,7 @@ Route::prefix('v1')->middleware([
 
         // crud contrats
         Route::get('dashboard-contrats', [ContratController::class, 'dashboard']);
+        Route::get('dashboard-validation', [ValidationController::class, 'dashboard']);
         Route::get('get-contrats', [ContratController::class, 'index']);
         Route::get('get-partners-distinct', [ValidationController::class, 'getPartnerDistinct']);
         Route::get('get-contrats-by-partner/{partner_uuid}', [ValidationController::class, 'getContratsByPartner']);

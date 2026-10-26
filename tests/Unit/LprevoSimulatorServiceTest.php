@@ -28,9 +28,10 @@ class LprevoSimulatorServiceTest extends BaseTestCase
             'Pathologies' => ['Diabète', 'Hypertension'],
         ]);
 
-        $this->assertSame('DTC/IAD', $result['garantieData'][0]['codeGarantie']);
-        $this->assertSame(2500, $result['garantieData'][0]['prime']);
-        $this->assertSame(250000, $result['garantieData'][0]['capital']);
+        $this->assertSame('DTC/IAD', $result['garantieData']['garantieObligatoire'][0]['codeGarantie']);
+        $this->assertSame(2500, $result['garantieData']['garantieObligatoire'][0]['prime']);
+        $this->assertSame(250000, $result['garantieData']['garantieObligatoire'][0]['capital']);
+        $this->assertSame([], $result['garantieData']['garantieOptionnel']);
         $this->assertSame(['Diabète', 'Hypertension'], $result['pathologies']);
         $this->assertSame(11000, $result['infoSimulation']['primePathologies']);
         $this->assertSame(19000, $result['infoSimulation']['primeFinal']);

@@ -9,6 +9,7 @@ use App\Services\Api\Ynov\ESouscription\ClientNumberGenerator;
 use App\Services\Api\Ynov\ESouscription\ContratActeurService;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
+use App\Services\Api\Ynov\ESouscription\AssurerGarantieService;
 use App\Services\Api\Ynov\ESouscription\PropositionService;
 use DateTimeImmutable;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class PropositionController extends Controller
         private DeclarationSanteService $declarationSanteService,
         private DocumentService $documentService,
         private ContratService $contratService,
+        private AssurerGarantieService $assurerGarantieService,
         private PropositionService $propositionService
     ) {}
 
@@ -80,7 +82,16 @@ class PropositionController extends Controller
                 $DocumentDatas     = $request->documentDatas ?? [];
                 $contratData       = $request->contratData ?? [];
 
-                $createdBy = $adherentData['created_by'] ?? null;
+                $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+
+                if($contratData['source_data'] == 'ONECI' || $contratData['source_data'] == 'oneci') {
+                    $dateTransmission = now()->format('Y-m-d H:i:s');
+                    $transmisPar = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                } else {
+                    $dateTransmission = null;
+                    $transmisPar = null;
+                }
+                
 
                 // ==================== 1. Souscripteur (ADH) ====================
                 $numeroClient = $this->clientNumberGenerator->generate(
@@ -140,6 +151,32 @@ class PropositionController extends Controller
 
                     $assureInfo  = $assure['info']  ?? [];
                     $assureSante = $assure['sante'] ?? [];
+                    $assureGaranties = data_get($assure, 'garanties.garantieData')
+                        ?? data_get($assure, 'garantie.garantieData')
+                        ?? ($assure['garanties'] ?? $assure['garantie'] ?? []);
+                    if (isset($assureGaranties['garantieData'])) {
+                        $assureGaranties = $assureGaranties['garantieData'];
+                    }
+                    if (
+                        is_array($assureGaranties)
+                        && (
+                            array_key_exists('garantieObligatoire', $assureGaranties)
+                            || array_key_exists('garantieOptionnel', $assureGaranties)
+                        )
+                    ) {
+                        $garantiesObligatoires = $assureGaranties['garantieObligatoire'] ?? [];
+                        $garantiesOptionnelles = $assureGaranties['garantieOptionnel'] ?? [];
+                        if (!is_array($garantiesObligatoires) || !is_array($garantiesOptionnelles)) {
+                            throw new \InvalidArgumentException('Les garanties de l’assuré doivent être des listes.');
+                        }
+                        $assureGaranties = array_merge($garantiesObligatoires, $garantiesOptionnelles);
+                    }
+                    if (isset($assureGaranties['codeGarantie'])) {
+                        $assureGaranties = [$assureGaranties];
+                    }
+                    if (!is_array($assureGaranties)) {
+                        throw new \InvalidArgumentException('Les garanties de l’assuré doivent être une liste.');
+                    }
                     $assureCreatedBy = $assureInfo['created_by'] ?? $createdBy;
                     $isAdherentAssure = data_get($assure, 'is_adherent') === 'oui';
                     $uuidAssure = $isAdherentAssure
@@ -193,7 +230,6 @@ class PropositionController extends Controller
                         if (!$AssuAdhStoreSante) {
                             throw new \Exception("Échec de la déclaration santé de l'assuré : {$assureInfo['nom']}");
                         }
-
 
                     } else {
 
@@ -269,7 +305,31 @@ class PropositionController extends Controller
                         if (!$assurSanteStore) {
                             throw new \Exception("Échec de la déclaration santé de l'assuré : {$assureInfo['nom']}");
                         }
+                    }
 
+                    foreach ($assureGaranties as $assureGarantie) {
+                        if (
+                            !is_array($assureGarantie)
+                            || !isset(
+                                $assureGarantie['uuid_garantie'],
+                                $assureGarantie['codeGarantie'],
+                                $assureGarantie['libelle'],
+                                $assureGarantie['capital'],
+                                $assureGarantie['prime']
+                            )
+                        ) {
+                            throw new \InvalidArgumentException('Une garantie de l’assuré est incomplète.');
+                        }
+
+                        $this->assurerGarantieService->create([
+                            'code'          => $assureGarantie['codeGarantie'],
+                            'uuid_garantie' => $assureGarantie['uuid_garantie'],
+                            'uuid_assurer'  => $uuidAssure,
+                            'uuid_contrat'  => $contratUuid,
+                            'libelle'       => $assureGarantie['libelle'],
+                            'capital'       => $assureGarantie['capital'],
+                            'prime'         => $assureGarantie['prime'],
+                        ]);
                     }
                 }
 
@@ -393,7 +453,9 @@ class PropositionController extends Controller
                     'formule'                       => $contratData['formule'] ?? null,
                     'source_data'                   => $contratData['source_data'] ?? null,
                     'integration_key'               => $keyIntegration,
-                    'created_by'                    => $contratData['created_by'] ?? $createdBy,
+                    'created_by'                    => $createdBy,
+                    'date_transmission'             => $dateTransmission ?? null,
+                    'transmis_par'                  => $transmisPar ?? null,
                 ];
 
                 $contratStore = $this->contratService->create($contratPayload);
