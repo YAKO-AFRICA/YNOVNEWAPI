@@ -290,6 +290,7 @@ class ContratController extends Controller
             'rib' => 'sometimes|nullable|string|max:100',
             'numero_compte' => 'sometimes|nullable|string|max:100',
             'numecompte_complet' => 'sometimes|nullable|string|max:255',
+            'autre_ref_prelev' => 'sometimes|nullable|string|max:255',
             'agence_uuid' => 'sometimes|nullable|string|max:255',
             'code_produit' => 'sometimes|nullable|string|max:100',
             'libelle_produit' => 'sometimes|nullable|string|max:255',

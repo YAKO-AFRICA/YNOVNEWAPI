@@ -81,6 +81,7 @@ class Contrat extends Model
         'rib',
         'numero_compte',
         'numecompte_complet',
+        'autre_ref_prelev', // pour les modes de paiement défense, prélèvement à la source
 
         // Agence responsable de la souscription
         'agence_uuid',

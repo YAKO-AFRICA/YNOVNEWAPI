@@ -438,6 +438,7 @@ class PropositionController extends Controller
                     'rib'                           => $contratData['rib'] ?? null,
                     'numero_compte'                 => $contratData['numero_compte'] ?? null,
                     'numecompte_complet'            => $contratData['numecompte_complet'] ?? null,
+                    'autre_ref_prelev'              => $contratData['autre_ref_prelev'] ?? null,
                     'agence_uuid'                   => $contratData['agence_uuid'] ?? null,
                     'code_produit'                  => $contratData['code_produit'] ?? null,
                     'libelle_produit'               => $contratData['libelle_produit'] ?? null,
