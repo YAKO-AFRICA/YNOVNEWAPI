@@ -5285,7 +5285,7 @@
                 module: "users",
                 name: "Liste des utilisateurs",
                 description:
-                    "Liste paginée des utilisateurs. Filtrée selon la portée de l'utilisateur connecté.",
+                    "Liste paginée des utilisateurs. Filtrée selon la portée de l'utilisateur connecté (multi-tenant). Supporte des filtres de recherche avancés par email, login, nom, prénoms, statut, type d'utilisateur, rôle, partenaire, réseau et agence. Pour les utilisateurs avec des rôles spécifiques (manager_souscription, superviseur_souscription, conseiller_souscription, banccass_souscription, producteur_souscription, admin_validation_souscription, admin_souscription, gestionnaire_validation_souscription), un filtrage supplémentaire par partenaire, réseau ou agence est appliqué.",
                 method: "GET",
                 path: "/users",
                 isProtected: true,
@@ -5302,15 +5302,58 @@
                             default: 20,
                             description: "Nombre par page",
                         },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche par email, login, nom ou prénoms",
+                        },
+                        status: {
+                            type: "string",
+                            required: false,
+                            description: "Filtre par statut de l'utilisateur",
+                        },
+                        user_type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtre par type d'utilisateur",
+                        },
+                        role_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre par UUID de rôle",
+                        },
+                        partner_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre par UUID de partenaire",
+                        },
+                        reseau_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre par UUID de réseau",
+                        },
+                        agence_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description: "Filtre par UUID d'agence",
+                        },
                     },
                 },
                 responses: [
                     {
                         status: 200,
-                        description: "Liste des utilisateurs",
+                        description: "Liste des utilisateurs avec pagination",
                         example: {
                             success: true,
+                            message: "Liste des utilisateurs récupérée.",
+                            code: "USERS_LISTED",
                             data: [],
+                            pagination: {
+                                current_page: 1,
+                                last_page: 5,
+                                per_page: 20,
+                                total: 100,
+                            },
                         },
                     },
                 ],

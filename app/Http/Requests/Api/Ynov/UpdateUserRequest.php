@@ -19,7 +19,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($user, 'uuid_user')],
             'login' => ['nullable', 'string', 'max:100', Rule::unique('users', 'login')->ignore($user, 'uuid_user')],
             'role_uuid' => ['nullable', 'exists:roles,uuid_role'],
-            'user_type' => ['nullable', Rule::in(['client', 'user_interne', 'user_partner', 'admin'])],
+            'user_type' => ['nullable', Rule::in(['client', 'user_interne', 'user_partner', 'admin', 'super_admin', 'manager_commercial', 'agent_commercial'])],
             'partner_uuid' => ['nullable', 'exists:partners,uuid_partner'],
             'reseau_uuid' => ['nullable', 'exists:reseaux,uuid_reseau'],
             'status' => ['nullable', Rule::in(['actif', 'inactif', 'gele', 'bloque'])],
