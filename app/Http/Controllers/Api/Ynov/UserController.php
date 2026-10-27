@@ -55,9 +55,8 @@ class UserController extends Controller
                     $query->where('uuid_user', $authUser->uuid_user);
                 }
             }
-        }
 
-        if ($authUser && method_exists($authUser, 'hasRole') && ($authUser->hasRole('manager_souscription') || $authUser->hasRole('superviseur_souscription') || $authUser->hasRole('conseiller_souscription') || $authUser->hasRole('banccass_souscription') || $authUser->hasRole('producteur_souscription') || $authUser->hasRole('admin_validation_souscription') || $authUser->hasRole('admin_souscription') || $authUser->hasRole('gestionnaire_validation_souscription'))){
+             if ($authUser && method_exists($authUser, 'hasRole') && ($authUser->hasRole('manager_souscription') || $authUser->hasRole('superviseur_souscription') || $authUser->hasRole('conseiller_souscription') || $authUser->hasRole('banccass_souscription') || $authUser->hasRole('producteur_souscription') || $authUser->hasRole('admin_validation_souscription') || $authUser->hasRole('admin_souscription') || $authUser->hasRole('gestionnaire_validation_souscription'))){
             if ($authUser->partner_uuid) {
                 $query->where('partner_uuid', $authUser->partner_uuid);
             }
@@ -74,6 +73,7 @@ class UserController extends Controller
                     $query->where('uuid_user', $authUser->uuid_user);
                 }
             }
+        }
         }
 
         // Filtres de recherche
