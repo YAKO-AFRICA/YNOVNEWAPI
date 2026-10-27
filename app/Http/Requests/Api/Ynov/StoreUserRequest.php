@@ -19,7 +19,7 @@ class StoreUserRequest extends FormRequest
             'login' => ['nullable', 'string', 'max:100', 'unique:users,login'],
             'password' => ['required', Password::min(12)->mixedCase()->numbers()->symbols()->uncompromised(),],
             'role_uuid' => ['required', 'exists:roles,uuid_role'],
-            'user_type' => ['required', 'in:client,user_interne,user_partner,admin'],
+            'user_type' => ['required', 'in:client,user_interne,user_partner,admin,super_admin,manager_commercial,agent_commercial'],
             'partner_uuid' => ['nullable', 'exists:partners,uuid_partner'],
             'reseau_uuid' => ['nullable', 'exists:reseaux,uuid_reseau'],
             'agence_uuids' => ['nullable', 'array'],

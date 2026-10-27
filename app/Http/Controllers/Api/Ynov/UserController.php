@@ -55,6 +55,25 @@ class UserController extends Controller
                     $query->where('uuid_user', $authUser->uuid_user);
                 }
             }
+
+             if ($authUser && method_exists($authUser, 'hasRole') && ($authUser->hasRole('manager_souscription') || $authUser->hasRole('superviseur_souscription') || $authUser->hasRole('conseiller_souscription') || $authUser->hasRole('banccass_souscription') || $authUser->hasRole('producteur_souscription') || $authUser->hasRole('admin_validation_souscription') || $authUser->hasRole('admin_souscription') || $authUser->hasRole('gestionnaire_validation_souscription'))){
+            if ($authUser->partner_uuid) {
+                $query->where('partner_uuid', $authUser->partner_uuid);
+            }
+            if ($authUser->reseau_uuid) {
+                $query->where('reseau_uuid', $authUser->reseau_uuid);
+            }
+            if (!$authUser->partner_uuid && !$authUser->reseau_uuid) {
+                $agenceUuids = $authUser->agences()->pluck('agences.uuid_agence');
+                if ($agenceUuids->isNotEmpty()) {
+                    $query->whereHas('agences', function ($q) use ($agenceUuids) {
+                        $q->whereIn('agences.uuid_agence', $agenceUuids);
+                    });
+                } else {
+                    $query->where('uuid_user', $authUser->uuid_user);
+                }
+            }
+        }
         }
 
         // Filtres de recherche
@@ -84,6 +103,7 @@ class UserController extends Controller
         if ($request->filled('role_uuid')) {
             $query->where('role_uuid', $request->input('role_uuid'));
         }
+        
 
         // Filtre par partenaire
         if ($request->filled('partner_uuid')) {
@@ -153,17 +173,6 @@ class UserController extends Controller
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
 
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('afficher', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas accès à cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
-
         return response()->json([
             'success' => true,
             'data' => new UserResource($user->load([
@@ -185,17 +194,6 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, string $uuid_user): JsonResponse
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
-
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('modifier', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de modifier cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
 
         $updated = $this->userService->update(
             $user,

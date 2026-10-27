@@ -226,6 +226,14 @@ class AgenceService
             'updatedBy.details',
             'deletedBy.details',
         ]);
+
+        // $user = $filters['user'] ?? null;
+
+        // if ($user && method_exists($user, 'hasRole') && $user->hasRole('client')) {
+        
+        //     $query->where('reseaux.code_branche', "COM");
+
+        // }
         
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);

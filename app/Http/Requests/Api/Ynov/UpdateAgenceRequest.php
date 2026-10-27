@@ -49,4 +49,44 @@ class UpdateAgenceRequest extends FormRequest
             'horaires.*.rendez_vous_actif' => ['nullable', 'boolean'],
         ];
     }
+
+
+    public function messages(): array
+    {
+        return [
+            'libelle.required' => 'Le libellé de l\'agence est requis.',
+            'libelle.max' => 'Le libellé de l\'agence doit avoir au maximum 255 caractères.',
+            'description.max' => 'La description de l\'agence doit avoir au maximum 255 caractères.',
+            'reseau_uuid.exists' => 'Le reseau_uuid fourni n\'existe pas.',
+            'email.email' => 'L\'adresse email doit avoir un format valide.',
+            'email.max' => 'L\'adresse email doit avoir au maximum 100 caractères.',
+            'telephone.string' => 'Le num&eacute;ro de t&eacute;l&eacute;phone doit avoir au maximum 25 caractères.',
+            'telephone_2.string' => 'Le num&eacute;ro de t&eacute;l&eacute;phone 2 doit avoir au maximum 25 caractères.',
+            'adresse.max' => 'L\'adresse doit avoir au maximum 255 caractères.',
+            'ville.max' => 'La ville doit avoir au maximum 100 caractères.',
+            'quartier.max' => 'Le quartier doit avoir au maximum 100 caractères.',
+            'code_postal.max' => 'Le code postal doit avoir au maximum 20 caractères.',
+            'pays.max' => 'Le pays doit avoir au maximum 100 caractères.',
+            'latitude.numeric' => 'La latitude doit avoir une valeur num&eacute;rique.',
+            'latitude.between' => 'La latitude doit avoir une valeur comprise entre -90 et 90 degrés.',
+            'longitude.numeric' => 'La longitude doit avoir une valeur num&eacute;rique.',
+            'longitude.between' => 'La longitude doit avoir une valeur comprise entre -180 et 180 degrés.',
+            'photo.max' => 'L\'URL de la photo doit avoir au maximum 255 caractères.',
+            'photos.*.max' => 'L\'URL de la photo doit avoir au maximum 255 caractères.',
+            'responsable.max' => 'Le responsable doit avoir au maximum 255 caractères.',
+            'site_web.url' => 'Le site web doit avoir un format valide.',
+            'site_web.max' => 'Le site web doit avoir au maximum 255 caractères.',
+            'horaires.*.jour.required_with' => 'Le jour est requis pour chaque horaire.',
+            'horaires.*.jour.in' => 'Le jour doit être un jour valide de la semaine.',
+            'horaires.*.heure_ouverture.date_format' => 'L\'heure d\'ouverture doit être au format HH:MM.',
+            'horaires.*.heure_fermeture.date_format' => 'L\'heure de fermeture doit être au format HH:MM.',
+            'horaires.*.heure_fermeture.after' => 'L\'heure de fermeture doit être après l\'heure d\'ouverture.',
+            'horaires.*.heure_ouverture_midi.date_format' => 'L\'heure d\'ouverture du midi doit être au format HH:MM.',
+            'horaires.*.heure_fermeture_midi.date_format' => 'L\'heure de fermeture du midi doit être au format HH:MM.',
+            'horaires.*.heure_fermeture_midi.after' => 'L\'heure de fermeture du midi doit être après l\'heure d\'ouverture du midi.',
+            'horaires.*.heure_fermeture_midi.before' => 'L\'heure de fermeture du midi doit être avant l\'heure de fermeture.',
+            'horaires.*.capacite_rendez_vous.integer' => 'La capacité de rendez-vous doit être un nombre entier.',
+            'horaires.*.capacite_rendez_vous.min' => 'La capacité de rendez-vous ne peut pas être négative.',
+        ];
+    }
 }
