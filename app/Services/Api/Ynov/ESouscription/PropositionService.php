@@ -40,7 +40,7 @@ class PropositionService
         }
 
         return $query
-            ->with(['agence', 'contratActeurs.acteur'])
+            ->with(['agence', 'contratActeurs.acteur', 'contratActeurs.filiation'])
             ->orderByDesc('created_at')
             ->paginate($perPage);
     }

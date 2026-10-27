@@ -109,7 +109,7 @@ class ContratController extends Controller
             }
 
             // S'assurer que la relation est chargée
-            $contrat->loadMissing('contratActeurs');
+            $contrat->loadMissing('contratActeurs.filiation');
 
             // Collection d'Eloquent
             $contratActeurs = $contrat->contratActeurs;

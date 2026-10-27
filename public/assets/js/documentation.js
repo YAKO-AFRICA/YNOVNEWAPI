@@ -385,7 +385,7 @@
                         BeneficiaireDatas: {
                             type: "array",
                             required: true,
-                            description: "Liste d’objets contenant les informations personnelles du bénéficiaire : civilite, genre, nom, prenoms, date_naissance, lieunaissance_code, email, mobile, telephone, numero_piece, nni, nature_piece, situation_matrimoniale, profession_code, employeur, lieuresidence_code, pays_code et éventuellement created_by. is_adherent: « oui » rattache l’adhérent existant ; « non » crée un autre acteur. Si la clé est absente, le serveur traite le bénéficiaire comme une autre personne.",
+                            description: "Liste d’objets contenant les informations personnelles du bénéficiaire : civilite, genre, nom, prenoms, date_naissance, lieunaissance_code, email, mobile, telephone, numero_piece, nni, nature_piece, situation_matrimoniale, profession_code, employeur, lieuresidence_code, pays_code et éventuellement created_by. filiation_uuid (facultatif) est l’UUID de la filiation du bénéficiaire, récupérable avec GET /param/get-filiations ; il est enregistré sur la relation contrat-acteur. is_adherent: « oui » rattache l’adhérent existant ; « non » crée un autre acteur. Si la clé est absente, le serveur traite le bénéficiaire comme une autre personne.",
                         },
                         documentDatas: {
                             type: "array",
@@ -547,6 +547,7 @@
                         {
                             is_adherent: "non",
                             created_by: "identifiant-utilisateur",
+                            filiation_uuid: "UUID_FILIATION",
                             civilite: "M",
                             genre: "M",
                             nom: "Nom du bénéficiaire 1",

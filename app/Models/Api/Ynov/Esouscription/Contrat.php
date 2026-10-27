@@ -224,7 +224,7 @@ class Contrat extends Model
     public function contratActeurs()
     {
         return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
-                    ->with('acteur.sante');
+                    ->with(['acteur.sante', 'filiation']);
     }
 
     // document du contrat

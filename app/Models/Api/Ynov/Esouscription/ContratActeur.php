@@ -2,6 +2,7 @@
 
 namespace App\Models\Api\Ynov\Esouscription;
 
+use App\Models\Api\Ynov\parameter\Filiation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -26,6 +27,7 @@ class ContratActeur extends Model
         'contrat_uuid',
         'acteur_uuid',
         'type_acteur',
+        'filiation_uuid',
         'type_beneficiaire',
         'integration_key',
         'created_by',
@@ -50,5 +52,9 @@ class ContratActeur extends Model
     public function acteur()
     {
         return $this->belongsTo(Acteur::class, 'acteur_uuid', 'uuid_acteur');
+    }
+    public function filiation()
+    {
+        return $this->belongsTo(Filiation::class, 'filiation_uuid', 'uuid_filiation');
     }
 }

@@ -329,6 +329,7 @@ class PropositionController extends Controller
                             'libelle'       => $assureGarantie['libelle'],
                             'capital'       => $assureGarantie['capital'],
                             'prime'         => $assureGarantie['prime'],
+                            'type'         => "ASS",
                         ]);
                     }
                 }
@@ -346,6 +347,7 @@ class PropositionController extends Controller
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $adherentStore->uuid_acteur,
                             'type_acteur'         => 'BEN',
+                            'filiation_uuid'      => $beneficiaire['filiation_uuid'] ?? null,
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $benefCreatedBy,
                         ]);
@@ -388,6 +390,7 @@ class PropositionController extends Controller
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $benefUuid,
                             'type_acteur'         => 'BEN',
+                            'filiation_uuid'      => $beneficiaire['filiation_uuid'] ?? null,
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $benefCreatedBy,
                         ]);
