@@ -87,9 +87,13 @@ class PropositionController extends Controller
                 if($contratData['source_data'] == 'ONECI' || $contratData['source_data'] == 'oneci') {
                     $dateTransmission = now()->format('Y-m-d H:i:s');
                     $transmisPar = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                    $dateAcceptee = now()->format('Y-m-d H:i:s');
+                    $accepted_by = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
                 } else {
                     $dateTransmission = null;
                     $transmisPar = null;
+                    $dateAcceptee = null;
+                    $accepted_by = null;
                 }
                 
 
@@ -460,6 +464,8 @@ class PropositionController extends Controller
                     'created_by'                    => $createdBy,
                     'date_transmission'             => $dateTransmission ?? null,
                     'transmis_par'                  => $transmisPar ?? null,
+                    'acceptance_date'             => $dateAcceptee ?? null,
+                    'accepted_by'                  => $accepted_by ?? null,
                 ];
 
                 $contratStore = $this->contratService->create($contratPayload);
