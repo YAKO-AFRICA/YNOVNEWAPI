@@ -9,7 +9,7 @@ class Filiation extends Model
 {
     use HasFactory;
 
-    protected $table = 'filiation';
+    protected $table = 'filiations';
 
     protected $fillable = [
         'uuid_filiation',
