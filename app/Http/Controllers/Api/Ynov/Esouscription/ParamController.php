@@ -177,11 +177,11 @@ class ParamController extends Controller
 
             $reseauProduct = ReseauProduct::create([
                 'uuid' => Str::uuid(),
-                'reseau_uuid' => $validatedData['reseau_uuid'],
-                'product_uuid' => $validatedData['product_uuid'],
-                'formule_uuid' => $validatedData['formule_uuid'],
-                'formule_key' => $validatedData['formule_key'],
-                'frais_adhesion' => $validatedData['frais_adhesion'],
+                'reseau_uuid' => $validatedData['reseau_uuid'] ?? null,
+                'product_uuid' => $validatedData['product_uuid'] ?? null,
+                'formule_uuid' => $validatedData['formule_uuid'] ?? null,
+                'formule_key' => $validatedData['formule_key'] ?? null,
+                'frais_adhesion' => $validatedData['frais_adhesion'] ?? null,
                 'tag' => $validatedData['tag'] ?? null,
                 'popular' => $validatedData['popular'] ?? false,
                 'display_name' => $validatedData['display_name'] ?? null,
