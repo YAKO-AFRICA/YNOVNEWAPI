@@ -2047,7 +2047,7 @@
                 module: "souscription",
                 name: "Associer un produit à un réseau",
                 description:
-                    "Crée une association entre un réseau, un produit, une formule, les frais d'adhésion et les champs optionnels de présentation. L'association est créée avec l'état « actif ».",
+                    "Crée une association via store-product-reseau. reseau_uuid, product_uuid, formule_uuid, formule_key et frais_adhesion sont obligatoires. tag, popular, display_name, description et avantage sont optionnels ; s'ils ne sont pas transmis, les champs texte valent null et popular vaut false. uuid est généré automatiquement et etat est initialisé à « actif ».",
                 method: "POST",
                 path: "/param/store-product-reseau",
                 isProtected: true,
