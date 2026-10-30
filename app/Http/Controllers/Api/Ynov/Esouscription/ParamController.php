@@ -118,6 +118,11 @@ class ParamController extends Controller
                 );
                 $product->setAttribute('formule_key', $reseauProduct?->formule_key);
                 $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
+                $product->setAttribute('tag', $reseauProduct?->tag);
+                $product->setAttribute('popular', $reseauProduct?->popular);
+                $product->setAttribute('display_name', $reseauProduct?->display_name);
+                $product->setAttribute('description', $reseauProduct?->description);
+                $product->setAttribute('avantage', $reseauProduct?->avantage);
             });
 
             if (!$products) {
@@ -159,6 +164,11 @@ class ParamController extends Controller
             'formule_uuid' => 'required|string',
             'formule_key' => 'required|string',
             'frais_adhesion' => 'required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -172,6 +182,11 @@ class ParamController extends Controller
                 'formule_uuid' => $validatedData['formule_uuid'],
                 'formule_key' => $validatedData['formule_key'],
                 'frais_adhesion' => $validatedData['frais_adhesion'],
+                'tag' => $validatedData['tag'] ?? null,
+                'popular' => $validatedData['popular'] ?? false,
+                'display_name' => $validatedData['display_name'] ?? null,
+                'description' => $validatedData['description'] ?? null,
+                'avantage' => $validatedData['avantage'] ?? null,
                 'etat' => 'actif',
             ]);
 
@@ -221,6 +236,11 @@ class ParamController extends Controller
             'formule_uuid' => 'sometimes|required|string',
             'formule_key' => 'sometimes|required|string',
             'frais_adhesion' => 'sometimes|required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -241,13 +261,7 @@ class ParamController extends Controller
 
             $oldValues = $reseauProduct->toArray();
 
-            $reseauProduct->update([
-                'reseau_uuid' => $validatedData['reseau_uuid'] ?? $reseauProduct->reseau_uuid,
-                'product_uuid' => $validatedData['product_uuid'] ?? $reseauProduct->product_uuid,
-                'formule_uuid' => $validatedData['formule_uuid'] ?? $reseauProduct->formule_uuid,
-                'formule_key' => $validatedData['formule_key'] ?? $reseauProduct->formule_key,
-                'frais_adhesion' => $validatedData['frais_adhesion'] ?? $reseauProduct->frais_adhesion,
-            ]);
+            $reseauProduct->update($validatedData);
 
             ActivityLog::log([
                 'user_uuid' => $request->user()?->uuid_user,
@@ -464,6 +478,11 @@ class ParamController extends Controller
                 );
                 $product->setAttribute('formule_key', $reseauProduct?->formule_key);
                 $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
+                $product->setAttribute('tag', $reseauProduct?->tag);
+                $product->setAttribute('popular', $reseauProduct?->popular);
+                $product->setAttribute('display_name', $reseauProduct?->display_name);
+                $product->setAttribute('description', $reseauProduct?->description);
+                $product->setAttribute('avantage', $reseauProduct?->avantage);
             });
 
             if (!$products) {

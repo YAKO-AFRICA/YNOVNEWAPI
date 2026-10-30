@@ -25,7 +25,16 @@ class ReseauProduct extends Model
         'formule_uuid',
         'formule_key',
         'frais_adhesion',
+        'tag',
+        'popular',
+        'display_name',
+        'description',
+        'avantage',
         'etat',
+    ];
+
+    protected $casts = [
+        'popular' => 'boolean',
     ];
 
     public function reseau()
