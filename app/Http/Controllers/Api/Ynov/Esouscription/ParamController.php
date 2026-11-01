@@ -527,10 +527,14 @@ class ParamController extends Controller
             ], 400);
         }
 
+        Log::info('checkUserByPartner', ['request' => $request->all()]);
+
         $validated = $validator->validated();
 
         // 1. Retrouver le partenaire
         $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
+
+        Log::info('partenaire trouve', ['partner' => $partner]);
 
         if (!$partner) {
             return response()->json([
@@ -541,7 +545,9 @@ class ParamController extends Controller
         }
 
         // 2. Premier utilisateur lié à ce partenaire
-        $user = User::where('partner_uuid', $partner->uuid_partner)->first();
+        $user = User::where('partner_uuid', $partner->uuid_partner)->where('user_type', 'user_partner')->first();
+
+        Log::info('utilisateur trouve', ['user' => $user]);
 
         if (!$user) {
             return response()->json([
@@ -555,9 +561,9 @@ class ParamController extends Controller
         //    (supprime les anciens tokens pour n'en garder qu'un)
         $user->tokens()->delete();
 
-        $token = $user->createToken('WEB')->plainTextToken; // 3. Connexion + génération du token Sanctum
+        $token = $user->createToken('WEB')->plainTextToken;
 
-        // 4. Réponse : données user + token (même format qu'une API de login)
+       
         return response()->json([
             'success' => true,
             'code'    => 'CHECK_USER_BY_PARTNER_SUCCESS',

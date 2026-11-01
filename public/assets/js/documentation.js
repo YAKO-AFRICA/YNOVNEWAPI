@@ -15162,7 +15162,7 @@
                 module: "simulateurs",
                 name: "Simuler le produit Yapi",
                 description:
-                    "Calcule la prime Yapi selon le capital choisi : 30 000 FCFA pour 500 000 FCFA de capital ou 58 000 FCFA pour 1 000 000 FCFA. Aucun frais supplémentaire n’est ajouté.",
+                    "Calcule la prime de la garantie obligatoire Yapi selon le capital choisi : 30 000 FCFA pour 500 000 FCFA de capital ou 58 000 FCFA pour 1 000 000 FCFA. Les garanties optionnelles configurées sont retournées avec une prime nulle tant qu’elles ne sont pas souscrites. Aucun frais supplémentaire n’est ajouté.",
                 method: "POST",
                 path: "/esouscription/simulateurs/yapi",
                 isProtected: false,
@@ -15201,9 +15201,46 @@
                             message: "Simulation Yapi calculée avec succès.",
                             code: "YAPI_SIMULATION_SUCCESS",
                             data: {
-                                codeProduit: "YAPI",
-                                capital: 500000,
-                                prime: 30000,
+                                garantieData: {
+                                    garantieObligatoire: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_ASSFUN_ADH",
+                                            codeGarantie: "ASSFUN_ADH",
+                                            libelle: "ASSISTANCE FUNERAILLES ADHERANT",
+                                            capital: 500000,
+                                            prime: 30000,
+                                        },
+                                    ],
+                                    garantieOptionnel: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_ASSFUN_CONJT",
+                                            codeGarantie: "ASSFUN_CONJT",
+                                            libelle: "ASSISTANCE FUNERAILLES CONJOINT",
+                                            capital: 500000,
+                                            prime: 0,
+                                        },
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_ASSFUN_ENFT",
+                                            codeGarantie: "ASSFUN_ENFT",
+                                            libelle: "ASSISTANCE FUNERAILLES ENFANT",
+                                            capital: 500000,
+                                            prime: 0,
+                                        },
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_ASSFUN_ASCDT",
+                                            codeGarantie: "ASSFUN_ASCDT",
+                                            libelle: "ASSISTANCE FUNERAILLES ASCENDANTS",
+                                            capital: 500000,
+                                            prime: 0,
+                                        },
+                                    ],
+                                },
+                                infoSimulation: {
+                                    codeProduit: "YAPI",
+                                    capital: 500000,
+                                    primepricipale: 30000,
+                                    primeFinale: 30000,
+                                },
                             },
                         },
                     },
@@ -15220,6 +15257,16 @@
                                     "The selected Capital is invalid.",
                                 ],
                             },
+                        },
+                    },
+                    {
+                        status: 503,
+                        description: "Garantie obligatoire Yapi non configurée",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur Yapi ne peut pas être exécuté actuellement.",
+                            code: "YAPI_SIMULATION_UNAVAILABLE",
                         },
                     },
                 ],
