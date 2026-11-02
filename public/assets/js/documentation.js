@@ -15179,7 +15179,7 @@
                         CodeProduit: {
                             type: "string",
                             required: true,
-                            enum: ["YAPI"],
+                            enum: ["LFFUN"],
                             description: "Code du produit",
                         },
                         Capital: {
@@ -15192,7 +15192,7 @@
                     },
                 },
                 exampleRequest: {
-                    CodeProduit: "YAPI",
+                    CodeProduit: "LFFUN",
                     Capital: 500000,
                 },
                 responses: [
@@ -15239,7 +15239,7 @@
                                     ],
                                 },
                                 infoSimulation: {
-                                    codeProduit: "YAPI",
+                                    codeProduit: "LFFUN",
                                     capital: 500000,
                                     primepricipale: 30000,
                                     primeFinale: 30000,
