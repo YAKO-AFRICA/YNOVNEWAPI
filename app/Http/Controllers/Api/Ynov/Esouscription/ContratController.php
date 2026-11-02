@@ -28,6 +28,8 @@ class ContratController extends Controller
                     'conseiller_uuid',
                     'mode_paiement',
                     'etape',
+                    'nom',
+                    'prenoms',
                     'search',
                     'etat',
                 ]),
