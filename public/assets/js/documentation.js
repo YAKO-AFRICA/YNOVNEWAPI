@@ -403,6 +403,7 @@
                     adherentData: {
                         civilite: "Mme",
                         genre: "M",
+                        filiation_uuid: "UUID_FILIATION",
                         nom: "Nom de l’adhérent",
                         prenoms: "Prénom de l’adhérent",
                         date_naissance: "1990-07-16",
@@ -426,6 +427,7 @@
                             info: {
                                 created_by: "identifiant-utilisateur",
                                 civilite: "Mme",
+                                filiation_uuid: "UUID_FILIATION",
                                 genre: "M",
                                 nom: "Nom de l’adhérent",
                                 prenoms: "Prénom de l’adhérent",
@@ -569,6 +571,7 @@
                         {
                             is_adherent: "non",
                             created_by: "identifiant-utilisateur",
+                            filiation_uuid: "UUID_FILIATION",
                             civilite: "M",
                             genre: "F",
                             nom: "Nom du bénéficiaire 2",

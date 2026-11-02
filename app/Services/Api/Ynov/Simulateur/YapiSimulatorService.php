@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class YapiSimulatorService
 {
-    public const CODE_PRODUIT = 'YAPI';
+    public const CODE_PRODUIT = 'LFFUN';
 
     private const CODE_PRODUIT_GARANTIE = 'LFFUN';
 
