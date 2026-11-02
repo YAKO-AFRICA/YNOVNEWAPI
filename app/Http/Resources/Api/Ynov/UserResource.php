@@ -23,24 +23,33 @@ class UserResource extends JsonResource
             'two_factor_enabled' => $this->two_factor_enabled,
             'role' => $this->whenLoaded('role', fn() => [
                 'uuid_role' => $this->role->uuid_role,
+                'code' => $this->role->code,
                 'libelle' => $this->role->libelle,
+                'description' => $this->role->description,
                 'is_super_admin' => $this->role->is_super_admin,
             ]),
             'partner' => $this->whenLoaded('partner', fn() => [
                 'uuid_partner' => $this->partner->uuid_partner,
                 'designation' => $this->partner->designation,
+                'code' => $this->partner->code,
+                'code_contractant' => $this->partner->code_contractant,
+                'code_branche' => $this->partner->code_branche,
             ]),
             'reseau' => $this->whenLoaded('reseau', fn() => [
                 'uuid_reseau' => $this->reseau->uuid_reseau,
+                'code' => $this->reseau->code,
+                'code_branche' => $this->reseau->code_branche,
                 'libelle' => $this->reseau->libelle,
             ]),
             'agences' => $this->whenLoaded('agences', fn() => $this->agences->map(fn($a) => [
                 'uuid_agence' => $a->uuid_agence,
+                'code' => $a->code,
                 'libelle' => $a->libelle,
                 'is_primary' => $a->pivot->is_primary ?? false,
             ])),
             'group_notifs' => $this->whenLoaded('groupNotifs', fn() => $this->groupNotifs->map(fn($g) => [
                 'uuid_group_notif' => $g->uuid_group_notif,
+                'code' => $g->code,
                 'libelle' => $g->libelle,
             ])),
             'user_contrats' => $this->whenLoaded('userContrats', fn() => $this->userContrats->map(fn($c) => [
