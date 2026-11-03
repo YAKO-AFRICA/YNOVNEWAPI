@@ -80,6 +80,18 @@ class Acteur extends Model
         return $this->hasMany(ContratActeur::class, 'acteur_uuid', 'uuid_acteur');
     }
 
+    public function contrats()
+    {
+        return $this->hasManyThrough(
+            Contrat::class,
+            ContratActeur::class,
+            'acteur_uuid',
+            'uuid_contrat',
+            'uuid_acteur',
+            'contrat_uuid'
+        );
+    }
+
     public function getSanteAttribute()
     {
         return $this->hasOne(DeclarationSante::class, 'assure_uuid', 'uuid_acteur');

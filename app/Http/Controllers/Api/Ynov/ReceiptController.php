@@ -71,13 +71,13 @@ class ReceiptController extends Controller
             'paiement' => $paiement,
             'factures' => $factures,
             'libelleType' => $libellesType[$paiement->payment_type] ?? $paiement->payment_type,
-            'fileName' => $fileName,
+            // 'fileName' => $fileName,
             'identifiantContrat' => $identifiantContrat,
         ]);
     }
 
     /**
-     * Génère et télécharge le PDF du reçu
+     * Génère et télécharge le PDF du reçu sans stockage
      */
     public function download(string $referenceInterne)
     {
@@ -85,24 +85,17 @@ class ReceiptController extends Controller
             ->orWhere('command_number', $referenceInterne)
             ->firstOrFail();
 
-        // Vérifier si le PDF existe déjà
+        // Générer le PDF à la volée sans stockage
+        $pdf = $this->generatePdf($paiement);
+        
         $identifiantContrat = $paiement->id_contrat ?? '';
         $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
-        $filePath = storage_path('app/public/documents/' . $fileName);
-
-        if (file_exists($filePath)) {
-            return response()->download($filePath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ]);
-        }
-
-        // Générer le PDF si inexistant
-        $pdf = $this->generatePdf($paiement);
+        
         return $pdf->download($fileName);
     }
 
     /**
-     * Génère le PDF du reçu
+     * Génère le PDF du reçu (sans stockage)
      */
     private function generatePdf(Paiement $paiement)
     {
@@ -138,17 +131,6 @@ class ReceiptController extends Controller
 
         $pdf = Pdf::loadView('paiement.recu_pdf', $data);
         $pdf->setPaper('A4', 'portrait');
-
-        // Sauvegarder le PDF
-        $identifiantContrat = $paiement->id_contrat ?? '';
-        $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
-        $filePath = storage_path('app/public/documents/' . $fileName);
-        
-        if (!is_dir(dirname($filePath))) {
-            mkdir(dirname($filePath), 0777, true);
-        }
-        
-        file_put_contents($filePath, $pdf->output());
 
         return $pdf;
     }

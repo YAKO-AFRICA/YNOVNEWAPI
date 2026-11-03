@@ -70,7 +70,7 @@ class Paiement extends Model
     // Statuts internes
     public const STATUS = [
         'pending' => 'En attente',
-        'paid' => 'Payé',
+        'success' => 'Payé',
         'error' => 'Erreur',
         'cancelled' => 'Annulé',
         'migrate' => 'Migré',
@@ -119,7 +119,7 @@ class Paiement extends Model
      */
     public function isPaid(): bool
     {
-        return $this->status === 'paid' && $this->payment_status === 'success';
+        return $this->status === 'success' && $this->payment_status === 'success';
     }
 
     /**
@@ -144,7 +144,7 @@ class Paiement extends Model
     public function markAsPaid(array $data = []): self
     {
         $this->update([
-            'status' => 'paid',
+            'status' => 'success',
             'payment_status' => 'success',
             'paid_at' => now(),
             'paid_amount' => $data['paid_amount'] ?? $this->amount,
@@ -191,7 +191,7 @@ class Paiement extends Model
      */
     public function scopePaid($query)
     {
-        return $query->where('status', 'paid');
+        return $query->where('status', 'success');
     }
 
     /**

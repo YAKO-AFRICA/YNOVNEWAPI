@@ -11,9 +11,12 @@ use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\AuthService;
 use App\Services\Api\Ynov\Auth\DeviceService;
+use App\Services\Api\Ynov\ESouscription\ActeurService;
+use App\Services\Api\Ynov\ESouscription\ContratService;
 use App\Services\Api\Ynov\NotificationService;
 use App\Services\Api\Ynov\UserService;
 use App\Services\EncaissementBisService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +30,8 @@ class AuthController extends Controller
         private UserService $userService,
         private EncaissementBisService $encaissementBisService,
         private NotificationService $notificationService,
+        private ActeurService $acteurService,
+        private ContratService $contratService
     ) {}
 
     
@@ -250,6 +255,119 @@ class AuthController extends Controller
             $result = $this->userService->createClient(
                 $request->all()
             );
+
+            /*
+            * Échec métier
+            */
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'code' => $result['code'],
+                    'message' => $result['message'],
+                ], 422);
+            }
+
+            /*
+            * Utilisateur créé
+            */
+            $user = $result['data'];
+
+            /*
+            * Réponse API
+            */
+            return response()->json([
+                'success' => true,
+                'code' => $result['code'],
+                'message' => 'Inscription réussie. '
+                    . 'Vos paramètres de connexion ont été envoyés.',
+                'data' => new UserResource(
+                    $user->load('details')
+                ),
+            ], 201);
+
+        } catch (\Throwable $e) {
+
+            logger()->error(
+                'Erreur création client',
+                [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'login' => $request->input('login'),
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'code' => 'USER_CREATION_ERROR',
+                'message' => 'Une erreur est survenue lors de la création du compte.',
+            ], 500);
+        }
+    }
+
+
+    public function registerAPI(Request $request): JsonResponse
+    {
+        try {
+
+            $acteurs = $this->acteurService->getActeurs(['idClient' => $request->idClient]);
+            $data = [];
+
+            if ($acteurs->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'ACTEUR_NOT_FOUND',
+                    'message' => 'Aucun acteur trouvé pour ce client.',
+                ], 404);
+            }
+            foreach ($acteurs as $acteur) {
+                $phone = preg_replace('/\D/', '', $acteur->mobile);
+
+            /*
+             * Côte d'Ivoire
+             *
+             * Exemple :
+             * 0707070707
+             * +2250707070707
+             * 2250707070707
+             *
+             * => +2250707070707
+             */
+            if (str_starts_with($phone, '225')) {
+                $phone = substr($phone, 3);
+            }
+
+                $phone = substr($phone, -10);
+                $data[] = [
+                    // 'login' => $acteur->idClient,
+                    'login' => $phone,
+                    'email' => $acteur->email,
+                    'nom' => $acteur->nom,
+                    'prenoms' => $acteur->prenoms,
+                    'mobile_1' => $acteur->mobile,
+                    'fonction' => null, // Pas de champ fonction dans l'acteur
+                    'ville' => $acteur->lieuresidence_code,
+                    'lieu_residence' => $acteur->lieuresidence_code,
+                    'pays' => $acteur->pays_code,
+                    'date_naissance' => Carbon::parse($acteur->date_naissance)->format('Y-m-d'),
+                    'lieu_naissance' => $acteur->lieunaissance_code,
+                    'genre' => $acteur->genre,
+                    'civilite' => $acteur->civilite,
+                    'numero_client' => $acteur->idClient,
+                    'client_number' => $acteur->idClient,
+                    'contrats' => collect($acteur->contrats)->map(function ($contrat) {
+                        return [
+                            'IdProposition' => $contrat->id_proposition,
+                            'codeProduit' => $contrat->code_produit,
+                            'produit' => $contrat->libelle_produit,
+                            'CodeProduitFormule' => $contrat->formule_produit_code,
+                            'ProduitFormule' => $contrat->formule,
+                        ];
+                    })->unique('IdProposition')->values()->toArray(),
+                ];
+            }
+
+
+            $result = $this->userService->createClientAPI($data);
 
             /*
             * Échec métier

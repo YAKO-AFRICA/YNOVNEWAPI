@@ -450,6 +450,103 @@
         </div>
 
         <!-- ============================================================
+        LIEN POUR LES CLIENTS - RÉGULARISATION DES PRIMES
+        ============================================================ -->
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid #bbf7d0;">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <div style="font-size: 32px;">📋</div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #166534; margin: 0 0 8px;">Régularisation de vos factures impayées</h3>
+                    <p style="font-size: 13px; color: #374151; margin: 0 0 12px; line-height: 1.6;">
+                        Vous avez des factures en attente de paiement ? Entrez votre numéro de contrat ci-dessous pour générer le lien de régularisation.
+                        Copiez ce lien et envoyez-le à votre client pour qu'il puisse régulariser ses factures impayées.
+                    </p>
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                        <input type="text" 
+                               id="clientContractId" 
+                               placeholder="Numéro de contrat (ex: 82718)" 
+                               value="82718"
+                               style="flex: 1; min-width: 200px; padding: 10px 14px; border: 1.5px solid #bbf7d0; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;"
+                               onfocus="this.style.borderColor='#166534'"
+                               onblur="this.style.borderColor='#bbf7d0'"
+                               oninput="updateRegularisationLink()" />
+                        <button onclick="updateRegularisationLink()" 
+                                style="padding: 10px 20px; background: #166534; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            Générer le lien
+                        </button>
+                    </div>
+                    <div style="background: #fff; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 12px; display: flex; gap: 12px; align-items: center;">
+                        <input type="text" 
+                               id="generatedLink" 
+                               readonly 
+                               value=""
+                               style="flex: 1; padding: 8px 12px; border: none; background: transparent; font-size: 12px; color: #374151; outline: none;" />
+                        <button onclick="copyRegularisationLink()" 
+                                id="copyBtn"
+                                style="padding: 8px 16px; background: #166534; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            📋 Copier
+                        </button>
+                        <a href="#" 
+                           id="openLink"
+                           target="_blank"
+                           style="padding: 8px 16px; background: #166534; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+                            🔗 Ouvrir
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #bbf7d0;">
+                <p style="font-size: 12px; color: #4b5563; margin: 0;">
+                    <strong>💡 Comment ça marche ?</strong> Entrez le numéro de contrat du client, cliquez sur "Générer le lien", puis copiez ou ouvrez le lien. Le client pourra sélectionner ses factures à payer et choisir son moyen de paiement (Wave, Orange Money, Moov, MTN, Djamo, Visa, Mastercard).
+                </p>
+            </div>
+        </div>
+
+        <script>
+            function updateRegularisationLink() {
+                const contractId = document.getElementById('clientContractId').value;
+                const baseUrl = window.location.origin;
+                const generatedLink = document.getElementById('generatedLink');
+                const openLink = document.getElementById('openLink');
+                
+                if (contractId) {
+                    const fullUrl = baseUrl + '/paiement/regularisation-primes?contract=' + contractId;
+                    generatedLink.value = fullUrl;
+                    openLink.href = fullUrl;
+                } else {
+                    generatedLink.value = baseUrl + '/paiement/regularisation-primes';
+                    openLink.href = baseUrl + '/paiement/regularisation-primes';
+                }
+            }
+
+            function copyRegularisationLink() {
+                const generatedLink = document.getElementById('generatedLink');
+                const copyBtn = document.getElementById('copyBtn');
+                
+                generatedLink.select();
+                generatedLink.setSelectionRange(0, 99999);
+                
+                navigator.clipboard.writeText(generatedLink.value).then(function() {
+                    copyBtn.textContent = '✓ Copié !';
+                    setTimeout(function() {
+                        copyBtn.textContent = '📋 Copier';
+                    }, 2000);
+                }).catch(function() {
+                    // Fallback
+                    copyBtn.textContent = 'Erreur';
+                    setTimeout(function() {
+                        copyBtn.textContent = '📋 Copier';
+                    }, 2000);
+                });
+            }
+
+            // Initialiser le lien au chargement
+            document.addEventListener('DOMContentLoaded', function() {
+                updateRegularisationLink();
+            });
+        </script>
+
+        <!-- ============================================================
         DÉMO DU WIDGET
         ============================================================ -->
         <div class="demo-section">
@@ -567,19 +664,19 @@ TAB 1: HTML / Vanilla JS - Version complète avec 3 types
                     <div style="font-size: 13px; color: #4b5563; line-height: 1.7;">
                         <p style="margin: 0 0 8px;"><strong>1. Inclure le widget JS :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
-&lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js"&gt;&lt;/script&gt;</pre>
+&lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js"&gt;&lt;/script&gt;</pre>
 
                         <p style="margin: 0 0 8px;"><strong>2. Initialiser le widget :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
 const widget = new JekoWidget({
     // Endpoint pour initialiser le paiement
-    backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+    backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/init",
 
     // Endpoint pour vérifier le contrat
-    contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+    contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
 
     // Endpoint pour vérifier le statut du paiement (polling automatique)
-    statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/statut",
+    statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/statut",
 
     // Devise par défaut (XOF, XAF, USD, EUR)
     currency: "XOF",
@@ -673,9 +770,9 @@ const widget = new JekoWidget({
                         <p style="margin: 0 0 8px;"><strong>4. Vérifier manuellement le statut (optionnel) :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
 // Interroger le statut d'un paiement via l'API
-// Endpoint: GET /api/v1/paiements/jeko/statut/{referenceInterne}
+// Endpoint: GET /api/v1/paiements/statut/{referenceInterne}
 async function checkPaymentStatus(referenceInterne) {
-    const response = await fetch(`{{ BASE_URL }}/api/v1/paiements/jeko/statut/${referenceInterne}`);
+    const response = await fetch(`{{ BASE_URL }}/api/v1/paiements/statut/${referenceInterne}`);
     const data = await response.json();
 
     if (data.success) {
@@ -795,7 +892,7 @@ function getPreselectedInvoices() {
     &lt;!-- ============================================ --&gt;
     &lt;!-- CHARGEMENT DU WIDGET --&gt;
     &lt;!-- ============================================ --&gt;
-    &lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js"&gt;&lt;/script&gt;
+    &lt;script src="{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js"&gt;&lt;/script&gt;
 
     &lt;script&gt;
         (function() {
@@ -820,9 +917,9 @@ function getPreselectedInvoices() {
             // ============================================================
             var widget = new JekoWidget({
                 // --- Configuration des endpoints ---
-                backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
-                contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
-                statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/statut",
+                backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/init",
+                contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
+                statusCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/statut",
 
                 // --- Configuration générale ---
                 currency: "XOF",
@@ -1170,8 +1267,8 @@ TAB 2: React - Version complète avec 3 types et documentation
 
                         <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env.local) :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
-REACT_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
-REACT_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+REACT_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/init
+REACT_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/contrat/verifier</pre>
 
                         <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
@@ -1232,7 +1329,7 @@ const loadJekoWidget = (): Promise&lt;any&gt; => {
             return;
         }
         const script = document.createElement("script");
-        script.src = "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+        script.src = "{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js";
         script.onload = () => resolve(window.JekoWidget);
         script.onerror = () => resolve(null);
         document.head.appendChild(script);
@@ -1268,9 +1365,9 @@ const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
 
                 widgetRef.current = new JekoWidget({
                     // Endpoint pour initialiser le paiement
-                    backendEndpoint: process.env.REACT_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                    backendEndpoint: process.env.REACT_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/init",
                     // Endpoint pour vérifier le contrat
-                    contractCheckEndpoint: process.env.REACT_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                    contractCheckEndpoint: process.env.REACT_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
                     // Devise par défaut
                     currency: "XOF",
                     // Timeout de la requête (ms)
@@ -1509,8 +1606,8 @@ TAB 3: Vue.js - Version complète avec 3 types et documentation
 
                         <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env) :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
-VUE_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
-VUE_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+VUE_APP_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/init
+VUE_APP_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/contrat/verifier</pre>
 
                         <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
@@ -1666,7 +1763,7 @@ export default {
                 return;
             }
             const script = document.createElement("script");
-            script.src = process.env.VUE_APP_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+            script.src = process.env.VUE_APP_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js";
             script.onload = this.initWidget;
             script.onerror = () => {
                 console.error("❌ Erreur chargement du widget Jeko");
@@ -1681,9 +1778,9 @@ export default {
         initWidget() {
             this.widget = new JekoWidget({
                 // Endpoint pour initialiser le paiement
-                backendEndpoint: process.env.VUE_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                backendEndpoint: process.env.VUE_APP_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/init",
                 // Endpoint pour vérifier le contrat
-                contractCheckEndpoint: process.env.VUE_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                contractCheckEndpoint: process.env.VUE_APP_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
                 // Devise par défaut
                 currency: "XOF",
                 // Timeout de la requête (ms)
@@ -1989,7 +2086,7 @@ export class JekoWidgetService {
                 return;
             }
             const script = this.document.createElement("script");
-            script.src = "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+            script.src = "{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js";
             script.onload = () => {
                 this.initWidget(config);
                 resolve();
@@ -2153,8 +2250,8 @@ export class JekoPaymentComponent implements OnInit {
     ngOnInit(): void {
         // Configuration du widget
         const config: JekoWidgetConfig = {
-            backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/init",
-            contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+            backendEndpoint: "{{ BASE_URL }}/api/v1/paiements/init",
+            contractCheckEndpoint: "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
             currency: "XOF",
             timeout: 30000,
             autoVerifyContract: true,
@@ -2321,8 +2418,8 @@ TAB 5: Next.js - Version complète avec 3 types et documentation
 
                         <p style="margin: 0 0 8px;"><strong>2. Variables d'environnement (.env.local) :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
-NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init
-NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</pre>
+NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/init
+NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/contrat/verifier</pre>
 
                         <p style="margin: 0 0 8px;"><strong>3. Utilisation du composant :</strong></p>
                         <pre style="background: #0c1f15; color: #d7ecdf; padding: 8px 12px; border-radius: 6px; font-size: 12px; margin: 4px 0 12px; overflow-x: auto;">
@@ -2395,7 +2492,7 @@ const loadJekoWidget = (): Promise&lt;any&gt; => {
             return;
         }
         const script = document.createElement("script");
-        script.src = process.env.NEXT_PUBLIC_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/jeko-payment-widget.js";
+        script.src = process.env.NEXT_PUBLIC_JEKO_WIDGET_URL || "{{ BASE_URL }}/api/v1/paiements/jeko-payment-widget.js";
         script.onload = () => resolve(window.JekoWidget);
         script.onerror = () => resolve(null);
         document.head.appendChild(script);
@@ -2431,9 +2528,9 @@ export const JekoPaymentButton: React.FC&lt;JekoPaymentButtonProps&gt; = ({
 
                 widgetRef.current = new JekoWidget({
                     // Endpoint pour initialiser le paiement
-                    backendEndpoint: process.env.NEXT_PUBLIC_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/init",
+                    backendEndpoint: process.env.NEXT_PUBLIC_JEKO_API_URL || "{{ BASE_URL }}/api/v1/paiements/init",
                     // Endpoint pour vérifier le contrat
-                    contractCheckEndpoint: process.env.NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier",
+                    contractCheckEndpoint: process.env.NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL || "{{ BASE_URL }}/api/v1/paiements/contrat/verifier",
                     // Devise par défaut
                     currency: "XOF",
                     // Timeout de la requête (ms)
@@ -2647,10 +2744,10 @@ export default function PaymentPage() {
                         Ajoutez ces variables dans votre <code>.env.local</code> :
                     </div>
                     <div class="separator">
-                        <code>NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/jeko/init</code>
+                        <code>NEXT_PUBLIC_JEKO_API_URL={{ BASE_URL }}/api/v1/paiements/init</code>
                     </div>
                     <div class="separator">
-                        <code>NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/jeko/contrat/verifier</code>
+                        <code>NEXT_PUBLIC_JEKO_CONTRACT_CHECK_URL={{ BASE_URL }}/api/v1/paiements/contrat/verifier</code>
                     </div>
                 </div>
 
@@ -2713,7 +2810,7 @@ export default function PaymentPage() {
                 <div class="separator">• Le widget n'appelle <strong>JAMAIS</strong> l'API Jeko directement</div>
                 <div class="separator">• Toutes les clés secrètes restent côté serveur</div>
                 <div class="separator">• Le montant est <strong>recalculé et vérifié côté serveur</strong> pour éviter toute fraude</div>
-                <div class="separator">• API accessible via <code>{{ BASE_URL }}/api/v1/paiements/jeko/...</code></div>
+                <div class="separator">• API accessible via <code>{{ BASE_URL }}/api/v1/paiements/...</code></div>
             </div>
         </div>
         @endverbatim
@@ -2721,7 +2818,7 @@ export default function PaymentPage() {
         <!-- ============================================================
     CHARGEMENT DU WIDGET
     ============================================================ -->
-        <script src="{{ url('/api/v1/paiements/jeko/jeko-payment-widget.js') }}"></script>
+        <script src="{{ url('/api/v1/paiements/jeko-payment-widget.js') }}"></script>
 
         <!-- ============================================================
     CODE PRINCIPAL

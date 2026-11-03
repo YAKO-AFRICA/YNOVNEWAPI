@@ -161,22 +161,24 @@ Route::prefix('v1')->group(function () {
         Route::get('{uuid_faq}', [FaqController::class, 'show']);
     });
 
-    Route::prefix('paiements/jeko')->group(function () {
+    Route::prefix('paiements')->group(function () {
         // Widget JS
         Route::get('jeko-payment-widget.js', [PaymentController::class, 'jekoPaymentWidget']);
 
         // Vérification du contrat
         Route::post('contrat/verifier', [PaymentController::class, 'verifierContrat']);
 
-        // Initialisation du paiement
+        // Initialisation du paiement (unifié Wave + Jeko)
         Route::post('init', [PaymentController::class, 'initierPaiement']);
 
-        
-        // Webhook
-        Route::post('webhook', [PaymentController::class, 'webhook']);
-        
-        // Vérification du statut d'un paiement
+        // Vérification du statut d'un paiement (unifié Wave + Jeko)
         Route::get('statut/{referenceInterne}', [PaymentController::class, 'verifierStatut']);
+
+        // Webhook Jeko
+        Route::post('jeko/webhook', [PaymentController::class, 'webhookJeko']);
+
+        // Webhook Wave
+        Route::post('wave/webhook', [PaymentController::class, 'webhookWave']);
     });
 
     // ============================================================

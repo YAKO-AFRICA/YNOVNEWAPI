@@ -448,11 +448,11 @@
         @endif
 
         <div class="actions">
-            <a href="{{ url('preview/doc/' . $fileName) }}" download class="btn">
+            <button onclick="downloadReceiptPDF('{{ $paiement->payment_code ?? '' }}')" class="btn">
                 📥 Télécharger en PDF
-            </a>
+            </button>
             <button onclick="window.print()">
-                🖨️ Imprimer
+                �️ Imprimer
             </button>
         </div>
 
@@ -463,6 +463,25 @@
     </div>
 
     <script>
+        // Fonction pour télécharger le PDF
+        function downloadReceiptPDF(paymentCode) {
+            if (!paymentCode) {
+                alert('Code de paiement manquant');
+                return;
+            }
+
+            // Générer et télécharger le PDF à la volée
+            const downloadUrl = '/paiement/recu/' + paymentCode + '/download';
+            
+            // Créer un lien temporaire et déclencher le téléchargement
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', 'recu-paiement-' + paymentCode + '.pdf');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         // Fonction pour imprimer
         document.querySelectorAll('[onclick="window.print()"]').forEach(el => {
             el.removeAttribute('onclick');

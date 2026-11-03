@@ -11,7 +11,7 @@ class ActeurService
 {
     public function getActeurs(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Acteur::query()->with('RelationContrat');
+        $query = Acteur::query()->with('contrats', 'RelationContrat');
 
         foreach (['uuid_acteur', 'idClient', 'code', 'email', 'nni'] as $field) {
             if (!empty($filters[$field])) {

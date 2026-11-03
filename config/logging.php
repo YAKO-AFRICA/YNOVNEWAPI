@@ -109,6 +109,13 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
         ],
 
+        'wave_webhooks' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/wave-webhooks.log'),
+            'level' => 'debug',
+            'days' => 30,
+        ],
+
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,

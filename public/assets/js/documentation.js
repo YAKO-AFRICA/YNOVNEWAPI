@@ -24124,7 +24124,7 @@
                         },
                     ],
                     docsLink: "/api/v1/demo-jeko-widget",
-                    widgetJs: "/api/v1/paiements/jeko/jeko-payment-widget.js",
+                    widgetJs: "/api/v1/paiements/jeko-payment-widget.js",
                 },
                 responses: [
                     {
@@ -25873,7 +25873,7 @@
                     endpoint.widgetInfo.docsLink || "/api/v1/demo-jeko-widget";
                 const widgetJs =
                     endpoint.widgetInfo.widgetJs ||
-                    "/api/v1/paiements/jeko/jeko-payment-widget.js";
+                    "/api/v1/paiements/jeko-payment-widget.js";
 
                 widgetDemoHtml = `
             <div class="section-title"><i class="fas fa-credit-card text-success"></i> Widget Jeko</div>

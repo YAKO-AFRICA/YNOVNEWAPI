@@ -47,6 +47,12 @@ return [
         'webhook_secret' => env('JEKO_WEBHOOK_SECRET'),
     ],
 
+    'wave' => [
+        'api_key' => env('WAVE_API_KEY'),
+        'base_url' => env('WAVE_BASE_URL', 'https://api.wave.com'),
+        'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
+    ],
+
     'auto_assign' => [
         'token' => env('AUTO_ASSIGN_TOKEN', 'fe8c40c17eaaef578163e54d21e8d36f535a7cb95348ed715927308c58c52tsd'),
     ],

@@ -41,14 +41,16 @@
             width: 80px;
             height: 80px;
             margin: 0 auto 20px;
-            background: #1D603D;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            color: white;
-            font-weight: bold;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         h1 {
@@ -100,6 +102,24 @@
             color: #333;
             margin-bottom: 15px;
             text-align: left;
+        }
+
+        .select-all-btn {
+            background: #f8f9fa;
+            border: 2px solid #1D603D;
+            color: #1D603D;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .select-all-btn:hover {
+            background: #1D603D;
+            color: white;
         }
 
         .btn-pay {
@@ -220,7 +240,9 @@
 </head>
 <body>
     <div class="container">
-        <div class="logo">Y</div>
+        <div class="logo">
+            <img src="{{ asset('assets/images/ynov-logo.jpg') }}" alt="Logo Ynov" />
+        </div>
         <h1>Régularisation de primes</h1>
         <p>Veuillez régulariser vos primes impayées pour poursuivre votre couverture.</p>
 
@@ -228,9 +250,15 @@
             <div id="contractDisplay">Chargement...</div>
         </div>
 
-        <div class="section-title">Sélectionnez les primes à régulariser</div>
+        <div class="loading" id="loadingContract" style="display: block;">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">Chargement des informations du contrat...</p>
+        </div>
 
-        <div class="invoices-container">
+        <div class="section-title" id="sectionTitle" style="display: none;">Sélectionnez les primes à régulariser</div>
+        <button class="select-all-btn" id="selectAllBtn" onclick="toggleSelectAll()" style="display: none;">Tout cocher</button>
+
+        <div class="invoices-container" id="invoicesContainer" style="display: none;">
             <div id="invoicesList"></div>
         </div>
 
@@ -243,7 +271,7 @@
 
         <div class="error" id="errorBox"></div>
 
-        <button class="btn-pay" id="btnPay" onclick="initiatePayment()">
+        <button class="btn-pay" id="btnPay" onclick="initiatePayment()" style="display: none;">
             Payer maintenant
         </button>
 
@@ -264,9 +292,9 @@
 
         const BASE_URL = window.location.origin;
         const API_URLS = {
-            widgetJs: BASE_URL + '/api/v1/paiements/jeko/jeko-payment-widget.js',
-            init: BASE_URL + '/api/v1/paiements/jeko/init',
-            contractCheck: BASE_URL + '/api/v1/paiements/jeko/contrat/verifier',
+            widgetJs: BASE_URL + '/api/v1/paiements/jeko-payment-widget.js',
+            init: BASE_URL + '/api/v1/paiements/init',
+            contractCheck: BASE_URL + '/api/v1/paiements/contrat/verifier',
         };
 
         // Stocker les factures et les montants
@@ -280,7 +308,8 @@
         async function loadContractInvoices() {
             if (!contractId) {
                 showError('ID de contrat manquant');
-                return;
+                document.getElementById('loadingContract').style.display = 'none';
+                return false;
             }
 
             try {
@@ -298,6 +327,9 @@
 
                 const data = await response.json();
 
+                // Cacher le spinner de chargement
+                document.getElementById('loadingContract').style.display = 'none';
+
                 if (data.success && data.data && data.data.facturesImpayees) {
                     // Afficher les informations du contrat
                     const contractInfo = document.getElementById('contractInfo');
@@ -313,12 +345,16 @@
                         type: invoice.TypePresentation,
                     }));
                     displayInvoices(availableInvoices);
+                    return true; // Succès
                 } else {
                     showError(data.message || 'Impossible de charger les factures du contrat');
+                    return false; // Échec
                 }
             } catch (error) {
                 console.error('Erreur:', error);
+                document.getElementById('loadingContract').style.display = 'none';
                 showError('Erreur lors du chargement des factures');
+                return false; // Échec
             }
         }
 
@@ -326,9 +362,19 @@
         function displayInvoices(invoices) {
             const invoicesList = document.getElementById('invoicesList');
             const contractInfo = document.getElementById('contractInfo');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const btnPay = document.getElementById('btnPay');
+            const sectionTitle = document.getElementById('sectionTitle');
+            const invoicesContainer = document.getElementById('invoicesContainer');
+
+            // Afficher la section titre et le conteneur des factures
+            sectionTitle.style.display = 'block';
+            invoicesContainer.style.display = 'block';
 
             if (!invoices || invoices.length === 0) {
                 invoicesList.innerHTML = '<p style="font-size: 14px; color: #999; text-align: center; padding: 20px;">Aucune facture impayée trouvée</p>';
+                selectAllBtn.style.display = 'none';
+                btnPay.style.display = 'none';
                 return;
             }
 
@@ -376,6 +422,10 @@
 
                 invoicesList.appendChild(invoiceItem);
             });
+
+            // Afficher les boutons quand il y a des factures
+            selectAllBtn.style.display = 'inline-block';
+            btnPay.style.display = 'block';
 
             // Mettre à jour les factures sélectionnées initialement
             updateSelectedInvoices();
@@ -461,7 +511,7 @@
                     widget = new JekoWidget({
                         backendEndpoint: API_URLS.init,
                         contractCheckEndpoint: API_URLS.contractCheck,
-                        statusCheckEndpoint: BASE_URL + '/api/v1/paiements/jeko/statut',
+                        statusCheckEndpoint: BASE_URL + '/api/v1/paiements/statut',
 
                         currency: "XOF",
                         timeout: 30000,
@@ -510,7 +560,7 @@
                     customerName: "Client",
                     successUrl: successUrl,
                     // successUrl: window.location.origin + "/paiements/jeko/success",
-                    errorUrl: "{{ route('paiement.error') }}",
+                    errorUrl: "{{ url('/paiement/erreur') }}" + "/" + referenceInterne,
                     metadata: {
                         source: "sms_link",
                         scenario: "recoveryPrime",
@@ -532,9 +582,30 @@
             errorBox.style.display = 'block';
         }
 
+        // Fonction pour tout cocher / tout décocher
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('#invoicesList input[type="checkbox"]');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+
+            selectAllBtn.textContent = allChecked ? 'Tout cocher' : 'Tout décocher';
+            updateSelectedInvoices();
+        }
+
         // Charger automatiquement les factures si le contrat est spécifié
         if (contractId) {
-            loadContractInvoices();
+            loadContractInvoices().then((success) => {
+                // Lancer automatiquement le widget après chargement des factures SEULEMENT si succès
+                if (success) {
+                    setTimeout(() => {
+                        initiatePayment();
+                    }, 500);
+                }
+            });
         }
     </script>
 </body>

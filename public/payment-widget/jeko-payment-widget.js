@@ -16,7 +16,7 @@
 //  * <script src="jeko-widget.js"></script>
 //  * <script>
 //  *   const widget = new JekoWidget({
-//  *     backendEndpoint: '/api/paiements/jeko/init',
+//  *     backendEndpoint: '/api/v1/paiements/init',
 //  *     currency: 'XOF',
 //  *   });
 //  *
@@ -107,9 +107,9 @@
     };
 
     const DEFAULT_OPTIONS = {
-        backendEndpoint: "/api/v1/paiements/jeko/init",
-        contractCheckEndpoint: "/api/v1/paiements/jeko/contrat/verifier",
-        statusCheckEndpoint: "/api/v1/paiements/jeko/statut",
+        backendEndpoint: "/api/v1/paiements/init",
+        contractCheckEndpoint: "/api/v1/paiements/contrat/verifier",
+        statusCheckEndpoint: "/api/v1/paiements/statut",
         currency: "XOF",
         successUrl: null,
         errorUrl: null,
@@ -165,6 +165,8 @@
             noUnpaidInvoices: "Aucune facture impayée sur ce contrat.",
             switchToEarly: "Payer en avance à la place",
             selectInvoicesLabel: "Sélectionnez les primes à régulariser",
+            selectAllLabel: "Tout cocher",
+            deselectAllLabel: "Tout décocher",
             totalLabel: "Total à régler",
             firstPaymentBase: "Première prime",
             firstPaymentFees: "Frais d'adhésion",
@@ -248,6 +250,8 @@
         pointer-events:none;
       }
       .jeko-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; position:relative; z-index:1; }
+      .jeko-header-title { display:flex; align-items:center; gap:12px; }
+      .jeko-logo { width:40px; height:40px; border-radius:8px; object-fit:cover; }
       .jeko-header h3 { margin:0; font-size:17px; font-weight:700; letter-spacing:.2px; display:flex; align-items:center; gap:8px; }
       .jeko-header h3::before {
         content:"🔒"; font-size:14px; opacity:.9;
@@ -697,6 +701,42 @@
             return 0;
         }
 
+        _updateTotalAndSubmitButton() {
+            const total = this._computeAmount();
+            const t = this.options.translations;
+            const modal = this._modal;
+
+            // Mettre à jour le total
+            const totalBar = modal.querySelector('.jeko-total-bar');
+            if (totalBar) {
+                totalBar.innerHTML = `<span>${t.totalLabel}</span><span>${formatAmount(total, this._paymentData.currency)}</span>`;
+            }
+
+            // Mettre à jour l'état du bouton submit
+            const submitBtn = modal.querySelector('[data-action="submit-payment"]');
+            if (submitBtn) {
+                submitBtn.disabled = !this._canProceedFromStep2();
+            }
+        }
+
+        _updateTotalAndSubmitButton() {
+            const total = this._computeAmount();
+            const t = this.options.translations;
+            const modal = this._modal;
+
+            // Mettre à jour le total
+            const totalBar = modal.querySelector('.jeko-total-bar');
+            if (totalBar) {
+                totalBar.innerHTML = `<span>${t.totalLabel}</span><span>${formatAmount(total, this._paymentData.currency)}</span>`;
+            }
+
+            // Mettre à jour l'état du bouton submit
+            const submitBtn = modal.querySelector('[data-action="submit-payment"]');
+            if (submitBtn) {
+                submitBtn.disabled = !this._canProceedFromStep2();
+            }
+        }
+
         _isFirstPayment() {
             return this._paymentData.paymentType === "firstPayment";
         }
@@ -730,7 +770,10 @@
             return `
         <div class="jeko-header">
           <div class="jeko-header-top">
-            <h3>${t.title}</h3>
+            <div class="jeko-header-title">
+              <img src="/assets/images/ynov-logo.jpg" alt="Logo" class="jeko-logo" />
+              <h3>${t.title}</h3>
+            </div>
             <button type="button" class="jeko-close" aria-label="${t.close}">&times;</button>
           </div>
           ${this._stepperHeaderTemplate()}
@@ -839,7 +882,10 @@
             footer.innerHTML = this._footerTemplate();
             header.innerHTML = `
         <div class="jeko-header-top">
-          <h3>${this.options.translations.title}</h3>
+          <div class="jeko-header-title">
+            <img src="/assets/images/ynov-logo.jpg" alt="Logo" class="jeko-logo" />
+            <h3>${this.options.translations.title}</h3>
+          </div>
           <button type="button" class="jeko-close" aria-label="${this.options.translations.close}">&times;</button>
         </div>
         ${this._stepperHeaderTemplate()}
@@ -1008,6 +1054,7 @@
           `;
                 }
                 const total = this._computeAmount();
+                const allSelected = list.length > 0 && list.every(f => this._selectedInvoiceIds.has(String(f.IdPresentation)));
                 const itemsHtml = list
                     .map(
                         (f) => `
@@ -1021,6 +1068,7 @@
                 return `
           <div class="jeko-notice info">${this._contractSummaryTemplate()}</div>
           <span class="jeko-section-label">${t.selectInvoicesLabel}</span>
+          <button type="button" class="jeko-link-btn" data-toggle-all="true" style="margin-bottom: 10px;">${allSelected ? t.deselectAllLabel : t.selectAllLabel}</button>
           <div class="jeko-invoice-list">${itemsHtml}</div>
           <div class="jeko-total-bar"><span>${t.totalLabel}</span><span>${formatAmount(total, this._paymentData.currency)}</span></div>
         `;
@@ -1263,9 +1311,39 @@
                     const id = cb.dataset.invoice;
                     if (cb.checked) this._selectedInvoiceIds.add(id);
                     else this._selectedInvoiceIds.delete(id);
-                    this._refreshBody();
+                    // Ne pas recharger tout le body pour éviter le scroll
+                    // Mettre à jour seulement le total et le bouton submit
+                    this._updateTotalAndSubmitButton();
                 });
             });
+
+            // Handler pour le bouton "Tout cocher / Tout décocher"
+            const toggleAllBtn = modal.querySelector('[data-toggle-all]');
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener("click", () => {
+                    const t = this.options.translations;
+                    const list = this._contractInfo?.facturesImpayees || [];
+                    const allSelected = list.every(f => this._selectedInvoiceIds.has(String(f.IdPresentation)));
+
+                    if (allSelected) {
+                        // Tout décocher
+                        this._selectedInvoiceIds.clear();
+                    } else {
+                        // Tout cocher
+                        list.forEach(f => this._selectedInvoiceIds.add(String(f.IdPresentation)));
+                    }
+
+                    // Mettre à jour l'état des checkboxes et le total
+                    modal.querySelectorAll("[data-invoice]").forEach(cb => {
+                        cb.checked = this._selectedInvoiceIds.has(cb.dataset.invoice);
+                    });
+                    this._updateTotalAndSubmitButton();
+
+                    // Mettre à jour le texte du bouton
+                    const newAllSelected = list.every(f => this._selectedInvoiceIds.has(String(f.IdPresentation)));
+                    toggleAllBtn.textContent = newAllSelected ? t.deselectAllLabel : t.selectAllLabel;
+                });
+            }
 
             const verifyBtn = modal.querySelector('[data-action="verify-contract"]');
             if (verifyBtn)

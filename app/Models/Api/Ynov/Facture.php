@@ -60,7 +60,7 @@ class Facture extends Model
     // Statuts
     public const STATUS = [
         'pending' => 'En attente',
-        'paid' => 'Payée',
+        'success' => 'Payée',
         'error' => 'Erreur',
         'cancelled' => 'Annulée',
         'migrate' => 'Migrée',
@@ -102,7 +102,7 @@ class Facture extends Model
      */
     public function isPaid(): bool
     {
-        return $this->status === 'paid';
+        return $this->status === 'success';
     }
 
     /**
@@ -111,7 +111,7 @@ class Facture extends Model
     public function markAsPaid(): self
     {
         $this->update([
-            'status' => 'paid',
+            'status' => 'success',
             'paid_at' => now(),
         ]);
 
@@ -123,7 +123,7 @@ class Facture extends Model
      */
     public function scopePaid($query)
     {
-        return $query->where('status', 'paid');
+        return $query->where('status', 'success');
     }
 
     /**

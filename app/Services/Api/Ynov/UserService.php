@@ -320,6 +320,256 @@ class UserService
         ];
     }
 
+    public function createClientAPI(array $data): array
+    {
+        $password = Str::random(12);
+
+        $result = DB::transaction(function () use ($data, $password) {
+
+            /*
+            * Récupération du rôle client
+            */
+            $roleClient = Role::where('code', 'client')->first();
+
+            if (!$roleClient) {
+                return [
+                    'success' => false,
+                    'code' => 'NO_DEFAULT_ROLE',
+                    'message' => 'Aucun rôle client configuré.',
+                ];
+            }
+
+            /*
+            * Vérification du login
+            */
+            $login = $data['login'];
+
+            $userExists = User::where('login', $login)->first();
+
+            if ($userExists->exists()) {
+                foreach ($data['contrats'] ?? [] as $contrat) {
+
+                UserContrat::create([
+                    'uuid_user_contrat' => (string) Str::uuid(),
+
+                    'user_uuid' => $userExists->uuid_user,
+
+                    'contrat_id' => $contrat['IdProposition'] ?? null,
+
+                    'client_number' => $data['client_number'] ?? null,
+
+                    'code_produit' => $contrat['codeProduit'] ?? null,
+
+                    'libelle_produit' => $contrat['produit'] ?? null,
+
+                    'code_produit_formule' =>
+                        $contrat['CodeProduitFormule'] ?? null,
+
+                    'libelle_produit_formule' =>
+                        $contrat['ProduitFormule'] ?? null,
+                ]);
+            }
+                return [
+                    'success' => false,
+                    'code' => 'LOGIN_ALREADY_EXISTS',
+                    'message' => "Le login {$login} est déjà associé à un compte.",
+                ];
+            }
+
+            /*
+            * Vérification des contrats
+            */
+            $contratExists = [];
+
+            foreach ($data['contrats'] ?? [] as $contratData) {
+
+                $existingContract = UserContrat::where(
+                    'contrat_id',
+                    $contratData['IdProposition']
+                )->first();
+
+                if ($existingContract) {
+                    $contratExists[] = $contratData['IdProposition'];
+                }
+            }
+
+            if (!empty($contratExists)) {
+
+                $message = count($contratExists) > 1
+                    ? 'Les contrats suivants sont déjà associés à un compte : '
+                        . implode(', ', $contratExists)
+                    : 'Le contrat '
+                        . $contratExists[0]
+                        . ' est déjà associé à un compte.';
+
+                return [
+                    'success' => false,
+                    'code' => 'CONTRAT_ALREADY_EXISTS',
+                    'message' => $message,
+                ];
+            }
+
+            /*
+            * UUID utilisateur
+            */
+            $uuidUser = (string) Str::uuid();
+
+            /*
+            * Adresse complète
+            */
+            $adresseComplete = implode(', ', array_filter([
+                // $data['ville'] ?? null,
+                $data['lieu_residence'] ?? null,
+                $data['pays'] ?? null,
+            ]));
+
+            /*
+            * Création utilisateur
+            */
+            $user = User::create([
+                'uuid_user' => $uuidUser,
+                'email' => $data['email'] ?? null,
+                'login' => $login,
+                'password' => Hash::make($password),
+
+                'role_uuid' => $roleClient->uuid_role,
+                'user_type' => 'client',
+                'status' => 'actif',
+
+                'is_first_login' => true,
+
+                'password_expires_at' => now()->addDays(90),
+
+                'created_by' => 'system', // Création via API, pas d'utilisateur spécifique
+            ]);
+
+            /*
+            * Création détails utilisateur
+            */
+            UserDetails::create([
+                'uuid_user_details' => (string) Str::uuid(),
+
+                'user_uuid' => $uuidUser,
+
+                'numero_client' => $data['numero_client'] ?? null,
+
+                'nom' => $data['nom'],
+                'prenoms' => $data['prenoms'],
+
+                'mobile_1' => $data['mobile_1'] ?? null,
+
+                'email_pro' => $data['email'] ?? null,
+
+                'fonction' => $data['fonction'] ?? null,
+
+                'adresse_complete' => $adresseComplete,
+
+                'lieu_residence' => $data['lieu_residence'] ?? null,
+
+                'date_naissance' => $data['date_naissance'] ?? null,
+
+                'lieu_naissance' => $data['lieu_naissance'] ?? null,
+
+                'genre' => $data['genre'] ?? null,
+
+                'civilite' => $data['civilite'] ?? null,
+
+                'ville' => $data['ville'] ?? null,
+
+                'pays' => $data['pays'] ?? null,
+
+                'created_by' => 'system', // Création via API, pas d'utilisateur spécifique
+            ]);
+
+            /*
+            * Création des contrats
+            */
+            foreach ($data['contrats'] ?? [] as $contrat) {
+
+                UserContrat::create([
+                    'uuid_user_contrat' => (string) Str::uuid(),
+
+                    'user_uuid' => $user->uuid_user,
+
+                    'contrat_id' => $contrat['IdProposition'] ?? null,
+
+                    'client_number' => $data['client_number'] ?? null,
+
+                    'code_produit' => $contrat['codeProduit'] ?? null,
+
+                    'libelle_produit' => $contrat['produit'] ?? null,
+
+                    'code_produit_formule' =>
+                        $contrat['CodeProduitFormule'] ?? null,
+
+                    'libelle_produit_formule' =>
+                        $contrat['ProduitFormule'] ?? null,
+                ]);
+            }
+
+             // Créer une notification de bienvenue pour le client
+            $this->notificationService->create([
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+                'title' => '👋 Bienvenue sur YNOV',
+                'body' => 'Votre compte client a été créé avec succès. Vous pouvez maintenant vous connecter et gérer vos contrats.',
+                'type' => 'account',
+                'metadata' => [
+                    'contrat_count' => count($data['contrats'] ?? []),
+                    'created_at' => now()->toISOString(),
+                ],
+                'channel' => 'database',
+                'created_by' => 'system',
+            ]);
+
+            /*
+            * Retour métier
+            */
+            return [
+                'success' => true,
+                'code' => 'USER_CREATED',
+                'message' => 'Utilisateur créé avec succès.',
+                'data' => $user,
+            ];
+        });
+
+        /*
+        * Transaction échouée / validation métier
+        */
+        if (!$result['success']) {
+            return $result;
+        }
+
+        /*
+        * Récupérer le vrai modèle User
+        */
+        $user = $result['data'];
+
+        /*
+        * Charger les relations nécessaires
+        */
+        $user->load('details');
+
+        /*
+        * Envoi des identifiants UNIQUEMENT après commit.
+        */
+        DB::afterCommit(function () use ($user, $password) {
+
+            $this->sendWelcomeCredentials(
+                $user,
+                $password
+            );
+
+        });
+
+        return [
+            'success' => true,
+            'code' => 'USER_CREATED',
+            'message' => 'Utilisateur créé avec succès.',
+            'data' => $user,
+        ];
+    }
+
     /**
      * Envoyer les informations de connexion.
      */

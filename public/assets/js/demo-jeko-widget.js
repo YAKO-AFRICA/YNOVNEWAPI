@@ -13,10 +13,10 @@
     
     // URLs des endpoints API
     var API_URLS = {
-        widgetJs: BASE_URL + '/api/v1/paiements/jeko/jeko-payment-widget.js',
-        init: BASE_URL + '/api/v1/paiements/jeko/init',
-        contractCheck: BASE_URL + '/api/v1/paiements/jeko/contrat/verifier',
-        checkStatus: BASE_URL + '/api/v1/paiements/jeko/statut',
+        widgetJs: BASE_URL + '/api/v1/paiements/jeko-payment-widget.js',
+        init: BASE_URL + '/api/v1/paiements/init',
+        contractCheck: BASE_URL + '/api/v1/paiements/contrat/verifier',
+        checkStatus: BASE_URL + '/api/v1/paiements/statut',
     };
 
     console.log('📍 Base URL détectée:', BASE_URL);
@@ -285,7 +285,7 @@
 
     const referenceInterne = generateReference();
     const successUrl = BASE_URL + "/paiement/recu/" + referenceInterne;
-    const errorUrl = BASE_URL + "/paiement/error";
+    const errorUrl = BASE_URL + "/paiement/error/" + referenceInterne;
     // ============================================================
     // 6) BOUTONS DE PAIEMENT - LES 3 TYPES
     // ============================================================
@@ -326,7 +326,7 @@
             successUrl: BASE_URL + "/paiement/recu/" + ref,
 
             // URL de redirection en cas d'erreur
-            errorUrl: BASE_URL + "/paiement/error",
+            errorUrl: BASE_URL + "/paiement/error/" + ref,
 
             // Métadonnées additionnelles (pour le suivi)
             metadata: {
@@ -367,7 +367,7 @@
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
             successUrl: BASE_URL + "/paiement/recu/" + ref,
-            errorUrl: BASE_URL + "/paiement/error",
+            errorUrl: BASE_URL + "/paiement/error/" + ref,
             metadata: {
                 source: "web_demo",
                 scenario: "earlyPayment",
@@ -412,7 +412,7 @@
             customerEmail: "client@example.com",
             customerName: "Jean Dupont",
             successUrl: BASE_URL + "/paiement/recu/" + ref,
-            errorUrl: BASE_URL + "/paiement/error",
+            errorUrl: BASE_URL + "/paiement/error/" + ref,
             metadata: {
                 source: "web_demo",
                 scenario: "recoveryPrime",

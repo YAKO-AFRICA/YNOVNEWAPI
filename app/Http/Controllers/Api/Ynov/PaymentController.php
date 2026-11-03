@@ -4,19 +4,13 @@ namespace App\Http\Controllers\Api\Ynov;
 
 
 use App\Http\Controllers\Controller;
-use App\Models\Api\Ynov\Esouscription\Contrat;
-use App\Models\Api\Ynov\Facture;
 use App\Models\Api\Ynov\Paiement;
-use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\PaymentService;
 use App\Services\Api\Ynov\PrimePaymentOrchestrator;
 use App\Services\EncaissementBisService;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -169,25 +163,25 @@ class PaymentController extends Controller
         }
 
         $referenceInterne = $donnees['reference'];
+        $paymentMethod = $donnees['paymentMethod'];
+        $provider = ($paymentMethod === 'wave') ? 'WAVE_API' : 'JEKO';
 
         try {
-            // 2) Appel Jeko
+            // 2) Appel Provider (Wave ou Jeko)
             $resultat = $this->jekoService->initialiserPaiement([
-                'amountCents' => $preparation['montantTotal'] * 100,
+                'amountCents' => $paymentMethod === 'wave' ? $preparation['montantTotal'] : $preparation['montantTotal'] * 100,
                 'currency' => $donnees['currency'] ?? 'XOF',
                 'reference' => $referenceInterne,
                 'paymentMethod' => $donnees['paymentMethod'],
-                // 'successUrl' => env('APP_URL') . '/paiement/recu/' . $referenceInterne,
-                // 'errorUrl' => env('APP_URL') . '/paiement/error',
                 'successUrl' => (isset($donnees['successUrl']) && !empty($donnees['successUrl'])) ? $donnees['successUrl'] : env('APP_URL') . '/paiement/recu/' . $referenceInterne,
-                'errorUrl' => (isset($donnees['errorUrl']) && !empty($donnees['errorUrl'])) ? $donnees['errorUrl'] : env('APP_URL') . '/paiement/error',
+                'errorUrl' => (isset($donnees['errorUrl']) && !empty($donnees['errorUrl'])) ? $donnees['errorUrl'] : env('APP_URL') . '/paiement/error/' . $referenceInterne,
                 'customerEmail' => $donnees['customerEmail'] ?? null,
                 'customerName' => $donnees['customerName'] ?? null,
                 'description' => $donnees['description'] ?? null,
                 'metadata' => $donnees['metadata'] ?? null,
             ], $referenceInterne);
 
-            Log::info('Paiement initialisé via Jeko', [
+            Log::info('Paiement initialisé via ' . strtoupper($provider), [
                 'reference' => $referenceInterne,
             ]);
 
@@ -195,7 +189,7 @@ class PaymentController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => $resultat['message'] ?? "Impossible d'initialiser le paiement.",
-                    'code' => $resultat['code'] ?? 'JEKO_INIT_FAILED',
+                    'code' => $resultat['code'] ?? 'PAYMENT_INIT_FAILED',
                     'data' => null,
                 ], $resultat['status'] ?? 502);
             }
@@ -205,7 +199,7 @@ class PaymentController extends Controller
             ]);
 
             // 3) Enregistrement du paiement et des factures
-            $paiement = $this->orchestrator->enregistrer($donnees, $preparation, $referenceInterne, $resultat);
+            $paiement = $this->orchestrator->enregistrer($donnees, $preparation, $referenceInterne, $resultat, $provider);
 
             Log::info('Paiement enregistré', [
                 'referenceInterne' => $referenceInterne,
@@ -247,7 +241,8 @@ class PaymentController extends Controller
     public function verifierStatut(Request $request, string $referenceInterne): JsonResponse
     {
         try {
-            $paiement = Paiement::where('command_number', $referenceInterne)->first();
+            $paiement = Paiement::where('payment_code', $referenceInterne)
+            ->orWhere('command_number', $referenceInterne)->first();
 
             if (!$paiement) {
                 return response()->json([
@@ -257,12 +252,13 @@ class PaymentController extends Controller
                 ], 404);
             }
 
-            $statut = $this->jekoService->verifierStatut($paiement);
+            $provider = $paiement->reglement_source ?? 'JEKO';
+            $statut = $this->jekoService->verifierStatut($paiement, $provider);
 
             // Si le statut est "error", mettre à jour le statut en base
-            if ($statut['success'] && $statut['status'] === 'error') {
-                $this->orchestrator->mettreAJourStatut($paiement, 'error', []);
-                Log::info('Statut du paiement mis à jour en base (error)', [
+            if ($statut['success'] && in_array($statut['status'], ['error', 'cancelled', 'failed'])) {
+                $this->orchestrator->mettreAJourStatut($paiement, $statut['status'], []);
+                Log::info('Statut du paiement mis à jour en base (' . $statut['status'] . ')', [
                     'reference' => $referenceInterne,
                 ]);
             }
@@ -272,7 +268,7 @@ class PaymentController extends Controller
                 'data' => [
                     'statut' => $statut['status'],
                     'montant' => $paiement->amount,
-                    'reference' => $paiement->command_number,
+                    'reference' => $paiement->payment_code,
                     'payment_type' => $paiement->payment_type,
                     'details' => $statut['details'] ?? null,
                 ],
@@ -295,7 +291,7 @@ class PaymentController extends Controller
     /**
      * Webhook pour recevoir les notifications de Jeko
      */
-    public function webhook(Request $request)
+    public function webhookJeko(Request $request)
     {
         $payload = $request->all();
         Log::info('Webhook Jeko reçu', [
@@ -304,13 +300,13 @@ class PaymentController extends Controller
 
         try {
             // Valider le webhook
-            if (!$this->jekoService->validerWebhook($request)) {
+            if (!$this->jekoService->validerWebhookJeko($request)) {
                 Log::warning('Webhook Jeko non valide - signature incorrecte');
                 return response()->json(['error' => 'Invalid webhook'], 401);
             }
 
             // Traiter le webhook
-            $resultat = $this->jekoService->traiterWebhook($payload);
+            $resultat = $this->jekoService->traiterWebhookJeko($payload);
 
             if (!$resultat) {
                 Log::info('Webhook ignoré - traitement non nécessaire');
@@ -318,14 +314,15 @@ class PaymentController extends Controller
             }
 
             // Mettre à jour le paiement
-            $paiement = Paiement::where('command_number', $resultat['reference'])->first();
+            $paiement = Paiement::where('payment_code', $resultat['reference'])
+            ->orWhere('command_number', $resultat['reference'])->first();
 
             if (!$paiement) {
                 Log::warning('Paiement non trouvé pour le webhook', ['reference' => $resultat['reference']]);
                 return response()->json(['status' => 'ignored'], 200);
             }
 
-            Log::info('Mise à jour du paiement via webhook', [
+            Log::info('Mise à jour du paiement via webhook Jeko', [
                 'reference' => $resultat['reference'],
                 'nouveau_statut' => $resultat['status'],
             ]);
@@ -336,17 +333,16 @@ class PaymentController extends Controller
                 $resultat['status'],
                 [
                     'phone' => $resultat['phone'],
-                    // 'payment_token' => $resultat['payment_token'],
-                    // 'payment_code' => $resultat['payment_code'],
+                    'amount' => $resultat['amount'],
                 ]
             );
 
-            // Si le paiement est réussi, générer le reçu
-            if ($resultat['status'] === 'success') {
-                $this->generateReceipt($paiement);
+            // Si le paiement est réussi et c'est un firstPayment, générer le reçu
+            if ($resultat['status'] === 'success' && $paiement->payment_type === 'firstPayment') {
+                $this->jekoService->generateReceipt($paiement);
             }
 
-            Log::info('Webhook traité avec succès', [
+            Log::info('Webhook Jeko traité avec succès', [
                 'reference' => $resultat['reference'],
                 'statut' => $resultat['status'],
             ]);
@@ -362,135 +358,77 @@ class PaymentController extends Controller
     }
 
     /**
-     * Génère le reçu PDF du paiement
+     * Webhook pour recevoir les notifications de Wave
      */
-
-    private function generateReceipt(Paiement $paiement)
+    public function webhookWave(Request $request)
     {
+        $rawBody = $request->getContent();
+        $signatureHeader = $request->header('Wave-Signature', '');
+        $event = $request->all();
+
+        Log::info('Webhook Wave reçu', [
+            'signature' => $signatureHeader,
+            'body' => $rawBody,
+            'ip' => $request->ip(),
+        ]);
+
         try {
-            $paiement = Paiement::where('uuid_paiement', $paiement->uuid_paiement)->firstOrFail();
-
-            Log::info('Génération du reçu PDF', [
-                'reference' => $paiement->command_number,
-            ]);
-
-            $libellesTypeFacture = [
-                'N' => 'Prime principale',
-                'F' => "Frais d'adhésion",
-                'P' => 'Partielle (Reste à payer)',
-                'U' => 'Unique',
-                'B' => 'Participation aux Bénéfices',
-                'E' => 'Exceptionnelle',
-                'A' => 'Avance (Remboursement de prêts)',
-            ];
-
-            // Libellés des types de paiement
-            $libellesType = [
-                'firstPayment' => 'Premier paiement',
-                'earlyPayment' => 'Paiement anticipé',
-                'recoveryPrime' => 'Régularisation de primes',
-            ];
-
-            $libelleType = $libellesType[$paiement->payment_type] ?? $paiement->payment_type;
-
-            $factures = Facture::where('payment_uuid', $paiement->uuid_paiement)
-                ->orderBy('created_at')
-                ->get()
-                ->map(function ($facture) use ($libellesTypeFacture) {
-                    $facture->libelleTypeFacture =
-                        $libellesTypeFacture[$facture->type_facture]
-                        ?? $facture->type_facture;
-                    return $facture;
-                });
-
-            // Charger la vue et générer le HTML
-            $html = view('paiement.recu_pdf', compact('paiement', 'factures', 'libelleType'))->render();
-
-            // Configurer DomPDF
-            $options = new Options();
-            $options->set('defaultFont', 'DejaVu Sans');
-            $options->set('isRemoteEnabled', false);
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isPhpEnabled', false);
-
-            $dompdf = new Dompdf($options);
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $identifiantContrat = $paiement->id_contrat;
-            $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
-
-            // Créer un fichier temporaire
-            $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
-            file_put_contents($tempPath, $dompdf->output());
-
-            Log::info('PDF généré avec succès', [
-                'file_name' => $fileName,
-            ]);
-
-            if ($paiement->payment_type === 'firstPayment') {
-                $contrat = Contrat::where('id_contrat', $identifiantContrat)->firstOrFail();
-
-                // Créer un UploadedFile à partir du fichier temporaire
-                $uploadedFile = new UploadedFile(
-                    $tempPath,
-                    $fileName,
-                    'application/pdf',
-                    null,
-                    true
-                );
-
-                // Utiliser DocumentService pour créer le document
-                $this->documentService->createDocument([
-                    'reference_uuid' => $contrat->uuid_contrat,
-                    'libelle' => 'Recu de paiement',
-                    'source' => 'E-SOUSCRIPTION',
-                    'created_by' => $contrat->created_by ?? null,
-                ], $uploadedFile);
-
-                // Mettre le contrat en statut "payé"
-                $oldIsPaid = (bool) $contrat->is_paid;
-                $contrat->update(['is_paid' => 1]);
-
-                if (!$oldIsPaid) {
-                    ActivityLog::log([
-                        'user_uuid' => request()->user()?->uuid_user,
-                        'action' => 'contract_marked_paid',
-                        'action_type' => 'payment',
-                        'module' => 'contracts',
-                        'description' => "Contrat {$contrat->id_contrat} marqué comme payé après émission du reçu.",
-                        'resource_type' => 'contrat',
-                        'resource_id' => $contrat->uuid_contrat,
-                        'old_values' => ['is_paid' => false],
-                        'new_values' => [
-                            'is_paid' => true,
-                            'payment_uuid' => $paiement->uuid_paiement,
-                        ],
-                        'level' => 'info',
-                    ]);
-                }
+            // Valider le webhook
+            if (!$this->jekoService->validerWebhookWave($rawBody, $signatureHeader)) {
+                Log::warning('Webhook Wave non valide - signature incorrecte');
+                return response()->json(['error' => 'Invalid webhook'], 401);
             }
 
-            // Supprimer le fichier temporaire
-            if (file_exists($tempPath)) {
-                unlink($tempPath);
+            // Traiter le webhook
+            $resultat = $this->jekoService->traiterWebhookWave($event);
+
+            if (!$resultat) {
+                Log::info('Webhook Wave ignoré - traitement non nécessaire');
+                return response()->json(['status' => 'ignored'], 200);
             }
 
-            return [
-                'status' => 'success',
-                'file_name' => $fileName,
-            ];
+            // Mettre à jour le paiement
+            $paiement = Paiement::where('payment_code', $resultat['reference'])
+            ->orWhere('command_number', $resultat['reference'])->first();
 
-        } catch (\Exception $e) {
-            Log::error('Erreur génération PDF', [
+            if (!$paiement) {
+                Log::warning('Paiement non trouvé pour le webhook Wave', ['reference' => $resultat['reference']]);
+                return response()->json(['status' => 'ignored'], 200);
+            }
+
+            Log::info('Mise à jour du paiement via webhook Wave', [
+                'reference' => $resultat['reference'],
+                'nouveau_statut' => $resultat['status'],
+            ]);
+
+            // Mettre à jour le statut
+            $this->orchestrator->mettreAJourStatut(
+                $paiement,
+                $resultat['status'],
+                [
+                    'amount' => $resultat['amount'],
+                ]
+            );
+
+            // Si le paiement est réussi et c'est un firstPayment, générer le reçu
+            if ($resultat['status'] === 'success' && $paiement->payment_type === 'firstPayment') {
+                $this->jekoService->generateReceipt($paiement);
+            }
+
+            Log::info('Webhook Wave traité avec succès', [
+                'reference' => $resultat['reference'],
+                'statut' => $resultat['status'],
+                'amount' => $resultat['amount'],
+                'transactionId' => $resultat['transactionId'],
+            ]);
+
+            return response()->json(['status' => 'success'], 200);
+        } catch (\Throwable $e) {
+            Log::error('Erreur traitement webhook Wave', [
                 'message' => $e->getMessage(),
             ]);
 
-            return [
-                'status' => 'error',
-                'message' => 'Erreur lors de la génération du PDF : ' . $e->getMessage()
-            ];
+            return response()->json(['error' => 'Webhook processing failed'], 500);
         }
     }
 }

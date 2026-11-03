@@ -208,20 +208,21 @@ class PrimePaymentOrchestrator
         array $donnees,
         array $preparation,
         string $referenceInterne,
-        array $resultatJeko
+        array $resultatProvider,
+        string $provider = 'JEKO'
     ): Paiement {
-        return DB::transaction(function () use ($donnees, $preparation, $referenceInterne, $resultatJeko) {
+        return DB::transaction(function () use ($donnees, $preparation, $referenceInterne, $resultatProvider, $provider) {
             // Créer le paiement
             $paiement = Paiement::create([
                 'payment_code' => $referenceInterne ?? null,
                 'command_number' => $referenceInterne ?? null,
                 'amount' => $preparation['montantTotal'],
                 'payment_mode' => $donnees['paymentMethod'] ?? null,
-                'payment_status' => $resultatJeko['status'] ?? 'pending',
+                'payment_status' => $resultatProvider['status'] ?? 'pending',
                 'status' => 'pending',
                 'payment_type' => $donnees['paymentType'],
-                'payment_token' => $resultatJeko['paymentId'] ?? null,
-                'reglement_source' => 'JEKO',
+                'payment_token' => $resultatProvider['paymentId'] ?? null,
+                'reglement_source' => $provider,
                 'id_contrat' => $preparation['contractId'] ?? null,
                 'facture_count' => count($preparation['facturesAGenerer']),
                 'payer_email' => $donnees['customerEmail'] ?? null,
@@ -231,6 +232,7 @@ class PrimePaymentOrchestrator
                 'reference' => $referenceInterne,
                 'payment_type' => $donnees['paymentType'],
                 'facture_count' => count($preparation['facturesAGenerer']),
+                'provider' => $provider,
             ]);
 
             // Créer les factures associées
@@ -256,7 +258,7 @@ class PrimePaymentOrchestrator
                 'new_values' => [
                     'payment' => $paiement->toArray(),
                     'factures_count' => count($preparation['facturesAGenerer']),
-                    'source' => 'JEKO',
+                    'source' => $provider === 'wave' ? 'WAVE_API' : 'JEKO',
                 ],
                 'level' => 'info',
             ]);
@@ -282,11 +284,13 @@ class PrimePaymentOrchestrator
             ];
 
             if ($statut === 'success') {
-                $updateData['status'] = 'paid';
+                $updateData['status'] = 'success';
                 $updateData['paid_at'] = now();
                 $updateData['payment_validation_date'] = now();
-                $updateData['paid_amount'] = $paiement->amount;
-                $updateData['paid_sum'] = $paiement->amount ;
+                $updateData['paid_amount'] = $payload['amount'];
+                $updateData['paid_sum'] = $payload['amount'];
+                // $updateData['paid_amount'] = $paiement->amount;
+                // $updateData['paid_sum'] = $paiement->amount ;
 
                 if (!empty($payload['phone'])) {
                     $updateData['payment_phone'] = $payload['phone'];
@@ -316,7 +320,7 @@ class PrimePaymentOrchestrator
 
             // Mise à jour des factures associées
             $factureStatus = match ($statut) {
-                'success' => 'paid',
+                'success' => 'success',
                 'error', 'cancelled' => $statut,
                 default => 'pending',
             };
@@ -324,7 +328,7 @@ class PrimePaymentOrchestrator
             $updatedCount = Facture::where('payment_uuid', $paiement->uuid_paiement)
                 ->update(array_filter([
                     'status' => $factureStatus,
-                    'paid_at' => $factureStatus === 'paid' ? now() : null,
+                    'paid_at' => $factureStatus === 'success' ? now() : null,
                 ], fn($value) => $value !== null));
 
             ActivityLog::log([

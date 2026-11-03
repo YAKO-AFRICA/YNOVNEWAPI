@@ -38,6 +38,7 @@ class UserController extends Controller
 
         // Scope multi-tenant (inchangé)
         if (!$authUser->isSuperAdmin()) {
+            
             if ($authUser->partner_uuid) {
                 $query->where('partner_uuid', $authUser->partner_uuid);
             }

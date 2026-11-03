@@ -97,8 +97,8 @@ Route::prefix('paiement')->name('paiement.')->group(function () {
     Route::get('regularisation-primes', function () {
         return view('paiement.regularisation-primes');
     })->name('regularisation-primes');
-    Route::get('/error', function () {
-        return view('paiement.jeko-error');
+    Route::get('/error/{referenceInterne}', function () {
+        return view('paiement.jeko-error', ['referenceInterne' => request()->route('referenceInterne')]);
     })->name('error');
 });
 Route::get('/api/v1/demo-jeko-widget', [PaymentController::class, 'demoJekoWidget'])->name('demo-jeko-widget');
