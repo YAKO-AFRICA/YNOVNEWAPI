@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function () {
     Route::post('check/user-by-partner', [ParamController::class, 'checkUserByPartner']);
     Route::post('auth/get-register-data', [AuthController::class, 'getRegisterData'])->middleware('throttle:6,1');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+    Route::post('auth/register-customer', [AuthController::class, 'registerCustomerAPI'])->middleware('throttle:6,1');
 
     Route::post('auth/forgot-password', [PasswordController::class, 'forgot'])->middleware('throttle:login');
     Route::post('auth/reset-password', [PasswordController::class, 'reset']);

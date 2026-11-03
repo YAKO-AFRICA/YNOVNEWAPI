@@ -305,12 +305,11 @@ class AuthController extends Controller
     }
 
 
-    public function registerAPI(Request $request): JsonResponse
+    public function registerCustomerAPI(Request $request): JsonResponse
     {
         try {
 
             $acteurs = $this->acteurService->getActeurs(['idClient' => $request->idClient]);
-            $data = [];
 
             if ($acteurs->isEmpty()) {
                 return response()->json([
@@ -319,8 +318,12 @@ class AuthController extends Controller
                     'message' => 'Aucun acteur trouvé pour ce client.',
                 ], 404);
             }
-            foreach ($acteurs as $acteur) {
-                $phone = preg_replace('/\D/', '', $acteur->mobile);
+
+            // Prendre uniquement le premier acteur (items() retourne un tableau)
+            $acteur = $acteurs->items()[0];
+
+            // Formater le téléphone
+            $phone = preg_replace('/\D/', '', $acteur->mobile ?? $acteur->telephone ?? '');
 
             /*
              * Côte d'Ivoire
@@ -336,36 +339,48 @@ class AuthController extends Controller
                 $phone = substr($phone, 3);
             }
 
-                $phone = substr($phone, -10);
-                $data[] = [
-                    // 'login' => $acteur->idClient,
-                    'login' => $phone,
-                    'email' => $acteur->email,
-                    'nom' => $acteur->nom,
-                    'prenoms' => $acteur->prenoms,
-                    'mobile_1' => $acteur->mobile,
-                    'fonction' => null, // Pas de champ fonction dans l'acteur
-                    'ville' => $acteur->lieuresidence_code,
-                    'lieu_residence' => $acteur->lieuresidence_code,
-                    'pays' => $acteur->pays_code,
-                    'date_naissance' => Carbon::parse($acteur->date_naissance)->format('Y-m-d'),
-                    'lieu_naissance' => $acteur->lieunaissance_code,
-                    'genre' => $acteur->genre,
-                    'civilite' => $acteur->civilite,
-                    'numero_client' => $acteur->idClient,
-                    'client_number' => $acteur->idClient,
-                    'contrats' => collect($acteur->contrats)->map(function ($contrat) {
-                        return [
-                            'IdProposition' => $contrat->id_proposition,
-                            'codeProduit' => $contrat->code_produit,
-                            'produit' => $contrat->libelle_produit,
-                            'CodeProduitFormule' => $contrat->formule_produit_code,
-                            'ProduitFormule' => $contrat->formule,
-                        ];
-                    })->unique('IdProposition')->values()->toArray(),
-                ];
-            }
+            $phone = substr($phone, -10);
 
+            // Formater le login: téléphone-idClient-(email?)
+            // $loginParts = [$phone, $acteur->idClient];
+            // if (!empty($acteur->email)) {
+            //     $loginParts[] = $acteur->email;
+            // }
+            
+
+            $data = [
+                'login' => $phone,
+                'email' => $acteur->email,
+                'nom' => $acteur->nom,
+                'prenoms' => $acteur->prenoms,
+                'mobile_1' => $acteur->mobile,
+                'fonction' => null, // Pas de champ fonction dans l'acteur
+                'ville' => $acteur->lieuresidence_code,
+                'lieu_residence' => $acteur->lieuresidence_code,
+                'pays' => $acteur->pays_code,
+                'date_naissance' => Carbon::parse($acteur->date_naissance)->format('Y-m-d'),
+                'lieu_naissance' => $acteur->lieunaissance_code,
+                'genre' => $acteur->genre,
+                'civilite' => $acteur->civilite,
+                'numero_client' => $acteur->idClient,
+                'client_number' => $acteur->idClient,
+                'contrats' => collect($acteur->contrats)->map(function ($contrat) {
+                    return [
+                        'IdProposition' => $contrat->id_proposition,
+                        'codeProduit' => $contrat->code_produit,
+                        'produit' => $contrat->libelle_produit,
+                        'CodeProduitFormule' => $contrat->formule_produit_code,
+                        'ProduitFormule' => $contrat->formule,
+                    ];
+                })->unique('IdProposition')->values()->toArray(),
+            ];
+
+            // return response()->json([
+            //     'success' => true,
+            //     'code' => 'USER_CREATED',
+            //     'message' => 'Compte créé avec succès.',
+            //     'data' => $data,
+            // ], 201);
 
             $result = $this->userService->createClientAPI($data);
 
@@ -381,18 +396,21 @@ class AuthController extends Controller
             }
 
             /*
-            * Utilisateur créé
+            * Utilisateur créé ou contrat ajouté
             */
             $user = $result['data'];
 
             /*
             * Réponse API
             */
+            $message = $result['code'] === 'CONTRACTS_ADDED'
+                ? 'Contrat(s) ajouté(s) à votre compte existant.'
+                : 'Inscription réussie. Vos paramètres de connexion ont été envoyés.';
+
             return response()->json([
                 'success' => true,
                 'code' => $result['code'],
-                'message' => 'Inscription réussie. '
-                    . 'Vos paramètres de connexion ont été envoyés.',
+                'message' => $message,
                 'data' => new UserResource(
                     $user->load('details')
                 ),
@@ -405,7 +423,7 @@ class AuthController extends Controller
                 [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
-                    'login' => $request->input('login'),
+                    'idClient' => $request->input('idClient'),
                 ]
             );
 

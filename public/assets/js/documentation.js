@@ -3051,6 +3051,99 @@
             },
 
             {
+                id: "auth-register-customer",
+                module: "auth",
+                name: "Inscription client automatique (Routine externe)",
+                description:
+                    "Endpoint appelé par une routine externe pour créer automatiquement l'espace client d'un client après migration de son contrat. Si le client existe déjà (recherche par login ou numero_client), les nouveaux contrats sont ajoutés et une notification d'ajout est envoyée. Si le client n'existe pas, un compte est créé avec identifiants envoyés par SMS/email. Le login est le numéro de téléphone formaté (10 chiffres).",
+                method: "POST",
+                path: "/auth/register-customer",
+                isProtected: false,
+                rateLimit: "throttle:6,1 (6 tentatives / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        idClient: {
+                            type: "string",
+                            required: true,
+                            description: "ID client pour récupérer les informations de l'acteur",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    idClient: "101070005",
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Compte créé avec succès",
+                        example: {
+                            success: true,
+                            code: "USER_CREATED",
+                            message: "Inscription réussie. Vos paramètres de connexion ont été envoyés.",
+                            data: {
+                                uuid_user: "uuid",
+                                login: "0544970711",
+                                email: "client@example.com",
+                            },
+                        },
+                    },
+                    {
+                        status: 201,
+                        description: "Contrats ajoutés à un compte existant",
+                        example: {
+                            success: true,
+                            code: "CONTRACTS_ADDED",
+                            message: "2 contrat(s) ajouté(s) au compte existant.",
+                            data: {
+                                uuid_user: "uuid",
+                                login: "0544970711",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Aucun acteur trouvé pour ce client",
+                        example: {
+                            success: false,
+                            code: "ACTEUR_NOT_FOUND",
+                            message: "Aucun acteur trouvé pour ce client.",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Tous les contrats sont déjà associés",
+                        example: {
+                            success: false,
+                            code: "NO_NEW_CONTRACTS",
+                            message: "Tous les contrats sont déjà associés à ce compte.",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Contrats déjà associés à un autre compte",
+                        example: {
+                            success: false,
+                            code: "CONTRAT_ALREADY_EXISTS",
+                            message: "Le contrat 123456 est déjà associé à un compte.",
+                        },
+                    },
+                    {
+                        status: 500,
+                        description: "Erreur serveur",
+                        example: {
+                            success: false,
+                            code: "USER_CREATION_ERROR",
+                            message: "Une erreur est survenue lors de la création du compte.",
+                        },
+                    },
+                ],
+            },
+
+            {
                 id: "auth-freeze-check",
                 module: "auth",
                 name: "Vérifier le gel d'un compte",

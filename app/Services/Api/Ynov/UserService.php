@@ -340,41 +340,69 @@ class UserService
             }
 
             /*
-            * Vérification du login
+            * Vérification du login avec plusieurs critères
             */
             $login = $data['login'];
+            $numeroClient = $data['numero_client'] ?? null;
 
-            $userExists = User::where('login', $login)->first();
+            $userExists = User::where('login', $login)
+                ->orWhereHas('details', function ($query) use ($numeroClient) {
+                    $query->where('numero_client', $numeroClient);
+                })
+                ->first();
 
-            if ($userExists->exists()) {
+            /*
+            * CAS 1: Utilisateur existe déjà
+            */
+            if ($userExists) {
+                // Identifier les contrats déjà associés
+                $existingContractIds = UserContrat::where('user_uuid', $userExists->uuid_user)
+                    ->pluck('contrat_id')
+                    ->toArray();
+
+                // Identifier les nouveaux contrats à ajouter
+                $newContracts = [];
                 foreach ($data['contrats'] ?? [] as $contrat) {
+                    $contratId = $contrat['IdProposition'] ?? null;
+                    if ($contratId && !in_array($contratId, $existingContractIds)) {
+                        $newContracts[] = $contrat;
+                    }
+                }
 
-                UserContrat::create([
-                    'uuid_user_contrat' => (string) Str::uuid(),
+                if (empty($newContracts)) {
+                    return [
+                        'success' => false,
+                        'code' => 'NO_NEW_CONTRACTS',
+                        'message' => 'Tous les contrats sont déjà associés à ce compte.',
+                    ];
+                }
 
-                    'user_uuid' => $userExists->uuid_user,
+                // Ajouter les nouveaux contrats
+                foreach ($newContracts as $contrat) {
+                    UserContrat::create([
+                        'uuid_user_contrat' => (string) Str::uuid(),
+                        'user_uuid' => $userExists->uuid_user,
+                        'contrat_id' => $contrat['IdProposition'] ?? null,
+                        'client_number' => $data['client_number'] ?? null,
+                        'code_produit' => $contrat['codeProduit'] ?? null,
+                        'libelle_produit' => $contrat['produit'] ?? null,
+                        'code_produit_formule' => $contrat['CodeProduitFormule'] ?? null,
+                        'libelle_produit_formule' => $contrat['ProduitFormule'] ?? null,
+                    ]);
+                }
 
-                    'contrat_id' => $contrat['IdProposition'] ?? null,
-
-                    'client_number' => $data['client_number'] ?? null,
-
-                    'code_produit' => $contrat['codeProduit'] ?? null,
-
-                    'libelle_produit' => $contrat['produit'] ?? null,
-
-                    'code_produit_formule' =>
-                        $contrat['CodeProduitFormule'] ?? null,
-
-                    'libelle_produit_formule' =>
-                        $contrat['ProduitFormule'] ?? null,
-                ]);
-            }
                 return [
-                    'success' => false,
-                    'code' => 'LOGIN_ALREADY_EXISTS',
-                    'message' => "Le login {$login} est déjà associé à un compte.",
+                    'success' => true,
+                    'code' => 'CONTRACTS_ADDED',
+                    'message' => count($newContracts) . ' contrat(s) ajouté(s) au compte existant.',
+                    'data' => $userExists,
+                    'new_contracts_count' => count($newContracts),
                 ];
             }
+
+            /*
+            * CAS 2: Utilisateur n'existe pas - création
+            */
 
             /*
             * Vérification des contrats
@@ -551,21 +579,30 @@ class UserService
         $user->load('details');
 
         /*
-        * Envoi des identifiants UNIQUEMENT après commit.
+        * Envoi des notifications UNIQUEMENT après commit.
         */
-        DB::afterCommit(function () use ($user, $password) {
+        DB::afterCommit(function () use ($user, $result, $password) {
 
-            $this->sendWelcomeCredentials(
-                $user,
-                $password
-            );
+            if ($result['code'] === 'CONTRACTS_ADDED') {
+                // Cas: Contrats ajoutés à un compte existant
+                $this->sendContractAddedNotification(
+                    $user,
+                    $result['new_contracts_count'] ?? 0
+                );
+            } else {
+                // Cas: Nouvel utilisateur créé
+                $this->sendWelcomeCredentials(
+                    $user,
+                    $password
+                );
+            }
 
         });
 
         return [
             'success' => true,
-            'code' => 'USER_CREATED',
-            'message' => 'Utilisateur créé avec succès.',
+            'code' => $result['code'],
+            'message' => $result['message'],
             'data' => $user,
         ];
     }
@@ -597,12 +634,12 @@ class UserService
                     )
                 );
         } else {
-            
+
             /*
              * SMS
              */
             if (!empty($userDetails->mobile_1)) {
-    
+
                 $message = "Cher {$userDetails->nom},\n\n"
                     . "Merci de recevoir les paramètres de connexion "
                     . "à votre espace client.\n\n"
@@ -610,12 +647,12 @@ class UserService
                     . "Mot de passe : {$password}\n"
                     . "Lien de connexion : https://espace-client.yakoafricassur.com";
                     // . config('app.frontend_url');
-    
+
                 $response = $this->SMSService->sendSms(
                     $userDetails->mobile_1,
                     $message
                 );
-    
+
                 /*
                  * Log en cas d'échec SMS
                  */
@@ -632,6 +669,75 @@ class UserService
             }
         }
 
+    }
+
+    /**
+     * Envoyer notification d'ajout de contrat.
+     */
+    private function sendContractAddedNotification(
+        User $user,
+        int $contractCount
+    ): void {
+        // Charger les détails
+        $userDetails = $user->details;
+
+        if (!$userDetails) {
+            return;
+        }
+
+        /*
+         * SMS dynamique selon nombre de contrats
+         */
+        if (!empty($userDetails->mobile_1)) {
+            if ($contractCount === 1) {
+                $message = "Votre contrat a ete ajoute a votre espace client. Connectez-vous pour le consulter.";
+            } else {
+                $message = "Vos {$contractCount} contrats ont ete ajoutes a votre espace client. Connectez-vous pour les consulter.";
+            }
+
+            // Vérifier la longueur (max 160 caractères)
+            if (strlen($message) > 160) {
+                $message = substr($message, 0, 157) . '...';
+            }
+
+            $response = $this->SMSService->sendSms(
+                $userDetails->mobile_1,
+                $message
+            );
+
+            /*
+             * Log en cas d'échec SMS
+             */
+            if (!$response['success']) {
+                logger()->error(
+                    'Échec envoi SMS d\'ajout de contrat',
+                    [
+                        'user_uuid' => $user->uuid_user,
+                        'phone' => $userDetails->mobile_1,
+                        'message' => $response['message'],
+                    ]
+                );
+            }
+        }
+
+        /*
+         * Notification database
+         */
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getWelcomeGroupUuid(),
+            'title' => '📄 Nouveau contrat ajouté',
+            'body' => $contractCount === 1
+                ? 'Un nouveau contrat a été ajouté à votre espace client.'
+                : "{$contractCount} nouveaux contrats ont été ajoutés à votre espace client.",
+            'type' => 'contract',
+            'metadata' => [
+                'contract_count' => $contractCount,
+                'added_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => 'system',
+        ]);
     }
 
 
