@@ -118,6 +118,11 @@ class ParamController extends Controller
                 );
                 $product->setAttribute('formule_key', $reseauProduct?->formule_key);
                 $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
+                $product->setAttribute('tag', $reseauProduct?->tag);
+                $product->setAttribute('popular', $reseauProduct?->popular);
+                $product->setAttribute('display_name', $reseauProduct?->display_name);
+                $product->setAttribute('description', $reseauProduct?->description);
+                $product->setAttribute('avantage', $reseauProduct?->avantage);
             });
 
             if (!$products) {
@@ -159,6 +164,11 @@ class ParamController extends Controller
             'formule_uuid' => 'required|string',
             'formule_key' => 'required|string',
             'frais_adhesion' => 'required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -167,11 +177,16 @@ class ParamController extends Controller
 
             $reseauProduct = ReseauProduct::create([
                 'uuid' => Str::uuid(),
-                'reseau_uuid' => $validatedData['reseau_uuid'],
-                'product_uuid' => $validatedData['product_uuid'],
-                'formule_uuid' => $validatedData['formule_uuid'],
-                'formule_key' => $validatedData['formule_key'],
-                'frais_adhesion' => $validatedData['frais_adhesion'],
+                'reseau_uuid' => $validatedData['reseau_uuid'] ?? null,
+                'product_uuid' => $validatedData['product_uuid'] ?? null,
+                'formule_uuid' => $validatedData['formule_uuid'] ?? null,
+                'formule_key' => $validatedData['formule_key'] ?? null,
+                'frais_adhesion' => $validatedData['frais_adhesion'] ?? null,
+                'tag' => $validatedData['tag'] ?? null,
+                'popular' => $validatedData['popular'] ?? false,
+                'display_name' => $validatedData['display_name'] ?? null,
+                'description' => $validatedData['description'] ?? null,
+                'avantage' => $validatedData['avantage'] ?? null,
                 'etat' => 'actif',
             ]);
 
@@ -221,6 +236,11 @@ class ParamController extends Controller
             'formule_uuid' => 'sometimes|required|string',
             'formule_key' => 'sometimes|required|string',
             'frais_adhesion' => 'sometimes|required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -241,13 +261,7 @@ class ParamController extends Controller
 
             $oldValues = $reseauProduct->toArray();
 
-            $reseauProduct->update([
-                'reseau_uuid' => $validatedData['reseau_uuid'] ?? $reseauProduct->reseau_uuid,
-                'product_uuid' => $validatedData['product_uuid'] ?? $reseauProduct->product_uuid,
-                'formule_uuid' => $validatedData['formule_uuid'] ?? $reseauProduct->formule_uuid,
-                'formule_key' => $validatedData['formule_key'] ?? $reseauProduct->formule_key,
-                'frais_adhesion' => $validatedData['frais_adhesion'] ?? $reseauProduct->frais_adhesion,
-            ]);
+            $reseauProduct->update($validatedData);
 
             ActivityLog::log([
                 'user_uuid' => $request->user()?->uuid_user,
@@ -464,6 +478,11 @@ class ParamController extends Controller
                 );
                 $product->setAttribute('formule_key', $reseauProduct?->formule_key);
                 $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
+                $product->setAttribute('tag', $reseauProduct?->tag);
+                $product->setAttribute('popular', $reseauProduct?->popular);
+                $product->setAttribute('display_name', $reseauProduct?->display_name);
+                $product->setAttribute('description', $reseauProduct?->description);
+                $product->setAttribute('avantage', $reseauProduct?->avantage);
             });
 
             if (!$products) {
@@ -508,10 +527,14 @@ class ParamController extends Controller
             ], 400);
         }
 
+        Log::info('checkUserByPartner', ['request' => $request->all()]);
+
         $validated = $validator->validated();
 
         // 1. Retrouver le partenaire
         $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
+
+        Log::info('partenaire trouve', ['partner' => $partner]);
 
         if (!$partner) {
             return response()->json([
@@ -522,7 +545,9 @@ class ParamController extends Controller
         }
 
         // 2. Premier utilisateur lié à ce partenaire
-        $user = User::where('partner_uuid', $partner->uuid_partner)->first();
+        $user = User::where('partner_uuid', $partner->uuid_partner)->where('user_type', 'user_partner')->first();
+
+        Log::info('utilisateur trouve', ['user' => $user]);
 
         if (!$user) {
             return response()->json([
@@ -536,9 +561,9 @@ class ParamController extends Controller
         //    (supprime les anciens tokens pour n'en garder qu'un)
         $user->tokens()->delete();
 
-        $token = $user->createToken('WEB')->plainTextToken; // 3. Connexion + génération du token Sanctum
+        $token = $user->createToken('WEB')->plainTextToken;
 
-        // 4. Réponse : données user + token (même format qu'une API de login)
+       
         return response()->json([
             'success' => true,
             'code'    => 'CHECK_USER_BY_PARTNER_SUCCESS',

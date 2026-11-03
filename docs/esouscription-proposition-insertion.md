@@ -204,6 +204,8 @@ Tableau des bénéficiaires. Chaque bénéficiaire peut être :
 - l’adhérent lui-même (`is_adherent = "oui"`)
 - ou une autre personne (`is_adherent = "non"`)
 
+Le champ facultatif `filiation_uuid` indique la filiation du bénéficiaire. Sa valeur est l’UUID d’une filiation active retournée par `GET /api/v1/param/get-filiations`. Elle est enregistrée sur la relation entre le contrat et le bénéficiaire (y compris lorsque celui-ci est l’adhérent).
+
 Exemple :
 
 ```json
@@ -211,6 +213,7 @@ Exemple :
   "BeneficiaireDatas": [
     {
       "is_adherent": "oui",
+      "filiation_uuid": "UUID_FILIATION",
       "created_by": "user-123",
       "civilite": "M",
       "genre": 1,
@@ -232,6 +235,7 @@ Exemple :
     },
     {
       "is_adherent": "non",
+      "filiation_uuid": "UUID_FILIATION",
       "created_by": "user-123",
       "civilite": "F",
       "genre": 2,

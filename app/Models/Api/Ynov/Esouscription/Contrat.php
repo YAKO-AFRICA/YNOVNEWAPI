@@ -81,6 +81,7 @@ class Contrat extends Model
         'rib',
         'numero_compte',
         'numecompte_complet',
+        'autre_ref_prelev', // pour les modes de paiement défense, prélèvement à la source
 
         // Agence responsable de la souscription
         'agence_uuid',
@@ -224,7 +225,7 @@ class Contrat extends Model
     public function contratActeurs()
     {
         return $this->hasMany(ContratActeur::class, 'contrat_uuid', 'uuid_contrat')
-                    ->with('acteur.sante');
+                    ->with(['acteur.sante', 'filiation']);
     }
 
     // document du contrat

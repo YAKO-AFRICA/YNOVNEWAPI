@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\Esouscription\Contrat;
+use App\Models\Api\Ynov\Esouscription\ContratActeur;
 use App\Models\Api\Ynov\Esouscription\Document;
 use App\Models\Api\Ynov\parameter\Partner;
 use App\Services\Api\Ynov\ESouscription\ContratService;
@@ -275,6 +276,23 @@ class ValidationController extends Controller
         }
 
         $contrats = $query->get();
+
+        foreach ($contrats as $contrat) {
+            $contratAdh = ContratActeur::where('contrat_uuid', $contrat->uuid_contrat)
+                ->where('type_acteur', 'ADH')
+                ->first();
+
+            $acteurForAdh = $contratAdh ? $contratAdh->acteur : null;
+
+            if ($acteurForAdh) {
+                $contrat->souscripteur = [
+                    'uuid_acteur' => $acteurForAdh->uuid_acteur,
+                    'nom' => $acteurForAdh->nom,
+                    'prenoms' => $acteurForAdh->prenoms,
+                ];
+            }
+        }
+
 
         return response()->json([
             'success' => true,

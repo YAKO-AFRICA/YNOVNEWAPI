@@ -13,7 +13,7 @@ class ContratActeurService
     {
         $query = ContratActeur::query();
 
-        foreach (['contrat_uuid', 'acteur_uuid', 'type_acteur', 'type_beneficiaire'] as $field) {
+        foreach (['contrat_uuid', 'acteur_uuid', 'type_acteur', 'filiation_uuid', 'type_beneficiaire'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }

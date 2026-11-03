@@ -28,6 +28,8 @@ class ContratController extends Controller
                     'conseiller_uuid',
                     'mode_paiement',
                     'etape',
+                    'nom',
+                    'prenoms',
                     'search',
                     'etat',
                 ]),
@@ -109,7 +111,7 @@ class ContratController extends Controller
             }
 
             // S'assurer que la relation est chargée
-            $contrat->loadMissing('contratActeurs');
+            $contrat->loadMissing('contratActeurs.filiation');
 
             // Collection d'Eloquent
             $contratActeurs = $contrat->contratActeurs;
@@ -290,6 +292,7 @@ class ContratController extends Controller
             'rib' => 'sometimes|nullable|string|max:100',
             'numero_compte' => 'sometimes|nullable|string|max:100',
             'numecompte_complet' => 'sometimes|nullable|string|max:255',
+            'autre_ref_prelev' => 'sometimes|nullable|string|max:255',
             'agence_uuid' => 'sometimes|nullable|string|max:255',
             'code_produit' => 'sometimes|nullable|string|max:100',
             'libelle_produit' => 'sometimes|nullable|string|max:255',

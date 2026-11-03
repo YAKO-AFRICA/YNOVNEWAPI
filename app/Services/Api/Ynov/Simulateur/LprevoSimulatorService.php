@@ -14,7 +14,7 @@ class LprevoSimulatorService
         500000 => 5000,
     ];
 
-    private const FRAIS_ADHESION = 5500;
+    private const FRAIS_ADHESION = 7500;
 
     private const PRIME_PAR_PATHOLOGIE = 5500;
 

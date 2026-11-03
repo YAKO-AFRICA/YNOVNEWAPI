@@ -87,9 +87,13 @@ class PropositionController extends Controller
                 if($contratData['source_data'] == 'ONECI' || $contratData['source_data'] == 'oneci') {
                     $dateTransmission = now()->format('Y-m-d H:i:s');
                     $transmisPar = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                    $dateAcceptee = now()->format('Y-m-d H:i:s');
+                    $accepted_by = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
                 } else {
                     $dateTransmission = null;
                     $transmisPar = null;
+                    $dateAcceptee = null;
+                    $accepted_by = null;
                 }
                 
 
@@ -133,6 +137,7 @@ class PropositionController extends Controller
                     'uuid_contrat_acteur' => Str::uuid(),
                     'contrat_uuid'        => $contratUuid,
                     'acteur_uuid'         => $adherentStore->uuid_acteur,
+                    'filiation_uuid'      => $adherentData['filiation_uuid'] ?? null,
                     'type_acteur'         => 'ADH',
                     'integration_key'     => $keyIntegration,
                     'created_by'          => $createdBy,
@@ -189,6 +194,7 @@ class PropositionController extends Controller
                             'uuid_contrat_acteur' => Str::uuid(),
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $adherentStore->uuid_acteur,
+                            'filiation_uuid'      => $adherentData['filiation_uuid'] ?? null,
                             'type_acteur'         => 'ASS',
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $assureCreatedBy,
@@ -264,6 +270,7 @@ class PropositionController extends Controller
                             'uuid_contrat_acteur' => Str::uuid(),
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $uuidAssure,
+                            'filiation_uuid'      => $assureInfo['filiation_uuid'] ?? null,
                             'type_acteur'         => 'ASS',
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $assureCreatedBy,
@@ -329,6 +336,7 @@ class PropositionController extends Controller
                             'libelle'       => $assureGarantie['libelle'],
                             'capital'       => $assureGarantie['capital'],
                             'prime'         => $assureGarantie['prime'],
+                            'type'         => "ASS",
                         ]);
                     }
                 }
@@ -346,6 +354,7 @@ class PropositionController extends Controller
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $adherentStore->uuid_acteur,
                             'type_acteur'         => 'BEN',
+                            'filiation_uuid'      => $beneficiaire['filiation_uuid'] ?? null,
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $benefCreatedBy,
                         ]);
@@ -388,6 +397,7 @@ class PropositionController extends Controller
                             'contrat_uuid'        => $contratUuid,
                             'acteur_uuid'         => $benefUuid,
                             'type_acteur'         => 'BEN',
+                            'filiation_uuid'      => $beneficiaire['filiation_uuid'] ?? null,
                             'integration_key'     => $keyIntegration,
                             'created_by'          => $benefCreatedBy,
                         ]);
@@ -435,6 +445,7 @@ class PropositionController extends Controller
                     'rib'                           => $contratData['rib'] ?? null,
                     'numero_compte'                 => $contratData['numero_compte'] ?? null,
                     'numecompte_complet'            => $contratData['numecompte_complet'] ?? null,
+                    'autre_ref_prelev'              => $contratData['autre_ref_prelev'] ?? null,
                     'agence_uuid'                   => $contratData['agence_uuid'] ?? null,
                     'code_produit'                  => $contratData['code_produit'] ?? null,
                     'libelle_produit'               => $contratData['libelle_produit'] ?? null,
@@ -456,6 +467,8 @@ class PropositionController extends Controller
                     'created_by'                    => $createdBy,
                     'date_transmission'             => $dateTransmission ?? null,
                     'transmis_par'                  => $transmisPar ?? null,
+                    'acceptance_date'             => $dateAcceptee ?? null,
+                    'accepted_by'                  => $accepted_by ?? null,
                 ];
 
                 $contratStore = $this->contratService->create($contratPayload);

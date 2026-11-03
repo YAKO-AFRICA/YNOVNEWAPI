@@ -24,6 +24,20 @@ class ContratService
             }
         }
 
+        if (!empty($filters['nom']) || !empty($filters['prenoms'])) {
+            $query->whereHas('contratActeurs', function (Builder $contratActeurQuery) use ($filters): void {
+                $contratActeurQuery
+                    ->where('type_acteur', 'ADH')
+                    ->whereHas('acteur', function (Builder $acteurQuery) use ($filters): void {
+                        foreach (['nom', 'prenoms'] as $field) {
+                            if (!empty($filters[$field])) {
+                                $acteurQuery->where($field, 'like', '%' . $filters[$field] . '%');
+                            }
+                        }
+                    });
+            });
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {

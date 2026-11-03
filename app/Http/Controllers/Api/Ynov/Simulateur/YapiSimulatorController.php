@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Ynov\Simulateur;
 
 use App\Http\Controllers\Controller;
+use App\Services\Api\Ynov\Simulateur\YapiSimulatorException;
 use App\Services\Api\Ynov\Simulateur\YapiSimulatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -20,16 +22,21 @@ class YapiSimulatorController extends Controller
      *     path="/esouscription/simulateurs/yapi",
      *     tags={"Simulateurs"},
      *     summary="Simuler une souscription Yapi",
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"CodeProduit","Capital"},
+     *
      *             @OA\Property(property="CodeProduit", type="string", enum={"YAPI"}, example="YAPI"),
      *             @OA\Property(property="Capital", type="integer", enum={500000,1000000}, example=500000)
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Simulation Yapi calculée."),
-     *     @OA\Response(response=422, description="Paramètres de simulation invalides.")
+     *     @OA\Response(response=422, description="Paramètres de simulation invalides."),
+     *     @OA\Response(response=503, description="Garantie Yapi non configurée.")
      * )
      */
     public function simulate(Request $request): JsonResponse
@@ -48,7 +55,19 @@ class YapiSimulatorController extends Controller
             ], 422);
         }
 
-        $simulation = $this->simulatorService->simulate($validator->validated());
+        try {
+            $simulation = $this->simulatorService->simulate($validator->validated());
+        } catch (YapiSimulatorException $exception) {
+            Log::error('Échec du simulateur Yapi.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Le simulateur Yapi ne peut pas être exécuté actuellement.',
+                'code' => 'YAPI_SIMULATION_UNAVAILABLE',
+            ], $exception->httpStatus);
+        }
 
         return response()->json([
             'success' => true,
