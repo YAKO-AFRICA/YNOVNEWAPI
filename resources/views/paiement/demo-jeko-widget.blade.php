@@ -510,7 +510,7 @@
                 const openLink = document.getElementById('openLink');
                 
                 if (contractId) {
-                    const fullUrl = baseUrl + '/paiement/regularisation-primes?contract=' + contractId;
+                    const fullUrl = baseUrl + '/paiement/regularisation-primes?id=' + contractId;
                     generatedLink.value = fullUrl;
                     openLink.href = fullUrl;
                 } else {

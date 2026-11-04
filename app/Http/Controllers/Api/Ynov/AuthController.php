@@ -308,10 +308,13 @@ class AuthController extends Controller
     public function registerCustomerAPI(Request $request): JsonResponse
     {
         try {
+            Log::info('registerCustomerAPI - Début', ['idClient' => $request->idClient]);
 
             $acteurs = $this->acteurService->getActeurs(['idClient' => $request->idClient]);
+            Log::info('registerCustomerAPI - Acteurs récupérés', ['acteurs' => $acteurs]);
 
             if ($acteurs->isEmpty()) {
+                Log::warning('registerCustomerAPI - Aucun acteur trouvé', ['idClient' => $request->idClient]);
                 return response()->json([
                     'success' => false,
                     'code' => 'ACTEUR_NOT_FOUND',
@@ -321,9 +324,11 @@ class AuthController extends Controller
 
             // Prendre uniquement le premier acteur (items() retourne un tableau)
             $acteur = $acteurs->items()[0];
+            Log::info('registerCustomerAPI - Premier acteur sélectionné', ['uuid_acteur' => $acteur->uuid_acteur]);
 
             // Formater le téléphone
             $phone = preg_replace('/\D/', '', $acteur->mobile ?? $acteur->telephone ?? '');
+            Log::info('registerCustomerAPI - Téléphone brut', ['mobile' => $acteur->mobile, 'telephone' => $acteur->telephone, 'phone_clean' => $phone]);
 
             /*
              * Côte d'Ivoire
@@ -337,16 +342,29 @@ class AuthController extends Controller
              */
             if (str_starts_with($phone, '225')) {
                 $phone = substr($phone, 3);
+                Log::info('registerCustomerAPI - Indicatif 225 retiré', ['phone_after' => $phone]);
             }
 
             $phone = substr($phone, -10);
+            Log::info('registerCustomerAPI - Téléphone final (10 chiffres)', ['phone_final' => $phone]);
+
+            // Mapping de la civilité depuis l'acteur vers user_details
+            $civiliteMap = [
+                'M' => 'M.',
+                'F' => 'Mme',
+                'Mme' => 'Mme',
+                'Mlle' => 'Mlle',
+                'Dr' => 'Dr',
+                'Pr' => 'Pr',
+            ];
+            $civilite = $civiliteMap[$acteur->civilite] ?? null;
 
             // Formater le login: téléphone-idClient-(email?)
             // $loginParts = [$phone, $acteur->idClient];
             // if (!empty($acteur->email)) {
             //     $loginParts[] = $acteur->email;
             // }
-            
+
 
             $data = [
                 'login' => $phone,
@@ -361,7 +379,7 @@ class AuthController extends Controller
                 'date_naissance' => Carbon::parse($acteur->date_naissance)->format('Y-m-d'),
                 'lieu_naissance' => $acteur->lieunaissance_code,
                 'genre' => $acteur->genre,
-                'civilite' => $acteur->civilite,
+                'civilite' => $civilite,
                 'numero_client' => $acteur->idClient,
                 'client_number' => $acteur->idClient,
                 'contrats' => collect($acteur->contrats)->map(function ($contrat) {
@@ -375,6 +393,13 @@ class AuthController extends Controller
                 })->unique('IdProposition')->values()->toArray(),
             ];
 
+            Log::info('registerCustomerAPI - Données formatées', [
+                'login' => $data['login'],
+                'email' => $data['email'],
+                'contrats_count' => count($data['contrats']),
+                'contrats_ids' => array_column($data['contrats'], 'IdProposition'),
+            ]);
+
             // return response()->json([
             //     'success' => true,
             //     'code' => 'USER_CREATED',
@@ -382,7 +407,9 @@ class AuthController extends Controller
             //     'data' => $data,
             // ], 201);
 
+            Log::info('registerCustomerAPI - Appel createClientAPI');
             $result = $this->userService->createClientAPI($data);
+            Log::info('registerCustomerAPI - Résultat createClientAPI', ['success' => $result['success'], 'code' => $result['code']]);
 
             /*
             * Échec métier
