@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\Esouscription\ContratActeur;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use Illuminate\Http\Request;
 use Throwable;
@@ -35,6 +36,23 @@ class ContratController extends Controller
                 ]),
                 (int) $request->input('per_page', 15)
                 );
+
+
+                foreach ($contrats as $contrat) {
+                    $contratAdh = ContratActeur::where('contrat_uuid', $contrat->uuid_contrat)
+                        ->where('type_acteur', 'ADH')
+                        ->first();
+
+                    $acteurForAdh = $contratAdh ? $contratAdh->acteur : null;
+
+                    if ($acteurForAdh) {
+                        $contrat->souscripteur = [
+                            'uuid_acteur' => $acteurForAdh->uuid_acteur,
+                            'nom' => $acteurForAdh->nom,
+                            'prenoms' => $acteurForAdh->prenoms,
+                        ];
+                    }
+                }
 
 
 
