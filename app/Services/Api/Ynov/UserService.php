@@ -653,19 +653,26 @@ class UserService
             return;
         }
 
-        /*
-         * EMAIL
-         */
-        if (!empty($user->email)) {
+            /*
+            * EMAIL
+            */
+            if (!empty($user->email)) {
 
-            Mail::to($user->email)
-                ->queue(
-                    new WelcomeMail(
-                        $user,
-                        $password
-                    )
+                Mail::to($user->email)
+                    ->queue(
+                        new WelcomeMail(
+                            $user,
+                            $password
+                        )
+                    );
+                logger()->info(
+                    'Email de bienvenue envoyé',
+                    [
+                        'user_uuid' => $user->uuid_user,
+                        'email' => $user->email,
+                    ]
                 );
-        } else {
+            }
 
             /*
              * SMS
@@ -678,7 +685,6 @@ class UserService
                     . "Login : {$user->login}\n"
                     . "Mot de passe : {$password}\n"
                     . "Lien de connexion : https://espace-client.yakoafricassur.com";
-                    // . config('app.frontend_url');
 
                 $response = $this->SMSService->sendSms(
                     $userDetails->mobile_1,
@@ -699,7 +705,6 @@ class UserService
                     );
                 }
             }
-        }
 
     }
 
