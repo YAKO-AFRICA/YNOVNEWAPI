@@ -14,6 +14,7 @@ use App\Services\Api\Ynov\NotificationService;
 use App\Services\SMSService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -323,27 +324,32 @@ class UserService
     public function createClientAPI(array $data): array
     {
         $password = Str::random(12);
+        Log::info('createClientAPI - Début', ['login' => $data['login'] ?? null, 'numero_client' => $data['numero_client'] ?? null]);
 
         $result = DB::transaction(function () use ($data, $password) {
 
             /*
             * Récupération du rôle client
             */
+            Log::info('createClientAPI - Recherche rôle client');
             $roleClient = Role::where('code', 'client')->first();
 
             if (!$roleClient) {
+                Log::error('createClientAPI - Rôle client non trouvé');
                 return [
                     'success' => false,
                     'code' => 'NO_DEFAULT_ROLE',
                     'message' => 'Aucun rôle client configuré.',
                 ];
             }
+            Log::info('createClientAPI - Rôle client trouvé', ['uuid_role' => $roleClient->uuid_role]);
 
             /*
             * Vérification du login avec plusieurs critères
             */
             $login = $data['login'];
             $numeroClient = $data['numero_client'] ?? null;
+            Log::info('createClientAPI - Vérification utilisateur', ['login' => $login, 'numero_client' => $numeroClient]);
 
             $userExists = User::where('login', $login)
                 ->orWhereHas('details', function ($query) use ($numeroClient) {
@@ -351,14 +357,19 @@ class UserService
                 })
                 ->first();
 
+            Log::info('createClientAPI - Résultat recherche utilisateur', ['user_exists' => $userExists ? 'oui' : 'non']);
+
             /*
             * CAS 1: Utilisateur existe déjà
             */
             if ($userExists) {
+                Log::info('createClientAPI - CAS 1: Utilisateur existe', ['uuid_user' => $userExists->uuid_user]);
+
                 // Identifier les contrats déjà associés
                 $existingContractIds = UserContrat::where('user_uuid', $userExists->uuid_user)
                     ->pluck('contrat_id')
                     ->toArray();
+                Log::info('createClientAPI - Contrats existants', ['count' => count($existingContractIds), 'ids' => $existingContractIds]);
 
                 // Identifier les nouveaux contrats à ajouter
                 $newContracts = [];
@@ -368,8 +379,10 @@ class UserService
                         $newContracts[] = $contrat;
                     }
                 }
+                Log::info('createClientAPI - Nouveaux contrats à ajouter', ['count' => count($newContracts)]);
 
                 if (empty($newContracts)) {
+                    Log::warning('createClientAPI - Aucun nouveau contrat à ajouter');
                     return [
                         'success' => false,
                         'code' => 'NO_NEW_CONTRACTS',
@@ -379,6 +392,7 @@ class UserService
 
                 // Ajouter les nouveaux contrats
                 foreach ($newContracts as $contrat) {
+                    Log::info('createClientAPI - Ajout contrat', ['IdProposition' => $contrat['IdProposition']]);
                     UserContrat::create([
                         'uuid_user_contrat' => (string) Str::uuid(),
                         'user_uuid' => $userExists->uuid_user,
@@ -391,6 +405,7 @@ class UserService
                     ]);
                 }
 
+                Log::info('createClientAPI - Contrats ajoutés avec succès');
                 return [
                     'success' => true,
                     'code' => 'CONTRACTS_ADDED',
@@ -403,6 +418,7 @@ class UserService
             /*
             * CAS 2: Utilisateur n'existe pas - création
             */
+            Log::info('createClientAPI - CAS 2: Création nouvel utilisateur');
 
             /*
             * Vérification des contrats
@@ -422,6 +438,7 @@ class UserService
             }
 
             if (!empty($contratExists)) {
+                Log::warning('createClientAPI - Contrats déjà associés', ['ids' => $contratExists]);
 
                 $message = count($contratExists) > 1
                     ? 'Les contrats suivants sont déjà associés à un compte : '
@@ -441,6 +458,7 @@ class UserService
             * UUID utilisateur
             */
             $uuidUser = (string) Str::uuid();
+            Log::info('createClientAPI - UUID généré', ['uuid_user' => $uuidUser]);
 
             /*
             * Adresse complète
@@ -454,6 +472,7 @@ class UserService
             /*
             * Création utilisateur
             */
+            Log::info('createClientAPI - Création utilisateur');
             $user = User::create([
                 'uuid_user' => $uuidUser,
                 'email' => $data['email'] ?? null,
@@ -470,10 +489,12 @@ class UserService
 
                 'created_by' => 'system', // Création via API, pas d'utilisateur spécifique
             ]);
+            Log::info('createClientAPI - Utilisateur créé', ['uuid_user' => $user->uuid_user]);
 
             /*
             * Création détails utilisateur
             */
+            Log::info('createClientAPI - Création détails utilisateur');
             UserDetails::create([
                 'uuid_user_details' => (string) Str::uuid(),
 
@@ -508,12 +529,14 @@ class UserService
 
                 'created_by' => 'system', // Création via API, pas d'utilisateur spécifique
             ]);
+            Log::info('createClientAPI - Détails utilisateur créés');
 
             /*
             * Création des contrats
             */
+            Log::info('createClientAPI - Création contrats', ['count' => count($data['contrats'] ?? [])]);
             foreach ($data['contrats'] ?? [] as $contrat) {
-
+                Log::info('createClientAPI - Création contrat', ['IdProposition' => $contrat['IdProposition']]);
                 UserContrat::create([
                     'uuid_user_contrat' => (string) Str::uuid(),
 
@@ -534,8 +557,10 @@ class UserService
                         $contrat['ProduitFormule'] ?? null,
                 ]);
             }
+            Log::info('createClientAPI - Contrats créés');
 
              // Créer une notification de bienvenue pour le client
+            Log::info('createClientAPI - Création notification bienvenue');
             $this->notificationService->create([
                 'user_uuid' => $user->uuid_user,
                 'group_notif_uuid' => $this->getWelcomeGroupUuid(),
@@ -553,6 +578,7 @@ class UserService
             /*
             * Retour métier
             */
+            Log::info('createClientAPI - Transaction réussie', ['code' => 'USER_CREATED']);
             return [
                 'success' => true,
                 'code' => 'USER_CREATED',
@@ -565,6 +591,7 @@ class UserService
         * Transaction échouée / validation métier
         */
         if (!$result['success']) {
+            Log::error('createClientAPI - Transaction échouée', ['code' => $result['code'], 'message' => $result['message']]);
             return $result;
         }
 
@@ -572,6 +599,7 @@ class UserService
         * Récupérer le vrai modèle User
         */
         $user = $result['data'];
+        Log::info('createClientAPI - Récupération user', ['uuid_user' => $user->uuid_user]);
 
         /*
         * Charger les relations nécessaires
@@ -582,15 +610,18 @@ class UserService
         * Envoi des notifications UNIQUEMENT après commit.
         */
         DB::afterCommit(function () use ($user, $result, $password) {
+            Log::info('createClientAPI - After commit', ['code' => $result['code']]);
 
             if ($result['code'] === 'CONTRACTS_ADDED') {
                 // Cas: Contrats ajoutés à un compte existant
+                Log::info('createClientAPI - Envoi notification ajout contrat');
                 $this->sendContractAddedNotification(
                     $user,
                     $result['new_contracts_count'] ?? 0
                 );
             } else {
                 // Cas: Nouvel utilisateur créé
+                Log::info('createClientAPI - Envoi identifiants bienvenue');
                 $this->sendWelcomeCredentials(
                     $user,
                     $password
@@ -599,6 +630,7 @@ class UserService
 
         });
 
+        Log::info('createClientAPI - Fin', ['code' => $result['code']]);
         return [
             'success' => true,
             'code' => $result['code'],
@@ -678,10 +710,13 @@ class UserService
         User $user,
         int $contractCount
     ): void {
+        Log::info('sendContractAddedNotification - Début', ['uuid_user' => $user->uuid_user, 'contract_count' => $contractCount]);
+
         // Charger les détails
         $userDetails = $user->details;
 
         if (!$userDetails) {
+            Log::warning('sendContractAddedNotification - Pas de détails utilisateur');
             return;
         }
 
@@ -700,6 +735,7 @@ class UserService
                 $message = substr($message, 0, 157) . '...';
             }
 
+            Log::info('sendContractAddedNotification - Envoi SMS', ['phone' => $userDetails->mobile_1, 'message_length' => strlen($message)]);
             $response = $this->SMSService->sendSms(
                 $userDetails->mobile_1,
                 $message
@@ -709,20 +745,22 @@ class UserService
              * Log en cas d'échec SMS
              */
             if (!$response['success']) {
-                logger()->error(
-                    'Échec envoi SMS d\'ajout de contrat',
-                    [
-                        'user_uuid' => $user->uuid_user,
-                        'phone' => $userDetails->mobile_1,
-                        'message' => $response['message'],
-                    ]
-                );
+                Log::error('sendContractAddedNotification - Échec SMS', [
+                    'user_uuid' => $user->uuid_user,
+                    'phone' => $userDetails->mobile_1,
+                    'message' => $response['message'],
+                ]);
+            } else {
+                Log::info('sendContractAddedNotification - SMS envoyé avec succès');
             }
+        } else {
+            Log::warning('sendContractAddedNotification - Pas de numéro mobile');
         }
 
         /*
          * Notification database
          */
+        Log::info('sendContractAddedNotification - Création notification database');
         $this->notificationService->create([
             'user_uuid' => $user->uuid_user,
             'group_notif_uuid' => $this->getWelcomeGroupUuid(),
@@ -738,6 +776,7 @@ class UserService
             'channel' => 'database',
             'created_by' => 'system',
         ]);
+        Log::info('sendContractAddedNotification - Notification database créée');
     }
 
 
