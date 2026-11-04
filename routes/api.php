@@ -1153,7 +1153,7 @@ Route::prefix('v1')->middleware([
         Route::delete('delete-contrat-acteur/{uuid}', [ContratActeurController::class, 'destroy']);
         Route::get('restore-contrat-acteur/{uuid}', [ContratActeurController::class, 'restore']);
 
-        // crud contrats
+        // crud contratsh
         Route::get('dashboard-contrats', [ContratController::class, 'dashboard']);
         Route::get('dashboard-validation', [ValidationController::class, 'dashboard']);
         Route::get('get-contrats', [ContratController::class, 'index']);
