@@ -115,6 +115,8 @@
         errorUrl: null,
         timeout: 30000,
         headers: {},
+        // URL de base de l'application (injectée par le serveur via __APP_URL__)
+        appUrl: "__APP_URL__",
         // URL du logo (optionnel, utilise un chemin relatif par défaut)
         logoUrl: null,
         // Déclenche automatiquement la vérification du contrat à
@@ -769,10 +771,9 @@
 
         _shellTemplate() {
             const t = this.options.translations;
-            // Récupérer l'origine du widget (d'où le script est chargé)
-            const scriptOrigin = document.currentScript ? new URL(document.currentScript.src).origin : window.location.origin;
-            console.log('scriptOrigin', scriptOrigin);
-            const logoUrl = this.options.logoUrl || scriptOrigin + "/assets/images/ynov-logo.jpg";
+            // URL de base injectée par le serveur (APP_URL) ou fallback sur script origin
+            const appUrl = this.options.appUrl || (document.currentScript ? new URL(document.currentScript.src).origin : window.location.origin);
+            const logoUrl = this.options.logoUrl || appUrl + "/assets/images/ynov-logo.jpg";
             return `
         <div class="jeko-header">
           <div class="jeko-header-top">
@@ -884,10 +885,9 @@
             const body = this._modal.querySelector('[data-role="body"]');
             const footer = this._modal.querySelector('[data-role="footer"]');
             const header = this._modal.querySelector(".jeko-header");
-            // Récupérer l'origine du widget (d'où le script est chargé)
-            const scriptOrigin = document.currentScript ? new URL(document.currentScript.src).origin : window.location.origin;
-            console.log('scriptOrigin 1', scriptOrigin);
-            const logoUrl = this.options.logoUrl || scriptOrigin + "/assets/images/ynov-logo.jpg";
+            // URL de base injectée par le serveur (APP_URL) ou fallback sur script origin
+            const appUrl = this.options.appUrl || (document.currentScript ? new URL(document.currentScript.src).origin : window.location.origin);
+            const logoUrl = this.options.logoUrl || appUrl + "/assets/images/ynov-logo.jpg";
             body.innerHTML = this._stepBodyTemplate();
             footer.innerHTML = this._footerTemplate();
             header.innerHTML = `
