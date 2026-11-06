@@ -60,7 +60,7 @@ Route::get('/get-doc-test', function () {
 
 Route::get('storage/documents/{file}', function ($file) {
     // Nettoyer le nom du fichier
-    $path = base_path(env('UPLOADS_PATH', '../public_html/upload/documents-test') . $file);
+    $path = base_path(env('DOC_PATH', '../public_html/upload/documents-test') . $file);
 
 
     // Si toujours pas trouvé
