@@ -91,8 +91,9 @@ class CustomerController extends Controller
                     $produit = Produit::where('code', $userContrat->code_produit)->first();
                     $formule = ProduitFormule::where('code_produit_formule', $userContrat->code_produit_formule)->first();
                     $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
-                        ->where('formule_uuid', $formule?->uuid_formule)
+                        ->where('formule_uuid', $formule?->uuid_produit_formule)
                         ->first();
+
 
                     // Construire les données du contrat
                     $contratData = [
@@ -216,7 +217,7 @@ class CustomerController extends Controller
             $produit = Produit::where('code', $detail['codeProduit'])->first();
             $formule = ProduitFormule::where('code_produit_formule', $detail['CodeProduitFormule'])->first();
             $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
-                ->where('formule_uuid', $formule?->uuid_formule)
+                ->where('formule_uuid', $formule?->uuid_produit_formule)
                 ->first();
 
             $contratData = [
@@ -359,7 +360,7 @@ class CustomerController extends Controller
             $produit = Produit::where('code', $detail['codeProduit'])->first();
             $formule = ProduitFormule::where('code_produit_formule', $detail['CodeProduitFormule'])->first();
             $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
-                ->where('formule_uuid', $formule?->uuid_formule)
+                ->where('formule_uuid', $formule?->uuid_produit_formule)
                 ->first();
 
             $contratData = [
@@ -641,7 +642,7 @@ class CustomerController extends Controller
                     $produit = Produit::where('code', $userContrat->code_produit)->first();
                     $formule = ProduitFormule::where('code_produit_formule', $userContrat->code_produit_formule)->first();
                     $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
-                        ->where('formule_uuid', $formule?->uuid_formule)
+                        ->where('formule_uuid', $formule?->uuid_produit_formule)
                         ->first();
 
                     $detail = $data['details'][0];

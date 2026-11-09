@@ -59,7 +59,7 @@ class UserResource extends JsonResource
                 $produit = Produit::where('code', $c->code_produit)->first();
                 $formule = ProduitFormule::where('code_produit_formule', $c->code_produit_formule)->first();
                 $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
-                    ->where('formule_uuid', $formule?->uuid_formule)
+                    ->where('formule_uuid', $formule?->uuid_produit_formule)
                     ->first();
 
                 return [
