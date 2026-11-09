@@ -2,6 +2,9 @@
 namespace App\Http\Resources\Api\Ynov;
 
 use App\Http\Resources\Api\Ynov\UserDetailResource;
+use App\Models\Api\Ynov\parameter\Produit;
+use App\Models\Api\Ynov\parameter\ProduitFormule;
+use App\Models\Api\Ynov\parameter\ReseauProduct;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -52,16 +55,24 @@ class UserResource extends JsonResource
                 'code' => $g->code,
                 'libelle' => $g->libelle,
             ])),
-            'user_contrats' => $this->whenLoaded('userContrats', fn() => $this->userContrats->map(fn($c) => [
-                'uuid_user_contrat' => $c->uuid_user_contrat,
-                'contrat_id' => $c->contrat_id,
-                'client_number' => $c->client_number,
-                'code_produit' =>  $c->code_produit,
-                'libelle_produit' => $c->libelle_produit,
-                'code_produit_formule' => $c->code_produit_formule,
-                'libelle_produit_formule' => $c->libelle_produit_formule,
+            'user_contrats' => $this->whenLoaded('userContrats', fn() => $this->userContrats->map(function ($c) {
+                $produit = Produit::where('code', $c->code_produit)->first();
+                $formule = ProduitFormule::where('code_produit_formule', $c->code_produit_formule)->first();
+                $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
+                    ->where('formule_uuid', $formule?->uuid_formule)
+                    ->first();
 
-            ])),
+                return [
+                    'uuid_user_contrat' => $c->uuid_user_contrat,
+                    'contrat_id' => $c->contrat_id,
+                    'client_number' => $c->client_number,
+                    'code_produit' =>  $c->code_produit,
+                    'libelle_produit' => ($reseauProduct && isset($reseauProduct->display_name)) ? $reseauProduct->display_name : $c->libelle_produit,
+                    'code_produit_formule' => $c->code_produit_formule,
+                    'libelle_produit_formule' => $c->libelle_produit_formule,
+
+                ];
+            })),
             'details' => new UserDetailResource($this->whenLoaded('details')),
             'permissions' => $this->when(
                 $this->relationLoaded('role') && $this->role,
