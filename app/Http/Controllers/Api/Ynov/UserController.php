@@ -182,7 +182,9 @@ class UserController extends Controller
                 'partner',
                 'reseau',
                 'agences',
-                'groupNotifs'
+                'groupNotifs', 'details.userProfession',
+                'details.userLieunaissance', 
+                'details.userLieuresidence'
             ])),
         ]);
     }

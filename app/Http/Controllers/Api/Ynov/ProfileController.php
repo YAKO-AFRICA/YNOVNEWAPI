@@ -26,7 +26,7 @@ class ProfileController extends Controller
             'reseau',
             'agences',
             'groupNotifs',
-            'userContrats'
+            'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence'
         ]);
 
         $user->setAttribute('permissions_grouped', $user->getGroupedPermissions());
@@ -62,7 +62,7 @@ class ProfileController extends Controller
                 'reseau',
                 'agences',
                 'groupNotifs',
-                'userContrats'
+                'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence'
             ])),
         ]);
     }

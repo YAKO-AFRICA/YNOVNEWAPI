@@ -472,7 +472,7 @@ class AuthController extends Controller
             'reseau',
             'agences',
             'groupNotifs',
-            'userContrats'
+            'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence'
         ]);
 
         $userContrat = $user->userContrats()->first();

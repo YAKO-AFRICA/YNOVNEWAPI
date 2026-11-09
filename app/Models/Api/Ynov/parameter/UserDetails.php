@@ -2,7 +2,9 @@
 // app/Models/Api/Ynov/parameter/UserDetails.php
 namespace App\Models\Api\Ynov\parameter;
 
+use App\Models\Api\Ynov\parameter\Profession;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\parameter\Ville;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -72,6 +74,21 @@ class UserDetails extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_uuid', 'uuid_user');
+    }
+
+    public function userProfession(): BelongsTo
+    {
+        return $this->belongsTo(Profession::class, 'fonction', 'code_profession');
+    }
+
+    public function userLieuresidence(): BelongsTo
+    {
+        return $this->belongsTo(Ville::class, 'lieu_residence', 'codeVille');
+    }
+
+    public function userLieunaissance(): BelongsTo
+    {
+        return $this->belongsTo(Ville::class, 'lieu_naissance', 'codeVille');
     }
 
     /**
