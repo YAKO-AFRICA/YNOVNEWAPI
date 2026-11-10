@@ -84,11 +84,15 @@ class PropositionController extends Controller
 
                 $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
 
-                if($contratData['source_data'] == 'ONECI' || $contratData['source_data'] == 'oneci') {
+                if($contratData['etape'] == '3') {
                     $dateTransmission = now()->format('Y-m-d H:i:s');
-                    $transmisPar = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                    $transmisPar = $createdBy;
                     $dateAcceptee = now()->format('Y-m-d H:i:s');
-                    $accepted_by = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
+                    $accepted_by = $createdBy;
+
+                }else if($contratData['etape'] == '2') {
+                    $dateTransmission = now()->format('Y-m-d H:i:s');
+                    $transmisPar = $createdBy;
                 } else {
                     $dateTransmission = null;
                     $transmisPar = null;
