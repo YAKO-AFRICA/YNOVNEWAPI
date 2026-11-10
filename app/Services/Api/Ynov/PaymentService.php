@@ -552,7 +552,8 @@ class PaymentService
             $dompdf->render();
 
             $identifiantContrat = $paiement->id_contrat;
-            $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
+            $fileName = 'recu-' . date('YmdHis') . '-' . $identifiantContrat . '.pdf';
+            // $fileName = 'recu-paiement-' . $paiement->payment_code . '-' . $identifiantContrat . '.pdf';
 
             // Créer un fichier temporaire
             $tempPath = tempnam(sys_get_temp_dir(), 'pdf_');
