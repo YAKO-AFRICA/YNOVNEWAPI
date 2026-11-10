@@ -143,7 +143,8 @@ class SMSService
             //     $phoneNumber,
             //     $message
             // );
-            $response = (str_starts_with($phone, '05')) ? $this->sendSmsBySayeliAPI($phoneNumber, $message) : $this->sendSmsByInfobipAPI($phoneNumber, $message);
+            $response = $this->sendSmsBySayeliAPI($phoneNumber, $message);
+            // $response = (str_starts_with($phone, '05')) ? $this->sendSmsBySayeliAPI($phoneNumber, $message) : $this->sendSmsByInfobipAPI($phoneNumber, $message);
 
             /*
              * Vérification erreur API

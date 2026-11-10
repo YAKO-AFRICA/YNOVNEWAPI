@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\Ynov\EspaceClient;
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\Notification;
+use App\Models\Api\Ynov\parameter\Produit;
+use App\Models\Api\Ynov\parameter\ProduitFormule;
+use App\Models\Api\Ynov\parameter\ReseauProduct;
 use App\Models\Api\Ynov\parameter\UserDetails;
 use App\Models\Api\Ynov\UserContrat;
 use App\Services\Api\Ynov\NotificationService;
@@ -85,13 +88,20 @@ class CustomerController extends Controller
                         continue;
                     }
 
+                    $produit = Produit::where('code', $userContrat->code_produit)->first();
+                    $formule = ProduitFormule::where('code_produit_formule', $userContrat->code_produit_formule)->first();
+                    $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
+                        ->where('formule_uuid', $formule?->uuid_produit_formule)
+                        ->first();
+
+
                     // Construire les données du contrat
                     $contratData = [
                         'IdProposition' => $detail['IdProposition'] ?? null,
                         'CapitalSouscrit' => $detail['CapitalSouscrit'] ?? 0,
                         'TotalPrime' => $detail['TotalPrime'] ?? 0,
                         'NbreImpayes' => $detail['NbreImpayes'] ?? 0,
-                        'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                        'produit' => ($reseauProduct && isset($reseauProduct->display_name)) ? $reseauProduct->display_name : $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
                         'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? 'Non défini',
                         'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
                     ];
@@ -204,6 +214,12 @@ class CustomerController extends Controller
                 })
                 ->toArray();
 
+            $produit = Produit::where('code', $detail['codeProduit'])->first();
+            $formule = ProduitFormule::where('code_produit_formule', $detail['CodeProduitFormule'])->first();
+            $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
+                ->where('formule_uuid', $formule?->uuid_produit_formule)
+                ->first();
+
             $contratData = [
                 'details' => [
                     'IdProposition' => $detail['IdProposition'] ?? null,
@@ -212,8 +228,8 @@ class CustomerController extends Controller
                     'CapitalSouscrit' => $detail['CapitalSouscrit'] ?? 0,
                     'TotalPrime' => $detail['TotalPrime'] ?? 0,
                     'NbreImpayes' => $detail['NbreImpayes'] ?? 0,
-                    'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
-                    'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? null,
+                    'produit' => ($reseauProduct && isset($reseauProduct->display_name)) ? $reseauProduct->display_name : $detail['produit'] ?? 'Non défini',
+                    'codeProduit' => $detail['codeProduit'] ?? null,
                     'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
                     'Periodicite' => $detail['LibellePeriodicite'] ?? $detail['periodicite'] ?? null,
                     'ModePaiement' => $detail['LibelleModePaiement'] ?? $detail['CodeModePaiement'] ?? null,
@@ -341,6 +357,12 @@ class CustomerController extends Controller
                 })
                 ->toArray();
 
+            $produit = Produit::where('code', $detail['codeProduit'])->first();
+            $formule = ProduitFormule::where('code_produit_formule', $detail['CodeProduitFormule'])->first();
+            $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
+                ->where('formule_uuid', $formule?->uuid_produit_formule)
+                ->first();
+
             $contratData = [
                 'details' => [
                     'IdProposition' => $detail['IdProposition'] ?? null,
@@ -357,7 +379,7 @@ class CustomerController extends Controller
                     'TotalEncaissementPartielle' => $detail['TotalEncaissementPartielle'] ?? 0,
                     'TotalImpayes' => $detail['TotalImpayes'] ?? 0,
 
-                    'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                    'produit' =>  ($reseauProduct && isset($reseauProduct->display_name)) ? $reseauProduct->display_name : $detail['produit'] ?? 'Non défini',
                     'EtatAvancementCotisation' => $detail['EtatAvancementCotisation'] ?? null,
                     'DureeCotisationAns' => (float) $detail['DureeCotisationAns'] ?? null,
                     'Periodicite' => $detail['LibellePeriodicite'] ?? $detail['periodicite'] ?? null,
@@ -617,6 +639,12 @@ class CustomerController extends Controller
                         continue;
                     }
 
+                    $produit = Produit::where('code', $userContrat->code_produit)->first();
+                    $formule = ProduitFormule::where('code_produit_formule', $userContrat->code_produit_formule)->first();
+                    $reseauProduct = ReseauProduct::where('product_uuid', $produit?->uuid_produit)
+                        ->where('formule_uuid', $formule?->uuid_produit_formule)
+                        ->first();
+
                     $detail = $data['details'][0];
 
                     if (isset($detail['OnStdbyOff']) && $detail['OnStdbyOff'] == "3") {
@@ -626,7 +654,7 @@ class CustomerController extends Controller
                     // Filtrer par recherche
                     if ($search) {
                         $searchLower = strtolower($search);
-                        $produit = strtolower($detail['produit'] ?? $userContrat->libelle_produit ?? '');
+                        $produit = strtolower($reseauProduct->display_name ?? $detail['produit'] ?? $userContrat->libelle_produit ?? '');
                         $idProposition = strtolower($detail['IdProposition'] ?? '');
 
                         if (
@@ -705,7 +733,7 @@ class CustomerController extends Controller
                             'TotalPrime' => $detail['TotalPrime'] ?? 0,
                             'NbreImpayes' => count($PrimeNonRegles),
                             'TotalImpayes' => array_sum(array_column($PrimeNonRegles, 'MontantARegler')),
-                            'produit' => $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
+                            'produit' =>  ($reseauProduct && isset($reseauProduct->display_name)) ? $reseauProduct->display_name : $detail['produit'] ?? $userContrat->libelle_produit ?? 'Non défini',
                             'codeProduit' => $detail['codeProduit'] ?? $userContrat->code_produit ?? 'Non défini',
                             'Status' => $this->getContractStatus($detail)
                         ],

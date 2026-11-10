@@ -56,7 +56,7 @@ class AuthService
         // 2. Recherche de l'utilisateur
         $user = User::where('email', $credentials['login'])
             ->orWhere('login', $credentials['login'])
-            ->with('details', 'role', 'agences', 'reseau', 'partner', 'groupNotifs')
+            ->with('details', 'role', 'agences', 'reseau', 'partner', 'groupNotifs', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence')
             ->first();
 
         if (!$user) {
