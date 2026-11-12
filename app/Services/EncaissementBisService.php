@@ -294,13 +294,13 @@ class EncaissementBisService
             $cpExists = file_exists($CPfilePath);
             $cgExists = file_exists($CGProdFilePath);
 
-            Log::info('Vérification fichiers PDF', [
-                'contrat_id' => $idcontrat,
-                'cp_path' => $CPfilePath,
-                'cp_exists' => $cpExists,
-                'cg_path' => $CGProdFilePath,
-                'cg_exists' => $cgExists
-            ]);
+            // Log::info('Vérification fichiers PDF', [
+            //     'contrat_id' => $idcontrat,
+            //     'cp_path' => $CPfilePath,
+            //     'cp_exists' => $cpExists,
+            //     'cg_path' => $CGProdFilePath,
+            //     'cg_exists' => $cgExists
+            // ]);
 
             // Si au moins un fichier existe, générer le PDF fusionné
             if ($cpExists || $cgExists) {

@@ -475,7 +475,8 @@ class UserService
             Log::info('createClientAPI - Création utilisateur');
             $user = User::create([
                 'uuid_user' => $uuidUser,
-                'email' => $data['email'] ?? null,
+                'email' => null,
+                // 'email' => $data['email'] ?? null,
                 'login' => $login,
                 'password' => Hash::make($password),
 
