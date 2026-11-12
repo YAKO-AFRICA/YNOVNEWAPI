@@ -113,6 +113,10 @@
                 label: "Réseaux",
                 icon: "fa-network-wired",
             },
+            branches: {
+                label: "Branches",
+                icon: "fa-code-branch",
+            },
             agences: {
                 label: "Agences",
                 icon: "fa-building",
@@ -1278,7 +1282,7 @@
                 id: "esouscription-contrats-list",
                 module: "contrats",
                 name: "Lister les contrats eSouscription",
-                description: "Récupère les contrats paginés avec filtres par UUID, agence, produit, proposition, police, partenaire, conseiller, mode de paiement, étape, nom et prénoms du souscripteur (acteur ADH), et recherche libre. etat=supprime retourne les contrats supprimés.",
+                description: "Récupère les contrats paginés avec filtres par UUID, identifiant du contrat, agence, produit, proposition (code ou identifiant), police, partenaire, conseiller, mode de paiement, étape, nom et prénoms du souscripteur (acteur ADH), et recherche libre. etat=supprime retourne les contrats supprimés.",
                 method: "GET",
                 path: "/esouscription/get-contrats",
                 isProtected: true,
@@ -1286,10 +1290,12 @@
                 requestParams: {
                     query: {
                         uuid_contrat: { type: "uuid", required: false, description: "UUID du contrat." },
+                        id_contrat: { type: "integer", required: false, description: "Identifiant du contrat." },
                         agence_uuid: { type: "uuid", required: false, description: "Agence du contrat." },
                         code_produit: { type: "string", required: false, description: "Code produit." },
                         libelle_produit: { type: "string", required: false, description: "Libellé produit." },
                         code_proposition: { type: "string", required: false, description: "Code proposition." },
+                        id_proposition: { type: "integer", required: false, description: "Identifiant de la proposition associée." },
                         numero_police: { type: "string", required: false, description: "Numéro de police." },
                         partner_uuid: { type: "uuid", required: false, description: "Partenaire." },
                         conseiller_uuid: { type: "uuid", required: false, description: "Conseiller." },
@@ -1961,7 +1967,7 @@
                 module: "souscription",
                 name: "Lister les produits d'un partenaire",
                 description:
-                    "Récupère le réseau associé au partenaire ainsi que les produits commercialisés avec leur formule et les champs de présentation du paramétrage.",
+                    "Récupère les produits configurés directement pour le partenaire, avec leur formule et les champs de présentation. Le partenaire peut être recherché par code_contractant ou uuid_partner. code_partner reste accepté pour compatibilité.",
                 method: "POST",
                 path: "/param/get-product-by-partner",
                 isProtected: true,
@@ -1972,15 +1978,25 @@
                 },
                 requestParams: {
                     body: {
+                        code_contractant: {
+                            type: "string",
+                            required: false,
+                            description: "Code contractant du partenaire (fournir code_contractant ou uuid_partner)",
+                        },
+                        uuid_partner: {
+                            type: "string",
+                            required: false,
+                            description: "UUID du partenaire (fournir code_contractant ou uuid_partner)",
+                        },
                         code_partner: {
                             type: "string",
-                            required: true,
-                            description: "Code du partenaire/contractant",
+                            required: false,
+                            description: "Ancien alias de code_contractant, conservé pour compatibilité",
                         },
                     },
                 },
                 exampleRequest: {
-                    code_partner: "PARTNER001",
+                    code_contractant: "PARTNER001",
                 },
                 responses: [
                     {
@@ -1988,11 +2004,11 @@
                         description: "Produits du partenaire récupérés",
                         example: {
                             success: true,
-                            code: "GET_RESEAU_PRODUCT_SUCCESS",
+                            code: "GET_PARTNER_PRODUCT_SUCCESS",
                             message:
-                                "Liste des produits par réseau récupérée avec succès",
+                                "Liste des produits par partenaire récupérée avec succès",
                             data: {
-                                reseau: {},
+                                partner: {},
                                 products: [
                                     {
                                         uuid_produit: "PRODUCT_UUID",
@@ -2010,10 +2026,10 @@
                                         avantage: "Avantage inclus",
                                     },
                                 ],
-                                details_reseau_product: [
+                                details_partner_product: [
                                     {
                                         uuid: "ASSOCIATION_UUID",
-                                        reseau_uuid: "RESEAU_UUID",
+                                        partner_uuid: "PARTNER_UUID",
                                         product_uuid: "PRODUCT_UUID",
                                         formule_uuid: "FORMULE_UUID",
                                         formule_key: "FORMULE_STANDARD",
@@ -2031,19 +2047,137 @@
                     },
                     {
                         status: 400,
-                        description: "Le code partenaire est obligatoire",
+                        description: "Le code contractant ou l'UUID du partenaire est obligatoire",
                         example: {
                             success: false,
-                            code: "CODE_PARTNER_REQUIRED",
-                            message:
-                                "Le parametre code_partner est obligatoire",
+                            code: "PARTNER_IDENTIFIER_REQUIRED",
+                            message: "Le paramètre code_contractant ou uuid_partner est obligatoire",
                         },
                     },
                     {
                         status: 404,
-                        description:
-                            "Partenaire ou réseau associé introuvable",
+                        description: "Partenaire ou paramétrage de produits introuvable",
                     },
+                ],
+            },
+
+            {
+                id: "partner-products-config-list",
+                module: "souscription",
+                name: "Lister les associations produit-partenaire",
+                description: "Récupère les associations paginées (10 par page), filtrables par partenaire, produit et formule.",
+                method: "GET",
+                path: "/param/get-partner-product",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                requestParams: {
+                    query: {
+                        partner_uuid: { type: "string", required: false, description: "UUID du partenaire" },
+                        product_uuid: { type: "string", required: false, description: "UUID du produit" },
+                        formule_uuid: { type: "string", required: false, description: "UUID de la formule" },
+                        formule_key: { type: "string", required: false, description: "Clé de la formule" },
+                    },
+                },
+                responses: [
+                    { status: 200, description: "Associations produit-partenaire récupérées." },
+                ],
+            },
+
+            {
+                id: "partner-products-create",
+                module: "souscription",
+                name: "Associer un produit à un partenaire",
+                description: "Crée un paramétrage produit-partenaire. Les champs obligatoires sont partner_uuid, product_uuid, formule_uuid, formule_key et frais_adhesion ; les champs de présentation sont facultatifs.",
+                method: "POST",
+                path: "/param/store-product-partner",
+                isProtected: true,
+                headers: { Authorization: "******", "Content-Type": "application/json", Accept: "application/json" },
+                requestParams: {
+                    body: {
+                        partner_uuid: { type: "string", required: true, description: "UUID du partenaire" },
+                        product_uuid: { type: "string", required: true, description: "UUID du produit" },
+                        formule_uuid: { type: "string", required: true, description: "UUID de la formule" },
+                        formule_key: { type: "string", required: true, description: "Clé de la formule" },
+                        frais_adhesion: { type: "integer", required: true, description: "Frais d'adhésion" },
+                        tag: { type: "string", required: false, description: "Tag du produit, chaîne ou null" },
+                        popular: { type: "boolean", required: false, description: "Produit populaire (false par défaut)" },
+                        display_name: { type: "string", required: false, description: "Nom d'affichage, chaîne ou null" },
+                        description: { type: "string", required: false, description: "Description du produit, chaîne ou null" },
+                        avantage: { type: "string", required: false, description: "Avantage du produit, chaîne ou null" },
+                    },
+                },
+                exampleRequest: {
+                    partner_uuid: "550e8400-e29b-41d4-a716-446655440001",
+                    product_uuid: "550e8400-e29b-41d4-a716-446655440002",
+                    formule_uuid: "550e8400-e29b-41d4-a716-446655440003",
+                    formule_key: "FORMULE_STANDARD",
+                    frais_adhesion: 2500,
+                    tag: "recommande",
+                    popular: true,
+                    display_name: "Offre standard",
+                    description: "Description de l'offre",
+                    avantage: "Avantage inclus",
+                },
+                responses: [
+                    { status: 201, description: "Produit associé au partenaire." },
+                    { status: 422, description: "Données obligatoires absentes ou invalides." },
+                ],
+            },
+
+            {
+                id: "partner-products-update",
+                module: "souscription",
+                name: "Modifier une association produit-partenaire",
+                description: "Met à jour les champs transmis du paramétrage partenaire-produit.",
+                method: "PUT",
+                path: "/param/update-product-partner/{uuid}",
+                isProtected: true,
+                headers: { Authorization: "******", "Content-Type": "application/json", Accept: "application/json" },
+                requestParams: {
+                    path: { uuid: { type: "string", required: true, description: "UUID de l'association" } },
+                    body: {
+                        partner_uuid: { type: "string", required: false, description: "UUID du partenaire" },
+                        product_uuid: { type: "string", required: false, description: "UUID du produit" },
+                        formule_uuid: { type: "string", required: false, description: "UUID de la formule" },
+                        formule_key: { type: "string", required: false, description: "Clé de la formule" },
+                        frais_adhesion: { type: "integer", required: false, description: "Frais d'adhésion" },
+                        tag: { type: "string", required: false, description: "Tag du produit" },
+                        popular: { type: "boolean", required: false, description: "Produit populaire" },
+                        display_name: { type: "string", required: false, description: "Nom d'affichage" },
+                        description: { type: "string", required: false, description: "Description du produit" },
+                        avantage: { type: "string", required: false, description: "Avantage du produit" },
+                    },
+                },
+                responses: [
+                    { status: 200, description: "Association mise à jour." },
+                    { status: 404, description: "Association produit-partenaire introuvable." },
+                    { status: 422, description: "Données invalides." },
+                ],
+            },
+
+            {
+                id: "partner-products-delete",
+                module: "souscription",
+                name: "Désactiver ou supprimer une association produit-partenaire",
+                description: "Désactive l'association par défaut. Transmettre deleting=full pour la supprimer définitivement.",
+                method: "DELETE",
+                path: "/param/delete-product-partner/{uuid}",
+                isProtected: true,
+                headers: { Authorization: "******", Accept: "application/json" },
+                requestParams: {
+                    path: { uuid: { type: "string", required: true, description: "UUID de l'association" } },
+                    query: {
+                        deleting: {
+                            type: "string",
+                            required: false,
+                            enum: ["full"],
+                            description: "Suppression définitive ; sans ce paramètre, l'association est désactivée",
+                        },
+                    },
+                },
+                responses: [
+                    { status: 200, description: "Association désactivée ou supprimée définitivement." },
+                    { status: 404, description: "Association produit-partenaire introuvable." },
                 ],
             },
 
@@ -2337,6 +2471,261 @@
                     {
                         status: 422,
                         description: "Valeur deleting invalide",
+                    },
+                ],
+            },
+
+            // ============================================================
+            // BRANCHES
+            // ============================================================
+            {
+                id: "branches-list",
+                module: "branches",
+                name: "Lister les branches",
+                description: "Récupère les branches avec recherche et pagination.",
+                method: "GET",
+                path: "/param/branches",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Rechercher par code ou libellé",
+                        },
+                        etat: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par état",
+                        },
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre de résultats par page (entre 1 et 100)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste paginée des branches",
+                        example: {
+                            success: true,
+                            message: "Liste des branches récupérée.",
+                            code: "BRANCHES_LISTED",
+                            data: {
+                                current_page: 1,
+                                data: [],
+                                per_page: 20,
+                                total: 0,
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "branches-show",
+                module: "branches",
+                name: "Détails d'une branche",
+                description: "Récupère une branche par son UUID.",
+                method: "GET",
+                path: "/param/branches/{uuid_branche}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_branche: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la branche",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Détails de la branche",
+                        example: {
+                            success: true,
+                            message: "Détails de la branche.",
+                            code: "BRANCHE_FOUND",
+                            data: {
+                                uuid_branche: "550e8400-e29b-41d4-a716-446655440001",
+                                IdCanalDistribution: 1,
+                                CodeCanalDistribution: "AGENCE",
+                                MonLibelle: "Agence",
+                                etat: "actif",
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "branches-create",
+                module: "branches",
+                name: "Créer une branche",
+                description: "Crée une branche de canal de distribution.",
+                method: "POST",
+                path: "/param/branches",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        IdCanalDistribution: {
+                            type: "integer",
+                            required: true,
+                            description: "Identifiant du canal de distribution",
+                        },
+                        CodeCanalDistribution: {
+                            type: "string",
+                            required: true,
+                            max: 100,
+                            description: "Code unique du canal de distribution",
+                        },
+                        MonLibelle: {
+                            type: "string",
+                            required: true,
+                            max: 255,
+                            description: "Libellé de la branche",
+                        },
+                        etat: {
+                            type: "string",
+                            required: false,
+                            max: 50,
+                            description: "État de la branche",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    IdCanalDistribution: 1,
+                    CodeCanalDistribution: "AGENCE",
+                    MonLibelle: "Agence",
+                    etat: "actif",
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Branche créée",
+                        example: {
+                            success: true,
+                            message: "Branche créée avec succès.",
+                            code: "BRANCHE_CREATED",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Données invalides ou code déjà utilisé",
+                    },
+                ],
+            },
+            {
+                id: "branches-update",
+                module: "branches",
+                name: "Modifier une branche",
+                description: "Met à jour les champs fournis d'une branche.",
+                method: "PUT",
+                path: "/param/branches/{uuid_branche}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_branche: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la branche",
+                        },
+                    },
+                    body: {
+                        IdCanalDistribution: {
+                            type: "integer",
+                            required: false,
+                            description: "Identifiant du canal de distribution",
+                        },
+                        CodeCanalDistribution: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Code unique du canal de distribution",
+                        },
+                        MonLibelle: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Libellé de la branche",
+                        },
+                        etat: {
+                            type: "string",
+                            required: false,
+                            max: 50,
+                            description: "État de la branche",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    MonLibelle: "Agence principale",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Branche mise à jour",
+                        example: {
+                            success: true,
+                            message: "Branche mise à jour avec succès.",
+                            code: "BRANCHE_UPDATED",
+                            data: {},
+                        },
+                    },
+                ],
+            },
+            {
+                id: "branches-delete",
+                module: "branches",
+                name: "Supprimer une branche",
+                description: "Supprime une branche par son UUID.",
+                method: "DELETE",
+                path: "/param/branches/{uuid_branche}",
+                isProtected: true,
+                isDestructive: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_branche: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la branche",
+                        },
+                    },
+                    body: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Branche supprimée",
+                        example: {
+                            success: true,
+                            message: "Branche supprimée avec succès.",
+                            code: "BRANCHE_DELETED",
+                        },
                     },
                 ],
             },

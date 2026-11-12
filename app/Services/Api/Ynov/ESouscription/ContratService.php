@@ -18,7 +18,7 @@ class ContratService
     {
         $query = Contrat::query();
 
-        foreach (['uuid_contrat', 'agence_uuid', 'code_produit', 'libelle_produit', 'code_proposition', 'numero_police', 'partner_uuid', 'conseiller_uuid', 'mode_paiement', 'etape'] as $field) {
+        foreach (['uuid_contrat','id_contrat', 'agence_uuid', 'code_produit', 'libelle_produit', 'code_proposition','id_proposition', 'numero_police', 'partner_uuid', 'conseiller_uuid', 'mode_paiement', 'etape'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }

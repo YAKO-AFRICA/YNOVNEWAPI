@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Filiation;
 use App\Models\Api\Ynov\parameter\Partner;
+use App\Models\Api\Ynov\parameter\PartnerProduct;
 use App\Models\Api\Ynov\parameter\Produit;
 use App\Models\Api\Ynov\parameter\ProduitFormule;
 use App\Models\Api\Ynov\parameter\Reseau;
@@ -411,106 +412,305 @@ class ParamController extends Controller
     }
 
 
-    public function getProductByPartner(Request $request)
+    /**
+     * Lister les associations de produits configurées pour les partenaires.
+     */
+    public function getPartnerProducts(Request $request)
     {
+        $query = PartnerProduct::query();
 
-        $validator = Validator::make($request->all(), [
-            'code_partner' => ['required', 'string'],
+        foreach (['partner_uuid', 'product_uuid', 'formule_uuid', 'formule_key'] as $filter) {
+            if ($request->has($filter)) {
+                $query->where($filter, $request->input($filter));
+            }
+        }
+
+        $partnerProducts = $query->paginate(10);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Liste des produits par partenaire récupérée avec succès',
+            'code' => 200,
+            'total' => $partnerProducts->total(),
+            'data' => $partnerProducts,
+        ]);
+    }
+
+    /**
+     * Ajouter un produit au paramétrage d'un partenaire.
+     */
+    public function storePartnerProduct(Request $request)
+    {
+        $validatedData = $request->validate([
+            'partner_uuid' => 'required|string',
+            'product_uuid' => 'required|string',
+            'formule_uuid' => 'required|string',
+            'formule_key' => 'required|string',
+            'frais_adhesion' => 'required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
         ]);
 
+        DB::beginTransaction();
+
+        try {
+            $partnerProduct = PartnerProduct::create(array_merge($validatedData, [
+                'uuid' => (string) Str::uuid(),
+                'popular' => $validatedData['popular'] ?? false,
+                'etat' => 'actif',
+            ]));
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'create',
+                'action_type' => 'crud',
+                'module' => 'partner_products',
+                'description' => "Ajout du produit {$partnerProduct->product_uuid} au partenaire {$partnerProduct->partner_uuid}",
+                'resource_type' => 'partner_product',
+                'resource_id' => $partnerProduct->uuid,
+                'new_values' => $partnerProduct->toArray(),
+                'level' => 'info',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Produit ajouté au partenaire avec succès',
+                'code' => 201,
+                'data' => $partnerProduct,
+            ], 201);
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de l\'ajout du produit au partenaire',
+                'code' => 500,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mettre à jour un produit configuré pour un partenaire.
+     */
+    public function updatePartnerProduct(Request $request, $uuid)
+    {
+        $validatedData = $request->validate([
+            'partner_uuid' => 'sometimes|required|string',
+            'product_uuid' => 'sometimes|required|string',
+            'formule_uuid' => 'sometimes|required|string',
+            'formule_key' => 'sometimes|required|string',
+            'frais_adhesion' => 'sometimes|required|integer',
+            'tag' => 'sometimes|nullable|string',
+            'popular' => 'sometimes|boolean',
+            'display_name' => 'sometimes|nullable|string',
+            'description' => 'sometimes|nullable|string',
+            'avantage' => 'sometimes|nullable|string',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $partnerProduct = PartnerProduct::where('uuid', $uuid)->first();
+
+            if (!$partnerProduct) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produit du partenaire introuvable',
+                    'code' => 404,
+                ], 404);
+            }
+
+            $oldValues = $partnerProduct->toArray();
+            $partnerProduct->update($validatedData);
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => 'update',
+                'action_type' => 'crud',
+                'module' => 'partner_products',
+                'description' => "Mise à jour du produit du partenaire {$partnerProduct->partner_uuid}",
+                'resource_type' => 'partner_product',
+                'resource_id' => $partnerProduct->uuid,
+                'old_values' => $oldValues,
+                'new_values' => $partnerProduct->toArray(),
+                'level' => 'info',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Produit du partenaire mis à jour avec succès',
+                'code' => 200,
+                'data' => $partnerProduct->fresh(),
+            ], 200);
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la mise à jour du produit',
+                'code' => 500,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Désactiver ou supprimer un produit configuré pour un partenaire.
+     */
+    public function deletePartnerProduct(Request $request, $uuid)
+    {
+        $request->validate([
+            'deleting' => 'sometimes|string|in:full',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $partnerProduct = PartnerProduct::where('uuid', $uuid)->first();
+
+            if (!$partnerProduct) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produit du partenaire introuvable',
+                    'code' => 404,
+                ], 404);
+            }
+
+            $oldValues = $partnerProduct->toArray();
+            $deletingPermanently = $request->input('deleting') === 'full';
+
+            if ($deletingPermanently) {
+                $partnerProduct->delete();
+            } else {
+                $partnerProduct->update(['etat' => 'inactif']);
+            }
+
+            ActivityLog::log([
+                'user_uuid' => $request->user()?->uuid_user,
+                'action' => $deletingPermanently ? 'delete' : 'deactivate',
+                'action_type' => 'crud',
+                'module' => 'partner_products',
+                'description' => ($deletingPermanently ? 'Suppression' : 'Désactivation') . " du produit du partenaire {$partnerProduct->partner_uuid}",
+                'resource_type' => 'partner_product',
+                'resource_id' => $partnerProduct->uuid,
+                'old_values' => $oldValues,
+                'new_values' => $deletingPermanently ? null : $partnerProduct->fresh()->toArray(),
+                'level' => $deletingPermanently ? 'warning' : 'info',
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $deletingPermanently
+                    ? 'Produit du partenaire supprimé définitivement'
+                    : 'Produit du partenaire désactivé avec succès',
+                'code' => 200,
+                'data' => $deletingPermanently ? null : $partnerProduct->fresh(),
+            ], 200);
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la suppression du produit',
+                'code' => 500,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getProductByPartner(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'code_contractant' => ['required_without_all:uuid_partner,code_partner', 'nullable', 'string'],
+            'uuid_partner' => ['required_without_all:code_contractant,code_partner', 'nullable', 'string'],
+            'code_partner' => ['required_without_all:code_contractant,uuid_partner', 'nullable', 'string'],
+        ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'code'    => 'CODE_PARTNER_REQUIRED',
-                'message' => 'Le parametre code_partner est obligatoire',
+                'code' => 'PARTNER_IDENTIFIER_REQUIRED',
+                'message' => 'Le paramètre code_contractant ou uuid_partner est obligatoire',
+                'errors' => $validator->errors(),
             ], 400);
         }
 
         $validated = $validator->validated();
+        $partnerQuery = Partner::query();
 
-        try {
+        if (!empty($validated['uuid_partner'])) {
+            $partnerQuery->where('uuid_partner', $validated['uuid_partner']);
+        } else {
+            $partnerQuery->where('code_contractant', $validated['code_contractant'] ?? $validated['code_partner']);
+        }
 
-            $partner = Partner::where('code_contractant', $validated['code_partner'])->first();
+        $partner = $partnerQuery->first();
 
-            if (!$partner) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 'PARTNER_NOT_FOUND',
-                    'message' => 'Partenaire introuvable',
-                ], 404);
-            }
-            
-
-            $reseau = Reseau::where('partner_uuid', $partner->uuid_partner)->first();
-
-            if (!$reseau) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 'RESEAU_NOT_FOUND',
-                    'message' => 'Reseau introuvable',
-                ], 404);
-            }
-            
-            $productByReseau = ReseauProduct::where('reseau_uuid', $reseau->uuid_reseau)->get();
-
-            if (!$productByReseau) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 'RESEAU_PRODUCT_NOT_FOUND',
-                    'message' => 'Paramettrage des produits pour le réseau est introuvable',
-                ], 404);
-            }
-
-            $pluckedProductUuids = $productByReseau->pluck('product_uuid')->toArray();
-            $pluckedFormuleUuids = $productByReseau->pluck('formule_uuid')->toArray();
-
-            $products = Produit::whereIn('uuid_produit', $pluckedProductUuids)->get();
-            $formules = ProduitFormule::whereIn('uuid_produit_formule', $pluckedFormuleUuids)->get();
-
-            $formulesByUuid = $formules->keyBy('uuid_produit_formule');
-            $reseauProductsByProductUuid = $productByReseau->keyBy('product_uuid');
-            $products->each(function (Produit $product) use ($reseauProductsByProductUuid, $formulesByUuid) {
-                $reseauProduct = $reseauProductsByProductUuid->get($product->uuid_produit);
-                $product->setAttribute(
-                    'formule',
-                    $reseauProduct ? $formulesByUuid->get($reseauProduct->formule_uuid) : null
-                );
-                $product->setAttribute('formule_key', $reseauProduct?->formule_key);
-                $product->setAttribute('frais_adhesion', $reseauProduct?->frais_adhesion);
-                $product->setAttribute('tag', $reseauProduct?->tag);
-                $product->setAttribute('popular', $reseauProduct?->popular);
-                $product->setAttribute('display_name', $reseauProduct?->display_name);
-                $product->setAttribute('description', $reseauProduct?->description);
-                $product->setAttribute('avantage', $reseauProduct?->avantage);
-            });
-
-            if (!$products) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 'PRODUCT_NOT_FOUND',
-                    'message' => 'Aucun produit correspondant aux paramètres trouvés pour le réseau',
-                ], 404);
-            }
-
-            return response()->json([
-                'success' => true,
-                'code' => 'GET_RESEAU_PRODUCT_SUCCESS',
-                'message' => 'Liste des produits par réseau récupérée avec succès',
-                'data' => [
-                    'reseau' => $reseau,
-                    'products' => $products,
-                    'details_reseau_product' => $productByReseau,
-                ]
-            ],200);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        if (!$partner) {
             return response()->json([
                 'success' => false,
-                'code' => 'RESEAU_PRODUCT_ERROR',
-                'message' => $e->errors(),
-            ], 500);
+                'code' => 'PARTNER_NOT_FOUND',
+                'message' => 'Partenaire introuvable',
+            ], 404);
         }
+
+        $partnerProducts = PartnerProduct::where('partner_uuid', $partner->uuid_partner)->get();
+
+        if ($partnerProducts->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'PARTNER_PRODUCT_NOT_FOUND',
+                'message' => 'Paramétrage des produits pour le partenaire introuvable',
+            ], 404);
+        }
+
+        $productUuids = $partnerProducts->pluck('product_uuid')->toArray();
+        $formuleUuids = $partnerProducts->pluck('formule_uuid')->toArray();
+        $products = Produit::whereIn('uuid_produit', $productUuids)->get();
+        $formulesByUuid = ProduitFormule::whereIn('uuid_produit_formule', $formuleUuids)
+            ->get()
+            ->keyBy('uuid_produit_formule');
+        $partnerProductsByProductUuid = $partnerProducts->keyBy('product_uuid');
+
+        $products->each(function (Produit $product) use ($partnerProductsByProductUuid, $formulesByUuid) {
+            $partnerProduct = $partnerProductsByProductUuid->get($product->uuid_produit);
+            $product->setAttribute(
+                'formule',
+                $partnerProduct ? $formulesByUuid->get($partnerProduct->formule_uuid) : null
+            );
+            $product->setAttribute('formule_key', $partnerProduct?->formule_key);
+            $product->setAttribute('frais_adhesion', $partnerProduct?->frais_adhesion);
+            $product->setAttribute('tag', $partnerProduct?->tag);
+            $product->setAttribute('popular', $partnerProduct?->popular);
+            $product->setAttribute('display_name', $partnerProduct?->display_name);
+            $product->setAttribute('description', $partnerProduct?->description);
+            $product->setAttribute('avantage', $partnerProduct?->avantage);
+        });
+
+        return response()->json([
+            'success' => true,
+            'code' => 'GET_PARTNER_PRODUCT_SUCCESS',
+            'message' => 'Liste des produits par partenaire récupérée avec succès',
+            'data' => [
+                'partner' => $partner,
+                'products' => $products,
+                'details_partner_product' => $partnerProducts,
+            ],
+        ], 200);
     }
 
     public function checkUserByPartner(Request $request)
