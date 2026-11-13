@@ -84,7 +84,7 @@ class DeviceService
         // Liste des APIs à essayer en ordre de préférence
         $apis = [
             [
-                'url' => "http://ip-api.com/json/{$ip}?fields=country,city,status",
+                'url' => "http://ip-api.com/json/{$ip}?fields=country,city,status&lang=fr",
                 'parser' => function($data) {
                     if (($data['status'] ?? '') === 'success') {
                         $parts = array_filter([$data['city'] ?? null, $data['country'] ?? null]);
@@ -94,7 +94,7 @@ class DeviceService
                 }
             ],
             [
-                'url' => "https://ipapi.co/{$ip}/json/",
+                'url' => "https://ipapi.co/{$ip}/json/?lang=fr",
                 'parser' => function($data) {
                     if (!isset($data['error'])) {
                         $parts = array_filter([$data['city'] ?? null, $data['country_name'] ?? null]);

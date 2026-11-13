@@ -449,17 +449,6 @@ class UserController extends Controller
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
 
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('supprimer', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de supprimer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
-
         $this->userService->delete($user, $request->user()->details?->uuid_user_details);
 
         ActivityLog::log([
@@ -508,6 +497,47 @@ class UserController extends Controller
             'success' => true,
             'message' => 'Utilisateur restauré.',
             'data' => new UserResource($user->fresh('details')),
+        ]);
+    }
+
+    /**
+     * Réinitialiser le mot de passe d'un utilisateur (support)
+     */
+    public function resetPassword(Request $request, string $uuid_user): JsonResponse
+    {
+        $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+        $result = $this->userService->resetPassword(
+            $user,
+            $request->user()->uuid_user,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'code' => $result['code'],
+            ], $result['status'] ?? 422);
+        }
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'reset_password',
+            'action_type' => 'security',
+            'module' => 'users',
+            'description' => "Réinitialisation du mot de passe de l'utilisateur : {$user->email}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'level' => 'warning',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mot de passe réinitialisé. Communiquez le mot de passe temporaire à l\'utilisateur.',
+            'code' => 'PASSWORD_RESET',
+            'data' => $result['data'],
         ]);
     }
 

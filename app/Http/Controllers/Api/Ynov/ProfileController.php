@@ -26,7 +26,14 @@ class ProfileController extends Controller
             'reseau',
             'agences',
             'groupNotifs',
-            'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence'
+            'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence',
+            'blockedBy',
+            'activityLogs' => fn($q) => $q->latest()->limit(10),
+            'loginAttempts' => fn($q) => $q->latest('attempted_at')->limit(10),
+            'accountFreezes' => fn($q) => $q->latest('frozen_at')->limit(10),
+            'passwordHistories' => fn($q) => $q->latest('changed_at')->limit(10),
+            'devices' => fn($q) => $q->latest('last_used_at')->limit(10),
+            'devices.user',
         ]);
 
         $user->setAttribute('permissions_grouped', $user->getGroupedPermissions());

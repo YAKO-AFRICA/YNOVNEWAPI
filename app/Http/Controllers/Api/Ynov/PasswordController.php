@@ -205,61 +205,6 @@ class PasswordController extends Controller
      * 
      * CORRECTION #3 : Utilisation de expires_at au lieu de subHour()
      */
-    // public function reset(ResetPasswordRequest $request): JsonResponse
-    // {
-    //     // ================================================================
-    //     // CORRECTION #3 : Utilisation de expires_at
-    //     // ================================================================
-    //     $record = DB::table('password_reset_tokens')
-    //         ->where('login', $request->login)
-    //         ->first();
-
-    //     // Vérification du token avec Hash::check ET vérification de l'expiration
-    //     if (!$record || !Hash::check($request->token, $record->token) || now()->gt($record->expires_at)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Token invalide ou expiré.'
-    //         ], 422);
-    //     }
-
-    //     $user = User::where('login', $request->login)->firstOrFail();
-
-    //     // Vérification de l'historique des mots de passe
-    //     if (!$this->passwordService->validateHistory($user, $request->password)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Vous ne pouvez pas réutiliser un ancien mot de passe.'
-    //         ], 422);
-    //     }
-
-    //     // Mise à jour du mot de passe
-    //     $user->update([
-    //         'password' => Hash::make($request->password),
-    //         'password_changed_at' => now(),
-    //         'password_expires_at' => now()->addDays(90),
-    //         'is_first_login' => false,
-    //     ]);
-
-    //     // Ajout à l'historique
-    //     $this->passwordService->addToHistory($user, request()->ip(), request()->userAgent());
-
-    //     if ($user->email ) {
-    //         // Email de confirmation
-    //         Mail::to($user->email)->queue(new PasswordChangedMail(
-    //             $user->fresh('details'),
-    //             request()->ip()
-    //         ));
-    //     }
-
-    //     // Suppression du token utilisé
-    //     DB::table('password_reset_tokens')->where('login', $request->login)->delete();
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Mot de passe réinitialisé avec succès.'
-    //     ], 200);
-    // }
-
     public function reset(ResetPasswordRequest $request): JsonResponse
     {
         $record = DB::table('password_reset_tokens')
@@ -308,53 +253,6 @@ class PasswordController extends Controller
             'message' => 'Mot de passe réinitialisé avec succès.'
         ], 200);
     }
-
-    // public function change(ChangePasswordRequest $request): JsonResponse
-    // {
-    //     $user = $request->user();
-
-    //     if (!Hash::check($request->current_password, $user->password)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Mot de passe actuel incorrect.'
-    //         ], 422);
-    //     }
-
-    //     if (!$this->passwordService->validateHistory($user, $request->password)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Vous ne pouvez pas réutiliser un ancien mot de passe.'
-    //         ], 422);
-    //     }
-
-    //     $user->update([
-    //         'password' => Hash::make($request->password),
-    //         'password_changed_at' => now(),
-    //         'password_expires_at' => now()->addDays(90),
-    //         'is_first_login' => false,
-    //     ]);
-
-    //     $this->passwordService->addToHistory($user, request()->ip(), request()->userAgent());
-    //     if ($user->email) {
-    //         Mail::to($user->email)->queue(new PasswordChangedMail($user->fresh('details'), request()->ip()));
-    //     }
-
-    //     ActivityLog::log([
-    //         'user_uuid' => $user->uuid_user,
-    //         'action' => 'password_change',
-    //         'action_type' => 'password_change',
-    //         'module' => 'auth',
-    //         'resource_type' => 'user',
-    //         'description' => "Changement de mot de passe par {$user->uuid_user}",
-    //         'resource_id' => $user->uuid_user,
-    //         'level' => 'info',
-    //     ]);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Mot de passe changé avec succès.'
-    //     ], 200);
-    // }
 
     public function change(ChangePasswordRequest $request): JsonResponse
     {
@@ -406,71 +304,6 @@ class PasswordController extends Controller
             'message' => 'Mot de passe changé avec succès.'
         ], 200);
     }
-
-
-
-    // public function firstLogin(FirstLoginPasswordRequest $request): JsonResponse
-    // {
-    //     $user = $request->user();
-
-    //     if (!$user->is_first_login && !$this->passwordService->isExpired($user)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'code' => 'PASSWORD_CHANGE_NOT_REQUIRED',
-    //             'message' => 'Le changement de mot de passe n\'est pas requis pour ce compte.',
-    //         ], 422);
-    //     }
-
-    //     if (!$this->passwordService->validateHistory($user, $request->password)) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Vous ne pouvez pas réutiliser un ancien mot de passe.'
-    //         ], 422);
-    //     }
-
-    //     $user->update([
-    //         'password' => Hash::make($request->password),
-    //         'password_changed_at' => now(),
-    //         'password_expires_at' => now()->addDays(90),
-    //         'is_first_login' => false,
-    //     ]);
-
-    //     $this->passwordService->addToHistory($user, request()->ip(), request()->userAgent());
-    //     if ($user->email) {
-    //         Mail::to($user->email)->queue(new PasswordChangedMail($user->fresh('details'), request()->ip()));
-    //     }
-
-    //     // Supprimer le token temporaire
-    //     $currentToken = $user->currentAccessToken();
-    //     if ($currentToken) {
-    //         $currentToken->delete();
-    //     }
-
-    //     // Créer un nouveau token permanent
-    //     $token = $user->createToken('API Token', ['*'], now()->addHours(24));
-
-    //     ActivityLog::log([
-    //         'user_uuid' => $user->uuid_user,
-    //         'action' => 'first_login',
-    //         'action_type' => 'first_login',
-    //         'module' => 'auth',
-    //         'description' => "Première connexion, mot de passe initialisé par {$user->uuid_user}",
-    //         'resource_type' => 'user',
-    //         'resource_id' => $user->uuid_user,
-    //         'level' => 'info',
-    //     ]);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Mot de passe initialisé.',
-    //         'data' => [
-    //             'access_token' => $token->plainTextToken,
-    //             'token_type' => 'Bearer',
-    //             'expires_at' => now()->addHours(24),
-    //             'user' => new UserResource($user->fresh('details')),
-    //         ],
-    //     ], 200);
-    // }
 
     public function firstLogin(FirstLoginPasswordRequest $request): JsonResponse
     {
