@@ -185,7 +185,6 @@ class AuthService
         $user->update([
             'last_login_at' => now(),
             'last_activity_at' => now(),
-            'is_online' => true,
             'failed_login_count' => 0,
         ]);
 
@@ -255,15 +254,11 @@ class AuthService
     public function logout(User $user, string $tokenId): void
     {
         $user->tokens()->whereKey($tokenId)->delete();
-        if ($user->tokens()->count() === 0) {
-            $user->update(['is_online' => false]);
-        }
     }
 
     public function logoutAll(User $user): void
     {
         $user->tokens()->delete();
-        $user->update(['is_online' => false]);
     }
 
     public function refresh(User $user, string $currentTokenId, string $deviceName): string

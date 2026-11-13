@@ -85,7 +85,17 @@ class UserController extends Controller
                   ->orWhere('login', 'like', "%{$search}%")
                   ->orWhereHas('details', function ($q) use ($search) {
                       $q->where('nom', 'like', "%{$search}%")
-                        ->orWhere('prenoms', 'like', "%{$search}%");
+                        ->orWhere('prenoms', 'like', "%{$search}%")
+                        ->orWhere('matricule', 'like', "%{$search}%")
+                        ->orWhere('numero_client', 'like', "%{$search}%")
+                        ->orWhere('code_agent', 'like', "%{$search}%")
+                        ->orWhere('fonction', 'like', "%{$search}%")
+                        ->orWhere('service', 'like', "%{$search}%")
+                        ->orWhere('departement', 'like', "%{$search}%")
+                        ->orWhere('mobile_1', 'like', "%{$search}%")
+                        ->orWhere('mobile_2', 'like', "%{$search}%")
+                        ->orWhere('telephone_fixe', 'like', "%{$search}%")
+                        ->orWhere('email_pro', 'like', "%{$search}%");
                   });
             });
         }
@@ -125,6 +135,21 @@ class UserController extends Controller
 
         $users = $query->orderByDesc('created_at')->paginate($request->integer('per_page', 20));
 
+        if ($users->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun utilisateur trouvé.',
+                'code' => 'USERS_NOT_FOUND',
+                'data' => [],
+                'pagination' => [
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                ],
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Liste des utilisateurs récupérée.',
@@ -143,8 +168,16 @@ class UserController extends Controller
     {
         $user = $this->userService->create(
             $request->validated(),
-            $request->user()->details?->uuid_user_details
+            $request->user()->uuid_user
         );
+
+        // if (!$user) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Erreur lors de la création de l\'utilisateur.',
+        //         'code' => 'USER_CREATION_FAILED'
+        //     ], 500);
+        // }
 
         ActivityLog::log([
             'user_uuid' => $request->user()->uuid_user,
@@ -201,7 +234,7 @@ class UserController extends Controller
         $updated = $this->userService->update(
             $user,
             $request->validated(),
-            $request->user()->details?->uuid_user_details
+            $request->user()->uuid_user
         );
 
         ActivityLog::log([

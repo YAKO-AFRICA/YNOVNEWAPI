@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             'is_online' => $this->is_online,
             'is_locked' => $this->is_locked,
             'last_login_at' => $this->last_login_at,
+            'last_activity_at' => $this->last_activity_at,
             'email_verified_at' => $this->email_verified_at,
             'two_factor_enabled' => $this->two_factor_enabled,
             'role' => $this->whenLoaded('role', fn() => [
