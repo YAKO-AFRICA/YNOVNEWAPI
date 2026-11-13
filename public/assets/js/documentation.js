@@ -5101,7 +5101,7 @@
                 module: "profile",
                 name: "Utilisateur connecté",
                 description:
-                    "Récupère les informations complètes de l'utilisateur authentifié (rôle, permissions, détails, partenaire, réseau, agences, contrats).",
+                    "Récupère les informations complètes de l'utilisateur authentifié (rôle, permissions, détails, partenaire, réseau, agences, contrats). Inclut aussi les 10 derniers éléments de sécurité : blocked_by, activity_logs, login_attempts, account_freezes, password_histories, devices. Le champ is_online est calculé dynamiquement : true si last_activity_at date de moins de 10 minutes.",
                 method: "GET",
                 path: "/auth/me",
                 isProtected: true,
@@ -5121,8 +5121,15 @@
                             data: {
                                 uuid_user: "...",
                                 email: "...",
+                                is_online: true,
+                                last_activity_at: "...",
                                 role: {},
                                 permissions: [],
+                                activity_logs: [],
+                                login_attempts: [],
+                                account_freezes: [],
+                                password_histories: [],
+                                devices: [],
                             },
                         },
                     },
@@ -5253,6 +5260,7 @@
                                 is_online: true,
                                 is_locked: false,
                                 last_login_at: "2025-01-15T10:30:00.000000Z",
+                                last_activity_at: "2025-01-15T14:28:00.000000Z",
                                 email_verified_at:
                                     "2025-01-15T10:00:00.000000Z",
                                 two_factor_enabled: true,
@@ -5314,6 +5322,12 @@
                                         is_primary: true,
                                     },
                                 ],
+                                blocked_by: null,
+                                activity_logs: [],
+                                login_attempts: [],
+                                account_freezes: [],
+                                password_histories: [],
+                                devices: [],
                                 permissions_grouped: {
                                     Utilisateurs: [
                                         "users.afficher",
@@ -5960,7 +5974,7 @@
                 module: "users",
                 name: "Détails d'un utilisateur",
                 description:
-                    "Récupère les informations complètes d'un utilisateur (rôle, permissions, détails, partenaire, réseau, agences).",
+                    "Récupère les informations complètes d'un utilisateur (rôle, permissions, détails, partenaire, réseau, agences). Inclut aussi les 10 derniers éléments de sécurité : blocked_by, activity_logs, login_attempts, account_freezes, password_histories, devices. Le champ is_online est calculé dynamiquement : true si last_activity_at date de moins de 10 minutes.",
                 method: "GET",
                 path: "/users/{uuid_user}",
                 isProtected: true,
@@ -5984,7 +5998,21 @@
                         description: "Détails de l'utilisateur",
                         example: {
                             success: true,
-                            data: {},
+                            data: {
+                                uuid_user: "...",
+                                login: "...",
+                                email: "...",
+                                status: "actif",
+                                is_online: true,
+                                last_login_at: "...",
+                                last_activity_at: "...",
+                                blocked_by: null,
+                                activity_logs: [],
+                                login_attempts: [],
+                                account_freezes: [],
+                                password_histories: [],
+                                devices: [],
+                            },
                         },
                     },
                 ],
@@ -7094,6 +7122,106 @@
                         example: {
                             success: true,
                             message: "Utilisateur supprimé.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "users-restore",
+                module: "users",
+                name: "Restaurer un utilisateur",
+                description:
+                    "Restaure un utilisateur supprimé logiquement : repasse le statut à \"actif\" et réinitialise les compteurs de sécurité (is_locked, failed_login_count, freeze_level, frozen_until). Fonctionne aussi bien pour un soft delete réel (deleted_at) que pour une suppression logique (statut inactif). Retourne 422 si l'utilisateur n'est pas supprimé.",
+                method: "POST",
+                path: "/users/{uuid_user}/restore",
+                isProtected: true,
+                permissionsRequired: ["users.restaurer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_user: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de l'utilisateur supprimé",
+                        },
+                    },
+                    body: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Utilisateur restauré",
+                        example: {
+                            success: true,
+                            message: "Utilisateur restauré.",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Utilisateur non supprimé",
+                        example: {
+                            success: false,
+                            message: "Cet utilisateur n'est pas supprimé.",
+                            code: "USER_NOT_DELETED",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "users-reset-password",
+                module: "users",
+                name: "Réinitialiser le mot de passe (support)",
+                description:
+                    "Réinitialise le mot de passe d'un utilisateur comme s'il s'agissait d'une première connexion. Génère un mot de passe temporaire (12 caractères), passe is_first_login à true (l'utilisateur devra définir son propre mot de passe à la prochaine connexion), révoque toutes les sessions, désactive la 2FA, supprime les questions de sécurité et les appareils trusted. Le mot de passe temporaire est envoyé par SMS (mobile_1) et par email si disponible, et retourné dans la réponse pour communication orale par le support. Retourne 422 si aucun canal de contact n'est disponible (ni mobile ni email).",
+                method: "POST",
+                path: "/users/{uuid_user}/reset-password",
+                isProtected: true,
+                isDestructive: true,
+                permissionsRequired: ["users.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_user: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de l'utilisateur",
+                        },
+                    },
+                    body: {},
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Mot de passe réinitialisé",
+                        example: {
+                            success: true,
+                            message:
+                                "Mot de passe réinitialisé. Communiquez le mot de passe temporaire à l'utilisateur.",
+                            code: "PASSWORD_RESET",
+                            data: {
+                                temp_password: "aB3xK9mP2qR7",
+                                sms_sent: true,
+                                email_sent: false,
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Aucun canal de contact disponible",
+                        example: {
+                            success: false,
+                            message:
+                                "Aucun moyen de contact disponible (ni mobile ni email). Communiquez le mot de passe manuellement avant de réessayer.",
+                            code: "NO_CONTACT_CHANNEL",
                         },
                     },
                 ],

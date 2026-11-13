@@ -31,10 +31,6 @@ class SessionController extends Controller
         $sessionName = $token->name;
         $token->delete();
 
-        if ($user->tokens()->count() === 0) {
-            $user->update(['is_online' => false]);
-        }
-
         if ($user->email) {
             Mail::to($user->email)->queue(new SessionRevokedMail($user->fresh('details'), $sessionName, false));
         }

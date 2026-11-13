@@ -3,13 +3,16 @@ namespace App\Services\Api\Ynov;
 
 use App\Mail\Api\Ynov\AccountBlockedMail;
 use App\Mail\Api\Ynov\AccountUnblockedMail;
+use App\Mail\Api\Ynov\PasswordResetCredentialsMail;
 use App\Mail\Api\Ynov\WelcomeMail;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
+use App\Models\Api\Ynov\parameter\UserSecurityAnswer;
 use App\Models\Api\Ynov\UserContrat;
+use App\Services\Api\Ynov\Auth\PasswordService;
 use App\Services\Api\Ynov\NotificationService;
 use App\Services\SMSService;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +27,7 @@ class UserService
         // private OtpService $otpService,
         private readonly SMSService $SMSService,
         private NotificationService $notificationService,
+        private PasswordService $passwordService,
     ) {}
 
     /**
@@ -1035,6 +1039,130 @@ class UserService
         ]);
         $user->tokens()->delete();
         // $user->delete();
+    }
+
+    public function restore(User $user, string $restorerUuid): void
+    {
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
+        $user->update([
+            'status' => 'actif',
+            'is_locked' => false,
+            'failed_login_count' => 0,
+            'freeze_level' => 0,
+            'frozen_until' => null,
+        ]);
+
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getAccountGroupUuid(),
+            'title' => '♻️ Compte restauré',
+            'body' => 'Votre compte a été restauré. Vous pouvez à nouveau vous connecter.',
+            'type' => 'account',
+            'metadata' => [
+                'restored_by' => $restorerUuid,
+                'restored_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $restorerUuid,
+        ]);
+    }
+
+    /**
+     * Réinitialiser le mot de passe d'un utilisateur (support).
+     * Simule une première connexion : nouveau mot de passe temporaire
+     * généré, 2FA et questions secrètes réinitialisées, sessions révoquées.
+     * Le mot de passe est communiqué par SMS et/ou email.
+     */
+    public function resetPassword(User $user, string $adminUuid, ?string $ip = null, ?string $userAgent = null): array
+    {
+        $details = $user->details;
+        $phone = $details?->mobile_1;
+        $email = $user->email;
+
+        if (empty($phone) && empty($email)) {
+            return [
+                'success' => false,
+                'code' => 'NO_CONTACT_CHANNEL',
+                'message' => 'Aucun moyen de contact disponible (ni mobile ni email). Communiquez le mot de passe manuellement avant de réessayer.',
+                'status' => 422,
+            ];
+        }
+
+        $password = Str::random(12);
+
+        $user->update([
+            'password' => Hash::make($password),
+            'password_changed_at' => now(),
+            'password_expires_at' => now()->addDays(90),
+            'is_first_login' => true,
+        ]);
+
+        // Révoquer toutes les sessions actives
+        $user->tokens()->delete();
+
+        // Réinitialiser la 2FA et les questions secrètes
+        $user->disableTwoFactor();
+        $user->twoFactorRecoveryCodes()->delete();
+        // $user->otpCodes()->delete();
+        $user->devices()->update(['is_trusted' => false]);
+        UserSecurityAnswer::where('user_uuid', $user->uuid_user)->delete();
+
+        // Historique + notification
+        $this->passwordService->addToHistory($user, $ip, $userAgent);
+        $this->passwordService->notifyPasswordChange($user, 'reset');
+
+        /*
+         * SMS
+         */
+        $smsSent = false;
+        if (!empty($phone)) {
+            $message = "YNOV : Votre mot de passe a été réinitialisé.\n"
+                . "Login : {$user->login}\n"
+                . "Mot de passe temporaire : {$password}\n"
+                . "Connectez-vous puis définissez votre nouveau mot de passe.";
+
+            $response = $this->SMSService->sendSms($phone, $message);
+            $smsSent = (bool) ($response['success'] ?? false);
+
+            if (!$smsSent) {
+                Log::error('Échec envoi SMS reset mot de passe', [
+                    'user_uuid' => $user->uuid_user,
+                    'phone' => $phone,
+                    'message' => $response['message'] ?? null,
+                ]);
+            }
+        }
+
+        /*
+         * Email
+         */
+        $emailSent = false;
+        if (!empty($email)) {
+            try {
+                Mail::to($email)->queue(new PasswordResetCredentialsMail($user->fresh('details'), $password));
+                $emailSent = true;
+            } catch (\Throwable $e) {
+                Log::error('Échec envoi email reset mot de passe', [
+                    'user_uuid' => $user->uuid_user,
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'success' => true,
+            'code' => 'PASSWORD_RESET',
+            'message' => 'Mot de passe réinitialisé.',
+            'data' => [
+                'temp_password' => $password,
+                'sms_sent' => $smsSent,
+                'email_sent' => $emailSent,
+            ],
+        ];
     }
 
     public function block(User $user, string $reason, string $blockerId): void

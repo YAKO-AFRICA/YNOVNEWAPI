@@ -404,6 +404,12 @@ class PermissionService
                         'description' => 'Permet de supprimer un utilisateur'
                     ],
                     [
+                        'category' => 'crud',
+                        'action' => 'restaurer',
+                        'libelle' => 'Restaurer un utilisateur supprimé',
+                        'description' => 'Permet de restaurer un utilisateur supprimé'
+                    ],
+                    [
                         'category' => 'admin',
                         'action' => 'bloquer',
                         'libelle' => 'Bloquer un utilisateur',

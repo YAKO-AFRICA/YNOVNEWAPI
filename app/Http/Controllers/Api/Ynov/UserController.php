@@ -85,7 +85,17 @@ class UserController extends Controller
                   ->orWhere('login', 'like', "%{$search}%")
                   ->orWhereHas('details', function ($q) use ($search) {
                       $q->where('nom', 'like', "%{$search}%")
-                        ->orWhere('prenoms', 'like', "%{$search}%");
+                        ->orWhere('prenoms', 'like', "%{$search}%")
+                        ->orWhere('matricule', 'like', "%{$search}%")
+                        ->orWhere('numero_client', 'like', "%{$search}%")
+                        ->orWhere('code_agent', 'like', "%{$search}%")
+                        ->orWhere('fonction', 'like', "%{$search}%")
+                        ->orWhere('service', 'like', "%{$search}%")
+                        ->orWhere('departement', 'like', "%{$search}%")
+                        ->orWhere('mobile_1', 'like', "%{$search}%")
+                        ->orWhere('mobile_2', 'like', "%{$search}%")
+                        ->orWhere('telephone_fixe', 'like', "%{$search}%")
+                        ->orWhere('email_pro', 'like', "%{$search}%");
                   });
             });
         }
@@ -125,6 +135,21 @@ class UserController extends Controller
 
         $users = $query->orderByDesc('created_at')->paginate($request->integer('per_page', 20));
 
+        if ($users->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun utilisateur trouvé.',
+                'code' => 'USERS_NOT_FOUND',
+                'data' => [],
+                'pagination' => [
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                ],
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Liste des utilisateurs récupérée.',
@@ -143,8 +168,16 @@ class UserController extends Controller
     {
         $user = $this->userService->create(
             $request->validated(),
-            $request->user()->details?->uuid_user_details
+            $request->user()->uuid_user
         );
+
+        // if (!$user) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Erreur lors de la création de l\'utilisateur.',
+        //         'code' => 'USER_CREATION_FAILED'
+        //     ], 500);
+        // }
 
         ActivityLog::log([
             'user_uuid' => $request->user()->uuid_user,
@@ -183,8 +216,15 @@ class UserController extends Controller
                 'reseau',
                 'agences',
                 'groupNotifs', 'details.userProfession',
-                'details.userLieunaissance', 
-                'details.userLieuresidence'
+                'details.userLieunaissance',
+                'details.userLieuresidence',
+                'blockedBy',
+                'activityLogs' => fn($q) => $q->latest()->limit(10),
+                'loginAttempts' => fn($q) => $q->latest('attempted_at')->limit(10),
+                'accountFreezes' => fn($q) => $q->latest('frozen_at')->limit(10),
+                'passwordHistories' => fn($q) => $q->latest('changed_at')->limit(10),
+                'devices' => fn($q) => $q->latest('last_used_at')->limit(10),
+                'devices.user',
             ])),
         ]);
     }
@@ -201,7 +241,7 @@ class UserController extends Controller
         $updated = $this->userService->update(
             $user,
             $request->validated(),
-            $request->user()->details?->uuid_user_details
+            $request->user()->uuid_user
         );
 
         ActivityLog::log([
@@ -409,17 +449,6 @@ class UserController extends Controller
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
 
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('supprimer', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de supprimer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
-
         $this->userService->delete($user, $request->user()->details?->uuid_user_details);
 
         ActivityLog::log([
@@ -437,6 +466,82 @@ class UserController extends Controller
     }
 
     /**
+     * Restaurer un utilisateur supprimé logiquement
+     */
+    public function restore(Request $request, string $uuid_user): JsonResponse
+    {
+        $user = User::withTrashed()->where('uuid_user', $uuid_user)->firstOrFail();
+
+        if (!$user->trashed() && $user->status !== 'inactif') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cet utilisateur n\'est pas supprimé.',
+                'code' => 'USER_NOT_DELETED',
+            ], 422);
+        }
+
+        $this->userService->restore($user, $request->user()->uuid_user);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'restore',
+            'action_type' => 'crud',
+            'module' => 'users',
+            'description' => "Restauration de l'utilisateur : {$user->email}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'level' => 'info',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Utilisateur restauré.',
+            'data' => new UserResource($user->fresh('details')),
+        ]);
+    }
+
+    /**
+     * Réinitialiser le mot de passe d'un utilisateur (support)
+     */
+    public function resetPassword(Request $request, string $uuid_user): JsonResponse
+    {
+        $user = User::where('uuid_user', $uuid_user)->firstOrFail();
+
+        $result = $this->userService->resetPassword(
+            $user,
+            $request->user()->uuid_user,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'code' => $result['code'],
+            ], $result['status'] ?? 422);
+        }
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'reset_password',
+            'action_type' => 'security',
+            'module' => 'users',
+            'description' => "Réinitialisation du mot de passe de l'utilisateur : {$user->email}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'level' => 'warning',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mot de passe réinitialisé. Communiquez le mot de passe temporaire à l\'utilisateur.',
+            'code' => 'PASSWORD_RESET',
+            'data' => $result['data'],
+        ]);
+    }
+
+    /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur block
      * ================================================================
@@ -444,17 +549,6 @@ class UserController extends Controller
     public function block(BlockUserRequest $request, string $uuid_user): JsonResponse
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
-
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('block', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de bloquer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
 
         $this->userService->block($user, $request->reason, $request->user()->uuid_user);
 
@@ -481,17 +575,6 @@ class UserController extends Controller
     public function unblock(Request $request, string $uuid_user): JsonResponse
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
-
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('unblock', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de débloquer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
 
         $this->userService->unblock($user, $request->user()->uuid_user);
 

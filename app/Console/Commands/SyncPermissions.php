@@ -26,7 +26,7 @@ class SyncPermissions extends Command
      */
     private array $defaultPermissions = [
         'users' => [
-            'actions' => ['afficher', 'creer', 'modifier', 'supprimer', 'bloquer'],
+            'actions' => ['afficher', 'creer', 'modifier', 'supprimer', 'restaurer', 'bloquer'],
             'libelle' => 'Utilisateurs',
             'description' => 'Gestion des utilisateurs',
             'icone' => 'users',

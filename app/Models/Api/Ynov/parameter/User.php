@@ -43,6 +43,12 @@ class User extends Authenticatable
 
     public $incrementing = false;
 
+    /**
+     * Fenêtre (en minutes) pendant laquelle un utilisateur
+     * est considéré comme en ligne, basée sur last_activity_at.
+     */
+    public const ONLINE_THRESHOLD_MINUTES = 10;
+
     protected $fillable = [
         'uuid_user',
         'login',
@@ -428,6 +434,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Statut en ligne calculé dynamiquement :
+     * l'utilisateur est en ligne si sa dernière activité
+     * remonte à moins de ONLINE_THRESHOLD_MINUTES.
+     */
+    public function getIsOnlineAttribute(): bool
+    {
+        return $this->last_activity_at !== null
+            && $this->last_activity_at->gt(now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
+    }
+
+    /**
      * Vérifier si l'utilisateur est actif
      */
     public function isActive(): bool
@@ -654,6 +671,11 @@ class User extends Authenticatable
     }
 
     // Scopes
+    public function scopeOnline($query)
+    {
+        return $query->where('last_activity_at', '>', now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'actif');

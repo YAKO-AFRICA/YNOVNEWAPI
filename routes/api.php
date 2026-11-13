@@ -323,6 +323,8 @@ Route::prefix('v1')->middleware([
     });
 
     Route::delete('users/{uuid_user}', [UserController::class, 'destroy'])->middleware('permission:users.supprimer');
+    Route::post('users/{uuid_user}/restore', [UserController::class, 'restore'])->middleware('permission:users.restaurer');
+    Route::post('users/{uuid_user}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.modifier');
 
     Route::group(['middleware' => 'permission:users.bloquer'], function () {
         Route::post('users/{uuid_user}/block', [UserController::class, 'block']);
