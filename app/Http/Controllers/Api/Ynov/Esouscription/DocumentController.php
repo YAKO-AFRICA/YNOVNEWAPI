@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
-use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Mail\CustomerMail;
 use App\Models\Api\Ynov\Esouscription\Document;
+use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Services\Api\Ynov\Documents\WebDavService;
 use App\Services\DocumentUploadService;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -153,6 +156,7 @@ class DocumentController extends Controller
             'fichier'        => 'required|file|max:' . config('documents.max_size'),
             'reference_uuid' => 'required|string|max:255',
             'libelle'        => 'nullable|string|max:255',
+            'recipeMail'     => 'nullable|email|max:255',
             'source'         => 'required|string|max:255',
             'type_document'  => 'nullable|string|max:100',
             'created_by'     => 'required|string|max:255',
@@ -225,6 +229,28 @@ class DocumentController extends Controller
 
             DB::commit();
 
+            $adherentEmail = $validator->validated()['recipeMail'] ?? null;
+
+            if ($adherentEmail !== null && $adherentEmail !== '') {
+                $bulletinDoc = Document::where('reference_uuid', $request->input('reference_uuid'),)
+                    ->where('libelle', 'like', '%bullet%')
+                    ->first();
+
+                if (!$bulletinDoc) {
+                    Log::warning("Aucun bulletin trouvé pour le contrat : {$request->input('reference_uuid')}");
+                } else {
+                    try {
+                        $this->sendMail($adherentEmail, $bulletinDoc);
+                        Log::info("Bulletin envoyé au souscripteur pour le contrat : {$request->input('reference_uuid')}");
+                    } catch (\Throwable $e) {
+                        Log::error('Erreur lors de l\'envoi du bulletin par mail : ' . $e->getMessage(), [
+                            'contrat_uuid' => $request->input('reference_uuid'),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Fichier uploadé et document créé avec succès.',
@@ -255,6 +281,32 @@ class DocumentController extends Controller
                 'error'   => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function sendMail(string $recipient, Document $bulletinDoc): void
+    {
+        if (!$bulletinDoc->chemin || !Storage::disk(config('documents.disk'))->exists($bulletinDoc->chemin)) {
+            throw new \RuntimeException("Le fichier du bulletin est introuvable : {$bulletinDoc->nom_fichier}");
+        }
+
+        $urlDocument = $bulletinDoc->url;
+
+        $mailData = [
+            'title' => 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉',
+            'btnLink' => $urlDocument,
+            'btnText' => 'Télécharger mon bulletin',
+            'documents' => $urlDocument,
+            'attachment' => [
+                'disk' => config('documents.disk'),
+                'path' => $bulletinDoc->chemin,
+                'name' => $bulletinDoc->nom_fichier,
+                'mime' => $bulletinDoc->mime_type,
+            ],
+        ];
+
+        $emailSubject = 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉';
+
+        Mail::to($recipient)->send(new CustomerMail($mailData, $emailSubject));
     }
 
     public function uploadMultidoc(Request $request): JsonResponse
