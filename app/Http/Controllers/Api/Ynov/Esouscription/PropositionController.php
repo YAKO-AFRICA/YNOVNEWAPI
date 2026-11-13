@@ -494,6 +494,8 @@ class PropositionController extends Controller
                 ];
             });
 
+            Log::info("===== contrat enregistrer normalement ===demarrage envoie mail");
+
             $mailSent = false;
             $adherentEmail = is_string($result['adherentEmail'])
                 ? trim($result['adherentEmail'])
@@ -508,6 +510,7 @@ class PropositionController extends Controller
                     Log::warning("Aucun bulletin trouvé pour le contrat : {$result['contratData']->uuid_contrat}");
                 } else {
                     try {
+                        Log::info("===== execution de la fonction send ===demarrage envoie mail");
                         $this->sendMail($adherentEmail, $bulletinDoc);
                         $mailSent = true;
                         Log::info("Bulletin envoyé au souscripteur pour le contrat : {$result['contratData']->uuid_contrat}");
@@ -548,7 +551,11 @@ class PropositionController extends Controller
             throw new \RuntimeException("Le fichier du bulletin est introuvable : {$bulletinDoc->nom_fichier}");
         }
 
+        Log::info("debut de creation mail depuis la fonction send mail");
+
         $urlDocument = $bulletinDoc->url;
+
+        
         $mailData = [
             'title' => 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉',
             'btnLink' => $urlDocument,
@@ -561,6 +568,8 @@ class PropositionController extends Controller
                 'mime' => $bulletinDoc->mime_type,
             ],
         ];
+
+        Log::info("url du mailData ====={$mailData}");
 
         $emailSubject = 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉';
 
