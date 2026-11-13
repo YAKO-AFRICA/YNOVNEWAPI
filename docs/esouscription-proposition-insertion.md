@@ -788,6 +788,31 @@ Erreurs possibles :
 
 Ce document décrit le flux d’insertion de `storeSouscription()` et la consultation des propositions selon le rôle de l’utilisateur authentifié.
 
+## Liste des contrats
+
+```http
+GET /api/v1/esouscription/get-contrats
+Accept: application/json
+```
+
+La liste est paginée (`per_page` vaut `15` par défaut). Les paramètres suivants permettent de filtrer par identifiant exact :
+
+| Paramètre | Type | Description |
+| --- | --- | --- |
+| `id_contrat` | entier | Identifiant du contrat |
+| `id_proposition` | entier | Identifiant de la proposition associée |
+
+Les deux paramètres peuvent être utilisés ensemble ; dans ce cas, les contrats doivent correspondre aux deux identifiants.
+
+Exemple :
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8000/api/v1/esouscription/get-contrats?id_contrat=123&id_proposition=456&per_page=15' \
+  --header 'Accept: application/json' \
+  --header 'Authorization: ******'
+```
+
 ## Transmission d’un contrat
 
 ```http

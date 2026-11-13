@@ -3,19 +3,23 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CustomerMail;
+use App\Models\Api\Ynov\Esouscription\Document;
 use App\Services\Api\Ynov\Documents\DocumentService;
 use App\Services\Api\Ynov\ESouscription\ActeurService;
+use App\Services\Api\Ynov\ESouscription\AssurerGarantieService;
 use App\Services\Api\Ynov\ESouscription\ClientNumberGenerator;
 use App\Services\Api\Ynov\ESouscription\ContratActeurService;
 use App\Services\Api\Ynov\ESouscription\ContratService;
 use App\Services\Api\Ynov\ESouscription\DeclarationSanteService;
-use App\Services\Api\Ynov\ESouscription\AssurerGarantieService;
 use App\Services\Api\Ynov\ESouscription\PropositionService;
 use DateTimeImmutable;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class PropositionController extends Controller
@@ -486,8 +490,35 @@ class PropositionController extends Controller
                     // 'key_integration' => $keyIntegration,
                     // 'contrat_uuid'    => $contratUuid,
                     'documentStore'   => $documentStore,
+                    'adherentEmail'   => $adherentData['email'] ?? null,
                 ];
             });
+
+            $mailSent = false;
+            $adherentEmail = is_string($result['adherentEmail'])
+                ? trim($result['adherentEmail'])
+                : '';
+
+            if (filter_var($adherentEmail, FILTER_VALIDATE_EMAIL)) {
+                $bulletinDoc = Document::where('reference_uuid', $result['contratData']->uuid_contrat)
+                    ->where('libelle', 'like', '%bullet%')
+                    ->first();
+
+                if (!$bulletinDoc) {
+                    Log::warning("Aucun bulletin trouvé pour le contrat : {$result['contratData']->uuid_contrat}");
+                } else {
+                    try {
+                        $this->sendMail($adherentEmail, $bulletinDoc);
+                        $mailSent = true;
+                        Log::info("Bulletin envoyé au souscripteur pour le contrat : {$result['contratData']->uuid_contrat}");
+                    } catch (\Throwable $e) {
+                        Log::error('Erreur lors de l\'envoi du bulletin par mail : ' . $e->getMessage(), [
+                            'contrat_uuid' => $result['contratData']->uuid_contrat,
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                    }
+                }
+            }
 
             return response()->json([
                 'success'         => true,
@@ -495,6 +526,7 @@ class PropositionController extends Controller
                 'code'            => 200,
                 'contratData'     => $result['contratData'],
                 'documentStore'   => $result['documentStore'],
+                'mailSent'        => $mailSent,
             ]);
 
         } catch (\Throwable $th) {
@@ -508,5 +540,30 @@ class PropositionController extends Controller
                 'code'    => 500,
             ], 500);
         }
+    }
+
+    private function sendMail(string $recipient, Document $bulletinDoc): void
+    {
+        if (!$bulletinDoc->chemin || !Storage::disk(config('documents.disk'))->exists($bulletinDoc->chemin)) {
+            throw new \RuntimeException("Le fichier du bulletin est introuvable : {$bulletinDoc->nom_fichier}");
+        }
+
+        $urlDocument = $bulletinDoc->url;
+        $mailData = [
+            'title' => 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉',
+            'btnLink' => $urlDocument,
+            'btnText' => 'Télécharger mon bulletin',
+            'documents' => $urlDocument,
+            'attachment' => [
+                'disk' => config('documents.disk'),
+                'path' => $bulletinDoc->chemin,
+                'name' => $bulletinDoc->nom_fichier,
+                'mime' => $bulletinDoc->mime_type,
+            ],
+        ];
+
+        $emailSubject = 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉';
+
+        Mail::to($recipient)->send(new CustomerMail($mailData, $emailSubject));
     }
 }

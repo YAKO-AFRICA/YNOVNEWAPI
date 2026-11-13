@@ -20,10 +20,12 @@ class ContratController extends Controller
             $contrats = $this->contratService->getAll(
                 $request->only([
                     'uuid_contrat',
+                    'id_contrat',
                     'agence_uuid',
                     'code_produit',
                     'libelle_produit',
                     'code_proposition',
+                    'id_proposition',
                     'numero_police',
                     'partner_uuid',
                     'conseiller_uuid',

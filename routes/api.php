@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Ynov\MotifTraitementController;
 use App\Http\Controllers\Api\Ynov\NotificationController;
 use App\Http\Controllers\Api\Ynov\OtpController;
 use App\Http\Controllers\Api\Ynov\Param\ProfessionController;
+use App\Http\Controllers\Api\Ynov\Param\BrancheController;
 use App\Http\Controllers\Api\Ynov\Param\VilleController;
 use App\Http\Controllers\Api\Ynov\PartnerController;
 use App\Http\Controllers\Api\Ynov\PasswordController;
@@ -88,8 +89,6 @@ Route::prefix('esousciption')->group(function () {
         ]);
     });
 });
-
-
 
 Route::prefix('v1')->group(function () {
 
@@ -1093,9 +1092,19 @@ Route::prefix('v1')->middleware([
     // groupe de route pour les paramètres de configuration
 
     Route::prefix('param')->group(function () {
+        Route::get('branches', [BrancheController::class, 'index']);
+        Route::post('branches', [BrancheController::class, 'store']);
+        Route::get('branches/{uuid_branche}', [BrancheController::class, 'show']);
+        Route::put('branches/{uuid_branche}', [BrancheController::class, 'update']);
+        Route::delete('branches/{uuid_branche}', [BrancheController::class, 'destroy']);
+
         Route::get('get-reseau-product', [ParamController::class, 'getReseauProducts']);
         Route::post('get-product-by-reseau', [ParamController::class, 'getProductByReseau']);
         Route::post('get-product-by-partner', [ParamController::class, 'getProductByPartner']);
+        Route::get('get-partner-product', [ParamController::class, 'getPartnerProducts']);
+        Route::post('store-product-partner', [ParamController::class, 'storePartnerProduct']);
+        Route::put('update-product-partner/{uuid}', [ParamController::class, 'updatePartnerProduct']);
+        Route::delete('delete-product-partner/{uuid}', [ParamController::class, 'deletePartnerProduct']);
         Route::post('store-product-reseau', [ParamController::class, 'storeReseauProduct']);
         Route::put('update-product-reseau/{uuid}', [ParamController::class, 'updateReseauProduct']);
         Route::delete('delete-product-reseau/{uuid}', [ParamController::class, 'deleteReseauProduct']);
