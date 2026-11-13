@@ -216,8 +216,15 @@ class UserController extends Controller
                 'reseau',
                 'agences',
                 'groupNotifs', 'details.userProfession',
-                'details.userLieunaissance', 
-                'details.userLieuresidence'
+                'details.userLieunaissance',
+                'details.userLieuresidence',
+                'blockedBy',
+                'activityLogs' => fn($q) => $q->latest()->limit(10),
+                'loginAttempts' => fn($q) => $q->latest('attempted_at')->limit(10),
+                'accountFreezes' => fn($q) => $q->latest('frozen_at')->limit(10),
+                'passwordHistories' => fn($q) => $q->latest('changed_at')->limit(10),
+                'devices' => fn($q) => $q->latest('last_used_at')->limit(10),
+                'devices.user',
             ])),
         ]);
     }
@@ -470,6 +477,41 @@ class UserController extends Controller
     }
 
     /**
+     * Restaurer un utilisateur supprimé logiquement
+     */
+    public function restore(Request $request, string $uuid_user): JsonResponse
+    {
+        $user = User::withTrashed()->where('uuid_user', $uuid_user)->firstOrFail();
+
+        if (!$user->trashed() && $user->status !== 'inactif') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cet utilisateur n\'est pas supprimé.',
+                'code' => 'USER_NOT_DELETED',
+            ], 422);
+        }
+
+        $this->userService->restore($user, $request->user()->uuid_user);
+
+        ActivityLog::log([
+            'user_uuid' => $request->user()->uuid_user,
+            'action' => 'restore',
+            'action_type' => 'crud',
+            'module' => 'users',
+            'description' => "Restauration de l'utilisateur : {$user->email}",
+            'resource_type' => 'user',
+            'resource_id' => $user->uuid_user,
+            'level' => 'info',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Utilisateur restauré.',
+            'data' => new UserResource($user->fresh('details')),
+        ]);
+    }
+
+    /**
      * ================================================================
      * CORRECTION #18 : Vérification Policy sur block
      * ================================================================
@@ -477,17 +519,6 @@ class UserController extends Controller
     public function block(BlockUserRequest $request, string $uuid_user): JsonResponse
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
-
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('block', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de bloquer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
 
         $this->userService->block($user, $request->reason, $request->user()->uuid_user);
 
@@ -514,17 +545,6 @@ class UserController extends Controller
     public function unblock(Request $request, string $uuid_user): JsonResponse
     {
         $user = User::where('uuid_user', $uuid_user)->firstOrFail();
-
-        // ================================================================
-        // VÉRIFICATION D'ACCÈS AVEC LA POLICY
-        // ================================================================
-        // if (!$request->user()->can('unblock', $user)) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Vous n\'avez pas le droit de débloquer cet utilisateur.',
-        //         'code' => 'ACCESS_DENIED'
-        //     ], 403);
-        // }
 
         $this->userService->unblock($user, $request->user()->uuid_user);
 

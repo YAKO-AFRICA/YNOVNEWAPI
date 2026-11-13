@@ -75,6 +75,28 @@ class UserResource extends JsonResource
                 ];
             })),
             'details' => new UserDetailResource($this->whenLoaded('details')),
+            'blocked_by' => $this->whenLoaded('blockedBy', fn() => $this->blockedBy ? [
+                'uuid_user' => $this->blockedBy->uuid_user,
+                'login' => $this->blockedBy->login,
+                'email' => $this->blockedBy->email,
+                'blocked_at' => $this->blocked_at,
+                'blocked_reason' => $this->blocked_reason,
+            ] : null),
+            'activity_logs' => $this->whenLoaded('activityLogs', fn() => ActivityLogResource::collection(
+                $this->activityLogs->sortByDesc('created_at')->take(10)->values()
+            )),
+            'login_attempts' => $this->whenLoaded('loginAttempts', fn() => LoginAttemptResource::collection(
+                $this->loginAttempts->sortByDesc('attempted_at')->take(10)->values()
+            )),
+            'account_freezes' => $this->whenLoaded('accountFreezes', fn() => AccountFreezeResource::collection(
+                $this->accountFreezes->sortByDesc('frozen_at')->take(10)->values()
+            )),
+            'password_histories' => $this->whenLoaded('passwordHistories', fn() => PasswordHistoryResource::collection(
+                $this->passwordHistories->sortByDesc('changed_at')->take(10)->values()
+            )),
+            'devices' => $this->whenLoaded('devices', fn() => DeviceResource::collection(
+                $this->devices->sortByDesc('last_used_at')->take(10)->values()
+            )),
             'permissions' => $this->when(
                 $this->relationLoaded('role') && $this->role,
                 fn() => $this->role->is_super_admin ? ['*'] : $this->role->permissions->pluck('code')

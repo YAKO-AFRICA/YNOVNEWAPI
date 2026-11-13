@@ -1037,6 +1037,35 @@ class UserService
         // $user->delete();
     }
 
+    public function restore(User $user, string $restorerUuid): void
+    {
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
+        $user->update([
+            'status' => 'actif',
+            'is_locked' => false,
+            'failed_login_count' => 0,
+            'freeze_level' => 0,
+            'frozen_until' => null,
+        ]);
+
+        $this->notificationService->create([
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $this->getAccountGroupUuid(),
+            'title' => '♻️ Compte restauré',
+            'body' => 'Votre compte a été restauré. Vous pouvez à nouveau vous connecter.',
+            'type' => 'account',
+            'metadata' => [
+                'restored_by' => $restorerUuid,
+                'restored_at' => now()->toISOString(),
+            ],
+            'channel' => 'database',
+            'created_by' => $restorerUuid,
+        ]);
+    }
+
     public function block(User $user, string $reason, string $blockerId): void
     {
 
