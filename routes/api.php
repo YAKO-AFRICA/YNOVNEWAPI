@@ -1199,6 +1199,7 @@ Route::prefix('v1')->middleware([
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         Route::get('get-propositions/{uuid_user}', [PropositionController::class, 'getPropositions']);
+        Route::put('update-proposition/{uuid}', [PropositionController::class, 'updateProposition']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
 

@@ -687,7 +687,7 @@
                 module: "souscription",
                 name: "Lister les propositions de souscription",
                 description:
-                    "Récupère les propositions accessibles à l’utilisateur authentifié selon son rôle : le conseiller voit ses propositions, le manager celles de ses agences actives et les siennes, et le superviseur ou administrateur voit toutes les propositions. L’UUID fourni doit correspondre à l’utilisateur connecté.",
+                    "Récupère les propositions accessibles à l’utilisateur authentifié selon son rôle : le conseiller voit ses propositions, le manager celles de ses agences actives et les siennes, et le superviseur ou administrateur voit toutes les propositions. L’UUID fourni doit correspondre à l’utilisateur connecté. Les filtres peuvent être combinés : identifiants de contrat/proposition, période de création, nom/prénoms ou identifiants du souscripteur (ADH), numéro de pièce, numéro de compte ou recherche libre. Les données retournées incluent le contrat, l’agence, le partenaire, les acteurs liés et les documents.",
                 method: "GET",
                 path: "/esouscription/get-propositions/{uuid_user}",
                 isProtected: true,
@@ -710,6 +710,19 @@
                             default: 15,
                             description: "Nombre de propositions par page (minimum 1, maximum 100).",
                         },
+                        uuid_contrat: { type: "string", required: false, description: "UUID exact du contrat/proposition." },
+                        id_contrat: { type: "integer", required: false, description: "Identifiant numérique du contrat." },
+                        id_proposition: { type: "integer", required: false, description: "Identifiant de la proposition." },
+                        code_proposition: { type: "string", required: false, description: "Recherche partielle par code proposition." },
+                        numero_police: { type: "string", required: false, description: "Recherche partielle par numéro de police." },
+                        date_debut: { type: "date", required: false, description: "Date de création minimale incluse (AAAA-MM-JJ)." },
+                        date_fin: { type: "date", required: false, description: "Date de création maximale incluse (AAAA-MM-JJ), supérieure ou égale à date_debut." },
+                        nom: { type: "string", required: false, description: "Recherche partielle sur le nom du souscripteur." },
+                        prenoms: { type: "string", required: false, description: "Recherche partielle sur les prénoms du souscripteur." },
+                        idClient: { type: "string", required: false, description: "Recherche partielle sur l’identifiant client du souscripteur." },
+                        numero_piece: { type: "string", required: false, description: "Recherche partielle sur le numéro de pièce du souscripteur." },
+                        numero_compte: { type: "string", required: false, description: "Recherche partielle sur le numéro de compte du contrat." },
+                        search: { type: "string", required: false, description: "Recherche libre dans les identifiants, code proposition, police, compte et informations principales du souscripteur." },
                     },
                 },
                 responses: [
@@ -769,13 +782,145 @@
                     },
                     {
                         status: 422,
-                        description: "Valeur de per_page invalide.",
+                        description: "Un filtre est invalide, ou date_fin est antérieure à date_debut.",
                         example: {
-                            message: "The per page field must be at least 1.",
+                            message: "The given data was invalid.",
                             errors: {
-                                per_page: ["The per page field must be at least 1."],
+                                date_fin: ["The date fin field must be a date after or equal to date debut."],
                             },
                         },
+                    },
+                ],
+            },
+
+            {
+                id: "update-proposition",
+                module: "souscription",
+                name: "Mettre à jour une proposition complète",
+                description:
+                    "Met à jour les champs transmis du contrat et de ses données liées dans une transaction. Les sections omises restent inchangées. Pour modifier un assuré ou bénéficiaire existant, fournir son uuid_contrat_acteur (visible dans le GET) et son objet info ; sans cet UUID, une nouvelle personne et sa relation au contrat sont créées. is_adherent: « oui » rattache la personne à l’adhérent existant. Les données de santé sont facultatives. Si les garanties sont fournies, elles remplacent les garanties de cet assuré ; omettre la section garanties les conserve. Les documents existants sont modifiés avec uuid_document ; un fichier sans uuid_document ajoute un document, tandis qu’un fichier avec uuid_document remplace son contenu. Pour envoyer des fichiers, utiliser multipart/form-data et laisser le client HTTP définir le Content-Type et sa boundary. Les documents et acteurs omis ne sont pas supprimés. Les champs de traitement (étape, paiement, transmission, acceptation, rejet et annulation) ne sont pas modifiables par cet endpoint.",
+                method: "PUT",
+                path: "/esouscription/update-proposition/{uuid}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du contrat/proposition à mettre à jour.",
+                        },
+                    },
+                    body: {
+                        contratData: {
+                            type: "object",
+                            required: false,
+                            description: "Champs du contrat à modifier : date_effet, mode_paiement, organisme, duree, code_periodicite, prime, prime_principale, sur_prime, capital, frais_adhesion, montant_rente, periodicite_rente, duree_rente, code_banque, code_guichet, rib, numero_compte, numecompte_complet, autre_ref_prelev, agence_uuid, code_produit, libelle_produit, formule_produit_code, contacts, branch_code, partner_uuid, conseiller_uuid, observation, bulletin_num, formule et source_data.",
+                        },
+                        adherentData: {
+                            type: "object",
+                            required: false,
+                            description: "Champs personnels de l’adhérent à modifier (nom, prénoms, pièce, contacts, informations civiles/professionnelles et filiation_uuid).",
+                        },
+                        assurerDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Éléments d’assurés à modifier ou ajouter. Un élément comprend uuid_contrat_acteur pour modifier une relation existante, is_adherent (oui/non), info (champs personnels ; complets lors de la création d’un nouvel acteur), sante (données de santé facultatives) et garantie/garanties.garantieData (liste facultative de garanties).",
+                        },
+                        BeneficiaireDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Éléments de bénéficiaires à modifier ou ajouter avec uuid_contrat_acteur (si existant), is_adherent, info (champs personnels complets lors de la création d’un nouvel acteur) et filiation_uuid.",
+                        },
+                        documentDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Documents à modifier/ajouter en multipart/form-data : uuid_document avec libelle pour modifier les métadonnées, uuid_document avec file pour remplacer le fichier, ou libelle et file sans UUID pour ajouter un document. Limite de fichier selon la configuration des documents.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    contratData: {
+                        prime: 175000,
+                        numero_compte: "00012345678",
+                        observation: "Mise à jour des informations de souscription",
+                    },
+                    adherentData: {
+                        mobile: "0700000000",
+                        numero_piece: "CNI-000123",
+                    },
+                    assurerDatas: [
+                        {
+                            uuid_contrat_acteur: "UUID_CONTRAT_ACTEUR_ASSURE",
+                            is_adherent: "oui",
+                            info: { nom: "Nom mis à jour", prenoms: "Prénom mis à jour" },
+                            sante: { taille: 170, poids: 70 },
+                            garantie: {
+                                garantieData: [
+                                    {
+                                        uuid_garantie: "UUID_GARANTIE",
+                                        codeGarantie: "DTC/IAD",
+                                        libelle: "Décès toutes causes / invalidité absolue et définitive",
+                                        capital: 5000000,
+                                        prime: 150000,
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                    BeneficiaireDatas: [
+                        {
+                            uuid_contrat_acteur: "UUID_CONTRAT_ACTEUR_BENEFICIAIRE",
+                            is_adherent: "non",
+                            info: { nom: "Nom bénéficiaire", prenoms: "Prénom bénéficiaire" },
+                        },
+                    ],
+                    documentDatas: [
+                        {
+                            uuid_document: "UUID_DOCUMENT_EXISTANT",
+                            libelle: "Pièce d’identité mise à jour",
+                            file: "[fichier binaire]",
+                        },
+                    ],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Proposition mise à jour avec succès.",
+                        example: {
+                            success: true,
+                            message: "Proposition mise à jour avec succès.",
+                            code: 200,
+                            data: {
+                                uuid_contrat: "UUID_CONTRAT",
+                                prime: 175000,
+                                contrat_acteurs: [],
+                                documents: [],
+                            },
+                        },
+                    },
+                    {
+                        status: 401,
+                        description: "Utilisateur non authentifié.",
+                        example: { message: "Unauthenticated." },
+                    },
+                    {
+                        status: 403,
+                        description: "Le rôle de l’utilisateur ne permet pas cette opération.",
+                        example: { success: false, message: "Le rôle de cet utilisateur ne permet pas de consulter les propositions.", code: 403 },
+                    },
+                    {
+                        status: 404,
+                        description: "Proposition ou relation ciblée introuvable/inaccessible.",
+                        example: { success: false, message: "Proposition introuvable ou inaccessible.", code: 404 },
+                    },
+                    {
+                        status: 422,
+                        description: "Données invalides ou garantie incomplète.",
+                        example: { message: "The given data was invalid.", errors: { documentDatas: ["Chaque document doit cibler un document existant ou inclure un fichier."] } },
                     },
                 ],
             },

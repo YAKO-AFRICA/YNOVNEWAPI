@@ -211,6 +211,7 @@ class DocumentService
                 // 3. Mettre à jour l'enregistrement en base
                 $typeDocument = $this->devinerTypeDocument($resultat['extension'], $resultat['mime_type']);
                 $libelle = $data['libelle'] ?? $document->libelle ?? pathinfo($newFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $updatedBy = $data['update_by'] ?? $data['updated_by'] ?? null;
 
                 $document->update([
                     'nom_fichier'    => $resultat['nom_stocke'],
@@ -219,12 +220,12 @@ class DocumentService
                     'type_document'  => $typeDocument,
                     'taille_fichier' => $resultat['taille'],
                     'mime_type'      => $resultat['mime_type'],
-                    'updated_by'     => $data['updated_by'] ?? null,
+                    'update_by'      => $updatedBy,
                     'updated_at'     => now(),
                 ]);
 
                 ActivityLog::log([
-                    'user_uuid' => $data['updated_by'] ?? null,
+                    'user_uuid' => $updatedBy,
                     'action' => 'update',
                     'action_type' => 'crud',
                     'module' => 'documents',
