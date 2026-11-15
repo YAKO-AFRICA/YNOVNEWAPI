@@ -9,9 +9,10 @@ use App\Http\Requests\Api\Ynov\SetPrimaryAgenceRequest;
 use App\Http\Requests\Api\Ynov\StoreUserRequest;
 use App\Http\Requests\Api\Ynov\UpdateUserRequest;
 use App\Http\Resources\Api\Ynov\UserResource;
-use App\Models\Api\Ynov\UserContrat;
 use App\Models\Api\Ynov\parameter\ActivityLog;
+use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
+use App\Models\Api\Ynov\UserContrat;
 use App\Services\Api\Ynov\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -647,6 +648,44 @@ class UserController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function getUserByCodeRole(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code_role' => ['required', 'string'],
+        ]);
+
+        $roleUuid = Role::where('code', $validated['code_role'])->value('uuid_role');
+
+        if (!$roleUuid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Rôle non trouvé.',
+                'code' => 'ROLE_NOT_FOUND',
+            ], 404);
+        }
+
+        $users = User::where('role_uuid', $roleUuid)
+            ->with(['role.permissions', 'details', 'partner', 'reseau', 'agences'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        if ($users->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Aucun utilisateur trouvé pour ce rôle.',
+                'code' => 'USERS_NOT_FOUND',
+                'data' => [],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Liste des utilisateurs récupérée.',
+            'code' => 'USERS_LISTED',
+            'data' => UserResource::collection($users),
+        ]);
     }
 }
 

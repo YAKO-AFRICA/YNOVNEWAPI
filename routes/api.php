@@ -312,6 +312,7 @@ Route::prefix('v1')->middleware([
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
     Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
+    Route::post('users/by-role', [UserController::class, 'getUserByCodeRole']);
 
     // Gestion des agences pour un utilisateur
     Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {

@@ -5976,6 +5976,66 @@
             },
 
             {
+                id: "users-by-role-code",
+                module: "users",
+                name: "Utilisateurs par code de rôle",
+                description:
+                    "Récupère tous les utilisateurs associés au code d'un rôle, du plus récent au plus ancien. Les relations rôle, détails, partenaire, réseau et agences sont incluses.",
+                method: "POST",
+                path: "/users/by-role",
+                isProtected: true,
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_role: {
+                            type: "string",
+                            required: true,
+                            description: "Code du rôle recherché",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Utilisateurs du rôle récupérés",
+                        example: {
+                            success: true,
+                            message: "Liste des utilisateurs récupérée.",
+                            code: "USERS_LISTED",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Aucun utilisateur trouvé pour ce rôle",
+                        example: {
+                            success: true,
+                            message: "Aucun utilisateur trouvé pour ce rôle.",
+                            code: "USERS_NOT_FOUND",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Rôle non trouvé",
+                        example: {
+                            success: false,
+                            message: "Rôle non trouvé.",
+                            code: "ROLE_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Le code du rôle est obligatoire",
+                    },
+                ],
+            },
+
+            {
                 id: "users-show",
                 module: "users",
                 name: "Détails d'un utilisateur",
