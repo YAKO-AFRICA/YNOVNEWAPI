@@ -251,7 +251,7 @@
                     },
                 },
                 exampleRequest: {
-                    nni: "11954244238",
+                    nni: "12954245237",
                 },
                 responses: [
                     {
@@ -16093,6 +16093,188 @@
                             message:
                                 "Le simulateur Yapi ne peut pas être exécuté actuellement.",
                             code: "YAPI_SIMULATION_UNAVAILABLE",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "simulateur-yako-eternite",
+                module: "simulateurs",
+                name: "Simuler le produit Yako Eternité 2026",
+                description:
+                    "Calcule les primes des garanties configurées et le montant total, frais d’adhésion de 7 500 FCFA inclus. L’âge est calculé par l’API à partir de la date de naissance. Si AjouterGarantieSenior vaut true, PrimeSenior remplace la prime calculée pour la garantie Senior.",
+                method: "POST",
+                path: "/esouscription/simulateurs/yako-eternite",
+                isProtected: false,
+                rateLimit: "throttle:30,1 (30 simulations / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        CodeProduit: {
+                            type: "string",
+                            required: true,
+                            enum: ["yke_2026"],
+                            description: "Code du produit Yako Eternité 2026",
+                        },
+                        CodePeriodicite: {
+                            type: "string",
+                            required: true,
+                            enum: ["M", "T", "S", "A"],
+                            description:
+                                "Périodicité : mensuelle, trimestrielle, semestrielle ou annuelle",
+                        },
+                        Capital: {
+                            type: "integer",
+                            required: true,
+                            enum: [
+                                500000,
+                                750000,
+                                1000000,
+                                1250000,
+                                1500000,
+                                2000000,
+                                3000000,
+                                4000000,
+                                5000000,
+                            ],
+                            description: "Capital souscrit en FCFA",
+                        },
+                        DateNaissance: {
+                            type: "date",
+                            required: true,
+                            description:
+                                "Date de naissance de l’assuré au format YYYY-MM-DD",
+                        },
+                        DateEffet: {
+                            type: "date",
+                            required: true,
+                            description:
+                                "Date d’effet souhaitée au format YYYY-MM-DD",
+                        },
+                        IsAssure: {
+                            type: "string",
+                            required: true,
+                            enum: ["oui", "non"],
+                            description:
+                                "Indique si le souscripteur est également l’assuré",
+                        },
+                        AjouterGarantieSenior: {
+                            type: "boolean",
+                            required: true,
+                            description:
+                                "Active la prime Senior saisie manuellement",
+                        },
+                        PrimeSenior: {
+                            type: "integer",
+                            required: false,
+                            min: 1,
+                            description:
+                                "Prime Senior en FCFA, obligatoire si AjouterGarantieSenior vaut true",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    CodeProduit: "yke_2026",
+                    CodePeriodicite: "M",
+                    Capital: 500000,
+                    DateNaissance: "1990-04-15",
+                    DateEffet: "2026-12-01",
+                    IsAssure: "oui",
+                    AjouterGarantieSenior: false,
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Simulation Yako Eternité calculée",
+                        example: {
+                            success: true,
+                            message:
+                                "Simulation Yako Eternité calculée avec succès.",
+                            code: "YAKO_ETERNITE_SIMULATION_SUCCESS",
+                            data: {
+                                garantieData: {
+                                    garantieObligatoire: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_HOMMAGE",
+                                            codeGarantie: "HOMMAGE",
+                                            libelle: "Hommage",
+                                            capital: 500000,
+                                            prime: 12000,
+                                        },
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_SURETE",
+                                            codeGarantie: "SURETE",
+                                            libelle: "Sureté",
+                                            capital: 500000,
+                                            prime: 2000,
+                                        },
+                                    ],
+                                    garantieOptionnel: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_SENIOR",
+                                            codeGarantie: "SENIOR",
+                                            libelle: "Sénior",
+                                            capital: 500000,
+                                            prime: 4000,
+                                        },
+                                    ],
+                                },
+                                infoSimulation: {
+                                    isAssure: "oui",
+                                    primeFinal: 25500,
+                                    primepricipale: 18000,
+                                    codeProduit: "yke_2026",
+                                    periodicite: "M",
+                                    duree: 5,
+                                    age: 36,
+                                    capital: 500000,
+                                    dateEffet: "2026-12-01",
+                                    datenaissance: "1990-04-15",
+                                    fraisAdhesion: 7500,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description:
+                            "Paramètres manquants ou invalides (capital, périodicité, dates ou option Senior)",
+                        example: {
+                            success: false,
+                            message:
+                                "Les paramètres de simulation Yako Eternité sont invalides.",
+                            code: "YAKO_ETERNITE_SIMULATION_INVALID",
+                            errors: {
+                                PrimeSenior: [
+                                    "The Prime Senior field is required when Ajouter Garantie Senior is true.",
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        status: 502,
+                        description:
+                            "Le service de tarification ne répond pas ou retourne des données invalides",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur Yako Eternité ne peut pas être exécuté actuellement.",
+                            code: "YAKO_ETERNITE_SIMULATION_UNAVAILABLE",
+                        },
+                    },
+                    {
+                        status: 503,
+                        description:
+                            "Configuration ou garanties du simulateur indisponibles",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur Yako Eternité ne peut pas être exécuté actuellement.",
+                            code: "YAKO_ETERNITE_SIMULATION_UNAVAILABLE",
                         },
                     },
                 ],

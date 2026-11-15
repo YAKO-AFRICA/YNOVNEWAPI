@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
 use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
 use App\Http\Controllers\Api\Ynov\Simulateur\YapiSimulatorController;
+use App\Http\Controllers\Api\Ynov\Simulateur\YakoEterniteSimulatorController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
@@ -1212,6 +1213,9 @@ Route::prefix('v1')->middleware([
             ->middleware('throttle:30,1');
 
         Route::post('simulateurs/yapi', [YapiSimulatorController::class, 'simulate'])
+            ->middleware('throttle:30,1');
+
+        Route::post('simulateurs/yako-eternite', [YakoEterniteSimulatorController::class, 'simulate'])
             ->middleware('throttle:30,1');
 
     });

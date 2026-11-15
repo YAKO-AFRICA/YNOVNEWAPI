@@ -154,6 +154,12 @@ class ProduitGarantieSeeder extends Seeder
 
         ['code_produit' => 'YKE_2018', 'code_produit_garantie' => 'SENIOR', 'libelle' => 'Sénior', 'est_obligatoire' => 0, 'nature_garantie' => 'Complementaire facultatif', 'type' => 'Epargne', 'age_min' => 12, 'age_max' => 106, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 5, 'duree_contrat_min' => 5, 'duree_contrat_max' => 5, 'branche' => 'IND'],
 
+        ['code_produit' => 'YKE_2026', 'code_produit_garantie' => 'HOMMAGE', 'libelle' => 'Hommage', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Mixte', 'age_min' => 12, 'age_max' => 75, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 5, 'duree_contrat_min' => 5, 'duree_contrat_max' => 5, 'branche' => 'IND'],
+
+        ['code_produit' => 'YKE_2026', 'code_produit_garantie' => 'SURETE', 'libelle' => 'Sureté', 'est_obligatoire' => 1, 'nature_garantie' => 'Complementaire Obligatoire', 'type' => 'Mixte', 'age_min' => 12, 'age_max' => 75, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 5, 'duree_contrat_min' => 5, 'duree_contrat_max' => 5, 'branche' => 'IND'],
+
+        ['code_produit' => 'YKE_2026', 'code_produit_garantie' => 'SENIOR', 'libelle' => 'Sénior', 'est_obligatoire' => 0, 'nature_garantie' => 'Complementaire facultatif', 'type' => 'Epargne', 'age_min' => 12, 'age_max' => 75, 'duree_cotisation_min' => 5, 'duree_cotisation_max' => 5, 'duree_contrat_min' => 5, 'duree_contrat_max' => 5, 'branche' => 'IND'],
+
         ['code_produit' => 'YKS_2018', 'code_produit_garantie' => 'OBSQ', 'libelle' => 'Obsèques', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Deces', 'age_min' => 12, 'age_max' => 75, 'duree_cotisation_min' => 10, 'duree_cotisation_max' => 10, 'duree_contrat_min' => 10, 'duree_contrat_max' => 10, 'branche' => 'IND'],
 
         ['code_produit' => 'CADENCE', 'code_produit_garantie' => 'LIB', 'libelle' => 'Liberté', 'est_obligatoire' => 1, 'nature_garantie' => 'Principale Obligatoire', 'type' => 'Epargne', 'age_min' => 12, 'age_max' => 90, 'duree_cotisation_min' => 6, 'duree_cotisation_max' => 60, 'duree_contrat_min' => 6, 'duree_contrat_max' => 60, 'branche' => 'COURTAGE'],
