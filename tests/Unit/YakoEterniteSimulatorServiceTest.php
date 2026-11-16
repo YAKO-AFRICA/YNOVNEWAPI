@@ -39,6 +39,7 @@ class YakoEterniteSimulatorServiceTest extends BaseTestCase
 
         $dateOfBirth = Carbon::now()->subYears(30)->format('Y-m-d');
         $result = $this->simulator()->simulate([
+            'CodeProduit' => 'yke_2026',
             'CodePeriodicite' => 'M',
             'Capital' => 1000000,
             'DateNaissance' => $dateOfBirth,
@@ -66,6 +67,30 @@ class YakoEterniteSimulatorServiceTest extends BaseTestCase
             && (int) $request->data()['age'] === Carbon::parse($dateOfBirth)->age);
     }
 
+    public function test_it_uses_the_selected_2008_and_2018_product_codes_for_tarification(): void
+    {
+        Http::fake([
+            '*' => Http::response([['Prime' => 1000, 'Capital' => 500000]]),
+        ]);
+
+        foreach (['yke_2008', 'yke_2018'] as $productCode) {
+            $result = $this->simulator()->simulate([
+                'CodeProduit' => $productCode,
+                'CodePeriodicite' => 'A',
+                'Capital' => 500000,
+                'DateNaissance' => Carbon::now()->subYears(30)->format('Y-m-d'),
+                'DateEffet' => '2026-12-01',
+                'IsAssure' => 'oui',
+                'AjouterGarantieSenior' => false,
+            ]);
+
+            $this->assertSame($productCode, $result['infoSimulation']['codeProduit']);
+            Http::assertSent(fn (Request $request) => $request->data()['CodeProduit'] === $productCode);
+        }
+
+        Http::assertSentCount(6);
+    }
+
     public function test_it_fails_when_the_tarification_response_has_no_valid_premium(): void
     {
         Http::fake([
@@ -74,6 +99,7 @@ class YakoEterniteSimulatorServiceTest extends BaseTestCase
 
         try {
             $this->simulator()->simulate([
+                'CodeProduit' => 'yke_2026',
                 'CodePeriodicite' => 'A',
                 'Capital' => 1000000,
                 'DateNaissance' => Carbon::now()->subYears(30)->format('Y-m-d'),
@@ -91,7 +117,7 @@ class YakoEterniteSimulatorServiceTest extends BaseTestCase
     {
         return new class extends YakoEterniteSimulatorService
         {
-            protected function getGuarantees(): Collection
+            protected function getGuarantees(string $productCode): Collection
             {
                 return new Collection([
                     new ProduitGarantie([

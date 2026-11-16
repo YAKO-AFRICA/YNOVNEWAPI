@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class YakoEterniteSimulatorService
 {
-    public const CODE_PRODUIT = 'yke_2026';
+    public const CODE_PRODUITS = ['yke_2008', 'yke_2018', 'yke_2026'];
 
     public const DUREE_COTISATION = 5;
 
@@ -42,7 +43,10 @@ class YakoEterniteSimulatorService
             );
         }
 
-        $guarantees = $this->getGuarantees();
+        $productCode = $parameters['CodeProduit'];
+        Log::info("productCode ==== {$productCode}");
+        $guarantees = $this->getGuarantees($productCode);
+        Log::info("guaranteesaaaaaaaaaaaaaaaaaaaaaa ==== ".json_encode($guarantees));
         if ($guarantees->isEmpty() || $guarantees->doesntContain(
             fn (ProduitGarantie $guarantee) => (bool) $guarantee->est_obligatoire
         )) {
@@ -74,7 +78,10 @@ class YakoEterniteSimulatorService
         foreach ($guarantees as $guarantee) {
             $isSenior = strtoupper($guarantee->code_produit_garantie) === 'SENIOR';
 
-            if ($isSenior && $seniorSelected) {
+            if ($isSenior) {
+                if (! $seniorSelected) {
+                    continue;
+                }
                 $premium = (float) $parameters['PrimeSenior'];
                 $capital = self::CAPITAL_SENIOR;
             } else {
@@ -109,7 +116,7 @@ class YakoEterniteSimulatorService
                 'isAssure' => $parameters['IsAssure'],
                 'primeFinal' => round($mainPremium + self::FRAIS_ADHESION, 2),
                 'primepricipale' => $mainPremium,
-                'codeProduit' => self::CODE_PRODUIT,
+                'codeProduit' => $productCode,
                 'periodicite' => $parameters['CodePeriodicite'],
                 'duree' => self::DUREE_COTISATION,
                 'age' => $age,
@@ -121,23 +128,27 @@ class YakoEterniteSimulatorService
         ];
     }
 
-    protected function getGuarantees(): Collection
+    protected function getGuarantees(string $productCode): Collection
     {
+        Log::info("productCode ==== {$productCode}");
         return ProduitGarantie::query()
-            ->whereRaw('LOWER(code_produit) = ?', [self::CODE_PRODUIT])
+            ->whereRaw('LOWER(code_produit) = ?', [strtolower($productCode)])
             ->where('branche', 'IND')
             ->orderByRaw('CASE WHEN est_obligatoire = 1 THEN 0 ELSE 1 END')
             ->orderBy('code_produit_garantie')
             ->get();
     }
 
+    
+
     private function calculateGuaranteePremium(
         array $parameters,
         ProduitGarantie $guarantee,
         int $age
     ): array {
+        Log::info("Calculating premium for guarantee: {$guarantee->code_produit_garantie}, age: {$age}===== PARAMETERS: ".json_encode($parameters));
         $response = $this->post('prime-garantie', [
-            'CodeProduit' => self::CODE_PRODUIT,
+            'CodeProduit' => $parameters['CodeProduit'],
             'codePeriodicite' => $parameters['CodePeriodicite'],
             'duree' => self::DUREE_COTISATION,
             'age' => $age,
@@ -167,12 +178,16 @@ class YakoEterniteSimulatorService
     private function post(string $endpoint, array $payload): array
     {
         $baseUrl = rtrim((string) config('services.yako_tarification.base_url'), '/');
+
+        Log::info("Posting to endpoint: {$endpoint} with payload: ".json_encode($payload)." and baseUrl: {$baseUrl}");
         if ($baseUrl === '') {
             throw new YakoEterniteTarificationException(
                 'L’URL du service de tarification n’est pas configurée.',
                 503
             );
         }
+
+        Log::info("after function post base url detect: {$endpoint} with and baseUrl: {$baseUrl}");
 
         try {
             $response = Http::acceptJson()
@@ -182,6 +197,10 @@ class YakoEterniteSimulatorService
                 ])
                 ->timeout(20)
                 ->post("{$baseUrl}/{$endpoint}", $payload);
+
+                Log::info("responseeeeeee rfffff");
+                Log::info($response);
+
         } catch (ConnectionException $exception) {
             throw new YakoEterniteTarificationException(
                 "Impossible de joindre le service de tarification ({$endpoint}).",
@@ -197,6 +216,7 @@ class YakoEterniteSimulatorService
         }
 
         $data = $response->json();
+        Log::info("Response from endpoint: {$endpoint} with status: {$response->status()} and body: ".json_encode($data));
         if (! is_array($data)) {
             throw new YakoEterniteTarificationException(
                 "Le service de tarification a retourné une réponse JSON invalide ({$endpoint})."

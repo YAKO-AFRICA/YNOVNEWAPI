@@ -577,20 +577,27 @@ class PropositionController extends Controller
 
                 $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
 
-                if($contratData['etape'] == '3') {
-                    $dateTransmission = now()->format('Y-m-d H:i:s');
-                    $transmisPar = $createdBy;
-                    $dateAcceptee = now()->format('Y-m-d H:i:s');
-                    $accepted_by = $createdBy;
+                if (isset($contratData['etape']) && $contratData['etape'] !== '') {
 
-                }else if($contratData['etape'] == '2') {
-                    $dateTransmission = now()->format('Y-m-d H:i:s');
-                    $transmisPar = $createdBy;
-                } else {
-                    $dateTransmission = null;
-                    $transmisPar = null;
-                    $dateAcceptee = null;
-                    $accepted_by = null;
+                    if ($contratData['etape'] == '3') {
+
+                        $dateTransmission = now()->format('Y-m-d H:i:s');
+                        $transmisPar = $createdBy;
+                        $dateAcceptee = now()->format('Y-m-d H:i:s');
+                        $accepted_by = $createdBy;
+
+                    } elseif ($contratData['etape'] == '2') {
+
+                        $dateTransmission = now()->format('Y-m-d H:i:s');
+                        $transmisPar = $createdBy;
+
+                    } else {
+
+                        $dateTransmission = null;
+                        $transmisPar = null;
+                        $dateAcceptee = null;
+                        $accepted_by = null;
+                    }
                 }
                 
 

@@ -393,8 +393,8 @@
                         },
                         documentDatas: {
                             type: "array",
-                            required: true,
-                            description: "Tableau de fichiers joints en multipart/form-data. Pour chaque élément, envoyer documentDatas[n][file] (fichier binaire) et documentDatas[n][libelle]. Les champs type et created_by peuvent aussi être présents dans les données reçues, mais le service utilise le fichier et le libelle : le type enregistré est déduit du fichier et created_by est repris depuis adherentData.created_by. Au moins un fichier doit être joint.",
+                            required: false,
+                            description: "Tableau facultatif de fichiers joints en multipart/form-data. Pour chaque élément, envoyer documentDatas[n][file] (fichier binaire) et, facultativement, documentDatas[n][libelle]. Le type enregistré est déduit du fichier et created_by est repris depuis adherentData.created_by.",
                         },
                         contratData: {
                             type: "object",
@@ -595,28 +595,15 @@
                             pays_code: "CODE_PAYS"
                         }
                     ],
-                    documentDatas: [
-                        {
-                            type: "CNI",
-                            libelle: "cni recto",
-                            created_by: "identifiant-utilisateur",
-                            file: "[fichier binaire : cni_recto.jpg]"
-                        },
-                        {
-                            type: "PASSEPORT",
-                            libelle: "passeport",
-                            created_by: "identifiant-utilisateur",
-                            file: "[fichier binaire : passeport.pdf]"
-                        }
-                    ],
+                    documentDatas: [],
                     contratData: {
                         created_by: "user-123",
                         source_data: "user",
                         date_effet: "2026-10-06",
-                        mode_paiement: "VIREMENT",
+                        mode_paiement: "VIR",
                         organisme: "YAKO AFRICA",
                         duree: 12,
-                        code_periodicite: "MENSUEL",
+                        code_periodicite: "M",
                         prime: 150000,
                         prime_principale: 150000,
                         sur_prime: 0,
@@ -627,7 +614,7 @@
                         duree_rente: null,
                         code_banque: "SN001",
                         code_guichet: "0001",
-                        rib: "12345678901234567890",
+                        rib: "06",
                         numero_compte: "00012345678",
                         numecompte_complet: "SN00100012345678",
                         autre_ref_prelev: "REF-PRELEVEMENT-001",
@@ -639,10 +626,10 @@
                         contact_personne_mobile: "771234567",
                         contact_personne_nom_2: "Mme Ba",
                         contact_personne_mobile_2: "771234568",
-                        branch_code: "BRANCH-01",
+                        branch_code: "BANKASS",
                         partner_uuid: "7a21d7df-4ca2-4d32-b7de-8b78d2557c91",
                         conseiller_uuid: "c70d9d5e-0002-4627-976b-69b87358d111",
-                        is_paid: true,
+                        is_paid: 0,
                         observation: "Souscription initiale",
                         bulletin_num: "BUL-2026-001",
                         formule: "FORMULE_STANDARD"
@@ -16101,9 +16088,9 @@
             {
                 id: "simulateur-yako-eternite",
                 module: "simulateurs",
-                name: "Simuler le produit Yako Eternité 2026",
+                name: "Simuler le produit Yako Eternité",
                 description:
-                    "Calcule les primes des garanties configurées et le montant total, frais d’adhésion de 7 500 FCFA inclus. L’âge est calculé par l’API à partir de la date de naissance. Si AjouterGarantieSenior vaut true, PrimeSenior remplace la prime calculée pour la garantie Senior.",
+                    "Prend en charge les versions Yako Eternité 2008, 2018 et 2026 (de 2008 à 2026). Utilise les garanties configurées pour le code produit choisi, calcule les primes et le montant total (frais d’adhésion de 7 500 FCFA inclus). L’âge est calculé par l’API. Si AjouterGarantieSenior vaut true, PrimeSenior remplace la prime calculée pour la garantie Senior.",
                 method: "POST",
                 path: "/esouscription/simulateurs/yako-eternite",
                 isProtected: false,
@@ -16117,8 +16104,9 @@
                         CodeProduit: {
                             type: "string",
                             required: true,
-                            enum: ["yke_2026"],
-                            description: "Code du produit Yako Eternité 2026",
+                            enum: ["yke_2008", "yke_2018", "yke_2026"],
+                            description:
+                                "Version du produit Yako Eternité à simuler",
                         },
                         CodePeriodicite: {
                             type: "string",
@@ -16178,7 +16166,7 @@
                     },
                 },
                 exampleRequest: {
-                    CodeProduit: "yke_2026",
+                    CodeProduit: "yke_2018",
                     CodePeriodicite: "M",
                     Capital: 500000,
                     DateNaissance: "1990-04-15",
@@ -27483,6 +27471,34 @@
                     }
 
                     ${bodyField}
+                    ${
+                        endpoint.id === "store-proposition"
+                            ? `
+                        <div class="form-group">
+                            <label class="form-label">Documents à joindre</label>
+                            <div id="try_${endpointId}_documents">
+                                <div class="row mb-2 proposition-document-row">
+                                    <div class="col-md-5">
+                                        <input type="file" class="form-control" name="document-file" aria-label="Fichier du document">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="document-libelle" placeholder="Libellé du document (facultatif)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.proposition-document-row').remove()" aria-label="Supprimer ce document">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="Renderer.addPropositionDocument('${endpointId}')">
+                                <i class="fas fa-plus me-1"></i> Ajouter un document
+                            </button>
+                            <small class="text-muted d-block mt-1">Chaque fichier sera envoyé dans documentDatas[n][file]. Le libellé est facultatif.</small>
+                        </div>
+                    `
+                            : ""
+                    }
 
                     <div class="d-flex gap-2 flex-wrap mt-3">
                         <button class="btn btn-primary send-btn" onclick="Renderer.sendTryIt('${endpointId}')">
@@ -27558,6 +27574,52 @@
             console.log('Pour sélectionner des motifs de rejet, utilisez les UUIDs de /motif-traitements');
         },
 
+        addPropositionDocument(endpointId) {
+            const documents = document.getElementById(`try_${endpointId}_documents`);
+            if (!documents) return;
+
+            const row = document.createElement("div");
+            row.className = "row mb-2 proposition-document-row";
+            row.innerHTML = `
+                <div class="col-md-5">
+                    <input type="file" class="form-control" name="document-file" aria-label="Fichier du document">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="document-libelle" placeholder="Libellé du document (facultatif)">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger" onclick="this.closest('.proposition-document-row').remove()" aria-label="Supprimer ce document">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            documents.appendChild(row);
+        },
+
+        appendMultipartFields(formData, value, prefix) {
+            if (value === null || value === undefined) return;
+
+            if (Array.isArray(value)) {
+                value.forEach((item, index) => {
+                    this.appendMultipartFields(formData, item, `${prefix}[${index}]`);
+                });
+                return;
+            }
+
+            if (typeof value === "object") {
+                for (const [key, nestedValue] of Object.entries(value)) {
+                    this.appendMultipartFields(
+                        formData,
+                        nestedValue,
+                        prefix ? `${prefix}[${key}]` : key,
+                    );
+                }
+                return;
+            }
+
+            formData.append(prefix, String(value));
+        },
+
         async sendTryIt(endpointId) {
             const endpoint = API_DATA.endpoints.find(
                 (e) => e.id === endpointId,
@@ -27612,7 +27674,57 @@
                     param => param.type === "file" || param.type === "file (image)"
                 );
                 
-                if (hasFile) {
+                if (endpointId === "store-proposition") {
+                    const bodyInput = document.getElementById(
+                        `try_${endpointId}_body`,
+                    );
+                    let jsonBody;
+                    try {
+                        jsonBody = JSON.parse(bodyInput?.value || "{}");
+                    } catch (e) {
+                        if (spinner) spinner.classList.remove("show");
+                        if (viewer) viewer.classList.add("show");
+                        if (meta) {
+                            meta.innerHTML = `
+                                <span class="meta-item">
+                                    <span class="label">Erreur:</span>
+                                    <span class="text-danger">JSON invalide</span>
+                                </span>
+                            `;
+                        }
+                        if (body) {
+                            body.innerHTML = `
+                                <pre><code>${JSON.stringify({ error: "Format JSON invalide", details: e.message }, null, 2)}</code></pre>
+                            `;
+                        }
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    for (const [key, value] of Object.entries(jsonBody)) {
+                        this.appendMultipartFields(formData, value, key);
+                    }
+
+                    document
+                        .querySelectorAll(`#try_${endpointId}_documents .proposition-document-row`)
+                        .forEach((row, index) => {
+                            const fileInput = row.querySelector('input[type="file"]');
+                            const labelInput = row.querySelector('input[name="document-libelle"]');
+                            const file = fileInput?.files[0];
+                            if (file) {
+                                formData.append(`documentDatas[${index}][file]`, file);
+                                if (labelInput?.value.trim()) {
+                                    formData.append(
+                                        `documentDatas[${index}][libelle]`,
+                                        labelInput.value.trim(),
+                                    );
+                                }
+                            }
+                        });
+
+                    params.body = formData;
+                    params.isMultipart = true;
+                } else if (hasFile) {
                     // Traitement multipart/form-data
                     const formData = new FormData();
                     for (const [key, value] of Object.entries(endpoint.requestParams.body)) {
@@ -27777,6 +27889,13 @@
                     }
                     input.value = defaultBody;
                 }
+            }
+            if (endpointId === "store-proposition") {
+                document
+                    .querySelectorAll(`#try_${endpointId}_documents input`)
+                    .forEach((input) => {
+                        input.value = "";
+                    });
             }
 
             const viewer = document.getElementById(

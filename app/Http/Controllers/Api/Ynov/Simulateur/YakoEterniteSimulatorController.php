@@ -21,7 +21,7 @@ class YakoEterniteSimulatorController extends Controller
      * @OA\Post(
      *     path="/esouscription/simulateurs/yako-eternite",
      *     tags={"Simulateurs"},
-     *     summary="Simuler une souscription Yako Eternité 2026",
+     *     summary="Simuler une souscription Yako Eternité",
      *
      *     @OA\RequestBody(
      *         required=true,
@@ -29,7 +29,7 @@ class YakoEterniteSimulatorController extends Controller
      *         @OA\JsonContent(
      *             required={"CodeProduit","CodePeriodicite","Capital","DateNaissance","DateEffet","IsAssure","AjouterGarantieSenior"},
      *
-     *             @OA\Property(property="CodeProduit", type="string", enum={"yke_2026"}, example="yke_2026"),
+     *             @OA\Property(property="CodeProduit", type="string", enum={"yke_2008","yke_2018","yke_2026"}, example="yke_2026"),
      *             @OA\Property(property="CodePeriodicite", type="string", enum={"M","T","S","A"}, example="M"),
      *             @OA\Property(property="Capital", type="integer", enum={500000,750000,1000000,1250000,1500000,2000000,3000000,4000000,5000000}, example=500000),
      *             @OA\Property(property="DateNaissance", type="string", format="date", example="1990-04-15"),
@@ -48,8 +48,9 @@ class YakoEterniteSimulatorController extends Controller
      */
     public function simulate(Request $request): JsonResponse
     {
+        Log::info("debut de simulateion Simule ");
         $validator = Validator::make($request->all(), [
-            'CodeProduit' => ['required', 'string', Rule::in([YakoEterniteSimulatorService::CODE_PRODUIT])],
+            'CodeProduit' => ['required', 'string', Rule::in(YakoEterniteSimulatorService::CODE_PRODUITS)],
             'CodePeriodicite' => ['required', 'string', Rule::in(YakoEterniteSimulatorService::PERIODICITES)],
             'Capital' => ['required', 'integer', Rule::in(YakoEterniteSimulatorService::CAPITAUX)],
             'DateNaissance' => ['required', 'date_format:Y-m-d', 'before:today'],
@@ -67,6 +68,17 @@ class YakoEterniteSimulatorController extends Controller
             ],
         ]);
 
+        Log::info("debut de simulateion validation ==== {
+            'CodeProduit' => $request->input('CodeProduit'),
+            'CodePeriodicite' => $request->input('CodePeriodicite'),
+            'Capital' => $request->input('Capital'),
+            'DateNaissance' => $request->input('DateNaissance'),
+            'DateEffet' => $request->input('DateEffet'),
+            'IsAssure' => $request->input('IsAssure'),
+            'AjouterGarantieSenior' => $request->input('AjouterGarantieSenior'),
+            'PrimeSenior' => $request->input('PrimeSenior'),
+        }");
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -75,6 +87,8 @@ class YakoEterniteSimulatorController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+
+        Log::info("after validation ==== ");
 
         try {
             $simulation = $this->simulatorService->simulate($validator->validated());
