@@ -560,12 +560,37 @@ class PropositionController extends Controller
         }
     }
 
-    public function storeSouscription(Request $request)
+    public function storeSouscription(Request $request, ?string $draftUuid = null)
     {
-        try {
-            $result = DB::transaction(function () use ($request) {
+        $userUuid = $request->user()?->uuid_user;
+        if ($draftUuid !== null && !$userUuid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non authentifié.',
+                'code' => 401,
+            ], 401);
+        }
 
-                $contratUuid = Str::uuid()->toString();
+        try {
+            $result = DB::transaction(function () use ($request, $draftUuid) {
+
+                if ($draftUuid !== null) {
+                    $accessibleDraft = $this->propositionService->findAccessibleByUuid(
+                        $request->user()->uuid_user,
+                        $draftUuid
+                    );
+                    $draft = Contrat::query()->lockForUpdate()->findOrFail($accessibleDraft->uuid_contrat);
+                } else {
+                    $draft = null;
+                }
+
+                if ($draft && (int) $draft->etape !== 0) {
+                    throw ValidationException::withMessages([
+                        'uuid' => 'Ce contrat n’est plus un brouillon et ne peut pas être complété ici.',
+                    ]);
+                }
+
+                $contratUuid = $draft?->uuid_contrat ?? Str::uuid()->toString();
                 $keyIntegration = now()->format('Ymdh');
 
 
@@ -574,6 +599,15 @@ class PropositionController extends Controller
                 $BeneficiaireDatas = $request->BeneficiaireDatas ?? [];
                 $DocumentDatas     = $request->documentDatas ?? [];
                 $contratData       = $request->contratData ?? [];
+                if ($draft) {
+                    $contratData = array_merge([
+                        'code_produit' => $draft->code_produit,
+                        'libelle_produit' => $draft->libelle_produit,
+                        'formule_produit_code' => $draft->formule_produit_code,
+                        'etape' => 1,
+                    ], $contratData);
+                    $contratData['etape'] = 1;
+                }
 
                 $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
 
@@ -924,7 +958,7 @@ class PropositionController extends Controller
 
                 $documentStore = $this->documentService->createDocument($payload);
 
-                if (!$documentStore) {
+                if ($DocumentDatas !== [] && !$documentStore) {
                     throw new \Exception("Échec de l'enregistrement des documents.");
                 }
 
@@ -968,14 +1002,19 @@ class PropositionController extends Controller
                     'formule'                       => $contratData['formule'] ?? null,
                     'source_data'                   => $contratData['source_data'] ?? null,
                     'integration_key'               => $keyIntegration,
-                    'created_by'                    => $createdBy,
+                    'created_by'                    => $draft?->created_by ?? $createdBy,
                     'date_transmission'             => $dateTransmission ?? null,
                     'transmis_par'                  => $transmisPar ?? null,
                     'acceptance_date'             => $dateAcceptee ?? null,
                     'accepted_by'                  => $accepted_by ?? null,
                 ];
 
-                $contratStore = $this->contratService->create($contratPayload);
+                if ($draft) {
+                    $contratPayload['updated_by'] = $createdBy;
+                    $contratStore = $this->contratService->update($draft, $contratPayload);
+                } else {
+                    $contratStore = $this->contratService->create($contratPayload);
+                }
 
                 if (!$contratStore) {
                     throw new \Exception("Échec de la création du contrat.");
@@ -1000,6 +1039,20 @@ class PropositionController extends Controller
                 'documentStore'   => $result['documentStore'],
             ]);
 
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Brouillon introuvable.',
+                'code' => 404,
+            ], 404);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'code' => 403,
+            ], 403);
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (\Throwable $th) {
             Log::error('Erreur lors de la souscription : ' . $th->getMessage(), [
                 'trace' => $th->getTraceAsString(),

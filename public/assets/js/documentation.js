@@ -361,6 +361,148 @@
             },
 
             {
+                id: "store-contrat-draft",
+                module: "souscription",
+                name: "Créer un brouillon de contrat",
+                description:
+                    "Crée un contrat à l’étape brouillon (0) et retourne son uuid_contrat. Cet UUID est à transmettre à l’endpoint de complétion pour reprendre la saisie plus tard.",
+                method: "POST",
+                path: "/esouscription/store-contrat-draft",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_produit: { type: "string", required: true, description: "Code du produit souscrit." },
+                        libelle_produit: { type: "string", required: true, description: "Libellé du produit." },
+                        formule_produit_code: { type: "string", required: false, description: "Code de la formule du produit." },
+                        created_by: { type: "uuid", required: false, description: "UUID du commercial créateur si aucun utilisateur n’est authentifié." },
+                    },
+                },
+                exampleRequest: {
+                    code_produit: "PROD-001",
+                    libelle_produit: "Produit Exemple",
+                    formule_produit_code: "FORMULE-01",
+                },
+                responses: [
+                    {
+                        status: 201,
+                        description: "Brouillon créé.",
+                        example: {
+                            message: "Draft proposal created successfully.",
+                            data: {
+                                uuid_contrat: "UUID_CONTRAT",
+                                id_contrat: 123,
+                                etape: 0,
+                                code_produit: "PROD-001",
+                            },
+                        },
+                    },
+                ],
+            },
+            {
+                id: "complete-contrat-draft",
+                module: "souscription",
+                name: "Compléter un brouillon de contrat",
+                description:
+                    "Complète un contrat existant à l’étape brouillon, sans créer un nouveau contrat. L’UUID et l’identifiant du brouillon sont conservés. Les acteurs (avec idClient généré pour l’adhérent), les relations, données de santé, garanties et documents sont créés dans une transaction. Le brouillon passe à l’étape 1 après succès ; les documents sont facultatifs. Envoyer les données imbriquées et les fichiers en multipart/form-data, avec les mêmes structures que store-propositition, puis utiliser l’endpoint de transmission pour envoyer le contrat.",
+                method: "POST",
+                path: "/esouscription/complete-contrat-draft/{uuid}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: { type: "uuid", required: true, description: "UUID retourné lors de la création du brouillon." },
+                    },
+                    body: {
+                        adherentData: {
+                            type: "object",
+                            required: true,
+                            description: "Informations personnelles de l’adhérent, au même format que pour store-propositition. idClient est généré par le serveur.",
+                        },
+                        assurerDatas: {
+                            type: "array",
+                            required: true,
+                            description: "Assurés et données de santé, au même format que pour store-propositition. Les garanties de chaque assuré sont envoyées dans garantie.garantieData ou garanties.garantieData.",
+                        },
+                        BeneficiaireDatas: {
+                            type: "array",
+                            required: true,
+                            description: "Bénéficiaires, au même format que pour store-propositition.",
+                        },
+                        documentDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Fichiers facultatifs en multipart/form-data : documentDatas[n][file] et documentDatas[n][libelle].",
+                        },
+                        contratData: {
+                            type: "object",
+                            required: true,
+                            description: "Données du contrat au même format que pour store-propositition. Les champs produit du brouillon sont conservés s’ils ne sont pas fournis ; l’étape est fixée à 1 après complétion.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    adherentData: {
+                        civilite: "M.",
+                        genre: "M",
+                        nom: "Nom",
+                        prenoms: "Prénom",
+                        date_naissance: "1990-07-16",
+                        lieunaissance_code: "CODE_LIEU_NAISSANCE",
+                        email: "adherent@example.com",
+                        mobile: "0700000000",
+                        telephone: "0100000000",
+                        numero_piece: "NUMERO_PIECE",
+                        nni: "NNI",
+                        nature_piece: "CNI",
+                        situation_matrimoniale: "C",
+                        profession_code: "CODE_PROFESSION",
+                        employeur: "Employeur",
+                        lieuresidence_code: "CODE_RESIDENCE",
+                        pays_code: "CODE_PAYS",
+                    },
+                    assurerDatas: [],
+                    BeneficiaireDatas: [],
+                    documentDatas: [],
+                    contratData: { date_effet: "2026-11-17", mode_paiement: "VIREMENT" },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Brouillon complété.",
+                        example: {
+                            success: true,
+                            message: "Souscription créée avec succès",
+                            code: 200,
+                            contratData: { uuid_contrat: "UUID_CONTRAT", id_contrat: 123, etape: 1 },
+                            documentStore: [],
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Brouillon introuvable.",
+                        example: { success: false, message: "Brouillon introuvable.", code: 404 },
+                    },
+                    {
+                        status: 403,
+                        description: "L’utilisateur n’a pas accès à ce brouillon.",
+                        example: { success: false, message: "Vous ne pouvez consulter que les propositions de votre compte.", code: 403 },
+                    },
+                    {
+                        status: 422,
+                        description: "Le contrat n’est plus à l’étape brouillon.",
+                        example: { message: "The given data was invalid.", errors: { uuid: ["Ce contrat n’est plus un brouillon et ne peut pas être complété ici."] } },
+                    },
+                ],
+            },
+            {
                 id: "store-proposition",
                 module: "souscription",
                 name: "Créer une proposition de souscription",
@@ -27472,7 +27614,9 @@
 
                     ${bodyField}
                     ${
-                        endpoint.id === "store-proposition"
+                        ["store-proposition", "complete-contrat-draft"].includes(
+                            endpoint.id,
+                        )
                             ? `
                         <div class="form-group">
                             <label class="form-label">Documents à joindre</label>
@@ -27674,7 +27818,7 @@
                     param => param.type === "file" || param.type === "file (image)"
                 );
                 
-                if (endpointId === "store-proposition") {
+                if (["store-proposition", "complete-contrat-draft"].includes(endpointId)) {
                     const bodyInput = document.getElementById(
                         `try_${endpointId}_body`,
                     );
@@ -27890,7 +28034,7 @@
                     input.value = defaultBody;
                 }
             }
-            if (endpointId === "store-proposition") {
+            if (["store-proposition", "complete-contrat-draft"].includes(endpointId)) {
                 document
                     .querySelectorAll(`#try_${endpointId}_documents input`)
                     .forEach((input) => {
