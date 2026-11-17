@@ -70,7 +70,10 @@ class AppServiceProvider extends ServiceProvider
             $adapter = new BufferedWebDavAdapter(
                 $client,
                 $config['prefix'] ?? '',
-                WebDAVAdapter::ON_VISIBILITY_IGNORE
+                WebDAVAdapter::ON_VISIBILITY_IGNORE,
+                false,
+                false,
+                $config
             );
 
             return new FilesystemAdapter(new Filesystem($adapter, $config), $adapter, $config);
