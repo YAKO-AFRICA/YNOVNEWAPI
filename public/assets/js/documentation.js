@@ -251,7 +251,7 @@
                     },
                 },
                 exampleRequest: {
-                    nni: "11954244238",
+                    nni: "12954245237",
                 },
                 responses: [
                     {
@@ -393,8 +393,8 @@
                         },
                         documentDatas: {
                             type: "array",
-                            required: true,
-                            description: "Tableau de fichiers joints en multipart/form-data. Pour chaque élément, envoyer documentDatas[n][file] (fichier binaire) et documentDatas[n][libelle]. Les champs type et created_by peuvent aussi être présents dans les données reçues, mais le service utilise le fichier et le libelle : le type enregistré est déduit du fichier et created_by est repris depuis adherentData.created_by. Au moins un fichier doit être joint.",
+                            required: false,
+                            description: "Tableau facultatif de fichiers joints en multipart/form-data. Pour chaque élément, envoyer documentDatas[n][file] (fichier binaire) et, facultativement, documentDatas[n][libelle]. Le type enregistré est déduit du fichier et created_by est repris depuis adherentData.created_by.",
                         },
                         contratData: {
                             type: "object",
@@ -595,28 +595,15 @@
                             pays_code: "CODE_PAYS"
                         }
                     ],
-                    documentDatas: [
-                        {
-                            type: "CNI",
-                            libelle: "cni recto",
-                            created_by: "identifiant-utilisateur",
-                            file: "[fichier binaire : cni_recto.jpg]"
-                        },
-                        {
-                            type: "PASSEPORT",
-                            libelle: "passeport",
-                            created_by: "identifiant-utilisateur",
-                            file: "[fichier binaire : passeport.pdf]"
-                        }
-                    ],
+                    documentDatas: [],
                     contratData: {
                         created_by: "user-123",
                         source_data: "user",
                         date_effet: "2026-10-06",
-                        mode_paiement: "VIREMENT",
+                        mode_paiement: "VIR",
                         organisme: "YAKO AFRICA",
                         duree: 12,
-                        code_periodicite: "MENSUEL",
+                        code_periodicite: "M",
                         prime: 150000,
                         prime_principale: 150000,
                         sur_prime: 0,
@@ -627,7 +614,7 @@
                         duree_rente: null,
                         code_banque: "SN001",
                         code_guichet: "0001",
-                        rib: "12345678901234567890",
+                        rib: "06",
                         numero_compte: "00012345678",
                         numecompte_complet: "SN00100012345678",
                         autre_ref_prelev: "REF-PRELEVEMENT-001",
@@ -639,10 +626,10 @@
                         contact_personne_mobile: "771234567",
                         contact_personne_nom_2: "Mme Ba",
                         contact_personne_mobile_2: "771234568",
-                        branch_code: "BRANCH-01",
+                        branch_code: "BANKASS",
                         partner_uuid: "7a21d7df-4ca2-4d32-b7de-8b78d2557c91",
                         conseiller_uuid: "c70d9d5e-0002-4627-976b-69b87358d111",
-                        is_paid: true,
+                        is_paid: 0,
                         observation: "Souscription initiale",
                         bulletin_num: "BUL-2026-001",
                         formule: "FORMULE_STANDARD"
@@ -687,7 +674,7 @@
                 module: "souscription",
                 name: "Lister les propositions de souscription",
                 description:
-                    "Récupère les propositions accessibles à l’utilisateur authentifié selon son rôle : le conseiller voit ses propositions, le manager celles de ses agences actives et les siennes, et le superviseur ou administrateur voit toutes les propositions. L’UUID fourni doit correspondre à l’utilisateur connecté.",
+                    "Récupère les propositions accessibles à l’utilisateur authentifié selon son rôle : le conseiller voit ses propositions, le manager celles de ses agences actives et les siennes, et le superviseur ou administrateur voit toutes les propositions. L’UUID fourni doit correspondre à l’utilisateur connecté. Les filtres peuvent être combinés : identifiants de contrat/proposition, période de création, nom/prénoms ou identifiants du souscripteur (ADH), numéro de pièce, numéro de compte ou recherche libre. Les données retournées incluent le contrat, l’agence, le partenaire, les acteurs liés et les documents.",
                 method: "GET",
                 path: "/esouscription/get-propositions/{uuid_user}",
                 isProtected: true,
@@ -710,6 +697,19 @@
                             default: 15,
                             description: "Nombre de propositions par page (minimum 1, maximum 100).",
                         },
+                        uuid_contrat: { type: "string", required: false, description: "UUID exact du contrat/proposition." },
+                        id_contrat: { type: "integer", required: false, description: "Identifiant numérique du contrat." },
+                        id_proposition: { type: "integer", required: false, description: "Identifiant de la proposition." },
+                        code_proposition: { type: "string", required: false, description: "Recherche partielle par code proposition." },
+                        numero_police: { type: "string", required: false, description: "Recherche partielle par numéro de police." },
+                        date_debut: { type: "date", required: false, description: "Date de création minimale incluse (AAAA-MM-JJ)." },
+                        date_fin: { type: "date", required: false, description: "Date de création maximale incluse (AAAA-MM-JJ), supérieure ou égale à date_debut." },
+                        nom: { type: "string", required: false, description: "Recherche partielle sur le nom du souscripteur." },
+                        prenoms: { type: "string", required: false, description: "Recherche partielle sur les prénoms du souscripteur." },
+                        idClient: { type: "string", required: false, description: "Recherche partielle sur l’identifiant client du souscripteur." },
+                        numero_piece: { type: "string", required: false, description: "Recherche partielle sur le numéro de pièce du souscripteur." },
+                        numero_compte: { type: "string", required: false, description: "Recherche partielle sur le numéro de compte du contrat." },
+                        search: { type: "string", required: false, description: "Recherche libre dans les identifiants, code proposition, police, compte et informations principales du souscripteur." },
                     },
                 },
                 responses: [
@@ -769,13 +769,145 @@
                     },
                     {
                         status: 422,
-                        description: "Valeur de per_page invalide.",
+                        description: "Un filtre est invalide, ou date_fin est antérieure à date_debut.",
                         example: {
-                            message: "The per page field must be at least 1.",
+                            message: "The given data was invalid.",
                             errors: {
-                                per_page: ["The per page field must be at least 1."],
+                                date_fin: ["The date fin field must be a date after or equal to date debut."],
                             },
                         },
+                    },
+                ],
+            },
+
+            {
+                id: "update-proposition",
+                module: "souscription",
+                name: "Mettre à jour une proposition complète",
+                description:
+                    "Met à jour les champs transmis du contrat et de ses données liées dans une transaction. Les sections omises restent inchangées. Pour modifier un assuré ou bénéficiaire existant, fournir son uuid_contrat_acteur (visible dans le GET) et son objet info ; sans cet UUID, une nouvelle personne et sa relation au contrat sont créées. is_adherent: « oui » rattache la personne à l’adhérent existant. Les données de santé sont facultatives. Si les garanties sont fournies, elles remplacent les garanties de cet assuré ; omettre la section garanties les conserve. Les documents existants sont modifiés avec uuid_document ; un fichier sans uuid_document ajoute un document, tandis qu’un fichier avec uuid_document remplace son contenu. Pour envoyer des fichiers, utiliser multipart/form-data et laisser le client HTTP définir le Content-Type et sa boundary. Les documents et acteurs omis ne sont pas supprimés. Les champs de traitement (étape, paiement, transmission, acceptation, rejet et annulation) ne sont pas modifiables par cet endpoint.",
+                method: "PUT",
+                path: "/esouscription/update-proposition/{uuid}",
+                isProtected: true,
+                headers: {
+                    Authorization: "******",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du contrat/proposition à mettre à jour.",
+                        },
+                    },
+                    body: {
+                        contratData: {
+                            type: "object",
+                            required: false,
+                            description: "Champs du contrat à modifier : date_effet, mode_paiement, organisme, duree, code_periodicite, prime, prime_principale, sur_prime, capital, frais_adhesion, montant_rente, periodicite_rente, duree_rente, code_banque, code_guichet, rib, numero_compte, numecompte_complet, autre_ref_prelev, agence_uuid, code_produit, libelle_produit, formule_produit_code, contacts, branch_code, partner_uuid, conseiller_uuid, observation, bulletin_num, formule et source_data.",
+                        },
+                        adherentData: {
+                            type: "object",
+                            required: false,
+                            description: "Champs personnels de l’adhérent à modifier (nom, prénoms, pièce, contacts, informations civiles/professionnelles et filiation_uuid).",
+                        },
+                        assurerDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Éléments d’assurés à modifier ou ajouter. Un élément comprend uuid_contrat_acteur pour modifier une relation existante, is_adherent (oui/non), info (champs personnels ; complets lors de la création d’un nouvel acteur), sante (données de santé facultatives) et garantie/garanties.garantieData (liste facultative de garanties).",
+                        },
+                        BeneficiaireDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Éléments de bénéficiaires à modifier ou ajouter avec uuid_contrat_acteur (si existant), is_adherent, info (champs personnels complets lors de la création d’un nouvel acteur) et filiation_uuid.",
+                        },
+                        documentDatas: {
+                            type: "array",
+                            required: false,
+                            description: "Documents à modifier/ajouter en multipart/form-data : uuid_document avec libelle pour modifier les métadonnées, uuid_document avec file pour remplacer le fichier, ou libelle et file sans UUID pour ajouter un document. Limite de fichier selon la configuration des documents.",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    contratData: {
+                        prime: 175000,
+                        numero_compte: "00012345678",
+                        observation: "Mise à jour des informations de souscription",
+                    },
+                    adherentData: {
+                        mobile: "0700000000",
+                        numero_piece: "CNI-000123",
+                    },
+                    assurerDatas: [
+                        {
+                            uuid_contrat_acteur: "UUID_CONTRAT_ACTEUR_ASSURE",
+                            is_adherent: "oui",
+                            info: { nom: "Nom mis à jour", prenoms: "Prénom mis à jour" },
+                            sante: { taille: 170, poids: 70 },
+                            garantie: {
+                                garantieData: [
+                                    {
+                                        uuid_garantie: "UUID_GARANTIE",
+                                        codeGarantie: "DTC/IAD",
+                                        libelle: "Décès toutes causes / invalidité absolue et définitive",
+                                        capital: 5000000,
+                                        prime: 150000,
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                    BeneficiaireDatas: [
+                        {
+                            uuid_contrat_acteur: "UUID_CONTRAT_ACTEUR_BENEFICIAIRE",
+                            is_adherent: "non",
+                            info: { nom: "Nom bénéficiaire", prenoms: "Prénom bénéficiaire" },
+                        },
+                    ],
+                    documentDatas: [
+                        {
+                            uuid_document: "UUID_DOCUMENT_EXISTANT",
+                            libelle: "Pièce d’identité mise à jour",
+                            file: "[fichier binaire]",
+                        },
+                    ],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Proposition mise à jour avec succès.",
+                        example: {
+                            success: true,
+                            message: "Proposition mise à jour avec succès.",
+                            code: 200,
+                            data: {
+                                uuid_contrat: "UUID_CONTRAT",
+                                prime: 175000,
+                                contrat_acteurs: [],
+                                documents: [],
+                            },
+                        },
+                    },
+                    {
+                        status: 401,
+                        description: "Utilisateur non authentifié.",
+                        example: { message: "Unauthenticated." },
+                    },
+                    {
+                        status: 403,
+                        description: "Le rôle de l’utilisateur ne permet pas cette opération.",
+                        example: { success: false, message: "Le rôle de cet utilisateur ne permet pas de consulter les propositions.", code: 403 },
+                    },
+                    {
+                        status: 404,
+                        description: "Proposition ou relation ciblée introuvable/inaccessible.",
+                        example: { success: false, message: "Proposition introuvable ou inaccessible.", code: 404 },
+                    },
+                    {
+                        status: 422,
+                        description: "Données invalides ou garantie incomplète.",
+                        example: { message: "The given data was invalid.", errors: { documentDatas: ["Chaque document doit cibler un document existant ou inclure un fichier."] } },
                     },
                 ],
             },
@@ -785,7 +917,7 @@
                 module: "souscription",
                 name: "Téléverser un document",
                 description:
-                    "Téléverse un fichier et crée le document associé à une référence. La requête doit être envoyée en multipart/form-data. Les extensions autorisées sont pdf, doc, docx, xls, xlsx, csv, ppt, pptx, jpg, jpeg, png, gif, webp, zip, rar et txt ; la taille maximale est de 50 Mo. Si type_document est omis, le type est déduit du fichier.",
+                    "Téléverse un fichier et crée le document associé à une référence. La requête doit être envoyée en multipart/form-data. Les extensions autorisées sont pdf, doc, docx, xls, xlsx, csv, ppt, pptx, jpg, jpeg, png, gif, webp, zip, rar et txt ; la taille maximale est de 50 Mo. Si type_document est omis, le type est déduit du fichier. Le champ recipeMail est facultatif : s'il est renseigné avec une adresse e-mail valide, le bulletin associé à la référence est envoyé automatiquement à cette adresse après le téléversement. Sans recipeMail, aucun e-mail n'est envoyé.",
                 method: "POST",
                 path: "/esouscription/upload-doc",
                 isProtected: true,
@@ -812,6 +944,12 @@
                             max: 255,
                             description: "Libellé du document. Par défaut, le nom du fichier sans extension.",
                         },
+                        recipeMail: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Adresse e-mail du destinataire du bulletin associé à la référence. Facultatif ; si renseigné, le bulletin est envoyé automatiquement après le téléversement.",
+                        },
                         source: {
                             type: "string",
                             required: true,
@@ -833,7 +971,7 @@
                     },
                 },
                 exampleRequest:
-                    "Cette requête utilise multipart/form-data. Envoyez les champs avec FormData et laissez le navigateur définir le Content-Type et sa boundary :\n\nconst formData = new FormData();\nformData.append('fichier', fileInput.files[0]);\nformData.append('reference_uuid', '550e8400-e29b-41d4-a716-446655440000');\nformData.append('libelle', 'Pièce justificative'); // Optionnel\nformData.append('source', 'E-SOUSCRIPTION');\nformData.append('type_document', 'IDENTITE'); // Optionnel\nformData.append('created_by', 'user-123');\n\nfetch('/api/v1/esouscription/upload-doc', {\n  method: 'POST',\n  headers: { 'Authorization': '******', 'Accept': 'application/json' },\n  body: formData\n});",
+                    "Cette requête utilise multipart/form-data. Envoyez les champs avec FormData et laissez le navigateur définir le Content-Type et sa boundary :\n\nconst formData = new FormData();\nformData.append('fichier', fileInput.files[0]);\nformData.append('reference_uuid', '550e8400-e29b-41d4-a716-446655440000');\nformData.append('libelle', 'Pièce justificative'); // Optionnel\nformData.append('recipeMail', 'destinataire@example.com'); // Optionnel : envoie automatiquement le bulletin associé à la référence\nformData.append('source', 'E-SOUSCRIPTION');\nformData.append('type_document', 'IDENTITE'); // Optionnel\nformData.append('created_by', 'user-123');\n\nfetch('/api/v1/esouscription/upload-doc', {\n  method: 'POST',\n  headers: { 'Authorization': '******', 'Accept': 'application/json' },\n  body: formData\n});",
                 responses: [
                     {
                         status: 201,
@@ -5965,6 +6103,66 @@
                                 total: 100,
                             },
                         },
+                    },
+                ],
+            },
+
+            {
+                id: "users-by-role-code",
+                module: "users",
+                name: "Utilisateurs par code de rôle",
+                description:
+                    "Récupère tous les utilisateurs associés au code d'un rôle, du plus récent au plus ancien. Les relations rôle, détails, partenaire, réseau et agences sont incluses.",
+                method: "POST",
+                path: "/users/by-role",
+                isProtected: true,
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        code_role: {
+                            type: "string",
+                            required: true,
+                            description: "Code du rôle recherché",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Utilisateurs du rôle récupérés",
+                        example: {
+                            success: true,
+                            message: "Liste des utilisateurs récupérée.",
+                            code: "USERS_LISTED",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 200,
+                        description: "Aucun utilisateur trouvé pour ce rôle",
+                        example: {
+                            success: true,
+                            message: "Aucun utilisateur trouvé pour ce rôle.",
+                            code: "USERS_NOT_FOUND",
+                            data: [],
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Rôle non trouvé",
+                        example: {
+                            success: false,
+                            message: "Rôle non trouvé.",
+                            code: "ROLE_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Le code du rôle est obligatoire",
                     },
                 ],
             },
@@ -15882,6 +16080,189 @@
                             message:
                                 "Le simulateur Yapi ne peut pas être exécuté actuellement.",
                             code: "YAPI_SIMULATION_UNAVAILABLE",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "simulateur-yako-eternite",
+                module: "simulateurs",
+                name: "Simuler le produit Yako Eternité",
+                description:
+                    "Prend en charge les versions Yako Eternité 2008, 2018 et 2026 (de 2008 à 2026). Utilise les garanties configurées pour le code produit choisi, calcule les primes et le montant total (frais d’adhésion de 7 500 FCFA inclus). L’âge est calculé par l’API. Si AjouterGarantieSenior vaut true, PrimeSenior remplace la prime calculée pour la garantie Senior.",
+                method: "POST",
+                path: "/esouscription/simulateurs/yako-eternite",
+                isProtected: false,
+                rateLimit: "throttle:30,1 (30 simulations / minute)",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        CodeProduit: {
+                            type: "string",
+                            required: true,
+                            enum: ["yke_2008", "yke_2018", "yke_2026"],
+                            description:
+                                "Version du produit Yako Eternité à simuler",
+                        },
+                        CodePeriodicite: {
+                            type: "string",
+                            required: true,
+                            enum: ["M", "T", "S", "A"],
+                            description:
+                                "Périodicité : mensuelle, trimestrielle, semestrielle ou annuelle",
+                        },
+                        Capital: {
+                            type: "integer",
+                            required: true,
+                            enum: [
+                                500000,
+                                750000,
+                                1000000,
+                                1250000,
+                                1500000,
+                                2000000,
+                                3000000,
+                                4000000,
+                                5000000,
+                            ],
+                            description: "Capital souscrit en FCFA",
+                        },
+                        DateNaissance: {
+                            type: "date",
+                            required: true,
+                            description:
+                                "Date de naissance de l’assuré au format YYYY-MM-DD",
+                        },
+                        DateEffet: {
+                            type: "date",
+                            required: true,
+                            description:
+                                "Date d’effet souhaitée au format YYYY-MM-DD",
+                        },
+                        IsAssure: {
+                            type: "string",
+                            required: true,
+                            enum: ["oui", "non"],
+                            description:
+                                "Indique si le souscripteur est également l’assuré",
+                        },
+                        AjouterGarantieSenior: {
+                            type: "boolean",
+                            required: true,
+                            description:
+                                "Active la prime Senior saisie manuellement",
+                        },
+                        PrimeSenior: {
+                            type: "integer",
+                            required: false,
+                            min: 1,
+                            description:
+                                "Prime Senior en FCFA, obligatoire si AjouterGarantieSenior vaut true",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    CodeProduit: "yke_2018",
+                    CodePeriodicite: "M",
+                    Capital: 500000,
+                    DateNaissance: "1990-04-15",
+                    DateEffet: "2026-12-01",
+                    IsAssure: "oui",
+                    AjouterGarantieSenior: false,
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Simulation Yako Eternité calculée",
+                        example: {
+                            success: true,
+                            message:
+                                "Simulation Yako Eternité calculée avec succès.",
+                            code: "YAKO_ETERNITE_SIMULATION_SUCCESS",
+                            data: {
+                                garantieData: {
+                                    garantieObligatoire: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_HOMMAGE",
+                                            codeGarantie: "HOMMAGE",
+                                            libelle: "Hommage",
+                                            capital: 500000,
+                                            prime: 12000,
+                                        },
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_SURETE",
+                                            codeGarantie: "SURETE",
+                                            libelle: "Sureté",
+                                            capital: 500000,
+                                            prime: 2000,
+                                        },
+                                    ],
+                                    garantieOptionnel: [
+                                        {
+                                            uuid_garantie: "UUID_GARANTIE_SENIOR",
+                                            codeGarantie: "SENIOR",
+                                            libelle: "Sénior",
+                                            capital: 500000,
+                                            prime: 4000,
+                                        },
+                                    ],
+                                },
+                                infoSimulation: {
+                                    isAssure: "oui",
+                                    primeFinal: 25500,
+                                    primepricipale: 18000,
+                                    codeProduit: "yke_2026",
+                                    periodicite: "M",
+                                    duree: 5,
+                                    age: 36,
+                                    capital: 500000,
+                                    dateEffet: "2026-12-01",
+                                    datenaissance: "1990-04-15",
+                                    fraisAdhesion: 7500,
+                                },
+                            },
+                        },
+                    },
+                    {
+                        status: 422,
+                        description:
+                            "Paramètres manquants ou invalides (capital, périodicité, dates ou option Senior)",
+                        example: {
+                            success: false,
+                            message:
+                                "Les paramètres de simulation Yako Eternité sont invalides.",
+                            code: "YAKO_ETERNITE_SIMULATION_INVALID",
+                            errors: {
+                                PrimeSenior: [
+                                    "The Prime Senior field is required when Ajouter Garantie Senior is true.",
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        status: 502,
+                        description:
+                            "Le service de tarification ne répond pas ou retourne des données invalides",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur Yako Eternité ne peut pas être exécuté actuellement.",
+                            code: "YAKO_ETERNITE_SIMULATION_UNAVAILABLE",
+                        },
+                    },
+                    {
+                        status: 503,
+                        description:
+                            "Configuration ou garanties du simulateur indisponibles",
+                        example: {
+                            success: false,
+                            message:
+                                "Le simulateur Yako Eternité ne peut pas être exécuté actuellement.",
+                            code: "YAKO_ETERNITE_SIMULATION_UNAVAILABLE",
                         },
                     },
                 ],
@@ -27090,6 +27471,34 @@
                     }
 
                     ${bodyField}
+                    ${
+                        endpoint.id === "store-proposition"
+                            ? `
+                        <div class="form-group">
+                            <label class="form-label">Documents à joindre</label>
+                            <div id="try_${endpointId}_documents">
+                                <div class="row mb-2 proposition-document-row">
+                                    <div class="col-md-5">
+                                        <input type="file" class="form-control" name="document-file" aria-label="Fichier du document">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" name="document-libelle" placeholder="Libellé du document (facultatif)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger" onclick="this.closest('.proposition-document-row').remove()" aria-label="Supprimer ce document">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="Renderer.addPropositionDocument('${endpointId}')">
+                                <i class="fas fa-plus me-1"></i> Ajouter un document
+                            </button>
+                            <small class="text-muted d-block mt-1">Chaque fichier sera envoyé dans documentDatas[n][file]. Le libellé est facultatif.</small>
+                        </div>
+                    `
+                            : ""
+                    }
 
                     <div class="d-flex gap-2 flex-wrap mt-3">
                         <button class="btn btn-primary send-btn" onclick="Renderer.sendTryIt('${endpointId}')">
@@ -27165,6 +27574,52 @@
             console.log('Pour sélectionner des motifs de rejet, utilisez les UUIDs de /motif-traitements');
         },
 
+        addPropositionDocument(endpointId) {
+            const documents = document.getElementById(`try_${endpointId}_documents`);
+            if (!documents) return;
+
+            const row = document.createElement("div");
+            row.className = "row mb-2 proposition-document-row";
+            row.innerHTML = `
+                <div class="col-md-5">
+                    <input type="file" class="form-control" name="document-file" aria-label="Fichier du document">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="document-libelle" placeholder="Libellé du document (facultatif)">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger" onclick="this.closest('.proposition-document-row').remove()" aria-label="Supprimer ce document">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            documents.appendChild(row);
+        },
+
+        appendMultipartFields(formData, value, prefix) {
+            if (value === null || value === undefined) return;
+
+            if (Array.isArray(value)) {
+                value.forEach((item, index) => {
+                    this.appendMultipartFields(formData, item, `${prefix}[${index}]`);
+                });
+                return;
+            }
+
+            if (typeof value === "object") {
+                for (const [key, nestedValue] of Object.entries(value)) {
+                    this.appendMultipartFields(
+                        formData,
+                        nestedValue,
+                        prefix ? `${prefix}[${key}]` : key,
+                    );
+                }
+                return;
+            }
+
+            formData.append(prefix, String(value));
+        },
+
         async sendTryIt(endpointId) {
             const endpoint = API_DATA.endpoints.find(
                 (e) => e.id === endpointId,
@@ -27219,7 +27674,57 @@
                     param => param.type === "file" || param.type === "file (image)"
                 );
                 
-                if (hasFile) {
+                if (endpointId === "store-proposition") {
+                    const bodyInput = document.getElementById(
+                        `try_${endpointId}_body`,
+                    );
+                    let jsonBody;
+                    try {
+                        jsonBody = JSON.parse(bodyInput?.value || "{}");
+                    } catch (e) {
+                        if (spinner) spinner.classList.remove("show");
+                        if (viewer) viewer.classList.add("show");
+                        if (meta) {
+                            meta.innerHTML = `
+                                <span class="meta-item">
+                                    <span class="label">Erreur:</span>
+                                    <span class="text-danger">JSON invalide</span>
+                                </span>
+                            `;
+                        }
+                        if (body) {
+                            body.innerHTML = `
+                                <pre><code>${JSON.stringify({ error: "Format JSON invalide", details: e.message }, null, 2)}</code></pre>
+                            `;
+                        }
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    for (const [key, value] of Object.entries(jsonBody)) {
+                        this.appendMultipartFields(formData, value, key);
+                    }
+
+                    document
+                        .querySelectorAll(`#try_${endpointId}_documents .proposition-document-row`)
+                        .forEach((row, index) => {
+                            const fileInput = row.querySelector('input[type="file"]');
+                            const labelInput = row.querySelector('input[name="document-libelle"]');
+                            const file = fileInput?.files[0];
+                            if (file) {
+                                formData.append(`documentDatas[${index}][file]`, file);
+                                if (labelInput?.value.trim()) {
+                                    formData.append(
+                                        `documentDatas[${index}][libelle]`,
+                                        labelInput.value.trim(),
+                                    );
+                                }
+                            }
+                        });
+
+                    params.body = formData;
+                    params.isMultipart = true;
+                } else if (hasFile) {
                     // Traitement multipart/form-data
                     const formData = new FormData();
                     for (const [key, value] of Object.entries(endpoint.requestParams.body)) {
@@ -27384,6 +27889,13 @@
                     }
                     input.value = defaultBody;
                 }
+            }
+            if (endpointId === "store-proposition") {
+                document
+                    .querySelectorAll(`#try_${endpointId}_documents input`)
+                    .forEach((input) => {
+                        input.value = "";
+                    });
             }
 
             const viewer = document.getElementById(

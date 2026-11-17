@@ -54,6 +54,7 @@ use App\Http\Controllers\Api\Ynov\SignatureController;
 use App\Http\Controllers\Api\Ynov\Simulateur\DoihooSimulatorController;
 use App\Http\Controllers\Api\Ynov\Simulateur\LprevoSimulatorController;
 use App\Http\Controllers\Api\Ynov\Simulateur\YapiSimulatorController;
+use App\Http\Controllers\Api\Ynov\Simulateur\YakoEterniteSimulatorController;
 use App\Http\Controllers\Api\Ynov\TwoFactorController;
 use App\Http\Controllers\Api\Ynov\TypeProduitController;
 use App\Http\Controllers\Api\Ynov\UserController;
@@ -312,6 +313,7 @@ Route::prefix('v1')->middleware([
     Route::post('users', [UserController::class, 'store'])->middleware('permission:users.creer');
     Route::put('users/{uuid_user}', [UserController::class, 'update'])->middleware('permission:users.modifier');
     Route::get('users/by-contrat/{id_contrat}', [UserController::class, 'getClientByContratId']);
+    Route::post('users/by-role', [UserController::class, 'getUserByCodeRole']);
 
     // Gestion des agences pour un utilisateur
     Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
@@ -1198,6 +1200,7 @@ Route::prefix('v1')->middleware([
         // GESTION STORE CONTRAT
         Route::post('store-propositition', [PropositionController::class, 'storeSouscription']);
         Route::get('get-propositions/{uuid_user}', [PropositionController::class, 'getPropositions']);
+        Route::put('update-proposition/{uuid}', [PropositionController::class, 'updateProposition']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
 
@@ -1210,6 +1213,9 @@ Route::prefix('v1')->middleware([
             ->middleware('throttle:30,1');
 
         Route::post('simulateurs/yapi', [YapiSimulatorController::class, 'simulate'])
+            ->middleware('throttle:30,1');
+
+        Route::post('simulateurs/yako-eternite', [YakoEterniteSimulatorController::class, 'simulate'])
             ->middleware('throttle:30,1');
 
     });

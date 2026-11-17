@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Api\Ynov\Esouscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\Api\Ynov\Esouscription\Acteur;
+use App\Models\Api\Ynov\Esouscription\AssurerGarantie;
+use App\Models\Api\Ynov\Esouscription\Contrat;
+use App\Models\Api\Ynov\Esouscription\ContratActeur;
+use App\Models\Api\Ynov\Esouscription\DeclarationSante;
 use App\Mail\CustomerMail;
 use App\Models\Api\Ynov\Esouscription\Document;
 use App\Services\Api\Ynov\Documents\DocumentService;
@@ -16,11 +21,13 @@ use App\Services\Api\Ynov\ESouscription\PropositionService;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PropositionController extends Controller
 {
@@ -45,14 +52,33 @@ class PropositionController extends Controller
             ], 403);
         }
 
+        $dateFinRules = ['sometimes', 'nullable', 'date'];
+        if ($request->filled('date_debut')) {
+            $dateFinRules[] = 'after_or_equal:date_debut';
+        }
+
         $validated = $request->validate([
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'uuid_contrat' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'id_contrat' => ['sometimes', 'nullable', 'integer'],
+            'id_proposition' => ['sometimes', 'nullable', 'integer'],
+            'code_proposition' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'numero_police' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'numero_compte' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'date_debut' => ['sometimes', 'nullable', 'date'],
+            'date_fin' => $dateFinRules,
+            'idClient' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'numero_piece' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'nom' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'prenoms' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         try {
             $propositions = $this->propositionService->getForUser(
                 $uuid_user,
-                (int) ($validated['per_page'] ?? 15)
+                (int) ($validated['per_page'] ?? 15),
+                $validated
             );
         } catch (ModelNotFoundException) {
             return response()->json([
@@ -60,6 +86,12 @@ class PropositionController extends Controller
                 'message' => 'Utilisateur introuvable.',
                 'code' => 404,
             ], 404);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'code' => 403,
+            ], 403);
         }
 
         return response()->json([
@@ -69,6 +101,463 @@ class PropositionController extends Controller
             'total' => $propositions->total(),
             'data' => $propositions,
         ]);
+    }
+
+    public function updateProposition(Request $request, string $uuid)
+    {
+        $request->validate([
+            'contratData' => ['sometimes', 'array'],
+            'contratData.date_effet' => ['sometimes', 'nullable', 'date'],
+            'contratData.mode_paiement' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.organisme' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.duree' => ['sometimes', 'nullable', 'integer'],
+            'contratData.code_periodicite' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.prime' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.prime_principale' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.sur_prime' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.capital' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.frais_adhesion' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.montant_rente' => ['sometimes', 'nullable', 'numeric'],
+            'contratData.periodicite_rente' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.duree_rente' => ['sometimes', 'nullable', 'integer'],
+            'contratData.code_banque' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.code_guichet' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.rib' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.numero_compte' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.numecompte_complet' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.autre_ref_prelev' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.agence_uuid' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.code_produit' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.libelle_produit' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.formule_produit_code' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.contact_personne_nom' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.contact_personne_mobile' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'contratData.contact_personne_nom_2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.contact_personne_mobile_2' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'contratData.branch_code' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contratData.partner_uuid' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.conseiller_uuid' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.observation' => ['sometimes', 'nullable', 'string'],
+            'contratData.bulletin_num' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.formule' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contratData.source_data' => ['sometimes', 'nullable', 'in:user,ocr,oneci'],
+            'adherentData' => ['sometimes', 'array'],
+            'assurerDatas' => ['sometimes', 'array'],
+            'assurerDatas.*.uuid_contrat_acteur' => ['sometimes', 'uuid', 'distinct'],
+            'assurerDatas.*.is_adherent' => ['sometimes', 'in:oui,non'],
+            'assurerDatas.*.info' => ['required', 'array'],
+            'assurerDatas.*.sante' => ['sometimes', 'array'],
+            'assurerDatas.*.garantie' => ['sometimes', 'array'],
+            'assurerDatas.*.garanties' => ['sometimes', 'array'],
+            'BeneficiaireDatas' => ['sometimes', 'array'],
+            'BeneficiaireDatas.*.uuid_contrat_acteur' => ['sometimes', 'uuid', 'distinct'],
+            'BeneficiaireDatas.*.is_adherent' => ['sometimes', 'in:oui,non'],
+            'BeneficiaireDatas.*.info' => ['required', 'array'],
+            'documentDatas' => ['sometimes', 'array'],
+            'documentDatas.*.uuid_document' => ['sometimes', 'uuid', 'distinct'],
+            'documentDatas.*.file' => ['sometimes', 'file', 'max:51200'],
+            'documentDatas.*.libelle' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
+
+        $this->validateNewActorEntries($request->all());
+
+        $updateSections = $request->only([
+            'contratData',
+            'adherentData',
+            'assurerDatas',
+            'BeneficiaireDatas',
+            'documentDatas',
+        ]);
+        if (array_filter($updateSections, fn ($section) => is_array($section) && $section !== []) === []) {
+            throw ValidationException::withMessages([
+                'proposition' => ['Au moins une section à mettre à jour doit être renseignée.'],
+            ]);
+        }
+
+        $userUuid = $request->user()?->uuid_user;
+
+        if (! $userUuid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non authentifié.',
+                'code' => 401,
+            ], 401);
+        }
+
+        try {
+            $contrat = DB::transaction(function () use ($request, $uuid, $userUuid): Contrat {
+                $contrat = $this->propositionService->findAccessibleByUuid($userUuid, $uuid);
+                $data = $request->all();
+
+                if (isset($data['contratData'])) {
+                    $contractFields = [
+                        'date_effet', 'mode_paiement', 'organisme', 'duree', 'code_periodicite',
+                        'prime', 'prime_principale', 'sur_prime', 'capital', 'frais_adhesion',
+                        'montant_rente', 'periodicite_rente', 'duree_rente', 'code_banque',
+                        'code_guichet', 'rib', 'numero_compte', 'numecompte_complet',
+                        'autre_ref_prelev', 'agence_uuid', 'code_produit', 'libelle_produit',
+                        'formule_produit_code', 'contact_personne_nom', 'contact_personne_mobile',
+                        'contact_personne_nom_2', 'contact_personne_mobile_2', 'branch_code',
+                        'partner_uuid', 'conseiller_uuid', 'observation', 'bulletin_num', 'formule',
+                        'source_data',
+                    ];
+                    $contractData = array_intersect_key($data['contratData'], array_flip($contractFields));
+                    $contractData['updated_by'] = $userUuid;
+                    $this->contratService->update($contrat, $contractData);
+                }
+
+                if (isset($data['adherentData'])) {
+                    $adherentRelation = $contrat->contratActeurs()
+                        ->where('type_acteur', 'ADH')
+                        ->firstOrFail();
+                    $this->updateActor($adherentRelation->acteur, $data['adherentData'], $userUuid);
+                    if (array_key_exists('filiation_uuid', $data['adherentData'])) {
+                        $adherentRelation->update([
+                            'filiation_uuid' => $data['adherentData']['filiation_uuid'],
+                            'updated_by' => $userUuid,
+                        ]);
+                    }
+                }
+
+                foreach ($data['assurerDatas'] ?? [] as $assure) {
+                    $relation = $this->updateOrCreateActorRelation(
+                        $contrat,
+                        $assure,
+                        'ASS',
+                        $userUuid
+                    );
+
+                    if (isset($assure['sante'])) {
+                        $this->updateHealthDeclaration($contrat, $relation->acteur_uuid, $assure['sante'], $userUuid);
+                    }
+
+                    $guarantees = $this->extractGuarantees($assure);
+                    if ($guarantees !== null) {
+                        AssurerGarantie::query()
+                            ->where('uuid_contrat', $contrat->uuid_contrat)
+                            ->where('uuid_assurer', $relation->acteur_uuid)
+                            ->delete();
+
+                        foreach ($guarantees as $guarantee) {
+                            foreach (['uuid_garantie', 'codeGarantie', 'libelle', 'capital', 'prime'] as $requiredField) {
+                                if (! array_key_exists($requiredField, $guarantee)) {
+                                    throw ValidationException::withMessages([
+                                        'assurerDatas' => ["La garantie doit contenir le champ {$requiredField}."],
+                                    ]);
+                                }
+                            }
+                            if (! is_numeric($guarantee['capital']) || ! is_numeric($guarantee['prime'])) {
+                                throw ValidationException::withMessages([
+                                    'assurerDatas' => ['Le capital et la prime de chaque garantie doivent être numériques.'],
+                                ]);
+                            }
+                            if (
+                                ! is_string($guarantee['uuid_garantie'])
+                                || ! is_string($guarantee['codeGarantie'])
+                                || ! is_string($guarantee['libelle'])
+                            ) {
+                                throw ValidationException::withMessages([
+                                    'assurerDatas' => ['Les identifiants, codes et libellés de garantie doivent être textuels.'],
+                                ]);
+                            }
+
+                            $this->assurerGarantieService->create([
+                                'code' => $guarantee['codeGarantie'],
+                                'uuid_garantie' => $guarantee['uuid_garantie'],
+                                'uuid_assurer' => $relation->acteur_uuid,
+                                'uuid_contrat' => $contrat->uuid_contrat,
+                                'libelle' => $guarantee['libelle'],
+                                'capital' => $guarantee['capital'],
+                                'prime' => $guarantee['prime'],
+                                'type' => 'ASS',
+                            ]);
+                        }
+                    }
+                }
+
+                foreach ($data['BeneficiaireDatas'] ?? [] as $beneficiaire) {
+                    $this->updateOrCreateActorRelation(
+                        $contrat,
+                        $beneficiaire,
+                        'BEN',
+                        $userUuid
+                    );
+                }
+
+                foreach ($data['documentDatas'] ?? [] as $documentData) {
+                    $file = $documentData['file'] ?? null;
+                    $documentUuid = $documentData['uuid_document'] ?? null;
+
+                    if ($documentUuid) {
+                        $document = Document::query()
+                            ->where('reference_uuid', $contrat->uuid_contrat)
+                            ->where('uuid_document', $documentUuid)
+                            ->firstOrFail();
+
+                        if ($file instanceof UploadedFile) {
+                            $this->documentService->updateDocument($documentUuid, $file, [
+                                'libelle' => $documentData['libelle'] ?? null,
+                                'update_by' => $userUuid,
+                            ]);
+                        } elseif (array_key_exists('libelle', $documentData)) {
+                            $document->update([
+                                'libelle' => $documentData['libelle'],
+                                'update_by' => $userUuid,
+                            ]);
+                        }
+                    } elseif ($file instanceof UploadedFile) {
+                        $this->documentService->createDocument([
+                            'reference_uuid' => $contrat->uuid_contrat,
+                            'source' => 'E-SOUSCRIPTION',
+                            'created_by' => $userUuid,
+                            'documents' => [[
+                                'file' => $file,
+                                'libelle' => $documentData['libelle'] ?? null,
+                            ]],
+                        ]);
+                    } else {
+                        throw ValidationException::withMessages([
+                            'documentDatas' => ['Chaque document doit cibler un document existant ou inclure un fichier.'],
+                        ]);
+                    }
+                }
+
+                return $contrat->fresh()->load([
+                    'agence',
+                    'partner',
+                    'contratActeurs.acteur',
+                    'contratActeurs.filiation',
+                    'documents',
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Proposition mise à jour avec succès.',
+                'code' => 200,
+                'data' => $contrat,
+            ]);
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proposition introuvable ou inaccessible.',
+                'code' => 404,
+            ], 404);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'code' => 403,
+            ], 403);
+        } catch (\Throwable $exception) {
+            Log::error('Erreur lors de la mise à jour de la proposition : '.$exception->getMessage(), [
+                'uuid_contrat' => $uuid,
+                'trace' => $exception->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la proposition.',
+                'code' => 500,
+            ], 500);
+        }
+    }
+
+    private function updateActor(Acteur $acteur, array $data, string $userUuid): Acteur
+    {
+        $fields = [
+            'civilite', 'genre', 'nom', 'prenoms', 'date_naissance', 'lieunaissance_code',
+            'email', 'mobile', 'telephone', 'numero_piece', 'nni', 'nature_piece',
+            'situation_matrimoniale', 'profession_code', 'employeur', 'lieuresidence_code',
+            'pays_code',
+        ];
+        $actorData = array_intersect_key($data, array_flip($fields));
+        $actorData['updated_by'] = $userUuid;
+
+        if ($actorData !== ['updated_by' => $userUuid]) {
+            $this->acteurService->update($acteur, $actorData);
+        }
+
+        return $acteur;
+    }
+
+    private function updateOrCreateActorRelation(
+        Contrat $contrat,
+        array $data,
+        string $type,
+        string $userUuid
+    ): ContratActeur {
+        $relationUuid = $data['uuid_contrat_acteur'] ?? null;
+        $relation = $relationUuid
+            ? $contrat->contratActeurs()
+                ->where('uuid_contrat_acteur', $relationUuid)
+                ->where('type_acteur', $type)
+                ->firstOrFail()
+            : null;
+
+        if (($data['is_adherent'] ?? null) === 'oui') {
+            $adherentRelation = $contrat->contratActeurs()
+                ->where('type_acteur', 'ADH')
+                ->firstOrFail();
+            $acteur = $adherentRelation->acteur;
+        } elseif ($relation) {
+            $acteur = $relation->acteur;
+        } else {
+            $actorData = $data['info'] ?? [];
+            $acteur = $this->acteurService->create(array_merge(
+                array_intersect_key($actorData, array_flip([
+                    'civilite', 'genre', 'nom', 'prenoms', 'date_naissance', 'lieunaissance_code',
+                    'email', 'mobile', 'telephone', 'numero_piece', 'nni', 'nature_piece',
+                    'situation_matrimoniale', 'profession_code', 'employeur', 'lieuresidence_code',
+                    'pays_code',
+                ])),
+                [
+                    'uuid_acteur' => (string) Str::uuid(),
+                    'created_by' => $userUuid,
+                ]
+            ));
+        }
+
+        if (isset($data['info'])) {
+            $this->updateActor($acteur, $data['info'], $userUuid);
+        }
+
+        $filiationUuid = $data['filiation_uuid'] ?? data_get($data, 'info.filiation_uuid');
+        if ($relation) {
+            $relation->update([
+                'acteur_uuid' => $acteur->uuid_acteur,
+                'filiation_uuid' => $filiationUuid ?? $relation->filiation_uuid,
+                'updated_by' => $userUuid,
+            ]);
+        } else {
+            $relation = $this->contratActeurService->create([
+                'uuid_contrat_acteur' => (string) Str::uuid(),
+                'contrat_uuid' => $contrat->uuid_contrat,
+                'acteur_uuid' => $acteur->uuid_acteur,
+                'filiation_uuid' => $filiationUuid,
+                'type_acteur' => $type,
+                'integration_key' => $contrat->integration_key,
+                'created_by' => $userUuid,
+            ]);
+        }
+
+        return $relation->load('acteur');
+    }
+
+    private function updateHealthDeclaration(
+        Contrat $contrat,
+        string $actorUuid,
+        array $data,
+        string $userUuid
+    ): void {
+        $fields = [
+            'taille', 'poids', 'tension_min', 'tension_max', 'tabagisme', 'alcool', 'sport',
+            'accident', 'traitement', 'transfusion_sanguine', 'intervention_chirurgicale',
+            'prochaine_intervention_chirurgicale', 'diabete', 'hypertension', 'drepanocytose',
+            'cirrhose_foie', 'maladie_pulmonaire', 'cancer', 'anemie', 'insuffisance_renale', 'avc',
+        ];
+        $healthData = array_intersect_key($data, array_flip($fields));
+        if ($healthData === []) {
+            return;
+        }
+
+        $declaration = DeclarationSante::query()
+            ->where('contrat_uuid', $contrat->uuid_contrat)
+            ->where('assure_uuid', $actorUuid)
+            ->first();
+
+        if ($declaration) {
+            if ($healthData !== []) {
+                $healthData['update_by'] = $userUuid;
+                $this->declarationSanteService->update($declaration, $healthData);
+            }
+
+            return;
+        }
+
+        $this->declarationSanteService->create(array_merge($healthData, [
+            'contrat_uuid' => $contrat->uuid_contrat,
+            'assure_uuid' => $actorUuid,
+            'created_by' => $userUuid,
+        ]));
+    }
+
+    private function extractGuarantees(array $assure): ?array
+    {
+        $guarantees = data_get($assure, 'garanties.garantieData')
+            ?? data_get($assure, 'garantie.garantieData')
+            ?? ($assure['garanties'] ?? $assure['garantie'] ?? null);
+
+        if ($guarantees === null) {
+            return null;
+        }
+
+        if (! is_array($guarantees)) {
+            throw ValidationException::withMessages([
+                'assurerDatas' => ['Les garanties doivent être transmises sous forme de liste.'],
+            ]);
+        }
+
+        if (isset($guarantees['garantieData'])) {
+            $guarantees = $guarantees['garantieData'];
+        }
+
+        if (isset($guarantees['garantieObligatoire']) || isset($guarantees['garantieOptionnel'])) {
+            if (
+                ! is_array($guarantees['garantieObligatoire'] ?? [])
+                || ! is_array($guarantees['garantieOptionnel'] ?? [])
+            ) {
+                throw ValidationException::withMessages([
+                    'assurerDatas' => ['Les catégories de garanties doivent être des listes.'],
+                ]);
+            }
+
+            $guarantees = array_merge(
+                $guarantees['garantieObligatoire'] ?? [],
+                $guarantees['garantieOptionnel'] ?? []
+            );
+        }
+
+        if (isset($guarantees['codeGarantie'])) {
+            $guarantees = [$guarantees];
+        }
+
+        if (! is_array($guarantees) || array_filter($guarantees, fn ($guarantee) => ! is_array($guarantee)) !== []) {
+            throw ValidationException::withMessages([
+                'assurerDatas' => ['Les garanties doivent être une liste de garanties.'],
+            ]);
+        }
+
+        return $guarantees;
+    }
+
+    private function validateNewActorEntries(array $data): void
+    {
+        $requiredActorFields = [
+            'civilite', 'genre', 'nom', 'prenoms', 'date_naissance', 'lieunaissance_code',
+            'email', 'mobile', 'telephone', 'numero_piece', 'nni', 'nature_piece',
+            'situation_matrimoniale', 'profession_code', 'employeur', 'lieuresidence_code',
+            'pays_code',
+        ];
+        $errors = [];
+
+        foreach (['assurerDatas', 'BeneficiaireDatas'] as $section) {
+            foreach ($data[$section] ?? [] as $index => $entry) {
+                if (! empty($entry['uuid_contrat_acteur']) || ($entry['is_adherent'] ?? null) === 'oui') {
+                    continue;
+                }
+
+                foreach ($requiredActorFields as $field) {
+                    if (! array_key_exists($field, $entry['info'] ?? [])) {
+                        $errors["{$section}.{$index}.info.{$field}"][] = "Le champ {$field} est obligatoire pour créer un acteur.";
+                    }
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     public function storeSouscription(Request $request)
@@ -88,20 +577,27 @@ class PropositionController extends Controller
 
                 $createdBy = $request->user()?->uuid_user ?? $adherentData['created_by'] ?? 'system';
 
-                if($contratData['etape'] == '3') {
-                    $dateTransmission = now()->format('Y-m-d H:i:s');
-                    $transmisPar = $createdBy;
-                    $dateAcceptee = now()->format('Y-m-d H:i:s');
-                    $accepted_by = $createdBy;
+                if (isset($contratData['etape']) && $contratData['etape'] !== '') {
 
-                }else if($contratData['etape'] == '2') {
-                    $dateTransmission = now()->format('Y-m-d H:i:s');
-                    $transmisPar = $createdBy;
-                } else {
-                    $dateTransmission = null;
-                    $transmisPar = null;
-                    $dateAcceptee = null;
-                    $accepted_by = null;
+                    if ($contratData['etape'] == '3') {
+
+                        $dateTransmission = now()->format('Y-m-d H:i:s');
+                        $transmisPar = $createdBy;
+                        $dateAcceptee = now()->format('Y-m-d H:i:s');
+                        $accepted_by = $createdBy;
+
+                    } elseif ($contratData['etape'] == '2') {
+
+                        $dateTransmission = now()->format('Y-m-d H:i:s');
+                        $transmisPar = $createdBy;
+
+                    } else {
+
+                        $dateTransmission = null;
+                        $transmisPar = null;
+                        $dateAcceptee = null;
+                        $accepted_by = null;
+                    }
                 }
                 
 
@@ -494,31 +990,7 @@ class PropositionController extends Controller
                 ];
             });
 
-            $mailSent = false;
-            $adherentEmail = is_string($result['adherentEmail'])
-                ? trim($result['adherentEmail'])
-                : '';
-
-            if (filter_var($adherentEmail, FILTER_VALIDATE_EMAIL)) {
-                $bulletinDoc = Document::where('reference_uuid', $result['contratData']->uuid_contrat)
-                    ->where('libelle', 'like', '%bullet%')
-                    ->first();
-
-                if (!$bulletinDoc) {
-                    Log::warning("Aucun bulletin trouvé pour le contrat : {$result['contratData']->uuid_contrat}");
-                } else {
-                    try {
-                        $this->sendMail($adherentEmail, $bulletinDoc);
-                        $mailSent = true;
-                        Log::info("Bulletin envoyé au souscripteur pour le contrat : {$result['contratData']->uuid_contrat}");
-                    } catch (\Throwable $e) {
-                        Log::error('Erreur lors de l\'envoi du bulletin par mail : ' . $e->getMessage(), [
-                            'contrat_uuid' => $result['contratData']->uuid_contrat,
-                            'trace' => $e->getTraceAsString(),
-                        ]);
-                    }
-                }
-            }
+            
 
             return response()->json([
                 'success'         => true,
@@ -526,7 +998,6 @@ class PropositionController extends Controller
                 'code'            => 200,
                 'contratData'     => $result['contratData'],
                 'documentStore'   => $result['documentStore'],
-                'mailSent'        => $mailSent,
             ]);
 
         } catch (\Throwable $th) {
@@ -542,28 +1013,5 @@ class PropositionController extends Controller
         }
     }
 
-    private function sendMail(string $recipient, Document $bulletinDoc): void
-    {
-        if (!$bulletinDoc->chemin || !Storage::disk(config('documents.disk'))->exists($bulletinDoc->chemin)) {
-            throw new \RuntimeException("Le fichier du bulletin est introuvable : {$bulletinDoc->nom_fichier}");
-        }
-
-        $urlDocument = $bulletinDoc->url;
-        $mailData = [
-            'title' => 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉',
-            'btnLink' => $urlDocument,
-            'btnText' => 'Télécharger mon bulletin',
-            'documents' => $urlDocument,
-            'attachment' => [
-                'disk' => config('documents.disk'),
-                'path' => $bulletinDoc->chemin,
-                'name' => $bulletinDoc->nom_fichier,
-                'mime' => $bulletinDoc->mime_type,
-            ],
-        ];
-
-        $emailSubject = 'Félicitations et bienvenue chez YAKO AFRICA Assurances Vie ! 🎉';
-
-        Mail::to($recipient)->send(new CustomerMail($mailData, $emailSubject));
-    }
+    
 }
