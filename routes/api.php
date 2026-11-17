@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Ynov\Esouscription\CheckController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ContratActeurController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ContratController;
 use App\Http\Controllers\Api\Ynov\Esouscription\DocumentController;
+use App\Http\Controllers\Api\Ynov\Esouscription\DraftPropoController;
 use App\Http\Controllers\Api\Ynov\Esouscription\ParamController;
 use App\Http\Controllers\Api\Ynov\Esouscription\PropositionController;
 use App\Http\Controllers\Api\Ynov\Esouscription\SanteController;
@@ -1203,6 +1204,10 @@ Route::prefix('v1')->middleware([
         Route::put('update-proposition/{uuid}', [PropositionController::class, 'updateProposition']);
         Route::post('store-contrat', [ContratController::class, 'store']);
         Route::get('show-contrat/{uuid}', [ContratController::class, 'showContrat']);
+
+        // GESTION STORE CONTRAT INACHEVE
+        Route::post('store-contrat-draft', [DraftPropoController::class, 'createDraftPropo']);
+        Route::post('complete-contrat-draft/{uuid}', [DraftPropoController::class, 'completeDraftPropo']);
 
 
         // simulateur de prime 
