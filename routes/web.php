@@ -383,25 +383,6 @@ Route::prefix('signature')->group(function () {
       ->name('signature.demo.status');
 });
 
-// Route::get('storage/doc/{file}', function ($file) {
-//     // Nettoyer le nom du fichier
-//     $path = base_path(env('DOC_PATH') . $file);
-
-
-//     // Si toujours pas trouvé
-//     if (!file_exists($path)) {
-//         abort(404, 'Fichier non trouvé: ' . $file);
-//     }
-
-//     $fileContents = file_get_contents($path);
-//     $mimeType = mime_content_type($path);
-
-//     return Response::make($fileContents, 200, [
-//         'Content-Type' => $mimeType,
-//         'Cache-Control' => 'public, max-age=86400',
-//     ]);
-// })->where('file', '.*')->name('storage.documents');
-
 Route::get('preview/doc/{file}', function ($file) {
     $doc = Document::where('nom_fichier', $file)->first();
 
@@ -435,46 +416,17 @@ Route::get('preview/doc/{file}', function ($file) {
         ], 404);
     }
 
-    return response()->streamDownload(function () use ($disk, $chemin, $doc) {
+    // return response()->streamDownload(function () use ($disk, $chemin, $doc)
+    return response()->stream(function () use ($disk, $chemin) {
         $stream = $disk->readStream($chemin);
 
         if (is_resource($stream)) {
             fpassthru($stream);
             fclose($stream);
         }
-    }, $doc->nom_fichier, [
+    }, 200, [
         'Content-Type'        => $doc->mime_type,
         'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
     ]);
 })->where('file', '.*');
-
-// Route::get('preview/doc/{file}', function ($file) {
-//     $doc = Document::where('nom_fichier', $file)->first();
-
-//     if (!$doc) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Document introuvable.',
-//         ], 404);
-//     }
-
-//     // On utilise le disque configuré + le chemin relatif stocké en BDD
-//     $disk = Storage::disk(config('documents.disk'));
-
-//     if (!$disk->exists($doc->chemin)) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => "Le fichier {$doc->nom_fichier} n'existe pas dans le répertoire.",
-//             'chemin'  => $doc->chemin,
-//             'root'    => $disk->path(''),
-//         ], 404);
-//     }
-
-//     $absolutePath = $disk->path($doc->chemin);
-
-//     return response()->file($absolutePath, [
-//         'Content-Type'        => $doc->mime_type ?: mime_content_type($absolutePath),
-//         'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
-//     ]);
-// })->where('file', '.*');
 
