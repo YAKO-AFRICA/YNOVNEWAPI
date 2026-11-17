@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /vendor
+/vendorOld
 /front-end-apimain_test
 /APIMAINYNOV
 .env

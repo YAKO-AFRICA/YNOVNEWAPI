@@ -71,7 +71,7 @@ class DocumentUploadService
      *     dimensions: array{width: int, height: int}
      * }
      */
-    public function traiter(UploadedFile $file): array
+    public function traiter(UploadedFile $file, ?string $categorie = null): array
     {
         // 1. Extraction des métadonnées de base
         $extension = strtolower($file->getClientOriginalExtension());
@@ -83,11 +83,12 @@ class DocumentUploadService
 
         // 3. Génération d'un nom unique
         $nomUnique = $this->genererNomUnique($file);
+        $dossier   = $this->dossierPour($categorie);
 
-        // 4. Création du dossier du mois s'il n'existe pas
+        // 4. Création du dossier catégorie/année/mois s'il n'existe pas
         $disque = Storage::disk($this->disk);
-        if (!$disque->exists($this->dossierRelatif)) {
-            $disque->makeDirectory($this->dossierRelatif, 0755, true, true);
+        if (!$disque->exists($dossier)) {
+            $disque->makeDirectory($dossier, 0755, true, true);
         }
 
         // 5. Décision : compresser ou pas ?
@@ -97,10 +98,10 @@ class DocumentUploadService
 
         // 6. Traitement
         if ($compresser) {
-            return $this->compresserImage($file, $nomUnique, $largeur, $hauteur, $extension);
+            return $this->compresserImage($file, $nomUnique, $dossier, $largeur, $hauteur, $extension);
         }
 
-        return $this->copieDirecte($file, $nomUnique, $extension, $largeur, $hauteur);
+        return $this->copieDirecte($file, $nomUnique, $dossier, $extension, $largeur, $hauteur);
     }
 
     /**
@@ -169,6 +170,7 @@ class DocumentUploadService
     protected function compresserImage(
         UploadedFile $file,
         string $nomUnique,
+        string $dossierRelatif,
         int $largeurOriginale,
         int $hauteurOriginale,
         string $extension
@@ -192,14 +194,14 @@ class DocumentUploadService
             };
 
             // 4. Déterminer le chemin final
-            $cheminRelatif = $this->dossierRelatif . '/' . $nomUnique;
+            $cheminRelatif = $dossierRelatif . '/' . $nomUnique;
 
             // 5. Écrire le binaire sur le disque
             //    (string) est obligatoire : $encoded est un objet EncodedImage
             Storage::disk($this->disk)->put($cheminRelatif, (string) $encoded);
 
             // 6. Récupérer les nouvelles dimensions et le nouveau poids
-            $nouvellesDims = $this->lireDimensionsDepuisDisque($cheminRelatif);
+            $nouvellesDims = $this->lireDimensionsDepuisContenu((string) $encoded);
             $tailleFinale  = Storage::disk($this->disk)->size($cheminRelatif);
 
             // 7. Logger l'opération
@@ -234,7 +236,7 @@ class DocumentUploadService
                 'trace'        => $e->getTraceAsString(),
             ]);
 
-            return $this->copieDirecte($file, $nomUnique, $extension, $largeurOriginale, $hauteurOriginale);
+            return $this->copieDirecte($file, $nomUnique, $dossierRelatif, $extension, $largeurOriginale, $hauteurOriginale);
         }
     }
 
@@ -244,15 +246,16 @@ class DocumentUploadService
     protected function copieDirecte(
         UploadedFile $file,
         string $nomUnique,
+        string $dossierRelatif,
         string $extension,
         int $largeur,
         int $hauteur
     ): array {
-        $cheminRelatif = $file->storeAs($this->dossierRelatif, $nomUnique, $this->disk);
+        $cheminRelatif = $file->storeAs($dossierRelatif, $nomUnique, $this->disk);
 
         if (!$cheminRelatif) {
             throw new \RuntimeException(
-                "Échec du stockage direct du fichier dans {$this->dossierRelatif}"
+                "Échec du stockage direct du fichier dans {$dossierRelatif}"
             );
         }
 
@@ -273,6 +276,27 @@ class DocumentUploadService
     // ========================================================================
     // UTILITAIRES
     // ========================================================================
+
+    /**
+     * Construit le sous-dossier de stockage : CATEGORIE/année/mois.
+     */
+    protected function dossierPour(?string $categorie = null): string
+    {
+        return $this->normaliserCategorie($categorie) . '/' . $this->dossierRelatif;
+    }
+
+    /**
+     * Normalise une catégorie/source en nom de dossier safe :
+     * majuscules, A-Z0-9 et tirets uniquement. Vide → dossier par défaut.
+     */
+    protected function normaliserCategorie(?string $categorie): string
+    {
+        $cat = strtoupper(trim((string) ($categorie ?? '')));
+        $cat = (string) preg_replace('/[^A-Z0-9]+/', '-', $cat);
+        $cat = trim($cat, '-');
+
+        return $cat !== '' ? $cat : (string) config('documents.default_folder', 'AUTRES');
+    }
 
     /**
      * Génère un nom unique à partir du nom original + UUID.
@@ -311,12 +335,11 @@ class DocumentUploadService
     }
 
     /**
-     * Lit les dimensions d'un fichier déjà stocké sur le disque.
+     * Lit les dimensions d'un contenu image déjà encodé en mémoire.
      */
-    protected function lireDimensionsDepuisDisque(string $cheminRelatif): array
+    protected function lireDimensionsDepuisContenu(string $contenu): array
     {
-        $cheminAbsolu = Storage::disk($this->disk)->path($cheminRelatif);
-        $infos        = @getimagesize($cheminAbsolu);
+        $infos = @getimagesizefromstring($contenu);
 
         if ($infos === false) {
             return ['width' => 0, 'height' => 0];
@@ -330,7 +353,10 @@ class DocumentUploadService
      */
     protected function construireUrlPublique(string $cheminRelatif): string
     {
-        return rtrim(config('documents.url'), '/') . '/' . $cheminRelatif;
+        $base   = rtrim((string) url('/'), '/');
+        $prefix = '/' . trim((string) config('documents.url_prefix', '/docnumerises/PROD'), '/');
+
+        return $base . $prefix . '/' . ltrim($cheminRelatif, '/');
     }
 
     /**

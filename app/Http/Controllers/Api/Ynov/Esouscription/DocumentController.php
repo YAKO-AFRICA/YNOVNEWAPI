@@ -5,13 +5,12 @@ namespace App\Http\Controllers\Api\Ynov\Esouscription;
 use App\Http\Controllers\Controller;
 use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\Esouscription\Document;
-use App\Services\Api\Ynov\Documents\WebDavService;
 use App\Services\DocumentUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -19,12 +18,10 @@ class DocumentController extends Controller
 {
 
     protected DocumentUploadService $uploadService;
-    protected WebDavService $webDav;
 
-    public function __construct(DocumentUploadService $uploadService, WebDavService $webDav)
+    public function __construct(DocumentUploadService $uploadService)
     {
         $this->uploadService = $uploadService;
-        $this->webDav = $webDav;
 
     }
     /**
@@ -186,7 +183,7 @@ class DocumentController extends Controller
 
         try {
             // --- 3. Traitement via le service (compression + stockage) ---
-            $resultat = $this->uploadService->traiter($file);
+            $resultat = $this->uploadService->traiter($file, $request->input('source'));
 
             $cheminRelatif = $resultat['chemin_relatif'];
 
@@ -316,7 +313,7 @@ class DocumentController extends Controller
 
                     // --- Traitement via le MÊME service que uploadDoc ---
                     // Compression images + stockage sur le disque 'docnumerises' + nom unique
-                    $resultat = $this->uploadService->traiter($file);
+                    $resultat = $this->uploadService->traiter($file, $source);
                     $cheminsCrees[] = $resultat['chemin_relatif'];
 
                     // --- Type de document ---
@@ -662,20 +659,21 @@ class DocumentController extends Controller
             $oldValues = $document->toArray();
 
             // --- 1. Suppression du fichier physique ---
-            $cheminAbsolu = $this->resoudreCheminAbsolu($cheminEnregistre);
+            $cheminRelatif = $this->extraireCheminRelatif($cheminEnregistre);
+            $disque = Storage::disk(config('documents.disk'));
 
-            if ($cheminAbsolu && File::exists($cheminAbsolu)) {
+            if ($cheminRelatif && $disque->exists($cheminRelatif)) {
                 try {
-                    File::delete($cheminAbsolu);
+                    $disque->delete($cheminRelatif);
                     Log::info('[forceDelete] Fichier supprimé', [
                         'uuid'   => $uuid,
-                        'chemin' => $cheminAbsolu,
+                        'chemin' => $cheminRelatif,
                     ]);
                 } catch (\Throwable $e) {
                     // On log mais on ne bloque pas : la BDD doit être nettoyée
                     Log::warning('[forceDelete] Échec suppression fichier', [
                         'uuid'   => $uuid,
-                        'chemin' => $cheminAbsolu,
+                        'chemin' => $cheminRelatif,
                         'erreur' => $e->getMessage(),
                     ]);
                 }
@@ -719,45 +717,30 @@ class DocumentController extends Controller
     }
 
     /**
-     * Transforme le chemin stocké en chemin absolu exploitable par File.
-     *
-     * Gère plusieurs cas :
-     *  - URL complète  : https://.../docnumerises/...   → extrait la partie après le domaine
-     *  - chemin relatif : docnumerises/2026/09/x.jpg    → préfixe avec public_path
-     *  - chemin déjà absolu : C:\...\public_html\...    → tel quel
-     *  - chemin avec ".." : ../public_html/docnumerises/...
+     * Extrait le chemin relatif (année/mois/fichier) depuis la valeur stockée
+     * dans la colonne `chemin`, qui peut être :
+     *  - un chemin relatif : 2026/11/x.pdf
+     *  - une URL complète   : https://app/docnumerises/TEST/2026/11/x.pdf
      */
-    protected function resoudreCheminAbsolu(?string $chemin): ?string
+    protected function extraireCheminRelatif(?string $chemin): ?string
     {
         if (empty($chemin)) {
             return null;
         }
 
-        $candidats = [
-            // Ce que vous avez dans votre code existant
-            base_path('..' . DIRECTORY_SEPARATOR . ltrim(str_replace('../', '', $chemin), '/\\')),
+        $chemin = trim($chemin);
 
-            // Tentative directe avec public_html à la racine du projet
-            base_path('../public_html/' . ltrim($chemin, '/\\')),
-
-            // Chemin dans le dossier public classique de Laravel
-            public_path($chemin),
-
-            // Stockage local (storage/app/)
-            storage_path('app/' . ltrim($chemin, '/\\')),
-
-            // Dossier configuré (ex: docnumerises)
-            storage_path('app/public/' . ltrim($chemin, '/\\')),
-        ];
-
-        foreach ($candidats as $candidat) {
-            if (File::exists($candidat)) {
-                return $candidat;
+        // URL complète → on récupère le chemin après /docnumerises/{PROD|TEST}/
+        if (Str::contains($chemin, '://')) {
+            $path = parse_url($chemin, PHP_URL_PATH) ?: '';
+            if (preg_match('#/docnumerises/(?:PROD|TEST)/(.*)$#', $path, $m)) {
+                return ltrim($m[1], '/');
             }
+
+            return ltrim($path, '/');
         }
 
-        // Aucun candidat trouvé → on renvoie quand même le premier pour log
-        return $candidats[0] ?? null;
+        return ltrim($chemin, '/\\');
     }
 
     public function getTrashedDocuments(): JsonResponse

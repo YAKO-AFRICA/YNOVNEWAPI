@@ -15,6 +15,7 @@
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
         "league/flysystem-ftp": "3.0",
+        "league/flysystem-webdav": "^3.31",
         "phpoffice/phpspreadsheet": "^5.8",
         "pragmarx/google2fa-laravel": "^3.0",
         "realrashid/sweet-alert": "^7.3",

@@ -56,7 +56,7 @@ class PartnerController extends Controller
      */
     public function store(StorePartnerRequest $request): JsonResponse
     {
-        Log::info('PartnerController@store - données reçues', $request->all());
+        // Log::info('PartnerController@store - données reçues', $request->all());
 
         $partner = $this->partnerService->create(
             $request->validated(),
@@ -74,18 +74,18 @@ class PartnerController extends Controller
                     ]
                 ];
 
-                Log::info('Données des documents', $DocumentDatas);
+                // Log::info('Données des documents', $DocumentDatas);
 
                 $payload = [
                     'reference_uuid' => $partner->uuid_partner,
-                    'source'         => 'PARANTER_PARTNER_LOGO',
+                    'source'         => 'PARTNER_LOGO',
                     'created_by'     => $request->user()->uuid_user,
                     'documents'      => $DocumentDatas,
                 ];
 
                 $documentStore = $this->documentService->createDocument($payload);
 
-                Log::info('[DocumentService] copieDirecte tttttttt', $documentStore);
+                // Log::info('[DocumentService] copieDirecte tttttttt', $documentStore);
 
                 if (!$documentStore) {
                     throw new \Exception("Échec de l'enregistrement des documents.");
@@ -166,7 +166,7 @@ class PartnerController extends Controller
                 $document = Document::withoutTrashed()
                     ->where('chemin', $partner->logo)
                     ->where('reference_uuid', $uuid_partner)
-                    ->where('source', 'PARANTER_PARTNER_LOGO')
+                    ->where('source', 'PARTNER_LOGO')
                     ->first();
 
                 if ($document) {
@@ -191,7 +191,7 @@ class PartnerController extends Controller
 
                     $payload = [
                         'reference_uuid' => $uuid_partner,
-                        'source' => 'PARANTER_PARTNER_LOGO',
+                        'source' => 'PARTNER_LOGO',
                         'created_by' => $request->user()->uuid_user,
                         'documents' => [$documentData],
                     ];
