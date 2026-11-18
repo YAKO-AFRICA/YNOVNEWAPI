@@ -4,6 +4,7 @@ namespace App\Models\Api\Ynov\parameter;
 
 use App\Models\Api\Ynov\parameter\UserSecurityAnswer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -45,6 +46,21 @@ class SecurityQuestion extends Model
     public function userAnswers(): HasMany
     {
         return $this->hasMany(UserSecurityAnswer::class, 'security_question_uuid', 'uuid');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'uuid_user');
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by', 'uuid_user');
     }
 
     /**

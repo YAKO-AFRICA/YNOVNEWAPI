@@ -44,6 +44,15 @@ class NotificationService
         return DB::transaction(function () use ($data) {
             $title = isset($data['title']) ? $this->cleanString($data['title']) : null;
             $body = isset($data['body']) ? $this->cleanString($data['body']) : null;
+
+            // Canaux d'envoi : tableau requis, sinon fallback sur 'channel' (rétrocompat)
+            $channels = isset($data['channels']) && is_array($data['channels'])
+                ? array_values($data['channels'])
+                : [$data['channel'] ?? 'database'];
+
+            $metadata = $data['metadata'] ?? [];
+            $metadata['channels'] = $channels;
+
             $notification = Notification::create([
                 'uuid_notification' => (string) Str::uuid(),
                 'user_uuid' => $data['user_uuid'],
@@ -53,8 +62,8 @@ class NotificationService
                 'type' => $data['type'] ?? 'system',
                 'action_url' => $data['action_url'] ?? null,
                 'action_label' => $data['action_label'] ?? null,
-                'metadata' => $data['metadata'] ?? null,
-                'channel' => $data['channel'] ?? 'database',
+                'metadata' => $metadata,
+                'channel' => $channels[0] ?? 'database',
                 'created_by' => $data['created_by'] ?? null,
             ]);
 
@@ -199,6 +208,7 @@ class NotificationService
             ->selectRaw('MIN(body) as body')
             ->selectRaw('MIN(type) as type')
             ->selectRaw('MIN(channel) as channel')
+            ->selectRaw("MIN(JSON_EXTRACT(notifications.metadata, '$.channels')) as channels_json")
             ->selectRaw('MIN(action_url) as action_url')
             ->selectRaw('MIN(action_label) as action_label')
             ->selectRaw('MIN(created_by) as created_by')

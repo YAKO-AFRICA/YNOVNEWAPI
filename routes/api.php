@@ -424,6 +424,8 @@ Route::prefix('v1')->middleware([
     // Routes admin des questions de sécurité
     // ================================================================
     Route::prefix('admin/security')->middleware('permission:security_questions.gerer')->group(function () {
+        Route::get('questions', [SecurityQuestionController::class, 'index']);
+        Route::get('questions/{uuid}', [SecurityQuestionController::class, 'show']);
         Route::post('questions', [SecurityQuestionController::class, 'createQuestion']);
         Route::put('questions/{uuid}', [SecurityQuestionController::class, 'updateQuestion']);
         Route::delete('questions/{uuid}', [SecurityQuestionController::class, 'deleteQuestion']);

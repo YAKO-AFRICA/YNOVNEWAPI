@@ -7,14 +7,30 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class NotificationCampaignResource extends JsonResource
 {
+    private const CHANNEL_LABELS = [
+        'database' => ['code' => 'database', 'label' => 'Base de données', 'icon' => 'bi-database'],
+        'email' => ['code' => 'email', 'label' => 'Email', 'icon' => 'bi-envelope'],
+        'sms' => ['code' => 'sms', 'label' => 'SMS', 'icon' => 'bi-phone'],
+        'push' => ['code' => 'push', 'label' => 'Push mobile', 'icon' => 'bi-bell'],
+        'whatsapp' => ['code' => 'whatsapp', 'label' => 'WhatsApp', 'icon' => 'bi-whatsapp'],
+    ];
+
     public function toArray(Request $request): array
     {
+        $channels = isset($this->channels_json)
+            ? (json_decode($this->channels_json, true) ?? [$this->channel])
+            : [$this->channel];
+
         return [
             'batch_uuid' => $this->batch_uuid,
             'title' => $this->title,
             'body' => $this->body,
             'type' => $this->type,
             'channel' => $this->channel,
+            'channels' => $channels,
+            'channels_details' => collect($channels)->map(function ($code) {
+                return self::CHANNEL_LABELS[$code] ?? ['code' => $code, 'label' => $code];
+            })->values(),
             'action_url' => $this->action_url,
             'action_label' => $this->action_label,
             'sent_at' => $this->sent_at,

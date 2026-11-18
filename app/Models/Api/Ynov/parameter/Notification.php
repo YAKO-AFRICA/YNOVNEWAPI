@@ -190,7 +190,10 @@ class Notification extends Model
      */
     public function scopeChannel($query, string $channel)
     {
-        return $query->where('channel', $channel);
+        return $query->where(function ($q) use ($channel) {
+            $q->where('channel', $channel)
+              ->orWhereJsonContains('metadata->channels', $channel);
+        });
     }
 
     /**

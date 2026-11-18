@@ -7,6 +7,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class NotificationResource extends JsonResource
 {
+    private const CHANNEL_LABELS = [
+        'database' => ['code' => 'database', 'label' => 'Base de données', 'icon' => 'bi-database'],
+        'email' => ['code' => 'email', 'label' => 'Email', 'icon' => 'bi-envelope'],
+        'sms' => ['code' => 'sms', 'label' => 'SMS', 'icon' => 'bi-phone'],
+        'push' => ['code' => 'push', 'label' => 'Push mobile', 'icon' => 'bi-bell'],
+        'whatsapp' => ['code' => 'whatsapp', 'label' => 'WhatsApp', 'icon' => 'bi-whatsapp'],
+    ];
+
     public function toArray(Request $request): array
     {
         return [
@@ -14,6 +22,11 @@ class NotificationResource extends JsonResource
             'title' => $this->title,
             'body' => $this->body,
             'type' => $this->type,
+            'channel' => $this->channel,
+            'channels' => $this->metadata['channels'] ?? [$this->channel],
+            'channels_details' => collect($this->metadata['channels'] ?? [$this->channel])->map(function ($code) {
+                return self::CHANNEL_LABELS[$code] ?? ['code' => $code, 'label' => $code];
+            })->values(),
             'action_url' => $this->action_url,
             'action_label' => $this->action_label,
             'is_read' => $this->isRead(),
