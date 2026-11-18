@@ -5192,6 +5192,155 @@
             // 3.6 ADMIN — QUESTIONS DE SÉCURITÉ
             // ============================================================
             {
+                id: "security-questions-list-admin",
+                module: "security",
+                name: "[Admin] Liste des questions de sécurité",
+                description:
+                    "Liste paginée des questions de sécurité avec filtres (catégorie, statut actif, type système, recherche). Chaque question inclut le nombre de réponses utilisateurs (user_answers_count). Réservé aux utilisateurs avec la permission security_questions.gerer.",
+                method: "GET",
+                path: "/admin/security/questions",
+                isProtected: true,
+                permissionsRequired: ["security_questions.gerer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    query: {
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre par page",
+                        },
+                        page: {
+                            type: "integer",
+                            required: false,
+                            default: 1,
+                            description: "Numéro de page",
+                        },
+                        category: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par catégorie",
+                        },
+                        is_active: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer par statut actif",
+                        },
+                        is_system: {
+                            type: "boolean",
+                            required: false,
+                            description: "Filtrer les questions système",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description: "Recherche dans le texte de la question",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Liste des questions",
+                        example: {
+                            success: true,
+                            message: "Questions de sécurité récupérées.",
+                            code: "SECURITY_QUESTIONS_LISTED",
+                            data: [
+                                {
+                                    uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                    question_text:
+                                        "Quel est le nom de votre premier employeur ?",
+                                    category: "Professionnelle",
+                                    is_active: true,
+                                    is_system: true,
+                                    user_answers_count: 128,
+                                    created_at: "2025-01-15 10:00:00",
+                                    updated_at: "2025-01-15 10:00:00",
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 42,
+                                last_page: 3,
+                            },
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "security-questions-show-admin",
+                module: "security",
+                name: "[Admin] Détail d'une question",
+                description:
+                    "Récupère le détail d'une question de sécurité par son UUID, avec le nombre de réponses utilisateurs. Réservé aux utilisateurs avec la permission security_questions.gerer.",
+                method: "GET",
+                path: "/admin/security/questions/{uuid}",
+                isProtected: true,
+                permissionsRequired: ["security_questions.gerer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID de la question",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Détail de la question",
+                        example: {
+                            success: true,
+                            message: "Détail de la question de sécurité.",
+                            code: "SECURITY_QUESTION_FOUND",
+                            data: {
+                                uuid: "550e8400-e29b-41d4-a716-446655440001",
+                                question_text:
+                                    "Quel est le nom de votre premier employeur ?",
+                                category: "Professionnelle",
+                                is_active: true,
+                                is_system: true,
+                                created_by: {
+                                    uuid_user: "...",
+                                    login: "admin@yako",
+                                    email: "admin@yakoafricassur.com",
+                                    details: {
+                                        nom: "Traoré",
+                                        prenoms: "Awa",
+                                        full_name: "Traoré Awa",
+                                    },
+                                },
+                                updated_by: null,
+                                deleted_by: null,
+                                user_answers_count: 128,
+                                created_at: "2025-01-15 10:00:00",
+                                updated_at: "2025-01-15 10:00:00",
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Question introuvable",
+                        example: {
+                            success: false,
+                            message: "Not Found",
+                        },
+                    },
+                ],
+            },
+
+            {
                 id: "security-questions-create-admin",
                 module: "security",
                 name: "[Admin] Créer une question",
@@ -9586,7 +9735,7 @@
                                         uuid_document: "uuid...",
                                         nom_fichier: "logo.png",
                                         libelle: "Logo du partenaire YAKO AFRICA Assurance (PART001)",
-                                        source: "PARANTER_PARTNER_LOGO",
+                                        source: "PARTNER_LOGO",
                                         chemin: "2026/10/logo.png",
                                         url: "https://apidev.yakoafricassur.com/preview/doc/logo.png",
                                         statut: "actif",
@@ -9657,7 +9806,7 @@
                                         uuid_document: "uuid...",
                                         nom_fichier: "logo.png",
                                         libelle: "Logo du partenaire YAKO AFRICA Assurance (PART001)",
-                                        source: "PARANTER_PARTNER_LOGO",
+                                        source: "PARTNER_LOGO",
                                         chemin: "2026/10/logo.png",
                                         url: "https://apidev.yakoafricassur.com/preview/doc/logo.png",
                                         statut: "actif",
@@ -14126,6 +14275,153 @@
             },
 
             // ============================================================
+            // 13. ADMIN - NOTIFICATIONS D'UN GROUPE (par campagne)
+            // ============================================================
+            {
+                id: "admin-group-notifs-notifications",
+                module: "group_notifs",
+                name: "[Admin] Notifications d'un groupe",
+                description:
+                    "Récupère les campagnes de notifications envoyées via un groupe, sous forme paginée. Chaque ligne représente un envoi groupé (une campagne) avec les compteurs par statut des destinataires (total, lus, non lus, importants) — et non une ligne par destinataire. Les notifications créées individuellement apparaissent comme campagnes unitaires. Nécessite la permission `group_notifs.afficher`. Filtres de niveau campagne : type, channel, search. Filtres par destinataire (read, important, user_uuid) : retournent les campagnes ayant au moins un destinataire correspondant.",
+                method: "GET",
+                path: "/admin/group-notifs/{uuid_group_notif}/notifications",
+                isProtected: true,
+                permissionsRequired: ["group_notifs.afficher"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_group_notif: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du groupe de notification",
+                        },
+                    },
+                    query: {
+                        per_page: {
+                            type: "integer",
+                            required: false,
+                            default: 20,
+                            description: "Nombre de campagnes par page",
+                        },
+                        page: {
+                            type: "integer",
+                            required: false,
+                            default: 1,
+                            description: "Numéro de page",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            description: "Filtrer par type de notification",
+                        },
+                        channel: {
+                            type: "string",
+                            required: false,
+                            enum: [
+                                "database",
+                                "email",
+                                "sms",
+                                "push",
+                                "whatsapp",
+                            ],
+                            description: "Filtrer par canal",
+                        },
+                        search: {
+                            type: "string",
+                            required: false,
+                            description:
+                                "Recherche dans le titre et le corps",
+                        },
+                        read: {
+                            type: "boolean",
+                            required: false,
+                            description:
+                                "Campagnes ayant au moins un destinataire lu (true) ou non lu (false)",
+                        },
+                        important: {
+                            type: "boolean",
+                            required: false,
+                            description:
+                                "Campagnes ayant au moins un destinataire ayant marqué comme important",
+                        },
+                        user_uuid: {
+                            type: "uuid",
+                            required: false,
+                            description:
+                                "Campagnes auxquelles un destinataire précis a reçu la notification",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Campagnes de notifications du groupe",
+                        example: {
+                            success: true,
+                            message:
+                                "Notifications du groupe récupérées.",
+                            code: "GROUP_NOTIFICATIONS_LISTED",
+                            data: [
+                                {
+                                    batch_uuid:
+                                        "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                                    title: "Maintenance programmée",
+                                    body: "L'application sera indisponible Sunday.",
+                                    type: "system",
+                                    channel: "database",
+                                    action_url: null,
+                                    action_label: null,
+                                    sent_at: "2026-11-18 10:30:00",
+                                    recipients: {
+                                        total: 42,
+                                        read: 30,
+                                        unread: 12,
+                                        important: 5,
+                                    },
+                                    created_by: {
+                                        uuid_user:
+                                            "550e8400-e29b-41d4-a716-446655440099",
+                                        login: "admin",
+                                        email: "admin@ynov.ci",
+                                        details: {
+                                            nom: "Admin",
+                                            prenoms: "Super",
+                                            full_name: "Super Admin",
+                                        },
+                                    },
+                                },
+                            ],
+                            meta: {
+                                current_page: 1,
+                                per_page: 20,
+                                total: 3,
+                                last_page: 1,
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Groupe introuvable",
+                        example: {
+                            success: false,
+                            message: "Not Found",
+                        },
+                    },
+                    {
+                        status: 403,
+                        description: "Permission insuffisante",
+                        example: {
+                            success: false,
+                            message: "Permission refusée.",
+                        },
+                    },
+                ],
+            },
+
+            // ============================================================
             // NOTIFICATIONS
             // ============================================================
 
@@ -14503,7 +14799,25 @@
                             type: "string",
                             required: false,
                             max: 30,
-                            description: "Canal d'envoi",
+                            description:
+                                "Canal principal (rétrocompatibilité, déprécié : utiliser channels)",
+                        },
+                        channels: {
+                            type: "array",
+                            required: true,
+                            min: 1,
+                            description:
+                                "Canaux d'envoi de la notification (un ou plusieurs)",
+                            items: {
+                                type: "string",
+                                enum: [
+                                    "database",
+                                    "email",
+                                    "sms",
+                                    "push",
+                                    "whatsapp",
+                                ],
+                            },
                         },
                         metadata: {
                             type: "object",
@@ -14576,6 +14890,23 @@
                             required: false,
                             max: 100,
                             description: "Libellé du bouton d'action",
+                        },
+                        channels: {
+                            type: "array",
+                            required: true,
+                            min: 1,
+                            description:
+                                "Canaux d'envoi de la notification (un ou plusieurs)",
+                            items: {
+                                type: "string",
+                                enum: [
+                                    "database",
+                                    "email",
+                                    "sms",
+                                    "push",
+                                    "whatsapp",
+                                ],
+                            },
                         },
                         metadata: {
                             type: "object",

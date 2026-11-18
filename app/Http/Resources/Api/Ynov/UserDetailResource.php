@@ -23,9 +23,7 @@ class UserDetailResource extends JsonResource
             'mobile_1' => $this->mobile_1,
             'mobile_2' => $this->mobile_2,
             'email_pro' => $this->email_pro,
-            'photo' => $this->photo,
-            'photo_path' => $this->photo_path,
-            'photo_url' => $this->photo_url,
+            'photo_url' => $this->photoUrl(),
             'date_naissance' => $this->date_naissance,
             'lieu_naissance' => ($this->userLieunaissance) ? $this->userLieunaissance->MonLibelle : $this->lieu_naissance,
             'lieu_residence' => ($this->userLieuresidence) ? $this->userLieuresidence->MonLibelle : $this->lieu_residence,
@@ -39,7 +37,41 @@ class UserDetailResource extends JsonResource
             'ville' => ($this->userLieuresidence) ? $this->userLieuresidence->MonLibelle : $this->ville,
             'pays' => $this->pays,
             'genre' => $this->genre,
-            'civilite' => $this->civilite,        
+            'civilite' => $this->civilite,
         ];
+    }
+
+    /**
+     * Construit l'URL publique de la photo de profil.
+     *
+     * - photo_path = 'PROFILE_PICTURE/2026/11/x.jpg' → preview/doc/x.jpg
+     * - photo_path = 'profiles/...' (legacy local) → route storage.documents
+     * - photo_path/photo = URL externe → retournée telle quelle
+     */
+    protected function photoUrl(): ?string
+    {
+        $path = $this->photo_path ?: $this->photo;
+
+        if (!$path) {
+            return null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        $cleanPath = ltrim(str_replace('\\', '/', $path), '/');
+
+        // Anciennes photos stockées en local (UPLOADS_PATH)
+        if (str_starts_with($cleanPath, 'profiles/')) {
+            try {
+                return route('storage.documents', ['file' => $cleanPath]);
+            } catch (\Exception $e) {
+                return url('/storage/documents/' . $cleanPath);
+            }
+        }
+
+        // Documents stockés via DocumentService (WebDAV)
+        return url('preview/doc/' . basename($cleanPath));
     }
 }

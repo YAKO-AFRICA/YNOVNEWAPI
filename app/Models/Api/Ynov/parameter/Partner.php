@@ -85,7 +85,7 @@ class Partner extends Model
     public function logoDocuments()
     {
         return $this->hasMany(Document::class, 'reference_uuid', 'uuid_partner')
-            ->where('source', 'PARANTER_PARTNER_LOGO')
+            ->where('source', 'PARTNER_LOGO')
             ->where('statut', 'actif');
     }
     

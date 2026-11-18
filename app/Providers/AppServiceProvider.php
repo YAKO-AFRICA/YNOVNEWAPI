@@ -15,10 +15,16 @@ use App\Services\Api\Ynov\PermissionService;
 use App\Services\Api\Ynov\RoleService;
 use App\Services\Api\Ynov\UserService;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use App\Services\Storage\BufferedWebDavAdapter;
+use League\Flysystem\Filesystem;
+use League\Flysystem\WebDAV\WebDAVAdapter;
+use Sabre\DAV\Client as SabreClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -53,5 +59,24 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
         Route::model('role', Role::class);
+
+        Storage::extend('webdav', function ($app, $config) {
+            $client = new SabreClient([
+                'baseUri'  => rtrim($config['base_uri'], '/') . '/',
+                'userName' => $config['user_name'],
+                'password' => $config['password'],
+            ]);
+
+            $adapter = new BufferedWebDavAdapter(
+                $client,
+                $config['prefix'] ?? '',
+                WebDAVAdapter::ON_VISIBILITY_IGNORE,
+                false,
+                false,
+                $config
+            );
+
+            return new FilesystemAdapter(new Filesystem($adapter, $config), $adapter, $config);
+        });
     }
 }

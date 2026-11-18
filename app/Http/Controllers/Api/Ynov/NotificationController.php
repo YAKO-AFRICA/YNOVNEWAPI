@@ -193,6 +193,8 @@ class NotificationController extends Controller
             'action_url' => ['nullable', 'string', 'max:500'],
             'action_label' => ['nullable', 'string', 'max:100'],
             'channel' => ['nullable', 'string', 'max:30'],
+            'channels' => ['required', 'array', 'min:1'],
+            'channels.*' => ['string', 'in:database,email,sms,push,whatsapp'],
             'metadata' => ['nullable', 'array'],
         ]);
 
@@ -204,7 +206,8 @@ class NotificationController extends Controller
             'type' => $validated['type'] ?? 'system',
             'action_url' => $validated['action_url'] ?? null,
             'action_label' => $validated['action_label'] ?? null,
-            'channel' => $validated['channel'] ?? 'database',
+            'channel' => $validated['channel'] ?? null,
+            'channels' => $validated['channels'],
             'metadata' => $validated['metadata'] ?? null,
             'created_by' => $request->user()->uuid_user,
         ]);
@@ -229,6 +232,8 @@ class NotificationController extends Controller
             'type' => ['nullable', 'string', 'max:50'],
             'action_url' => ['nullable', 'string', 'max:500'],
             'action_label' => ['nullable', 'string', 'max:100'],
+            'channels' => ['required', 'array', 'min:1'],
+            'channels.*' => ['string', 'in:database,email,sms,push,whatsapp'],
             'metadata' => ['nullable', 'array'],
         ]);
 
@@ -240,6 +245,7 @@ class NotificationController extends Controller
                 'type' => $validated['type'] ?? 'system',
                 'action_url' => $validated['action_url'] ?? null,
                 'action_label' => $validated['action_label'] ?? null,
+                'channels' => $validated['channels'],
                 'metadata' => $validated['metadata'] ?? null,
                 'created_by' => $request->user()->uuid_user,
             ]

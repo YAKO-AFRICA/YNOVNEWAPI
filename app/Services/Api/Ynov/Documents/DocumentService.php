@@ -101,7 +101,7 @@ class DocumentService
                         throw new \RuntimeException("Extension non autorisée : .{$extension}");
                     }
 
-                    $resultat      = $this->traiter($uploadedFile);
+                    $resultat      = $this->traiter($uploadedFile, $entry['source'] ?? $data['source'] ?? null);
                     $cheminRelatif = $resultat['chemin_relatif'];
 
                     if ($cheminRelatif) {
@@ -156,7 +156,10 @@ class DocumentService
                 return count($documentsCrees) === 1 ? $documentsCrees[0] : $documentsCrees;
             });
         } catch (\Throwable $e) {
-            Log::info('erreur de transaction', $e->getMessage());
+            Log::error('Erreur transaction documents', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
             foreach ($createdPaths as $path) {
                 if (is_string($path) && $path !== '') {
                     $this->supprimer($path);
@@ -192,7 +195,7 @@ class DocumentService
                     throw new \RuntimeException("Extension non autorisée : .{$extension}");
                 }
 
-                $resultat = $this->traiter($newFile);
+                $resultat = $this->traiter($newFile, $data['source'] ?? $document->source);
                 $nouveauChemin = $resultat['chemin_relatif'];
 
                 if (!$nouveauChemin) {
@@ -276,7 +279,7 @@ class DocumentService
     /**
      * Traite un fichier : décide s'il faut compresser, stocke, retourne les infos.
      */
-    public function traiter(UploadedFile $file): array
+    public function traiter(UploadedFile $file, ?string $categorie = null): array
     {
         $extension   = strtolower($file->getClientOriginalExtension());
         $poidsOctets = $file->getSize();
@@ -285,12 +288,13 @@ class DocumentService
         [$largeur, $hauteur] = $this->lireDimensions($file);
 
         $nomUnique = $this->genererNomUnique($file);
+        $dossier   = $this->dossierPour($categorie);
 
         $disque = Storage::disk($this->disk);
 
-        // Création du dossier année/mois si nécessaire
-        if (!$disque->exists($this->dossierRelatif)) {
-            $disque->makeDirectory($this->dossierRelatif, 0755, true, true);
+        // Création du dossier catégorie/année/mois si nécessaire
+        if (!$disque->exists($dossier)) {
+            $disque->makeDirectory($dossier, 0755, true, true);
         }
 
         $compresser = config('documents.image.enabled')
@@ -298,10 +302,10 @@ class DocumentService
             && $this->doitEtreCompresse($largeur, $hauteur, $poidsKo);
 
         if ($compresser) {
-            return $this->compresserImage($file, $nomUnique, $largeur, $hauteur, $extension);
+            return $this->compresserImage($file, $nomUnique, $dossier, $largeur, $hauteur, $extension);
         }
 
-        return $this->copieDirecte($file, $nomUnique, $extension, $largeur, $hauteur);
+        return $this->copieDirecte($file, $nomUnique, $dossier, $extension, $largeur, $hauteur);
     }
 
     /**
@@ -379,6 +383,7 @@ class DocumentService
     protected function compresserImage(
         UploadedFile $file,
         string $nomUnique,
+        string $dossierRelatif,
         int $largeurOriginale,
         int $hauteurOriginale,
         string $extension
@@ -397,11 +402,11 @@ class DocumentService
                 default       => throw new \RuntimeException("Format non supporté : {$extension}"),
             };
 
-            $cheminRelatif = $this->dossierRelatif . '/' . $nomUnique;
+            $cheminRelatif = $dossierRelatif . '/' . $nomUnique;
 
             Storage::disk($this->disk)->put($cheminRelatif, (string) $encoded);
 
-            $nouvellesDims = $this->lireDimensionsDepuisDisque($cheminRelatif);
+            $nouvellesDims = $this->lireDimensionsDepuisContenu((string) $encoded);
             $tailleFinale  = Storage::disk($this->disk)->size($cheminRelatif);
 
             Log::info('[DocumentService] Image compressée', [
@@ -428,7 +433,7 @@ class DocumentService
                 'erreur'       => $e->getMessage(),
             ]);
 
-            return $this->copieDirecte($file, $nomUnique, $extension, $largeurOriginale, $hauteurOriginale);
+            return $this->copieDirecte($file, $nomUnique, $dossierRelatif, $extension, $largeurOriginale, $hauteurOriginale);
         }
     }
 
@@ -436,26 +441,16 @@ class DocumentService
     protected function copieDirecte(
         UploadedFile $file,
         string $nomUnique,
+        string $dossierRelatif,
         string $extension,
         int $largeur,
         int $hauteur
     ): array {
-        $cheminRelatif = $file->storeAs($this->dossierRelatif, $nomUnique, $this->disk);
-        // ⚠️ AJOUTE CE BLOC
-        Log::info('[DocumentService] copieDirecte', [
-            'disk'            => $this->disk,
-            'root'            => Storage::disk($this->disk)->path(''),
-            'dossierRelatif'  => $this->dossierRelatif,
-            'cheminRelatif'   => $cheminRelatif,
-            'file_real_path'  => $file->getRealPath(),
-            'file_exists'     => file_exists($file->getRealPath()),
-            'root_is_dir'     => is_dir(Storage::disk($this->disk)->path('')),
-            'root_is_writable'=> is_writable(Storage::disk($this->disk)->path('')),
-        ]);
+        $cheminRelatif = $file->storeAs($dossierRelatif, $nomUnique, $this->disk);
 
         if (!$cheminRelatif) {
             throw new \RuntimeException(
-                "Échec du stockage direct dans {$this->dossierRelatif} (disque: {$this->disk})"
+                "Échec du stockage direct dans {$dossierRelatif} (disque: {$this->disk})"
             );
         }
 
@@ -479,6 +474,27 @@ class DocumentService
     // ========================================================================
     // UTILITAIRES
     // ========================================================================
+
+    /**
+     * Construit le sous-dossier de stockage : CATEGORIE/année/mois.
+     */
+    protected function dossierPour(?string $categorie = null): string
+    {
+        return $this->normaliserCategorie($categorie) . '/' . $this->dossierRelatif;
+    }
+
+    /**
+     * Normalise une catégorie/source en nom de dossier safe :
+     * majuscules, A-Z0-9 et tirets uniquement. Vide → dossier par défaut.
+     */
+    protected function normaliserCategorie(?string $categorie): string
+    {
+        $cat = strtoupper(trim((string) ($categorie ?? '')));
+        $cat = (string) preg_replace('/[^A-Z0-9]+/', '-', $cat);
+        $cat = trim($cat, '-');
+
+        return $cat !== '' ? $cat : (string) config('documents.default_folder', 'AUTRES');
+    }
 
     protected function genererNomUnique(UploadedFile $file): string
     {
@@ -504,10 +520,9 @@ class DocumentService
         return [(int) $infos[0], (int) $infos[1]];
     }
 
-    protected function lireDimensionsDepuisDisque(string $cheminRelatif): array
+    protected function lireDimensionsDepuisContenu(string $contenu): array
     {
-        $cheminAbsolu = Storage::disk($this->disk)->path($cheminRelatif);
-        $infos        = @getimagesize($cheminAbsolu);
+        $infos = @getimagesizefromstring($contenu);
 
         if ($infos === false) {
             return ['width' => 0, 'height' => 0];
@@ -523,7 +538,6 @@ class DocumentService
     protected function construireUrlPublique(string $cheminRelatif): string
     {
         $base   = rtrim((string) url('/'), '/');
-        // $base   = rtrim((string) env('APP_URL', 'http://localhost'), '/');
         $prefix = '/' . trim((string) config('documents.url_prefix', '/docnumerises/PROD'), '/');
 
         return $base . $prefix . '/' . ltrim($cheminRelatif, '/');

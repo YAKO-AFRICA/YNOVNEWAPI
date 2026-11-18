@@ -383,25 +383,6 @@ Route::prefix('signature')->group(function () {
       ->name('signature.demo.status');
 });
 
-// Route::get('storage/doc/{file}', function ($file) {
-//     // Nettoyer le nom du fichier
-//     $path = base_path(env('DOC_PATH') . $file);
-
-
-//     // Si toujours pas trouvé
-//     if (!file_exists($path)) {
-//         abort(404, 'Fichier non trouvé: ' . $file);
-//     }
-
-//     $fileContents = file_get_contents($path);
-//     $mimeType = mime_content_type($path);
-
-//     return Response::make($fileContents, 200, [
-//         'Content-Type' => $mimeType,
-//         'Cache-Control' => 'public, max-age=86400',
-//     ]);
-// })->where('file', '.*')->name('storage.documents');
-
 Route::get('preview/doc/{file}', function ($file) {
     $doc = Document::where('nom_fichier', $file)->first();
 
@@ -415,19 +396,36 @@ Route::get('preview/doc/{file}', function ($file) {
     // On utilise le disque configuré + le chemin relatif stocké en BDD
     $disk = Storage::disk(config('documents.disk'));
 
-    if (!$disk->exists($doc->chemin)) {
+    // Le champ `chemin` peut contenir une URL complète ou un chemin relatif
+    $chemin = (string) $doc->chemin;
+    if (str_contains($chemin, '://')) {
+        $path = parse_url($chemin, PHP_URL_PATH) ?: '';
+        if (preg_match('#/docnumerises/(?:PROD|TEST)/(.*)$#', $path, $m)) {
+            $chemin = $m[1];
+        } else {
+            $chemin = ltrim($path, '/');
+        }
+    }
+    $chemin = ltrim($chemin, '/');
+
+    if (!$disk->exists($chemin)) {
         return response()->json([
             'success' => false,
             'message' => "Le fichier {$doc->nom_fichier} n'existe pas dans le répertoire.",
             'chemin'  => $doc->chemin,
-            'root'    => $disk->path(''),
         ], 404);
     }
 
-    $absolutePath = $disk->path($doc->chemin);
+    // return response()->streamDownload(function () use ($disk, $chemin, $doc)
+    return response()->stream(function () use ($disk, $chemin) {
+        $stream = $disk->readStream($chemin);
 
-    return response()->file($absolutePath, [
-        'Content-Type'        => $doc->mime_type ?: mime_content_type($absolutePath),
+        if (is_resource($stream)) {
+            fpassthru($stream);
+            fclose($stream);
+        }
+    }, 200, [
+        'Content-Type'        => $doc->mime_type,
         'Content-Disposition' => 'inline; filename="' . $doc->nom_fichier . '"',
     ]);
 })->where('file', '.*');

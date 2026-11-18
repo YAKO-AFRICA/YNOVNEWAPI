@@ -338,7 +338,7 @@ class TwoFactorController extends Controller
 
         $user = $request->user();
 
-        if (!$user || !$request->user()->currentAccessToken()->can('2fa-verify')) {
+        if (!$user || !$request->user()->currentAccessToken()->hasPermission('2fa-verify')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Token invalide.'

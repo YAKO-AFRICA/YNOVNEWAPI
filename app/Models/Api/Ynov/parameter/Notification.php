@@ -72,6 +72,14 @@ class Notification extends Model
     }
 
     /**
+     * Relation avec l'utilisateur ayant créé la notification
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    /**
      * Marquer comme lue
      */
     public function markAsRead(): self
@@ -182,7 +190,10 @@ class Notification extends Model
      */
     public function scopeChannel($query, string $channel)
     {
-        return $query->where('channel', $channel);
+        return $query->where(function ($q) use ($channel) {
+            $q->where('channel', $channel)
+              ->orWhereJsonContains('metadata->channels', $channel);
+        });
     }
 
     /**

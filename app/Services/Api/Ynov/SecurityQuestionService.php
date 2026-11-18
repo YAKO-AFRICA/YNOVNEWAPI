@@ -117,6 +117,35 @@ class SecurityQuestionService
     }
 
     /**
+     * Liste paginée des questions de sécurité (admin)
+     */
+    public function getQuestions(array $filters = [], int $perPage = 20)
+    {
+        $query = SecurityQuestion::query()
+            ->withCount('userAnswers')
+            ->with(['createdBy.details', 'updatedBy.details', 'deletedBy.details']);
+
+        if (isset($filters['category'])) {
+            $query->category($filters['category']);
+        }
+
+        if (isset($filters['is_active'])) {
+            $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (isset($filters['is_system'])) {
+            $query->where('is_system', filter_var($filters['is_system'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (isset($filters['search'])) {
+            $search = $filters['search'];
+            $query->where('question_text', 'LIKE', "%{$search}%");
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
+    /**
      * Récupérer les questions d'un utilisateur avec ses réponses
      */
     public function getQuestionsForUser(User $user): array

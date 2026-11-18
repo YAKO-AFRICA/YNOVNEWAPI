@@ -317,12 +317,15 @@ Route::prefix('v1')->middleware([
     Route::post('users/by-role', [UserController::class, 'getUserByCodeRole']);
 
     // Gestion des agences pour un utilisateur
-    Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
-        Route::get('/', [UserController::class, 'getAgences']);
-        Route::post('/', [UserController::class, 'assignAgences']);
-        Route::put('/', [UserController::class, 'syncAgences']);
-        Route::patch('/primary', [UserController::class, 'setPrimaryAgence']);
-        Route::delete('/{uuid_agence}', [UserController::class, 'removeAgence']);
+    // Route::group(['prefix' => 'users/{uuid_user}/agences', 'middleware' => 'permission:agences.assigner_utilisateurs'], function () {
+    Route::prefix('users/{uuid_user}/agences')->group(function () {
+        Route::group(['middleware' => 'permission:agences.assigner_utilisateurs'], function () {
+            Route::get('/', [UserController::class, 'getAgences']);
+            Route::post('/', [UserController::class, 'assignAgences']);
+            Route::put('/', [UserController::class, 'syncAgences']);
+            Route::patch('/primary', [UserController::class, 'setPrimaryAgence']);
+            Route::delete('/{uuid_agence}', [UserController::class, 'removeAgence']);
+        });
     });
 
     Route::delete('users/{uuid_user}', [UserController::class, 'destroy'])->middleware('permission:users.supprimer');
@@ -421,6 +424,8 @@ Route::prefix('v1')->middleware([
     // Routes admin des questions de sécurité
     // ================================================================
     Route::prefix('admin/security')->middleware('permission:security_questions.gerer')->group(function () {
+        Route::get('questions', [SecurityQuestionController::class, 'index']);
+        Route::get('questions/{uuid}', [SecurityQuestionController::class, 'show']);
         Route::post('questions', [SecurityQuestionController::class, 'createQuestion']);
         Route::put('questions/{uuid}', [SecurityQuestionController::class, 'updateQuestion']);
         Route::delete('questions/{uuid}', [SecurityQuestionController::class, 'deleteQuestion']);
@@ -606,6 +611,10 @@ Route::prefix('v1')->middleware([
 
         Route::delete('{uuid_group_notif}/users/{uuid_user}', [GroupNotifController::class, 'removeUser'])
             ->middleware('permission:group_notifs.assigner');
+
+        // Notifications envoyées via ce groupe
+        Route::get('{uuid_group_notif}/notifications', [GroupNotifController::class, 'notifications'])
+            ->middleware('permission:group_notifs.afficher');
     });
     // ============================================================
     // NOTIFICATIONS

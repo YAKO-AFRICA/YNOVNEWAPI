@@ -7,6 +7,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class GroupNotifResource extends JsonResource
 {
+    private const CHANNEL_LABELS = [
+        'database' => ['code' => 'database', 'label' => 'Base de données', 'icon' => 'bi-database'],
+        'email' => ['code' => 'email', 'label' => 'Email', 'icon' => 'bi-envelope'],
+        'sms' => ['code' => 'sms', 'label' => 'SMS', 'icon' => 'bi-phone'],
+        'push' => ['code' => 'push', 'label' => 'Push mobile', 'icon' => 'bi-bell'],
+        'whatsapp' => ['code' => 'whatsapp', 'label' => 'WhatsApp', 'icon' => 'bi-whatsapp'],
+    ];
+
     public function toArray(Request $request): array
     {
         return [
@@ -15,6 +23,9 @@ class GroupNotifResource extends JsonResource
             'libelle' => $this->libelle,
             'description' => $this->description,
             'channels' => $this->channels,
+            'channels_details' => collect($this->channels ?? [])->map(function ($code) {
+                return self::CHANNEL_LABELS[$code] ?? ['code' => $code, 'label' => $code];
+            })->values(),
             'preferences' => $this->preferences,
             'status' => $this->status,
             'is_active' => $this->isActive(),
@@ -34,6 +45,16 @@ class GroupNotifResource extends JsonResource
                             'is_primary' => $user->pivot->is_primary ?? false,
                             'is_active' => $user->pivot->is_active ?? true,
                             'assigned_at' => $user->pivot->assigned_at?->toDateTimeString(),
+                            'assigned_by' => $user->pivot->assignedBy ? [
+                                'uuid_user' => $user->pivot->assignedBy->uuid_user,
+                                'login' => $user->pivot->assignedBy->login,
+                                'email' => $user->pivot->assignedBy->email,
+                                'details' => [
+                                    'nom' => $user->pivot->assignedBy->details?->nom,
+                                    'prenoms' => $user->pivot->assignedBy->details?->prenoms,
+                                    'full_name' => $user->pivot->assignedBy->details?->full_name,
+                                ],
+                            ] : null,
                         ],
                     ];
                 });

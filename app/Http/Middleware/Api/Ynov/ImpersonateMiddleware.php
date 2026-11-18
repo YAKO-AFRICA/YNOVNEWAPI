@@ -18,7 +18,7 @@ class ImpersonateMiddleware
             // Vérifier que l'impersonateur a le droit
             $impersonator = User::where('uuid_user', $impersonatorId)->first();
             
-            if (!$impersonator || !$impersonator->can('impersonate')) {
+            if (!$impersonator || !$impersonator->hasPermission('impersonate')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vous n\'avez pas le droit d\'impersonner cet utilisateur.',

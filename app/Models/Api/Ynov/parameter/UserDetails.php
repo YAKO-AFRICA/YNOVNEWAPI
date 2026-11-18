@@ -40,7 +40,6 @@ class UserDetails extends Model
         'email_pro',
         'photo',
         'photo_path',
-        'photo_url',
         'date_naissance',
         'lieu_naissance',
         'lieu_residence',
@@ -89,44 +88,6 @@ class UserDetails extends Model
     public function userLieunaissance(): BelongsTo
     {
         return $this->belongsTo(Ville::class, 'lieu_naissance', 'codeVille');
-    }
-
-    /**
-     * Obtenir le photo_path nettoyé
-     */
-    public function getCleanPhotoPathAttribute(): ?string
-    {
-        if (!$this->photo_path) {
-            return null;
-        }
-        return str_replace('\\', '/', $this->photo_path);
-    }
-
-    /**
-     * Obtenir l'URL complète de la photo
-     */
-    public function getPhotoUrlAttribute(): ?string
-    {
-        // Si photo est une URL externe
-        if ($this->photo && filter_var($this->photo, FILTER_VALIDATE_URL)) {
-            return $this->photo;
-        }
-        
-        $path = $this->clean_photo_path ?? $this->photo;
-        
-        if ($path && !filter_var($path, FILTER_VALIDATE_URL)) {
-            // Nettoyer le chemin
-            $cleanPath = str_replace('\\', '/', $path);
-            $cleanPath = ltrim($cleanPath, '/');
-            
-            try {
-                return route('storage.documents', ['file' => $cleanPath]);
-            } catch (\Exception $e) {
-                return url('/storage/documents/' . $cleanPath);
-            }
-        }
-        
-        return null;
     }
 
     /**

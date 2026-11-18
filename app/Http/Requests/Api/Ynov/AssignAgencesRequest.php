@@ -8,7 +8,7 @@ class AssignAgencesRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('agences.assigner_utilisateurs') ?? false;
+        return $this->user()?->hasPermission('agences.assigner_utilisateurs') ?? false;
     }
 
     public function rules(): array

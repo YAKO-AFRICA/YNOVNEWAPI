@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 
 class CustomerMail extends Mailable
 {
@@ -49,9 +50,16 @@ class CustomerMail extends Mailable
         }
 
         return [
-            Attachment::fromStorageDisk($attachment['disk'], $attachment['path'])
-                ->as($attachment['name'])
-                ->withMime($attachment['mime'] ?? 'application/octet-stream'),
+            Attachment::fromData(
+                fn () => Storage::disk($attachment['disk'])->get($attachment['path']),
+                $attachment['name']
+            )->withMime($attachment['mime'] ?? 'application/octet-stream'),
         ];
+
+        // return [
+        //     Attachment::fromStorageDisk($attachment['disk'], $attachment['path'])
+        //         ->as($attachment['name'])
+        //         ->withMime($attachment['mime'] ?? 'application/octet-stream'),
+        // ];
     }
 }

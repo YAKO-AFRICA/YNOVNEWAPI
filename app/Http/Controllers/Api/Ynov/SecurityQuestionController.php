@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Ynov;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\Ynov\SecurityQuestionResource;
 use App\Models\Api\Ynov\parameter\SecurityQuestion;
 use App\Models\Api\Ynov\parameter\User;
 use App\Services\Api\Ynov\Auth\ThrottleService;
@@ -306,6 +307,48 @@ class SecurityQuestionController extends Controller
     }
 
     /**
+     * Admin : Liste paginée des questions de sécurité
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $filters = $request->only(['category', 'is_active', 'is_system', 'search']);
+        $perPage = $request->integer('per_page', 20);
+
+        $questions = $this->securityQuestionService->getQuestions($filters, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Questions de sécurité récupérées.',
+            'code' => 'SECURITY_QUESTIONS_LISTED',
+            'data' => SecurityQuestionResource::collection($questions->items()),
+            'meta' => [
+                'current_page' => $questions->currentPage(),
+                'per_page' => $questions->perPage(),
+                'total' => $questions->total(),
+                'last_page' => $questions->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Admin : Détail d'une question de sécurité
+     */
+    public function show(string $uuid): JsonResponse
+    {
+        $question = SecurityQuestion::where('uuid', $uuid)
+            ->withCount('userAnswers')
+            ->with(['createdBy.details', 'updatedBy.details', 'deletedBy.details'])
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Détail de la question de sécurité.',
+            'code' => 'SECURITY_QUESTION_FOUND',
+            'data' => new SecurityQuestionResource($question->loadMissing(['createdBy.details', 'updatedBy.details', 'deletedBy.details'])),
+        ]);
+    }
+
+    /**
      * Admin : Créer une nouvelle question de sécurité
      */
     public function createQuestion(Request $request): JsonResponse
@@ -334,7 +377,7 @@ class SecurityQuestionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Question de sécurité créée avec succès.',
-                'data' => $question,
+                'data' => new SecurityQuestionResource($question->loadMissing(['createdBy.details', 'updatedBy.details', 'deletedBy.details'])),
             ], 201);
 
         } catch (\RuntimeException $e) {
@@ -377,7 +420,7 @@ class SecurityQuestionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Question de sécurité mise à jour avec succès.',
-                'data' => $updated,
+                'data' => new SecurityQuestionResource($updated->loadMissing(['createdBy.details', 'updatedBy.details', 'deletedBy.details'])),
             ]);
 
         } catch (\RuntimeException $e) {
