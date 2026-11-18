@@ -5,12 +5,14 @@ namespace App\Models\Api\Ynov\parameter;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Models\Api\Ynov\parameter\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Concerns\AsPivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class UserGroupNotif extends Model
 {
-    
+    use AsPivot;
+
     protected $table = 'user_group_notifs';
 
     protected $primaryKey = 'uuid_user_group_notif';

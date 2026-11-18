@@ -72,6 +72,14 @@ class Notification extends Model
     }
 
     /**
+     * Relation avec l'utilisateur ayant créé la notification
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'uuid_user');
+    }
+
+    /**
      * Marquer comme lue
      */
     public function markAsRead(): self

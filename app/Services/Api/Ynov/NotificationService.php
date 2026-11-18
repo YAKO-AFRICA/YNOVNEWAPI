@@ -94,11 +94,55 @@ class NotificationService
             $query->where('group_notif_uuid', $groupNotifUuid);
         })->get();
 
+        $batchUuid = (string) Str::uuid();
+
         $notifications = [];
         foreach ($users as $user) {
-            $notifications[] = $this->create(array_merge($data, ['user_uuid' => $user->uuid_user]));
+            $notifications[] = $this->create(array_merge($data, [
+                'user_uuid' => $user->uuid_user,
+                'group_notif_uuid' => $groupNotifUuid,
+                'metadata' => array_merge($data['metadata'] ?? [], ['batch_uuid' => $batchUuid]),
+            ]));
         }
         return $notifications;
+    }
+
+    /**
+     * Récupérer toutes les notifications envoyées via un groupe (admin)
+     */
+    public function getGroupNotifications(string $groupNotifUuid, array $filters = [], int $perPage = 20)
+    {
+        $query = Notification::inGroup($groupNotifUuid)->with(['user.details']);
+
+        if (isset($filters['read'])) {
+            $filters['read'] ? $query->read() : $query->unread();
+        }
+
+        if (isset($filters['important']) && $filters['important']) {
+            $query->important();
+        }
+
+        if (isset($filters['type'])) {
+            $query->ofType($filters['type']);
+        }
+
+        if (isset($filters['channel'])) {
+            $query->channel($filters['channel']);
+        }
+
+        if (isset($filters['user_uuid'])) {
+            $query->where('user_uuid', $filters['user_uuid']);
+        }
+
+        if (isset($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('body', 'LIKE', "%{$search}%");
+            });
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
     /**
@@ -140,6 +184,85 @@ class NotificationService
         }
 
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
+    /**
+     * Récupérer les campagnes de notifications d'un groupe (une ligne par envoi)
+     */
+    public function getGroupNotificationCampaigns(string $groupNotifUuid, array $filters = [], int $perPage = 20)
+    {
+        $batchExpr = "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(notifications.metadata, '$.batch_uuid')), notifications.uuid_notification)";
+
+        $query = Notification::inGroup($groupNotifUuid)
+            ->selectRaw("{$batchExpr} as batch_uuid")
+            ->selectRaw('MIN(title) as title')
+            ->selectRaw('MIN(body) as body')
+            ->selectRaw('MIN(type) as type')
+            ->selectRaw('MIN(channel) as channel')
+            ->selectRaw('MIN(action_url) as action_url')
+            ->selectRaw('MIN(action_label) as action_label')
+            ->selectRaw('MIN(created_by) as created_by')
+            ->selectRaw('MIN(created_at) as sent_at')
+            ->selectRaw('COUNT(*) as recipients_total')
+            ->selectRaw('SUM(CASE WHEN read_at IS NOT NULL THEN 1 ELSE 0 END) as recipients_read')
+            ->selectRaw('SUM(CASE WHEN read_at IS NULL THEN 1 ELSE 0 END) as recipients_unread')
+            ->selectRaw('SUM(CASE WHEN is_important = 1 THEN 1 ELSE 0 END) as recipients_important')
+            ->groupBy('batch_uuid');
+
+        // Filtres au niveau campagne
+        if (isset($filters['type'])) {
+            $query->ofType($filters['type']);
+        }
+
+        if (isset($filters['channel'])) {
+            $query->channel($filters['channel']);
+        }
+
+        if (isset($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('body', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filtres par destinataire : campagne ayant au moins un destinataire correspondant
+        $hasRecipientFilter = isset($filters['read']) || !empty($filters['important']) || isset($filters['user_uuid']);
+        if ($hasRecipientFilter) {
+            $match = Notification::inGroup($groupNotifUuid)->selectRaw("{$batchExpr} as b");
+
+            if (isset($filters['read'])) {
+                $filters['read'] ? $match->read() : $match->unread();
+            }
+            if (!empty($filters['important'])) {
+                $match->important();
+            }
+            if (isset($filters['user_uuid'])) {
+                $match->where('user_uuid', $filters['user_uuid']);
+            }
+
+            $batches = $match->distinct()->pluck('b');
+
+            if ($batches->isEmpty()) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereRaw(
+                    "{$batchExpr} IN (" . implode(',', array_fill(0, $batches->count(), '?')) . ")",
+                    $batches->all()
+                );
+            }
+        }
+
+        $paginator = $query->orderBy('sent_at', 'desc')->paginate($perPage);
+
+        // Hydrater createdBy pour chaque campagne
+        $creatorUuids = $paginator->getCollection()->pluck('created_by')->filter()->unique();
+        $creators = User::whereIn('uuid_user', $creatorUuids)->with('details')->get()->keyBy('uuid_user');
+        $paginator->getCollection()->each(function ($item) use ($creators) {
+            $item->setRelation('createdBy', $creators->get($item->created_by));
+        });
+
+        return $paginator;
     }
 
     /**

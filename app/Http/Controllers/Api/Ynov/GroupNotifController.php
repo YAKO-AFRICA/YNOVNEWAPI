@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Ynov\StoreGroupNotifRequest;
 use App\Http\Requests\Api\Ynov\UpdateGroupNotifRequest;
 use App\Http\Resources\Api\Ynov\GroupNotifResource;
+use App\Http\Resources\Api\Ynov\NotificationCampaignResource;
+use App\Http\Resources\Api\Ynov\NotificationResource;
 use App\Models\Api\Ynov\parameter\GroupNotif;
 use App\Services\Api\Ynov\GroupNotifService;
+use App\Services\Api\Ynov\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -15,8 +18,39 @@ use Illuminate\Validation\ValidationException;
 class GroupNotifController extends Controller
 {
     public function __construct(
-        private GroupNotifService $groupNotifService
+        private GroupNotifService $groupNotifService,
+        private NotificationService $notificationService
     ) {}
+
+    /**
+     * Notifications envoyées via ce groupe (paginé)
+     */
+    public function notifications(Request $request, string $uuid_group_notif): JsonResponse
+    {
+        GroupNotif::where('uuid_group_notif', $uuid_group_notif)->firstOrFail();
+
+        $filters = $request->only(['read', 'important', 'type', 'channel', 'user_uuid', 'search']);
+        $perPage = $request->integer('per_page', 20);
+
+        $notifications = $this->notificationService->getGroupNotificationCampaigns(
+            $uuid_group_notif,
+            $filters,
+            $perPage
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifications du groupe récupérées.',
+            'code' => 'GROUP_NOTIFICATIONS_LISTED',
+            'data' => NotificationCampaignResource::collection($notifications),
+            'meta' => [
+                'current_page' => $notifications->currentPage(),
+                'per_page' => $notifications->perPage(),
+                'total' => $notifications->total(),
+                'last_page' => $notifications->lastPage(),
+            ]
+        ]);
+    }
 
     /**
      * Liste des groupes de notification

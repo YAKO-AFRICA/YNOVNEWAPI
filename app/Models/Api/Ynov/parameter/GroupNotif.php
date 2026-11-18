@@ -61,7 +61,8 @@ class GroupNotif extends Model
             'user_uuid',
             'uuid_group_notif',
             'uuid_user'
-        )->withPivot([
+        )->using(UserGroupNotif::class)
+        ->withPivot([
             'is_primary',
             'is_active',
             'assigned_at',

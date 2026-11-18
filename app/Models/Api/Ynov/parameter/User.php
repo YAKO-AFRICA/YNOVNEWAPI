@@ -260,7 +260,8 @@ class User extends Authenticatable
             'group_notif_uuid',
             'uuid_user',
             'uuid_group_notif'
-        )->withPivot([
+        )->using(UserGroupNotif::class)
+        ->withPivot([
             'is_primary',
             'is_active',
             'assigned_at',

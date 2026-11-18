@@ -30,6 +30,18 @@ class NotificationResource extends JsonResource
                 ];
             }),
             'metadata' => $this->metadata,
+            'user' => $this->whenLoaded('user', function () {
+                return [
+                    'uuid_user' => $this->user->uuid_user,
+                    'login' => $this->user->login,
+                    'email' => $this->user->email,
+                    'details' => [
+                        'nom' => $this->user->details?->nom,
+                        'prenoms' => $this->user->details?->prenoms,
+                        'full_name' => $this->user->details?->full_name,
+                    ],
+                ];
+            }),
         ];
     }
 }

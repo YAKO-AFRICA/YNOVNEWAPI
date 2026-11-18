@@ -34,6 +34,16 @@ class GroupNotifResource extends JsonResource
                             'is_primary' => $user->pivot->is_primary ?? false,
                             'is_active' => $user->pivot->is_active ?? true,
                             'assigned_at' => $user->pivot->assigned_at?->toDateTimeString(),
+                            'assigned_by' => $user->pivot->assignedBy ? [
+                                'uuid_user' => $user->pivot->assignedBy->uuid_user,
+                                'login' => $user->pivot->assignedBy->login,
+                                'email' => $user->pivot->assignedBy->email,
+                                'details' => [
+                                    'nom' => $user->pivot->assignedBy->details?->nom,
+                                    'prenoms' => $user->pivot->assignedBy->details?->prenoms,
+                                    'full_name' => $user->pivot->assignedBy->details?->full_name,
+                                ],
+                            ] : null,
                         ],
                     ];
                 });

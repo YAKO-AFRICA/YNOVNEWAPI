@@ -609,6 +609,10 @@ Route::prefix('v1')->middleware([
 
         Route::delete('{uuid_group_notif}/users/{uuid_user}', [GroupNotifController::class, 'removeUser'])
             ->middleware('permission:group_notifs.assigner');
+
+        // Notifications envoyées via ce groupe
+        Route::get('{uuid_group_notif}/notifications', [GroupNotifController::class, 'notifications'])
+            ->middleware('permission:group_notifs.afficher');
     });
     // ============================================================
     // NOTIFICATIONS
