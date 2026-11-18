@@ -13,16 +13,18 @@ class DraftPropoController extends Controller
 
     public function createDraftPropo(Request $request)
     {
-        $user = $request->user()?->uuid_user ?? $request->created_by ?? 'ND';
+        $userCretead = $request->user()?->uuid_user ?? $request->created_by ?? 'ND';
+        $userConseiller = $request->user()?->uuid_user ?? $request->conseiller_uuid ?? 'ND';
 
         $createDraft = Contrat::create([
             'uuid_contrat' => str()->uuid(),
             'id_contrat' => $this->generateNextIdContrat(),
+            'conseiller_uuid' => $userConseiller,
             'code_produit' => $request->code_produit,
             'libelle_produit' => $request->libelle_produit,
             'formule_produit_code' => $request->formule_produit_code,
             'etape' => 0,
-            'created_by' => $user,
+            'created_by' => $userCretead,
         ]);
 
 
