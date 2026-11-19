@@ -56,37 +56,66 @@ class EncaissementBisService
             return $this->failure('Ce contrat n\'est pas pris en charge par YNOV.');
         }
 
-        // Recupérer le nombre de primes encaissées
-        $NbrencConfirmer = count($data['enc']['confirmer'] ?? []);
-
-        $TotalEncaissementPartielle = array_sum(array_map(function ($item) {
-            return isset($item['MontantNet']) ? (float) $item['MontantNet'] : 0;
-        }, $data['enc']['partielle'] ?? []));
-
-        $NbrencPartielle = count($data['enc']['partielle'] ?? []);
-
-
-
         // Recupérer le montant total des primes encaissées
         $TotalEncaissement = array_sum(array_map(function ($item) {
             return isset($item['RegltMontant']) ? (float) $item['RegltMontant'] : 0;
         }, $data['enc']['confirmer'] ?? []));
 
+        // Récupérer le montant total des primes encaissées (TypePresentation = N)
+        $TotalEncaissementNormal = array_sum(array_map(function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N'
+                ? (float) ($item['RegltMontant'] ?? 0)
+                : 0;
+        }, $data['enc']['confirmer'] ?? []));
+
+
+        // Recupérer le nombre de primes encaissées
+        $NbrencConfirmer = count($data['enc']['confirmer'] ?? []);
+        $NbrencConfirmerNormal = count(array_filter($data['enc']['confirmer'] ?? [], function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N';
+        }));
         // Mettre à jour les variables
         $data['details'][0]['NbreEncaissment'] = $NbrencConfirmer;
         $data['details'][0]['TotalEncaissement'] = $TotalEncaissement;
 
+        // Recupérer le montant total des primes encaissées partiellement
+        $TotalEncaissementPartielle = array_sum(array_map(function ($item) {
+            return isset($item['MontantNet']) ? (float) $item['MontantNet'] : 0;
+        }, $data['enc']['partielle'] ?? []));
+
+        $TotalEncaissementPartielleNormal = array_sum(array_map(function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N'
+                ? (float) ($item['MontantNet'] ?? 0)
+                : 0;
+        }, $data['enc']['partielle'] ?? []));
+
+        $NbrencPartielle = count($data['enc']['partielle'] ?? []);
+
+        $NbrencPartielleNormal = count(array_filter($data['enc']['partielle'] ?? [], function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N';
+        }));
+
+        // Mettre à jour les variables
         $data['details'][0]['NbrencPartielle'] = $NbrencPartielle;
         $data['details'][0]['TotalEncaissementPartielle'] = $TotalEncaissementPartielle;
         
 
-
         // Recupérer le nombre de primes impayées ou en attente
         $NbreImpayes = count($data['enc']['nonRegle'] ?? []);
+
+        $NbreImpayesNormal = count(array_filter($data['enc']['nonRegle'] ?? [], function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N';
+        }));
 
         // Recupérer le montant total des primes impayées ou en attente
         $TotalImpayes = array_sum(array_map(function ($item) {
             return isset($item['MontantNet']) ? (float) $item['MontantNet'] : 0;
+        }, $data['enc']['nonRegle'] ?? []));
+
+        $TotalImpayesNormal = array_sum(array_map(function ($item) {
+            return ($item['TypePresentation'] ?? null) === 'N'
+                ? (float) ($item['MontantNet'] ?? 0)
+                : 0;
         }, $data['enc']['nonRegle'] ?? []));
 
         $data['details'][0]['NbreImpayes'] = $NbreImpayes;
@@ -104,10 +133,12 @@ class EncaissementBisService
         $data['details'][0]['DureeCotisationAns'] = $DureeCotisationAns;
         $data['details'][0]['TotalPrime'] = $prime;
 
-        $TotalEmission = (float) ($data['details'][0]['TotalEmission'] ?? 0);
+        $TotalEmission = (float) ($TotalEncaissementNormal + $TotalEncaissementPartielleNormal + $TotalImpayesNormal);
+        // $TotalEmission = (float) ($data['details'][0]['TotalEmission'] ?? 0);
         $data['details'][0]['TotalEmission'] = $TotalEmission;
 
-        $NbreEmission = (int) ($data['details'][0]['NbreEmission'] ?? 0);
+        $NbreEmission = (int) ($NbrencConfirmerNormal + $NbrencPartielleNormal + $NbreImpayesNormal);
+        // $NbreEmission = (int) ($data['details'][0]['NbreEmission'] ?? 0);
         $data['details'][0]['NbreEmission'] = $NbreEmission;
 
         // Conversion des dates avec gestion d'erreurs

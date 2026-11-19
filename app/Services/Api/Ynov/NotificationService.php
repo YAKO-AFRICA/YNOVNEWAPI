@@ -155,6 +155,98 @@ class NotificationService
     }
 
     /**
+     * Requête ciblant toutes les copies d'une campagne de notifications d'un groupe.
+     * Le batch_uuid correspond à metadata.batch_uuid, ou à uuid_notification
+     * pour les notifications unitaires (sans batch).
+     */
+    private function campaignQuery(string $groupNotifUuid, string $batchUuid)
+    {
+        return Notification::inGroup($groupNotifUuid)
+            ->where(function ($q) use ($batchUuid) {
+                $q->where('uuid_notification', $batchUuid)
+                  ->orWhere('metadata->batch_uuid', $batchUuid);
+            });
+    }
+
+    /**
+     * Mettre à jour toutes les copies d'une campagne de notifications d'un groupe
+     */
+    public function updateGroupNotificationCampaign(string $groupNotifUuid, string $batchUuid, array $data, string $userUuid): int
+    {
+        $query = $this->campaignQuery($groupNotifUuid, $batchUuid);
+
+        if (!$query->exists()) {
+            return 0;
+        }
+
+        $updates = ['updated_by' => $userUuid];
+
+        if (array_key_exists('title', $data)) {
+            $updates['title'] = $data['title'] !== null ? $this->cleanString($data['title']) : null;
+        }
+
+        if (array_key_exists('body', $data)) {
+            $updates['body'] = $data['body'] !== null ? $this->cleanString($data['body']) : null;
+        }
+
+        foreach (['type', 'action_url', 'action_label'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $updates[$field] = $data[$field];
+            }
+        }
+
+        if (!empty($data['channels']) && is_array($data['channels'])) {
+            $channels = array_values($data['channels']);
+            $updates['channel'] = $channels[0] ?? 'database';
+            $updates['metadata->channels'] = $channels;
+        }
+
+        $count = $query->update($updates);
+
+        ActivityLog::log([
+            'user_uuid' => $userUuid,
+            'action' => 'group_notification_campaign_updated',
+            'action_type' => 'notification',
+            'module' => 'notifications',
+            'description' => "Campagne de notifications mise à jour ({$count} copies) : {$batchUuid}",
+            'resource_type' => 'notification',
+            'resource_id' => $batchUuid,
+            'new_values' => $updates,
+            'level' => 'info',
+        ]);
+
+        return $count;
+    }
+
+    /**
+     * Supprimer (soft delete) toutes les copies d'une campagne de notifications d'un groupe
+     */
+    public function deleteGroupNotificationCampaign(string $groupNotifUuid, string $batchUuid, string $userUuid): int
+    {
+        $notifications = $this->campaignQuery($groupNotifUuid, $batchUuid)->get();
+
+        if ($notifications->isEmpty()) {
+            return 0;
+        }
+
+        $title = $notifications->first()->title;
+        $count = $this->campaignQuery($groupNotifUuid, $batchUuid)->delete();
+
+        ActivityLog::log([
+            'user_uuid' => $userUuid,
+            'action' => 'group_notification_campaign_deleted',
+            'action_type' => 'notification',
+            'module' => 'notifications',
+            'description' => "Campagne de notifications supprimée ({$count} copies) : {$title}",
+            'resource_type' => 'notification',
+            'resource_id' => $batchUuid,
+            'level' => 'warning',
+        ]);
+
+        return $count;
+    }
+
+    /**
      * Récupérer les notifications d'un utilisateur
      */
     public function getUserNotifications(string $userUuid, array $filters = [], int $perPage = 20)

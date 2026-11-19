@@ -7,7 +7,6 @@ use App\Models\Api\Ynov\parameter\SecurityQuestion;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserSecurityAnswer;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SecurityQuestionService
@@ -90,6 +89,11 @@ class SecurityQuestionService
                     'Quelle est votre plus grande fierté ?',
                     'Quel est votre meilleur ami d\'enfance ?',
                     'Quel est votre restaurant préféré ?',
+                ]
+            ],
+            [
+                'category' => 'Autres',
+                'questions' => [
                 ]
             ],
         ];

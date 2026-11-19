@@ -53,6 +53,81 @@ class GroupNotifController extends Controller
     }
 
     /**
+     * Mettre à jour une campagne de notifications envoyée via ce groupe
+     */
+    public function updateNotification(Request $request, string $uuid_group_notif, string $batch_uuid): JsonResponse
+    {
+        GroupNotif::where('uuid_group_notif', $uuid_group_notif)->firstOrFail();
+
+        $validated = $request->validate([
+            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'body' => ['sometimes', 'nullable', 'string'],
+            'type' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'action_url' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'action_label' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'channels' => ['sometimes', 'required', 'array', 'min:1'],
+            'channels.*' => ['string', 'in:database,email,sms,push,whatsapp'],
+        ]);
+
+        $count = $this->notificationService->updateGroupNotificationCampaign(
+            $uuid_group_notif,
+            $batch_uuid,
+            $validated,
+            $request->user()->uuid_user
+        );
+
+        if ($count === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Notification non trouvée pour ce groupe.',
+                'code' => 'NOTIFICATION_NOT_FOUND',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification mise à jour.',
+            'code' => 'NOTIFICATION_UPDATED',
+            'data' => [
+                'batch_uuid' => $batch_uuid,
+                'updated_count' => $count,
+            ],
+        ]);
+    }
+
+    /**
+     * Supprimer une campagne de notifications envoyée via ce groupe
+     */
+    public function deleteNotification(Request $request, string $uuid_group_notif, string $batch_uuid): JsonResponse
+    {
+        GroupNotif::where('uuid_group_notif', $uuid_group_notif)->firstOrFail();
+
+        $count = $this->notificationService->deleteGroupNotificationCampaign(
+            $uuid_group_notif,
+            $batch_uuid,
+            $request->user()->uuid_user
+        );
+
+        if ($count === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Notification non trouvée pour ce groupe.',
+                'code' => 'NOTIFICATION_NOT_FOUND',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification supprimée.',
+            'code' => 'NOTIFICATION_DELETED',
+            'data' => [
+                'batch_uuid' => $batch_uuid,
+                'deleted_count' => $count,
+            ],
+        ]);
+    }
+
+    /**
      * Liste des groupes de notification
      */
     public function index(Request $request): JsonResponse
