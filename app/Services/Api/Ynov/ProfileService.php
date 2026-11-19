@@ -40,7 +40,6 @@ class ProfileService
             }
 
             $detailsData = $this->prepareDetailsData($data);
-            $this->resolvePhoto($user, $data, $detailsData);
 
             if ($user->details) {
                 $detailsData['updated_by'] = $user->uuid_user;
@@ -88,38 +87,45 @@ class ProfileService
     }
     
     /**
-     * Résout l'action photo demandée et met à jour $detailsData en conséquence.
-     * Priorité : remove_photo > photo_url > photo (upload).
-     * L'upload n'a lieu que si c'est l'action retenue (évite les fichiers orphelins).
+     * Mettre à jour la photo de profil : upload WebDAV + suppression
+     * automatique de l'ancienne photo (document + fichier legacy).
      */
-    private function resolvePhoto(User $user, array $data, array &$detailsData): void
+    public function updatePhoto(User $user, \Illuminate\Http\UploadedFile $photo): string
     {
-        $ancienPhotoPath = $user->details?->photo_path;
-        Log::info('[ProfileService] Ancien chemin de photo pour l\'utilisateur ' . $user->uuid_user . ': ' . ($ancienPhotoPath ?? 'null'));
+        return DB::transaction(function () use ($user, $photo) {
+            // uploadPhoto() supprime déjà l'ancienne photo (documents + legacy local)
+            $photoPath = $this->uploadPhoto($photo, $user->uuid_user);
 
-        if (!empty($data['remove_photo'])) {
-            Log::info('[ProfileService] Suppressiondddddd de photo de profil pour l\'utilisateur ' . $user->uuid_user);
-            $this->deletePhoto($ancienPhotoPath);
-            $detailsData['photo'] = null;
-            $detailsData['photo_path'] = null;
-            return;
-        }
+            if ($user->details) {
+                $user->details->update([
+                    'photo_path' => $photoPath,
+                    'photo'      => null,
+                    'updated_by' => $user->uuid_user,
+                ]);
+            } else {
+                UserDetails::create([
+                    'user_uuid'   => $user->uuid_user,
+                    'uuid_user_details' => (string) Str::uuid(),
+                    'photo_path'  => $photoPath,
+                    'photo'       => null,
+                    'created_by'  => $user->uuid_user,
+                ]);
+            }
 
-        if (!empty($data['photo_url'])) {
-            Log::info('[ProfileService] Suppression de photo de profil pour l\'utilisateur ' . $user->uuid_user);
-            $this->deletePhoto($ancienPhotoPath);
-            $detailsData['photo'] = $data['photo_url'];
-            $detailsData['photo_path'] = null;
-            return;
-        }
+            ActivityLog::log([
+                'user_uuid' => $user->uuid_user,
+                'action' => 'profile_photo_update',
+                'action_type' => 'crud',
+                'module' => 'profile',
+                'description' => 'Mise à jour de la photo de profil',
+                'resource_type' => 'user',
+                'resource_id' => $user->uuid_user,
+                'new_values' => ['photo_path' => $photoPath],
+                'level' => 'info',
+            ]);
 
-        if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile && $data['photo']->isValid()) {
-            Log::info('[ProfileService] Upload de photo de profil pour l\'utilisateur ' . $user->uuid_user);
-        // if (isset($data['photo']) && $data['photo']->isValid()) {
-            $photoPath = $this->uploadPhoto($data['photo'], $user->uuid_user);
-            $detailsData['photo_path'] = $photoPath;
-            $detailsData['photo'] = null;
-        }
+            return $photoPath;
+        });
     }
 
     /**

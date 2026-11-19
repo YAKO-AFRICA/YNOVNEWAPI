@@ -294,6 +294,7 @@ Route::prefix('v1')->middleware([
 
     Route::get('profile', [ProfileController::class, 'show']);
     Route::put('profile', [ProfileController::class, 'update']);
+    Route::post('profile/photo', [ProfileController::class, 'updatePhoto']);
     Route::delete('profile/photo', [ProfileController::class, 'deletePhoto']);
 
     Route::group(['middleware' => 'permission:users.afficher'], function () {
