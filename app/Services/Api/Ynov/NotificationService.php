@@ -198,13 +198,28 @@ class NotificationService
             }
         }
 
+        $channels = null;
         if (!empty($data['channels']) && is_array($data['channels'])) {
             $channels = array_values($data['channels']);
             $updates['channel'] = $channels[0] ?? 'database';
-            $updates['metadata->channels'] = $channels;
         }
 
         $count = $query->update($updates);
+
+        // MariaDB ne supporte pas CAST(? AS JSON) : mise à jour de metadata par lots
+        if ($channels !== null) {
+            $this->campaignQuery($groupNotifUuid, $batchUuid)
+                ->select('uuid_notification', 'metadata')
+                ->orderBy('uuid_notification')
+                ->chunk(200, function ($notifications) use ($channels) {
+                    foreach ($notifications as $notification) {
+                        $metadata = $notification->metadata ?? [];
+                        $metadata['channels'] = $channels;
+                        $notification->metadata = $metadata;
+                        $notification->save();
+                    }
+                });
+        }
 
         ActivityLog::log([
             'user_uuid' => $userUuid,
