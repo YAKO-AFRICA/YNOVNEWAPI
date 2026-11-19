@@ -396,7 +396,7 @@ class SecurityQuestionController extends Controller
         $question = SecurityQuestion::where('uuid', $uuid)->firstOrFail();
 
         $validator = Validator::make($request->all(), [
-            'question_text' => ['sometimes', 'string', 'max:255', 'unique:security_questions,question_text,' . $question->id],
+            'question_text' => ['sometimes', 'string', 'max:255', 'unique:security_questions,question_text,' . $question->uuid . ',uuid'],
             'category' => ['nullable', 'string', 'max:50'],
             'is_active' => ['nullable', 'boolean'],
             'is_system' => ['nullable', 'boolean'],

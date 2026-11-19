@@ -6013,7 +6013,7 @@
                 module: "profile",
                 name: "Mettre à jour ma photo de profil",
                 description:
-                    "Upload une nouvelle photo de profil (multipart/form-data). L'ancienne photo est supprimée automatiquement (fichier WebDAV + enregistrement document). La photo est stockée dans `PROFILE_PICTURE/AAAA/MM/` sur le disque documents et accessible via `photo_url` (`preview/doc/{fichier}`).",
+                    "Upload une nouvelle photo de profil (multipart/form-data). L'ancienne photo est supprimée automatiquement (fichier WebDAV + enregistrement document). La photo est stockée dans `PROFILE-PICTURE/AAAA/MM/` sur le disque documents et accessible via `photo_url` (`preview/doc/{fichier}`).",
                 method: "POST",
                 path: "/profile/photo",
                 isProtected: true,
