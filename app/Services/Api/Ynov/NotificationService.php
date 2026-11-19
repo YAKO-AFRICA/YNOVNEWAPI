@@ -164,7 +164,10 @@ class NotificationService
         return Notification::inGroup($groupNotifUuid)
             ->where(function ($q) use ($batchUuid) {
                 $q->where('uuid_notification', $batchUuid)
-                  ->orWhere('metadata->batch_uuid', $batchUuid);
+                  ->orWhereRaw(
+                      "JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.batch_uuid')) COLLATE utf8mb4_bin = ?",
+                      [$batchUuid]
+                  );
             });
     }
 
@@ -349,7 +352,7 @@ class NotificationService
                 $query->whereRaw('1 = 0');
             } else {
                 $query->whereRaw(
-                    "{$batchExpr} IN (" . implode(',', array_fill(0, $batches->count(), '?')) . ")",
+                    "({$batchExpr}) COLLATE utf8mb4_bin IN (" . implode(',', array_fill(0, $batches->count(), '?')) . ")",
                     $batches->all()
                 );
             }
