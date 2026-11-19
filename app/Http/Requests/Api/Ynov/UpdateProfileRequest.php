@@ -47,11 +47,6 @@ class UpdateProfileRequest extends FormRequest
             'matricule' => ['nullable', 'string', 'max:35'],
             'numero_client' => ['nullable', 'string', 'max:35'],
             
-            // Gestion de la photo
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-            'photo_url' => ['nullable', 'string', 'max:255', 'url'],
-            'remove_photo' => ['nullable', 'boolean'],
-            
             // Préférences
             'preferences' => ['nullable', 'array'],
         ];
@@ -60,9 +55,6 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'photo.image' => 'Le fichier doit être une image.',
-            'photo.mimes' => 'Le fichier doit être au format jpeg, png, jpg, gif ou webp.',
-            'photo.max' => 'La photo ne doit pas dépasser 2 Mo.',
             'date_naissance.before' => 'La date de naissance doit être dans le passé.',
             'genre.in' => 'Le genre doit être M ou F.',
             'civilite.in' => 'La civilité doit être M., Mme, Mlle, Dr ou Pr.',

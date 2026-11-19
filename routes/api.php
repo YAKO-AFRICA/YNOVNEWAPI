@@ -294,6 +294,7 @@ Route::prefix('v1')->middleware([
 
     Route::get('profile', [ProfileController::class, 'show']);
     Route::put('profile', [ProfileController::class, 'update']);
+    Route::post('profile/photo', [ProfileController::class, 'updatePhoto']);
     Route::delete('profile/photo', [ProfileController::class, 'deletePhoto']);
 
     Route::group(['middleware' => 'permission:users.afficher'], function () {
@@ -615,6 +616,12 @@ Route::prefix('v1')->middleware([
         // Notifications envoyées via ce groupe
         Route::get('{uuid_group_notif}/notifications', [GroupNotifController::class, 'notifications'])
             ->middleware('permission:group_notifs.afficher');
+
+        Route::put('{uuid_group_notif}/notifications/{batch_uuid}', [GroupNotifController::class, 'updateNotification'])
+            ->middleware('permission:group_notifs.modifier');
+
+        Route::delete('{uuid_group_notif}/notifications/{batch_uuid}', [GroupNotifController::class, 'deleteNotification'])
+            ->middleware('permission:group_notifs.supprimer');
     });
     // ============================================================
     // NOTIFICATIONS

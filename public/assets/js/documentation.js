@@ -5715,11 +5715,8 @@
                                     mobile_2: "+2250708091012",
                                     telephone_fixe: "+2252720304050",
                                     email_pro: "jean.dupont@yako.ci",
-                                    photo: null,
-                                    photo_path:
-                                        "profiles/550e8400-e29b-41d4-a716-446655440000/profile_550e8400-e29b-41d4-a716-446655440000_1698765432.jpg",
                                     photo_url:
-                                        "https://api.ynov.ci/storage/documents/profiles/550e8400-e29b-41d4-a716-446655440000/profile_550e8400-e29b-41d4-a716-446655440000_1698765432.jpg",
+                                        "https://apidev.yakoafricassur.com/preview/doc/profile_550e8400-e29b-41d4-a716-446655440000_1698765432.jpg",
                                     date_naissance: "1985-06-15",
                                     lieu_naissance: "Abidjan",
                                     lieu_residence: "Cocody",
@@ -5784,14 +5781,13 @@
                 module: "profile",
                 name: "Mettre à jour mon profil",
                 description:
-                    "Modifie les informations personnelles de l'utilisateur connecté. **NOUVEAU :** Support de l'upload de photo de profil (image) et des URLs externes. Permet de mettre à jour le login, l'email, les coordonnées, la photo, et les informations professionnelles.",
+                    "Modifie les informations personnelles de l'utilisateur connecté : login, email, coordonnées et informations professionnelles. **La photo de profil ne se gère plus ici** — utilisez `POST /profile/photo` pour l'upload et `DELETE /profile/photo` pour la suppression.",
                 method: "PUT",
                 path: "/profile",
                 isProtected: true,
                 headers: {
                     Authorization: "Bearer {token}",
-                    "Content-Type":
-                        "multipart/form-data (pour upload photo) ou application/json",
+                    "Content-Type": "application/json",
                     Accept: "application/json",
                 },
                 requestParams: {
@@ -5957,24 +5953,6 @@
                             max: 35,
                             description: "Numéro client",
                         },
-                        photo: {
-                            type: "file (image)",
-                            required: false,
-                            mimes: "jpeg,png,jpg,gif,webp",
-                            max: "2048 Ko",
-                            description: "Photo de profil (upload)",
-                        },
-                        photo_url: {
-                            type: "string (url)",
-                            required: false,
-                            max: 255,
-                            description: "URL externe de la photo",
-                        },
-                        remove_photo: {
-                            type: "boolean",
-                            required: false,
-                            description: "Supprimer la photo actuelle",
-                        },
                         preferences: {
                             type: "object",
                             required: false,
@@ -5989,7 +5967,6 @@
                     mobile_1: "+2250708091011",
                     ville: "Abidjan",
                     pays: "Côte d'Ivoire",
-                    photo: "[Fichier image]",
                 },
                 exampleRequestJson: {
                     nom: "Dupont",
@@ -5997,7 +5974,6 @@
                     fonction: "Directeur Commercial",
                     mobile_1: "+2250708091011",
                     ville: "Abidjan",
-                    photo_url: "https://example.com/photos/jean.jpg",
                 },
                 responses: [
                     {
@@ -6018,7 +5994,70 @@
                             message: "Données invalides.",
                             errors: {
                                 email: ["Cet email est déjà utilisé."],
-                                photo: ["La photo ne doit pas dépasser 2 Mo."],
+                            },
+                        },
+                    },
+                    {
+                        status: 401,
+                        description: "Non authentifié",
+                        example: {
+                            success: false,
+                            message: "Non authentifié.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "profile-update-photo",
+                module: "profile",
+                name: "Mettre à jour ma photo de profil",
+                description:
+                    "Upload une nouvelle photo de profil (multipart/form-data). L'ancienne photo est supprimée automatiquement (fichier WebDAV + enregistrement document). La photo est stockée dans `PROFILE_PICTURE/AAAA/MM/` sur le disque documents et accessible via `photo_url` (`preview/doc/{fichier}`).",
+                method: "POST",
+                path: "/profile/photo",
+                isProtected: true,
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "multipart/form-data",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    body: {
+                        photo: {
+                            type: "file (image)",
+                            required: true,
+                            mimes: "jpeg,png,jpg,gif,webp",
+                            max: "2048 Ko",
+                            description: "Photo de profil",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    photo: "[Fichier image]",
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Photo mise à jour avec succès",
+                        example: {
+                            success: true,
+                            message:
+                                "Photo de profil mise à jour avec succès.",
+                            code: "PHOTO_UPDATED",
+                            data: {},
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Données invalides.",
+                            errors: {
+                                photo: [
+                                    "Le fichier doit être une image.",
+                                ],
                             },
                         },
                     },
@@ -14416,6 +14455,164 @@
                         example: {
                             success: false,
                             message: "Permission refusée.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "admin-group-notifs-notification-update",
+                module: "group_notifs",
+                name: "[Admin] Modifier une notification d'un groupe",
+                description:
+                    "Met à jour toutes les copies d'une campagne de notifications envoyée via un groupe (title, body, type, action_url, action_label, channels). Le batch_uuid correspond à la valeur retournée par l'endpoint de liste des campagnes ; pour les notifications unitaires, utiliser leur uuid_notification. Les statuts par destinataire (read_at, is_important) ne sont pas modifiés. Nécessite la permission `group_notifs.modifier`.",
+                method: "PUT",
+                path: "/admin/group-notifs/{uuid_group_notif}/notifications/{batch_uuid}",
+                isProtected: true,
+                permissionsRequired: ["group_notifs.modifier"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_group_notif: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du groupe de notification",
+                        },
+                        batch_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "batch_uuid de la campagne (ou uuid_notification pour une notif unitaire)",
+                        },
+                    },
+                    body: {
+                        title: {
+                            type: "string",
+                            required: false,
+                            max: 255,
+                            description: "Titre de la notification",
+                        },
+                        body: {
+                            type: "string",
+                            required: false,
+                            description: "Corps du message",
+                        },
+                        type: {
+                            type: "string",
+                            required: false,
+                            max: 50,
+                            description: "Type (system, info, warning...)",
+                        },
+                        action_url: {
+                            type: "string",
+                            required: false,
+                            max: 500,
+                            description: "URL d'action",
+                        },
+                        action_label: {
+                            type: "string",
+                            required: false,
+                            max: 100,
+                            description: "Libellé du bouton d'action",
+                        },
+                        channels: {
+                            type: "array",
+                            required: false,
+                            description: "Canaux d'envoi (database, email, sms, push, whatsapp)",
+                        },
+                    },
+                },
+                exampleRequest: {
+                    title: "Maintenance planifiée",
+                    body: "Le serveur sera indisponible dimanche de 2h à 4h.",
+                    channels: ["database", "email"],
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Notification mise à jour",
+                        example: {
+                            success: true,
+                            message: "Notification mise à jour.",
+                            code: "NOTIFICATION_UPDATED",
+                            data: {
+                                batch_uuid: "...",
+                                updated_count: 42,
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Notification introuvable",
+                        example: {
+                            success: false,
+                            message: "Notification non trouvée pour ce groupe.",
+                            code: "NOTIFICATION_NOT_FOUND",
+                        },
+                    },
+                    {
+                        status: 422,
+                        description: "Erreur de validation",
+                        example: {
+                            success: false,
+                            message: "Données invalides.",
+                        },
+                    },
+                ],
+            },
+
+            {
+                id: "admin-group-notifs-notification-delete",
+                module: "group_notifs",
+                name: "[Admin] Supprimer une notification d'un groupe",
+                description:
+                    "Supprime (soft delete) toutes les copies d'une campagne de notifications envoyée via un groupe. Le batch_uuid correspond à la valeur retournée par l'endpoint de liste des campagnes ; pour les notifications unitaires, utiliser leur uuid_notification. La suppression est répercutée pour tous les destinataires. Nécessite la permission `group_notifs.supprimer`.",
+                method: "DELETE",
+                path: "/admin/group-notifs/{uuid_group_notif}/notifications/{batch_uuid}",
+                isProtected: true,
+                permissionsRequired: ["group_notifs.supprimer"],
+                headers: {
+                    Authorization: "Bearer {token}",
+                    Accept: "application/json",
+                },
+                requestParams: {
+                    path: {
+                        uuid_group_notif: {
+                            type: "uuid",
+                            required: true,
+                            description: "UUID du groupe de notification",
+                        },
+                        batch_uuid: {
+                            type: "uuid",
+                            required: true,
+                            description: "batch_uuid de la campagne (ou uuid_notification pour une notif unitaire)",
+                        },
+                    },
+                },
+                responses: [
+                    {
+                        status: 200,
+                        description: "Notification supprimée",
+                        example: {
+                            success: true,
+                            message: "Notification supprimée.",
+                            code: "NOTIFICATION_DELETED",
+                            data: {
+                                batch_uuid: "...",
+                                deleted_count: 42,
+                            },
+                        },
+                    },
+                    {
+                        status: 404,
+                        description: "Notification introuvable",
+                        example: {
+                            success: false,
+                            message: "Notification non trouvée pour ce groupe.",
+                            code: "NOTIFICATION_NOT_FOUND",
                         },
                     },
                 ],

@@ -75,6 +75,34 @@ class ProfileController extends Controller
     }
 
     /**
+     * Mettre à jour la photo de profil (upload multipart)
+     */
+    public function updatePhoto(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+        $this->profileService->updatePhoto($user, $validated['photo']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Photo de profil mise à jour avec succès.',
+            'code' => 'PHOTO_UPDATED',
+            'data' => new UserResource($user->fresh()->load([
+                'role.permissions.group',
+                'details',
+                'partner',
+                'reseau',
+                'agences',
+                'groupNotifs',
+                'userContrats', 'details.userProfession', 'details.userLieunaissance', 'details.userLieuresidence'
+            ])),
+        ]);
+    }
+
+    /**
      * Supprimer la photo de profil
      */
     public function deletePhoto(Request $request): JsonResponse
