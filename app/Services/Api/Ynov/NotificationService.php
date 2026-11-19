@@ -165,7 +165,7 @@ class NotificationService
             ->where(function ($q) use ($batchUuid) {
                 $q->where('uuid_notification', $batchUuid)
                   ->orWhereRaw(
-                      "JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.batch_uuid')) COLLATE utf8mb4_bin = ?",
+                      "JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.batch_uuid')) COLLATE utf8_bin = ?",
                       [$batchUuid]
                   );
             });
@@ -352,7 +352,7 @@ class NotificationService
                 $query->whereRaw('1 = 0');
             } else {
                 $query->whereRaw(
-                    "({$batchExpr}) COLLATE utf8mb4_bin IN (" . implode(',', array_fill(0, $batches->count(), '?')) . ")",
+                    "({$batchExpr}) COLLATE utf8_bin IN (" . implode(',', array_fill(0, $batches->count(), '?')) . ")",
                     $batches->all()
                 );
             }
