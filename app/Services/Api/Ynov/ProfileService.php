@@ -95,8 +95,10 @@ class ProfileService
     private function resolvePhoto(User $user, array $data, array &$detailsData): void
     {
         $ancienPhotoPath = $user->details?->photo_path;
+        Log::info('[ProfileService] Ancien chemin de photo pour l\'utilisateur ' . $user->uuid_user . ': ' . ($ancienPhotoPath ?? 'null'));
 
         if (!empty($data['remove_photo'])) {
+            Log::info('[ProfileService] Suppressiondddddd de photo de profil pour l\'utilisateur ' . $user->uuid_user);
             $this->deletePhoto($ancienPhotoPath);
             $detailsData['photo'] = null;
             $detailsData['photo_path'] = null;
@@ -104,13 +106,16 @@ class ProfileService
         }
 
         if (!empty($data['photo_url'])) {
+            Log::info('[ProfileService] Suppression de photo de profil pour l\'utilisateur ' . $user->uuid_user);
             $this->deletePhoto($ancienPhotoPath);
             $detailsData['photo'] = $data['photo_url'];
             $detailsData['photo_path'] = null;
             return;
         }
 
-        if (isset($data['photo']) && $data['photo']->isValid()) {
+        if (isset($data['photo']) && $data['photo'] instanceof \Illuminate\Http\UploadedFile && $data['photo']->isValid()) {
+            Log::info('[ProfileService] Upload de photo de profil pour l\'utilisateur ' . $user->uuid_user);
+        // if (isset($data['photo']) && $data['photo']->isValid()) {
             $photoPath = $this->uploadPhoto($data['photo'], $user->uuid_user);
             $detailsData['photo_path'] = $photoPath;
             $detailsData['photo'] = null;
