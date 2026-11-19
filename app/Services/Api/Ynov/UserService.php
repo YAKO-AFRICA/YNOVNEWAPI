@@ -10,6 +10,7 @@ use App\Models\Api\Ynov\parameter\ActivityLog;
 use App\Models\Api\Ynov\parameter\Role;
 use App\Models\Api\Ynov\parameter\User;
 use App\Models\Api\Ynov\parameter\UserDetails;
+use App\Models\Api\Ynov\parameter\UserGroupNotif;
 use App\Models\Api\Ynov\parameter\UserSecurityAnswer;
 use App\Models\Api\Ynov\UserContrat;
 use App\Services\Api\Ynov\Auth\PasswordService;
@@ -83,6 +84,9 @@ class UserService
             if (!empty($data['agence_uuid']) && empty($data['agence_uuids'])) {
                 $this->assignAgences($user, [$data['agence_uuid']], $creatorUuid);
             }
+
+            // Assigner le groupe de notifications par défaut selon le rôle
+            $this->assignDefaultGroupNotif($user, $creatorUuid);
 
             // Notifications
             $this->sendWelcomeNotifications($user, $data['password']);
@@ -261,6 +265,9 @@ class UserService
                         $contrat['ProduitFormule'] ?? null,
                 ]);
             }
+
+            // Assigner le groupe de notifications par défaut (rôle client)
+            $this->assignDefaultGroupNotif($user, 'system');
 
              // Créer une notification de bienvenue pour le client
             $this->notificationService->create([
@@ -563,6 +570,9 @@ class UserService
                 ]);
             }
             Log::info('createClientAPI - Contrats créés');
+
+            // Assigner le groupe de notifications par défaut (rôle client)
+            $this->assignDefaultGroupNotif($user, 'system');
 
              // Créer une notification de bienvenue pour le client
             Log::info('createClientAPI - Création notification bienvenue');
@@ -1267,5 +1277,43 @@ class UserService
     {
         $group = GroupNotif::where('code', 'compte')->first();
         return $group?->uuid_group_notif;
+    }
+
+    /**
+     * Assigner le groupe de notifications par défaut selon le rôle de l'utilisateur.
+     * Les utilisateurs avec le rôle "client" sont rattachés au groupe "clients".
+     */
+    private function assignDefaultGroupNotif(User $user, ?string $assignedBy = null): void
+    {
+        if ($user->role?->code !== 'client') {
+            return;
+        }
+
+        $group = GroupNotif::where('code', 'clients')->first();
+
+        if (!$group) {
+            Log::warning('Groupe de notifications "clients" introuvable', [
+                'user_uuid' => $user->uuid_user,
+            ]);
+            return;
+        }
+
+        $alreadyAssigned = UserGroupNotif::where('user_uuid', $user->uuid_user)
+            ->where('group_notif_uuid', $group->uuid_group_notif)
+            ->exists();
+
+        if ($alreadyAssigned) {
+            return;
+        }
+
+        UserGroupNotif::create([
+            'uuid_user_group_notif' => (string) Str::uuid(),
+            'user_uuid' => $user->uuid_user,
+            'group_notif_uuid' => $group->uuid_group_notif,
+            'is_primary' => true,
+            'is_active' => true,
+            'assigned_at' => now(),
+            'assigned_by' => $assignedBy,
+        ]);
     }
 }
